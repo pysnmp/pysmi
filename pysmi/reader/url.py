@@ -28,32 +28,45 @@ def getReadersFromUrls(*sourceUrls, **options):
     for sourceUrl in sourceUrls:
         mibSource = urlparse.urlparse(sourceUrl)
 
-        if mibSource.scheme in ('', 'file', 'zip'):
+        if mibSource.scheme in ("", "file", "zip"):
             scheme = mibSource.scheme
             filePath = url2pathname(mibSource.path)
-            if scheme != 'file' and (filePath.endswith('.zip') or
-                                     filePath.endswith('.ZIP')):
-                scheme = 'zip'
+            if scheme != "file" and (
+                filePath.endswith(".zip") or filePath.endswith(".ZIP")
+            ):
+                scheme = "zip"
 
             else:
-                scheme = 'file'
+                scheme = "file"
 
-            if scheme == 'file':
+            if scheme == "file":
                 readers.append(FileReader(filePath).setOptions(**options))
             else:
                 readers.append(ZipReader(filePath).setOptions(**options))
 
-        elif mibSource.scheme in ('http', 'https'):
-            readers.append(HttpReader(mibSource.hostname or mibSource.netloc, mibSource.port or 80, mibSource.path,
-                                      ssl=mibSource.scheme == 'https').setOptions(**options))
-
-        elif mibSource.scheme in ('ftp', 'sftp'):
+        elif mibSource.scheme in ("http", "https"):
             readers.append(
-                FtpReader(mibSource.hostname or mibSource.netloc, mibSource.path, ssl=mibSource.scheme == 'sftp',
-                          port=mibSource.port or 21, user=mibSource.username or 'anonymous',
-                          password=mibSource.password or 'anonymous@').setOptions(**options))
+                HttpReader(
+                    mibSource.hostname or mibSource.netloc,
+                    mibSource.port or 80,
+                    mibSource.path,
+                    ssl=mibSource.scheme == "https",
+                ).setOptions(**options)
+            )
+
+        elif mibSource.scheme in ("ftp", "sftp"):
+            readers.append(
+                FtpReader(
+                    mibSource.hostname or mibSource.netloc,
+                    mibSource.path,
+                    ssl=mibSource.scheme == "sftp",
+                    port=mibSource.port or 21,
+                    user=mibSource.username or "anonymous",
+                    password=mibSource.password or "anonymous@",
+                ).setOptions(**options)
+            )
 
         else:
-            raise error.PySmiError('Unsupported URL scheme %s' % sourceUrl)
+            raise error.PySmiError("Unsupported URL scheme %s" % sourceUrl)
 
     return readers
