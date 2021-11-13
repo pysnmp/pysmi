@@ -14,7 +14,7 @@ compilation using noDeps flag.
 
 Also, we do not check if target file already exists thus MIB
 compilation occurs on every invocation.
-"""#
+"""  #
 from pysmi.reader import HttpReader
 from pysmi.reader import FtpReader
 from pysmi.searcher import StubSearcher
@@ -23,20 +23,14 @@ from pysmi.parser import SmiStarParser
 from pysmi.codegen import PySnmpCodeGen
 from pysmi.compiler import MibCompiler
 
-inputMibs = ['IF-MIB', 'IP-MIB']
-httpSources = [
-    ('mibs.snmplabs.com', 80, '/asn1/@mib@')
-]
-ftpSources = [
-    ('ftp.cisco.com', '/pub/mibs/v2/@mib@')
-]
-dstDirectory = '.pysnmp-mibs'
+inputMibs = ["IF-MIB", "IP-MIB"]
+httpSources = [("mibs.snmplabs.com", 80, "/asn1/@mib@")]
+ftpSources = [("ftp.cisco.com", "/pub/mibs/v2/@mib@")]
+dstDirectory = ".pysnmp-mibs"
 
 # Initialize compiler infrastructure
 
-mibCompiler = MibCompiler(
-    SmiStarParser(), PySnmpCodeGen(), PyFileWriter(dstDirectory)
-)
+mibCompiler = MibCompiler(SmiStarParser(), PySnmpCodeGen(), PyFileWriter(dstDirectory))
 
 # search for source MIBs at Web and FTP sites
 mibCompiler.addSources(*[HttpReader(*x) for x in httpSources])
@@ -48,4 +42,4 @@ mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs, **dict(noDeps=True))
 
-print('Results: %s' % ', '.join([f'{x}:{results[x]}' for x in results]))
+print("Results: %s" % ", ".join([f"{x}:{results[x]}" for x in results]))
