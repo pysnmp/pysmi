@@ -16,9 +16,8 @@ from pysmi.codegen.base import AbstractCodeGen
 from pysmi import error
 from pysmi import debug
 
-if sys.version_info[0] > 2:
-    unicode = str
-    long = int
+unicode = str
+long = int
 
 
 class IntermediateCodeGen(AbstractCodeGen):
