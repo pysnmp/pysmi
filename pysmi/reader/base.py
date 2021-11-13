@@ -19,7 +19,7 @@ class AbstractReader:
             setattr(self, k, kwargs[k])
         return self
 
-    def getMibVariants(self, mibname, **options):
+    def getMibVariants(self, mibname: str, **options):
         filenames = []
 
         if self.originalMatching:

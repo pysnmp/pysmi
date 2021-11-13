@@ -187,12 +187,12 @@ How to get PySMI
 
 The pysmi package is distributed under terms and conditions of 2-clause
 BSD [license](http://snmplabs.com/pysmi/license.html). Source code is freely
-available as a GitHub [repo](https://github.com/etingof/pysmi).
+available as a GitHub [repo](https://github.com/pysnmp/pysmi).
 
-You could `pip install pysmi` or download it from [PyPI](https://pypi.org/project/pysmi/).
+You could `pip install pysnmp-pysmi` or download it from [PyPI](https://pypi.org/project/pysnmp-pysmi/).
 
 If something does not work as expected,
-[open an issue](https://github.com/etingof/pysmi/issues) at GitHub or
+[open an issue](https://github.com/pysnmp/pysmi/issues) at GitHub or
 post your question [on Stack Overflow](http://stackoverflow.com/questions/ask).
 
 Copyright (c) 2015-2020, [Ilya Etingof](mailto:etingof@gmail.com).
