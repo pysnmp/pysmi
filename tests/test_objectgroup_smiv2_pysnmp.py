@@ -12,11 +12,12 @@ try:
 except ImportError:
     import unittest
 
-from pysmi.parser.smi import parserFactory
-from pysmi.parser.dialect import smiV2
+from pysnmp.smi.builder import MibBuilder
+
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysnmp.smi.builder import MibBuilder
+from pysmi.parser.dialect import smiV2
+from pysmi.parser.smi import parserFactory
 
 
 class ObjectGroupTestCase(unittest.TestCase):

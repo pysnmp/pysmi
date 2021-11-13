@@ -5,8 +5,8 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import logging
-from pysmi import error
-from pysmi import __version__
+
+from pysmi import __version__, error
 
 flagNone = 0x0000
 flagSearcher = 0x0001

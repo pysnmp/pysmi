@@ -4,20 +4,19 @@
 # Copyright (c) 2015-2020, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 import os
+import sys
 
 try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
-from pysmi.codegen.intermediate import IntermediateCodeGen
-from pysmi.codegen import jfilters
-from pysmi import error
-from pysmi import debug
 
 import jinja2
 
+from pysmi import debug, error
+from pysmi.codegen import jfilters
+from pysmi.codegen.intermediate import IntermediateCodeGen
 
 # noinspection PyShadowingBuiltins
 unicode = str

@@ -8,10 +8,10 @@
 #
 import sys
 from keyword import iskeyword
-from pysmi.mibinfo import MibInfo
+
+from pysmi import debug, error
 from pysmi.codegen.base import AbstractCodeGen, dorepr
-from pysmi import error
-from pysmi import debug
+from pysmi.mibinfo import MibInfo
 
 # noinspection PyShadowingBuiltins
 unicode = str

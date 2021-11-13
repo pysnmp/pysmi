@@ -8,12 +8,12 @@ compile them into JSON documents and print them out to stdout.
 Try to support both SMIv1 and SMIv2 flavors of SMI as well as
 popular deviations from official syntax found in the wild.
 """  #
+from pysmi.codegen import JsonCodeGen
+from pysmi.compiler import MibCompiler
+from pysmi.parser import SmiStarParser
 from pysmi.reader import FileReader, HttpReader
 from pysmi.searcher import StubSearcher
 from pysmi.writer import CallbackWriter
-from pysmi.parser import SmiStarParser
-from pysmi.codegen import JsonCodeGen
-from pysmi.compiler import MibCompiler
 
 # from pysmi import debug
 

@@ -19,12 +19,12 @@ Default invocation of MIB compiler does not generate [potentially
 large] comments and texts found in MIBs. If you need them in pysnmp
 MIB modules, just pass genTexts flag to MIB compiler.
 """  #
+from pysmi.codegen import PySnmpCodeGen
+from pysmi.compiler import MibCompiler
+from pysmi.parser import SmiStarParser
 from pysmi.reader import FileReader
 from pysmi.searcher import PyFileSearcher, PyPackageSearcher, StubSearcher
 from pysmi.writer import PyFileWriter
-from pysmi.parser import SmiStarParser
-from pysmi.codegen import PySnmpCodeGen
-from pysmi.compiler import MibCompiler
 
 inputMibs = ["IF-MIB", "IP-MIB"]
 srcDirectories = ["/usr/share/snmp/mibs"]

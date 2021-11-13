@@ -7,9 +7,15 @@
 #
 # SNMP SMI/MIB data management tool
 #
+import getopt
 import os
 import sys
-import getopt
+
+from pysmi import debug, error
+from pysmi.borrower import AnyFileBorrower, PyFileBorrower
+from pysmi.codegen import JsonCodeGen, NullCodeGen, PySnmpCodeGen
+from pysmi.compiler import MibCompiler
+from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import getReadersFromUrls
 from pysmi.searcher import (
     AnyFileSearcher,
@@ -17,13 +23,7 @@ from pysmi.searcher import (
     PyPackageSearcher,
     StubSearcher,
 )
-from pysmi.borrower import AnyFileBorrower, PyFileBorrower
-from pysmi.writer import PyFileWriter, FileWriter, CallbackWriter
-from pysmi.parser import SmiV1CompatParser
-from pysmi.codegen import PySnmpCodeGen, JsonCodeGen, NullCodeGen
-from pysmi.compiler import MibCompiler
-from pysmi import debug
-from pysmi import error
+from pysmi.writer import CallbackWriter, FileWriter, PyFileWriter
 
 # sysexits.h
 EX_OK = 0

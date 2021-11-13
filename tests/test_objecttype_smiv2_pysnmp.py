@@ -13,10 +13,11 @@ except ImportError:
     import unittest
 
 from pyasn1.compat.octets import str2octs
-from pysmi.parser.smi import parserFactory
+from pysnmp.smi.builder import MibBuilder
+
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysnmp.smi.builder import MibBuilder
+from pysmi.parser.smi import parserFactory
 
 
 class ObjectTypeBasicTestCase(unittest.TestCase):

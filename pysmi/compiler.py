@@ -4,8 +4,8 @@
 # Copyright (c) 2015-2020, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 import os
+import sys
 import time
 
 try:
@@ -15,10 +15,9 @@ except ImportError:
     getpwuid = lambda x: ["<unknown>"]
 from pysmi import __name__ as packageName
 from pysmi import __version__ as packageVersion
-from pysmi.mibinfo import MibInfo
+from pysmi import debug, error
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysmi import error
-from pysmi import debug
+from pysmi.mibinfo import MibInfo
 
 
 class MibStatus(str):

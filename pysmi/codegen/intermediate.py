@@ -4,18 +4,18 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 import re
-from time import strptime, strftime
+import sys
+from time import strftime, strptime
 
 try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
-from pysmi.mibinfo import MibInfo
+
+from pysmi import debug, error
 from pysmi.codegen.base import AbstractCodeGen
-from pysmi import error
-from pysmi import debug
+from pysmi.mibinfo import MibInfo
 
 unicode = str
 long = int

@@ -15,13 +15,12 @@ compilation using noDeps flag.
 Also, we do not check if target file already exists thus MIB
 compilation occurs on every invocation.
 """  #
-from pysmi.reader import HttpReader
-from pysmi.reader import FtpReader
-from pysmi.searcher import StubSearcher
-from pysmi.writer import PyFileWriter
-from pysmi.parser import SmiStarParser
 from pysmi.codegen import PySnmpCodeGen
 from pysmi.compiler import MibCompiler
+from pysmi.parser import SmiStarParser
+from pysmi.reader import FtpReader, HttpReader
+from pysmi.searcher import StubSearcher
+from pysmi.writer import PyFileWriter
 
 inputMibs = ["IF-MIB", "IP-MIB"]
 httpSources = [("mibs.snmplabs.com", 80, "/asn1/@mib@")]

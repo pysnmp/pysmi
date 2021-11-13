@@ -5,8 +5,8 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import sys
-from pysmi import error
 
+from pysmi import error
 
 # noinspection PyShadowingBuiltins
 unicode = str

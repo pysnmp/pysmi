@@ -9,13 +9,13 @@ MIB source.
 
 Fetched pysnmp MIB(s) are stored in a local directory.
 """  #
-from pysmi.reader import HttpReader
-from pysmi.searcher import PyFileSearcher
 from pysmi.borrower import PyFileBorrower
-from pysmi.writer import PyFileWriter
-from pysmi.parser import NullParser
 from pysmi.codegen import NullCodeGen
 from pysmi.compiler import MibCompiler
+from pysmi.parser import NullParser
+from pysmi.reader import HttpReader
+from pysmi.searcher import PyFileSearcher
+from pysmi.writer import PyFileWriter
 
 inputMibs = ["BORROWED-MIB"]
 

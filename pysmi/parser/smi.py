@@ -6,11 +6,12 @@
 #
 import os
 import sys
+
 import ply.yacc as yacc
+
+from pysmi import debug, error
 from pysmi.lexer.smi import lexerFactory
 from pysmi.parser.base import AbstractParser
-from pysmi import error
-from pysmi import debug
 
 YACC_VERSION = [int(x) for x in yacc.__version__.split(".")]
 

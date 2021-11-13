@@ -5,9 +5,9 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import os
+import py_compile
 import sys
 import tempfile
-import py_compile
 
 try:
     import importlib
@@ -23,10 +23,9 @@ except ImportError:
 
     SOURCE_SUFFIXES = [s[0] for s in imp.get_suffixes() if s[2] == imp.PY_SOURCE]
 
+from pysmi import debug, error
+from pysmi.compat import decode, encode
 from pysmi.writer.base import AbstractWriter
-from pysmi.compat import encode, decode
-from pysmi import debug
-from pysmi import error
 
 
 class PyFileWriter(AbstractWriter):

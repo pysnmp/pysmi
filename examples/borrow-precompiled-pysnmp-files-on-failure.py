@@ -7,14 +7,13 @@ If no required MIB is found or its compilation fails for
 some reason, attempt to download precompiled version of
 failed MIB and store it locally as if we had compiled it.
 """  #
-from pysmi.reader import HttpReader
-from pysmi.searcher import PyFileSearcher
-from pysmi.searcher import StubSearcher
 from pysmi.borrower import PyFileBorrower
-from pysmi.writer import PyFileWriter
-from pysmi.parser import SmiStarParser
 from pysmi.codegen import PySnmpCodeGen
 from pysmi.compiler import MibCompiler
+from pysmi.parser import SmiStarParser
+from pysmi.reader import HttpReader
+from pysmi.searcher import PyFileSearcher, StubSearcher
+from pysmi.writer import PyFileWriter
 
 # from pysmi import debug
 

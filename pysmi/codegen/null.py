@@ -4,9 +4,9 @@
 # Copyright (c) 2015-2020, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-from pysmi.mibinfo import MibInfo
-from pysmi.codegen.base import AbstractCodeGen
 from pysmi import debug
+from pysmi.codegen.base import AbstractCodeGen
+from pysmi.mibinfo import MibInfo
 
 
 class NullCodeGen(AbstractCodeGen):

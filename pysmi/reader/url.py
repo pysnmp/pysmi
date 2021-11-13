@@ -8,19 +8,20 @@ import sys
 
 try:
     # noinspection PyUnresolvedReferences
-    import urlparse
     from urllib import url2pathname
+
+    import urlparse
 
 except ImportError:
     # noinspection PyUnresolvedReferences
     from urllib import parse as urlparse
     from urllib.request import url2pathname
 
+from pysmi import error
+from pysmi.reader.ftpclient import FtpReader
+from pysmi.reader.httpclient import HttpReader
 from pysmi.reader.localfile import FileReader
 from pysmi.reader.zipreader import ZipReader
-from pysmi.reader.httpclient import HttpReader
-from pysmi.reader.ftpclient import FtpReader
-from pysmi import error
 
 
 def getReadersFromUrls(*sourceUrls, **options):

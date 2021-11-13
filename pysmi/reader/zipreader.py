@@ -4,16 +4,16 @@
 # Copyright (c) 2015-2020, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import datetime
 import os
 import sys
 import time
-import datetime
 import zipfile
-from pysmi.reader.base import AbstractReader
-from pysmi.mibinfo import MibInfo
+
+from pysmi import debug, error
 from pysmi.compat import decode
-from pysmi import debug
-from pysmi import error
+from pysmi.mibinfo import MibInfo
+from pysmi.reader.base import AbstractReader
 
 
 class FileLike:

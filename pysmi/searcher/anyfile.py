@@ -7,10 +7,10 @@
 import os
 import sys
 import time
-from pysmi.searcher.base import AbstractSearcher
+
+from pysmi import debug, error
 from pysmi.compat import decode
-from pysmi import debug
-from pysmi import error
+from pysmi.searcher.base import AbstractSearcher
 
 
 class AnyFileSearcher(AbstractSearcher):

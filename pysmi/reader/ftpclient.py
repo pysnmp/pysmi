@@ -4,14 +4,14 @@
 # Copyright (c) 2015-2020, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import ftplib  # nosec
 import sys
 import time
-import ftplib  # nosec
-from pysmi.reader.base import AbstractReader
-from pysmi.mibinfo import MibInfo
+
+from pysmi import debug, error
 from pysmi.compat import decode
-from pysmi import error
-from pysmi import debug
+from pysmi.mibinfo import MibInfo
+from pysmi.reader.base import AbstractReader
 
 
 class FtpReader(AbstractReader):

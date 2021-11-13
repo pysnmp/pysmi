@@ -5,9 +5,9 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import sys
+
+from pysmi import debug, error
 from pysmi.writer.base import AbstractWriter
-from pysmi import debug
-from pysmi import error
 
 
 class CallbackWriter(AbstractWriter):

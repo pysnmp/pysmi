@@ -5,8 +5,8 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import os
-import time
 import struct
+import time
 
 try:
     import importlib
@@ -26,11 +26,10 @@ except ImportError:
     SOURCE_SUFFIXES = [s[0] for s in imp.get_suffixes() if s[2] == imp.PY_SOURCE]
     BYTECODE_SUFFIXES = [s[0] for s in imp.get_suffixes() if s[2] == imp.PY_COMPILED]
 
+from pysmi import debug, error
+from pysmi.compat import decode
 from pysmi.searcher.base import AbstractSearcher
 from pysmi.searcher.pyfile import PyFileSearcher
-from pysmi.compat import decode
-from pysmi import debug
-from pysmi import error
 
 
 class PyPackageSearcher(AbstractSearcher):

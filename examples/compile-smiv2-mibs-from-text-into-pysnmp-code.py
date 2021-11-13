@@ -12,12 +12,13 @@ We use noDeps flag to prevent MIB compiler from attemping
 to compile IMPORT'ed MIBs as well.
 """  #
 import sys
+
+from pysmi.codegen import PySnmpCodeGen
+from pysmi.compiler import MibCompiler
+from pysmi.parser import SmiV2Parser
 from pysmi.reader import CallbackReader
 from pysmi.searcher import StubSearcher
 from pysmi.writer import CallbackWriter
-from pysmi.parser import SmiV2Parser
-from pysmi.codegen import PySnmpCodeGen
-from pysmi.compiler import MibCompiler
 
 inputMibs = ["IF-MIB", "IP-MIB"]
 srcDir = "/usr/share/snmp/mibs/"  # we will read MIBs from here
