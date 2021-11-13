@@ -100,7 +100,7 @@ try:
 
 except getopt.GetoptError:
     if verboseFlag:
-        sys.stderr.write('ERROR: %s\r\n%s\r\n' % (sys.exc_info()[1], helpMessage))
+        sys.stderr.write(f'ERROR: {sys.exc_info()[1]}\r\n{helpMessage}\r\n')
 
     sys.exit(EX_USAGE)
 
@@ -200,9 +200,9 @@ if not mibSources:
 
 if inputMibs:
     mibSources = sorted(
-        set([os.path.abspath(os.path.dirname(x))
+        {os.path.abspath(os.path.dirname(x))
             for x in inputMibs
-            if os.path.sep in x])
+            if os.path.sep in x}
     ) + mibSources
 
     inputMibs = [os.path.basename(os.path.splitext(x)[0]) for x in inputMibs]
@@ -294,7 +294,7 @@ elif dstFormat == 'null':
     fileWriter = CallbackWriter(lambda *x: None)
 
 else:
-    sys.stderr.write('ERROR: unknown destination format: %s\r\n%s\r\n' % (dstFormat, helpMessage))
+    sys.stderr.write(f'ERROR: unknown destination format: {dstFormat}\r\n{helpMessage}\r\n')
     sys.exit(EX_USAGE)
 
 if verboseFlag:
@@ -381,11 +381,11 @@ except error.PySmiError:
 
 else:
     if verboseFlag:
-        sys.stderr.write('%sreated/updated MIBs: %s\r\n' % (dryrunFlag and 'Would be c' or 'C', ', '.join(
-            ['%s%s' % (x, x != processed[x].alias and ' (%s)' % processed[x].alias or '') for x in sorted(processed) if processed[x] == 'compiled'])))
+        sys.stderr.write('{}reated/updated MIBs: {}\r\n'.format(dryrunFlag and 'Would be c' or 'C', ', '.join(
+            ['{}{}'.format(x, x != processed[x].alias and ' (%s)' % processed[x].alias or '') for x in sorted(processed) if processed[x] == 'compiled'])))
 
-        sys.stderr.write('Pre-compiled MIBs %sborrowed: %s\r\n' % (dryrunFlag and 'Would be ' or '', ', '.join(
-            ['%s (%s)' % (x, processed[x].path) for x in sorted(processed) if processed[x] == 'borrowed'])))
+        sys.stderr.write('Pre-compiled MIBs {}borrowed: {}\r\n'.format(dryrunFlag and 'Would be ' or '', ', '.join(
+            [f'{x} ({processed[x].path})' for x in sorted(processed) if processed[x] == 'borrowed'])))
 
         sys.stderr.write(
             'Up to date MIBs: %s\r\n' % ', '.join(['%s' % x for x in sorted(processed) if processed[x] == 'untouched']))
@@ -397,7 +397,7 @@ else:
             'Ignored MIBs: %s\r\n' % ', '.join(['%s' % x for x in sorted(processed) if processed[x] == 'unprocessed']))
 
         sys.stderr.write('Failed MIBs: %s\r\n' % ', '.join(
-            ['%s (%s)' % (x, processed[x].error) for x in sorted(processed) if processed[x] == 'failed']))
+            [f'{x} ({processed[x].error})' for x in sorted(processed) if processed[x] == 'failed']))
 
     exitCode = EX_OK
 

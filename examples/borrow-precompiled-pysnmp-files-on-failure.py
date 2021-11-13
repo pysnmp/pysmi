@@ -49,4 +49,4 @@ mibCompiler.addBorrowers(*[PyFileBorrower(HttpReader(*x)).setOptions(genTexts=Fa
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs)
 
-print('Results: %s' % ', '.join(['%s:%s' % (x, results[x]) for x in results]))
+print('Results: %s' % ', '.join([f'{x}:{results[x]}' for x in results]))

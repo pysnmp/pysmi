@@ -54,7 +54,7 @@ class HttpReader(AbstractReader):
                                       host, port, decode(locationTemplate))
 
         socket.setdefaulttimeout(timeout)
-        self._user_agent = 'pysmi-%s; python-%s.%s.%s; %s' % (
+        self._user_agent = 'pysmi-{}; python-{}.{}.{}; {}'.format(
             pysmi_version, sys.version_info[0], sys.version_info[1],
             sys.version_info[2], sys.platform
         )
@@ -85,7 +85,7 @@ class HttpReader(AbstractReader):
                 response = urlopen(req)  # nosec
 
             except Exception:
-                debug.logger & debug.flagReader and debug.logger('failed to fetch MIB from %s: %s' % (url, sys.exc_info()[1]))
+                debug.logger & debug.flagReader and debug.logger(f'failed to fetch MIB from {url}: {sys.exc_info()[1]}')
                 continue
 
             debug.logger & debug.flagReader and debug.logger('HTTP response %s' % response.code)
@@ -99,7 +99,7 @@ class HttpReader(AbstractReader):
                     mtime = time.time()
 
                 debug.logger & debug.flagReader and debug.logger(
-                    'fetching source MIB %s, mtime %s' % (url, response.getheader('Last-Modified')))
+                    'fetching source MIB {}, mtime {}'.format(url, response.getheader('Last-Modified')))
 
                 return MibInfo(path=url, file=mibfile, name=mibalias, mtime=mtime), decode(response.read(self.maxMibSize))
 

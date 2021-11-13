@@ -186,7 +186,7 @@ class IntermediateCodeGen(AbstractCodeGen):
                     raise error.PySmiSemanticError('no module "%s" in symbolTable' % module)
 
                 if parent not in self.symbolTable[module]:
-                    raise error.PySmiSemanticError('no symbol "%s" in module "%s"' % (parent, module))
+                    raise error.PySmiSemanticError(f'no symbol "{parent}" in module "{module}"')
                 numericOid += self.genNumericOid(self.symbolTable[module][parent]['oid'])
 
             else:
@@ -199,7 +199,7 @@ class IntermediateCodeGen(AbstractCodeGen):
             raise error.PySmiSemanticError('no module "%s" in symbolTable' % module)
 
         if symName not in self.symbolTable[module]:
-            raise error.PySmiSemanticError('no symbol "%s" in module "%s"' % (symName, module))
+            raise error.PySmiSemanticError(f'no symbol "{symName}" in module "{module}"')
 
         symType, symSubtype = self.symbolTable[module][symName].get('syntax', (('', ''), ''))
         if not symType[0]:
@@ -673,7 +673,7 @@ class IntermediateCodeGen(AbstractCodeGen):
                 except Exception:
                     # or no module if it will be borrowed later
                     raise error.PySmiSemanticError(
-                        'no symbol "%s" in module "%s"' % (defval, module))
+                        f'no symbol "{defval}" in module "{module}"')
 
             # enumeration
             elif (defvalType[0][0] in ('Integer32', 'Integer') and
@@ -708,7 +708,7 @@ class IntermediateCodeGen(AbstractCodeGen):
 
                     else:
                         raise error.PySmiSemanticError(
-                            'no such bit as "%s" for symbol "%s"' % (
+                            'no such bit as "{}" for symbol "{}"'.format(
                                 bit, objname))
 
                 outDict.update(
@@ -720,7 +720,7 @@ class IntermediateCodeGen(AbstractCodeGen):
 
             else:
                 raise error.PySmiSemanticError(
-                    'unknown type "%s" for defval "%s" of symbol "%s"' % (
+                    'unknown type "{}" for defval "{}" of symbol "{}"'.format(
                         defvalType, defval, objname))
 
         return {'default': outDict}
@@ -1016,7 +1016,7 @@ class IntermediateCodeGen(AbstractCodeGen):
             outDict['meta']['comments'] = kwargs['comments']
 
         debug.logger & debug.flagCodegen and debug.logger(
-            'canonical MIB name %s (%s), imported MIB(s) %s' % (
+            'canonical MIB name {} ({}), imported MIB(s) {}'.format(
                 self.moduleName[0], moduleOid, ','.join(importedModules) or '<none>'))
 
         return MibInfo(oid=moduleOid,
@@ -1026,4 +1026,4 @@ class IntermediateCodeGen(AbstractCodeGen):
                        oids=self._oids,
                        enterprise=self._enterpriseOid,
                        compliance=self._complianceOids,
-                       imported=tuple([x for x in importedModules if x not in self.fakeMibs])), outDict
+                       imported=tuple(x for x in importedModules if x not in self.fakeMibs)), outDict
