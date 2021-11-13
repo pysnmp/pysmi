@@ -350,7 +350,7 @@ class SmiV2Lexer(AbstractLexer):
         return t
 
     def t_QUOTED_STRING(self, t):
-        r"\"[^\"]*\""
+        r'"[^\"]*"'
         t.lexer.lineno += len(re.findall(r"\r\n|\n|\r", t.value))
         return t
 
