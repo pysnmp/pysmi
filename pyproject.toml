@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pysnmp-pysmi"
-version = "1.0.5"
+version = "1.0.6"
 description = ""
 authors = ["rfaircloth-splunk <rfaircloth@splunk.com>"]
 license = "BSD-2-Clause"
