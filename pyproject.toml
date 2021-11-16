@@ -27,6 +27,7 @@ include = ["docs", "tests", "examples", "scripts"]
 [tool.poetry.dependencies]
 python = "^3.7"
 ply = "^3.11"
+requests = "^2.26.0"
 
 
 [tool.poetry.dev-dependencies]
