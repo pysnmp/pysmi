@@ -20,12 +20,6 @@ from pysmi.codegen.base import AbstractCodeGen
 from pysmi import error
 from pysmi import debug
 
-# noinspection PyShadowingBuiltins
-unicode = str
-# noinspection PyShadowingBuiltins
-long = int
-
-
 class JsonCodeGen(AbstractCodeGen):
     """Builds JSON document representing MIB module supplied
        in form of an Abstract Syntax Tree on input.
@@ -610,7 +604,7 @@ class JsonCodeGen(AbstractCodeGen):
         defval = data[0]
         defvalType = self.getBaseType(objname, self.moduleName[0])
 
-        if isinstance(defval, (int, long)):  # number
+        if isinstance(defval, int):  # number
             outDict.update(value=defval, format='decimal')
 
         elif self.isHex(defval):  # hex
@@ -760,11 +754,11 @@ class JsonCodeGen(AbstractCodeGen):
         out = ()
         parent = ''
         for el in data[0]:
-            if isinstance(el, (str, unicode)):
+            if isinstance(el, str):
                 parent = self.transOpers(el)
                 out += ((parent, self._importMap.get(parent, self.moduleName[0])),)
 
-            elif isinstance(el, (int, long)):
+            elif isinstance(el, int):
                 out += (el,)
 
             elif isinstance(el, tuple):

@@ -14,12 +14,6 @@ from pysmi import error
 from pysmi import debug
 
 
-# noinspection PyShadowingBuiltins
-unicode = str
-# noinspection PyShadowingBuiltins
-long = int
-
-
 class PySnmpCodeGen(AbstractCodeGen):
     """Builds PySNMP-specific Python code representing MIB module supplied
        in form of an Abstract Syntax Tree on input.
@@ -792,7 +786,7 @@ for _%(name)s_obj in [%(objects)s]:
         defval = data[0]
         defvalType = self.getBaseType(objname, self.moduleName[0])
 
-        if isinstance(defval, (int, long)):  # number
+        if isinstance(defval, int):  # number
             val = str(defval)
 
         elif self.isHex(defval):  # hex
@@ -974,11 +968,11 @@ for _%(name)s_obj in [%(objects)s]:
         out = ()
         parent = ''
         for el in data[0]:
-            if isinstance(el, (str, unicode)):
+            if isinstance(el, str):
                 parent = self.transOpers(el)
                 out += ((parent, self._importMap.get(parent, self.moduleName[0])),)
 
-            elif isinstance(el, (int, long)):
+            elif isinstance(el, int):
                 out += (el,)
 
             elif isinstance(el, tuple):
