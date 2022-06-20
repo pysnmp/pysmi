@@ -186,7 +186,7 @@ class JsonCodeGen(AbstractCodeGen):
                     raise error.PySmiSemanticError('no module "%s" in symbolTable' % module)
 
                 if parent not in self.symbolTable[module]:
-                    raise error.PySmiSemanticError('no symbol "%s" in module "%s"' % (parent, module))
+                    raise error.PySmiSemanticError(f'no symbol "{parent}" in module "{module}"')
                 numericOid += self.genNumericOid(self.symbolTable[module][parent]['oid'])
 
             else:
@@ -199,7 +199,7 @@ class JsonCodeGen(AbstractCodeGen):
             raise error.PySmiSemanticError('no module "%s" in symbolTable' % module)
 
         if symName not in self.symbolTable[module]:
-            raise error.PySmiSemanticError('no symbol "%s" in module "%s"' % (symName, module))
+            raise error.PySmiSemanticError(f'no symbol "{symName}" in module "{module}"')
 
         symType, symSubtype = self.symbolTable[module][symName].get('syntax', (('', ''), ''))
         if not symType[0]:
@@ -638,7 +638,7 @@ class JsonCodeGen(AbstractCodeGen):
                     outDict.update(value=val, format='oid')
                 except:
                     # or no module if it will be borrowed later
-                    raise error.PySmiSemanticError('no symbol "%s" in module "%s"' % (defval, module))
+                    raise error.PySmiSemanticError(f'no symbol "{defval}" in module "{module}"')
 
             # enumeration
             elif defvalType[0][0] in ('Integer32', 'Integer') and isinstance(defvalType[1], list):
@@ -659,7 +659,7 @@ class JsonCodeGen(AbstractCodeGen):
                     if bitValue is not None:
                         defvalBits.append((bit, bitValue))
                     else:
-                        raise error.PySmiSemanticError('no such bit as "%s" for symbol "%s"' % (bit, objname))
+                        raise error.PySmiSemanticError(f'no such bit as "{bit}" for symbol "{objname}"')
 
                 outDict.update(value=self.genBits([defvalBits])[1], format='bits')
 
@@ -667,7 +667,7 @@ class JsonCodeGen(AbstractCodeGen):
 
             else:
                 raise error.PySmiSemanticError(
-                    'unknown type "%s" for defval "%s" of symbol "%s"' % (defvalType, defval, objname))
+                    f'unknown type "{defvalType}" for defval "{defval}" of symbol "{objname}"')
 
         return {'default': outDict}
 
@@ -925,7 +925,7 @@ class JsonCodeGen(AbstractCodeGen):
 
     def genCode(self, ast, symbolTable, **kwargs):
         self.genRules['text'] = kwargs.get('genTexts', False)
-        self.textFilter = kwargs.get('textFilter') or (lambda symbol, text: re.sub('\s+', ' ', text))
+        self.textFilter = kwargs.get('textFilter') or (lambda symbol, text: re.sub(r'\s+', ' ', text))
         self.symbolTable = symbolTable
         self._rows.clear()
         self._cols.clear()
@@ -956,7 +956,7 @@ class JsonCodeGen(AbstractCodeGen):
             outDict['meta']['module'] = self.moduleName[0]
 
         debug.logger & debug.flagCodegen and debug.logger(
-            'canonical MIB name %s (%s), imported MIB(s) %s, Python code size %s bytes' % (
+            'canonical MIB name {} ({}), imported MIB(s) {}, Python code size {} bytes'.format(
                 self.moduleName[0], moduleOid, ','.join(importedModules) or '<none>', len(outDict)))
 
         return MibInfo(oid=moduleOid,
@@ -966,7 +966,7 @@ class JsonCodeGen(AbstractCodeGen):
                        oids=self._oids,
                        enterprise=self._enterpriseOid,
                        compliance=self._complianceOids,
-                       imported=tuple([x for x in importedModules if x not in self.fakeMibs])), json.dumps(outDict, indent=2)
+                       imported=tuple(x for x in importedModules if x not in self.fakeMibs)), json.dumps(outDict, indent=2)
 
     def genIndex(self, processed, **kwargs):
         outDict = {
