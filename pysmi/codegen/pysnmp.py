@@ -220,7 +220,7 @@ class PySnmpCodeGen(AbstractCodeGen):
         if moduleIdentity:
             self._exports.add('PYSNMP_MODULE_ID=%s' % symbol)
 
-        self._exports.add('%s=%s' % (symbol, symbol))
+        self._exports.add(f'{symbol}={symbol}')
         self._seenSyms.add(symbol)
 
     # noinspection PyUnusedLocal
@@ -253,7 +253,7 @@ class PySnmpCodeGen(AbstractCodeGen):
                     raise error.PySmiSemanticError('no module "%s" in symbolTable' % module)
 
                 if parent not in self.symbolTable[module]:
-                    raise error.PySmiSemanticError('no symbol "%s" in module "%s"' % (parent, module))
+                    raise error.PySmiSemanticError(f'no symbol "{parent}" in module "{module}"')
 
                 numericOid += self.genNumericOid(self.symbolTable[module][parent]['oid'])
 
@@ -267,7 +267,7 @@ class PySnmpCodeGen(AbstractCodeGen):
             raise error.PySmiSemanticError('no module "%s" in symbolTable' % module)
 
         if symName not in self.symbolTable[module]:
-            raise error.PySmiSemanticError('no symbol "%s" in module "%s"' % (symName, module))
+            raise error.PySmiSemanticError(f'no symbol "{symName}" in module "{module}"')
 
         symType, symSubtype = self.symbolTable[module][symName].get('syntax', (('', ''), ''))
 
@@ -819,7 +819,7 @@ for _%(name)s_obj in [%(objects)s]:
                     val = str(self.genNumericOid(self.symbolTable[module][defval]['oid']))
                 except:
                     # or no module if it will be borrowed later
-                    raise error.PySmiSemanticError('no symbol "%s" in module "%s"' % (defval, module))
+                    raise error.PySmiSemanticError(f'no symbol "{defval}" in module "{module}"')
 
             # enumeration
             elif defvalType[0][0] in ('Integer32', 'Integer') and isinstance(defvalType[1], list):
@@ -840,13 +840,13 @@ for _%(name)s_obj in [%(objects)s]:
                     if bitValue is not None:
                         defvalBits.append((bit, bitValue))
                     else:
-                        raise error.PySmiSemanticError('no such bit as "%s" for symbol "%s"' % (bit, objname))
+                        raise error.PySmiSemanticError(f'no such bit as "{bit}" for symbol "{objname}"')
 
                 return self.genBits([defvalBits])[1]
 
             else:
                 raise error.PySmiSemanticError(
-                    'unknown type "%s" for defval "%s" of symbol "%s"' % (defvalType, defval, objname))
+                    f'unknown type "{defvalType}" for defval "{defval}" of symbol "{objname}"')
 
         return '.clone(' + val + ')'
 
@@ -1142,7 +1142,7 @@ for _%(name)s_obj in [%(objects)s]:
 
     def genCode(self, ast, symbolTable, **kwargs):
         self.genRules['text'] = kwargs.get('genTexts', False)
-        self.textFilter = kwargs.get('textFilter') or (lambda symbol, text: re.sub('\s+', ' ', text))
+        self.textFilter = kwargs.get('textFilter') or (lambda symbol, text: re.sub(r'\s+', ' ', text))
         self.symbolTable = symbolTable
         self._rows.clear()
         self._cols.clear()
@@ -1173,7 +1173,7 @@ for _%(name)s_obj in [%(objects)s]:
             out = '#\n# PySNMP MIB module %s (http://snmplabs.com/pysmi)\n' % self.moduleName[0] + out
 
         debug.logger & debug.flagCodegen and debug.logger(
-            'canonical MIB name %s (%s), imported MIB(s) %s, Python code size %s bytes' % (
+            'canonical MIB name {} ({}), imported MIB(s) {}, Python code size {} bytes'.format(
                 self.moduleName[0], moduleOid, ','.join(importedModules) or '<none>', len(out)))
 
         return MibInfo(oid=moduleOid,
@@ -1183,7 +1183,7 @@ for _%(name)s_obj in [%(objects)s]:
                        oids=[],
                        enterprise=None,
                        compliance=[],
-                       imported=tuple([x for x in importedModules if x not in self.fakeMibs])), out
+                       imported=tuple(x for x in importedModules if x not in self.fakeMibs)), out
 
     def genIndex(self, processed, **kwargs):
         out = '\nfrom pysnmp.proto.rfc1902 import ObjectName\n\noidToMibMap = {\n'
@@ -1191,7 +1191,7 @@ for _%(name)s_obj in [%(objects)s]:
         for module, status in processed.items():
             value = getattr(status, 'oid', None)
             if value:
-                out += 'ObjectName("%s"): "%s",\n' % (value, module)
+                out += f'ObjectName("{value}"): "{module}",\n'
                 count += 1
         out += '}\n'
 
@@ -1200,7 +1200,7 @@ for _%(name)s_obj in [%(objects)s]:
             out = '#\n# PySNMP MIB indices (http://snmplabs.com/pysmi)\n' + out
 
         debug.logger & debug.flagCodegen and debug.logger(
-            'OID->MIB index built, %s entries, %s bytes' % (count, len(out)))
+            f'OID->MIB index built, {count} entries, {len(out)} bytes')
 
         return out
 
