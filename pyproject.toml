@@ -27,13 +27,13 @@ include = ["docs", "tests", "examples", "scripts"]
 [tool.poetry.dependencies]
 python = "^3.8"
 ply = "^3.11"
-requests = "^2.26.0"
+requests = "^2.31.0"
 
 
 [tool.poetry.dev-dependencies]
 Sphinx = "^4.3.0"
 pysnmp = "^4.4.12"
-pytest = "^6.2.5"
+pytest = "^7.2.0"
 pytest-cov = "^3.0.0"
 black = "^21.10b0"
 isort = "^5.10.1"
