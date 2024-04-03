@@ -7,6 +7,7 @@
 import sys
 
 from urllib import parse as urlparse
+from urllib.request import url2pathname
 from pysmi.reader.localfile import FileReader
 from pysmi.reader.zipreader import ZipReader
 from pysmi.reader.httpclient import HttpReader
@@ -28,9 +29,9 @@ def getReadersFromUrls(*sourceUrls, **options):
                 scheme = 'file'
 
             if scheme == 'file':
-                readers.append(FileReader(mibSource.path).setOptions(**options))
+                readers.append(FileReader(url2pathname(mibSource.path)).setOptions(**options))
             else:
-                readers.append(ZipReader(mibSource.path).setOptions(**options))
+                readers.append(ZipReader(url2pathname(mibSource.path)).setOptions(**options))
 
         elif mibSource.scheme in ('http', 'https'):
             readers.append(HttpReader(sourceUrl).setOptions(**options))
