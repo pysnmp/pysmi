@@ -1,3 +1,8 @@
+Revision 1.1.12, 03-04-2024
+--------------------------
+
+- Fix parsing path on windows
+- Bump jinja2, pycryptodomex and black version
 
 Revision 0.3.4, XX-01-2019
 --------------------------
