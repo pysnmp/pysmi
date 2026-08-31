@@ -15,19 +15,19 @@ When generating code for this repository:
 Before generating code, scan the codebase to identify:
 
 1. **Language Versions**: Detect the exact versions of programming languages in use
-   - Examine `pyproject.toml` for the Python version constraint: `python = "^3.8"`
-   - The project targets Python 3.8+; never use language features beyond Python 3.8
-   - Note: legacy Python 2 compatibility shims exist in `pysmi/compat.py` and `try/except ImportError` blocks, but new code should target Python 3.8+ only
+   - Examine `pyproject.toml` for the Python version constraint: `requires-python = ">=3.10"`
+   - The project targets Python 3.10+; never use language features beyond Python 3.10
+   - All Python 2 compatibility code has been removed (no `from __future__`, no `six`, no `try/except ImportError` import shims, no `unittest2` fallback, no `sys.exc_info()[1]` patterns). New code assumes Python 3.10+ unconditionally.
 
 2. **Framework Versions**: Identify the exact versions of all frameworks
-   - Build system: Poetry (`poetry-core>=1.0.0`), declared in `pyproject.toml` `[build-system]`
-   - Parser tooling: `ply = "^3.11"` (PLY — Python Lex-Yacc), used by `pysmi/lexer/smi.py` and `pysmi/parser/smi.py`
-   - HTTP client: `requests = "^2.31.0"`, used by `pysmi/reader/httpclient.py`
+   - Build system: Hatchling backend driven by UV, declared in `pyproject.toml` `[build-system]` (`requires = ["hatchling"]`, `build-backend = "hatchling.build"`)
+   - Parser tooling: `ply>=3.11` (PLY — Python Lex-Yacc), used by `pysmi/lexer/smi.py` and `pysmi/parser/smi.py`
+   - HTTP client: `requests>=2.31.0`, used by `pysmi/reader/httpclient.py`
    - Respect version constraints when generating code; never suggest features not available in the detected versions
 
 3. **Library Versions**: Note the exact versions of key libraries and dependencies
-   - Runtime dependencies: `ply ^3.11`, `requests ^2.31.0`
-   - Dev dependencies: `Sphinx ^4.3.0`, `pysnmp ^4.4.12`, `pytest ^7.2.0`, `pytest-cov ^3.0.0`, `black ^24.3.0`, `isort ^5.10.1`
+   - Runtime dependencies: `ply>=3.11`, `requests>=2.31.0`
+   - Dev dependencies: `sphinx>=7.0`, `pysnmp>=4.4.12`, `pytest>=8.0`, `pytest-cov>=5.0`, `ruff>=0.8`, `pylint>=3.0`
    - Tests import `pysnmp` (`from pysnmp.smi.builder import MibBuilder`) and `pyasn1` (`from pyasn1.compat.octets import str2octs`)
    - Generate code compatible with these specific versions
 
@@ -167,14 +167,8 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 
 ### Observed testing patterns
 
-- **Framework**: `unittest` (stdlib), with a fallback to `unittest2`:
-  ```python
-  try:
-      import unittest2 as unittest
-  except ImportError:
-      import unittest
-  ```
-- **Test runner**: `tests/__main__.py` loads a named suite via `unittest.TestLoader().loadTestsFromNames([...])` and runs with `unittest.TextTestRunner(verbosity=2)`.
+- **Framework**: `unittest` (stdlib) test classes, run through `pytest` as the test runner. `pyproject.toml` configures `[tool.pytest.ini_options]` with `testpaths = ["tests"]` and `addopts = "--cov=pysmi --cov-report=term-missing"`.
+- **Legacy runner**: `tests/__main__.py` still loads a named suite via `unittest.TestLoader().loadTestsFromNames([...])` and runs with `unittest.TextTestRunner(verbosity=2)` for `python -m tests` invocation; prefer `pytest` for new work.
 - **Test file naming**: `test_<feature>_<smiversion>_<target>.py`, e.g. `test_objecttype_smiv2_pysnmp.py`, `test_typedeclaration_smiv1_pysnmp.py`, `test_zipreader.py`.
 - **Test class naming**: `<Feature>TestCase`, e.g. `ObjectTypeBasicTestCase`, `ZipReaderTestCase`.
 - **MIB-as-docstring fixture**: each test class stores a full ASN.1 MIB module in the class `__doc__` string, then `setUp` parses it:
@@ -202,7 +196,7 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 ## Technology-Specific Guidelines
 
 ### Python Guidelines
-- Detect and adhere to the specific Python version in use (`^3.8` per `pyproject.toml`)
+- Detect and adhere to the specific Python version in use (`>=3.10` per `pyproject.toml`)
 - Follow the same import organization found in existing modules
 - Match type hinting approaches if used in the codebase
 - Apply the same error handling patterns found in existing code
@@ -228,7 +222,7 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 - **`__str__` repr pattern**: concrete classes implement `__str__` returning `f'{self.__class__.__name__}{{"{self._path}"}}'` (or equivalent). Follow this for new reader/searcher/writer/borrower classes.
 - **Options pattern**: `setOptions(self, **kwargs)` iterates `for k in kwargs: setattr(self, k, kwargs[k])` and returns `self`. Follow this for configurable components.
 - **`**kwargs` forwarding**: methods accept `**options` and forward to inner objects (e.g. `AbstractBorrower.getData` forwards `options` to `self._reader.getData`).
-- **Python 2/3 compat shims**: `pysmi/compat.py` provides `encode`/`decode` helpers; `try/except ImportError` blocks guard `importlib` vs `imp`, `json` vs `simplejson`, `collections.OrderedDict` vs `ordereddict`. New code may assume Python 3.8+ but must not break these shims when editing existing files.
+- **str/bytes helpers**: `pysmi/compat.py` provides thin `encode(s)` (str→bytes via UTF-8) and `decode(s)` (bytes→str via UTF-8) helpers, still used by the reader/searcher/writer modules. These are no longer Python 2 compatibility shims — they exist only to keep the str/bytes boundary consistent. New code may use them or call `.encode('utf-8', 'ignore')` / `.decode('utf-8', 'ignore')` directly; either matches the codebase. All former `try/except ImportError` guards (`importlib` vs `imp`, `json` vs `simplejson`, `collections.OrderedDict` vs `ordereddict`) have been removed — import directly.
 
 ### Error handling pattern
 
@@ -247,8 +241,8 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
   raise error.PySmiReaderFileNotFoundError(mibname=mibname, reader=self._reader)
   raise error.PySmiWriterError(f'failure writing file {pyfile}: {exc[1]}', file=pyfile, writer=self)
   ```
-- Use `sys.exc_info()[1]` when interpolating the current exception message into a new error (the codebase's established pattern).
-- `try/except` blocks commonly catch `(OSError, UnicodeEncodeError)` for file I/O and broad `Exception` for optional-import shims.
+- Use the modern `except ... as exc` form and interpolate `exc` (or `exc[1]` from a caught tuple) into a new error. The legacy `sys.exc_info()[1]` pattern has been removed; do not reintroduce it.
+- `try/except` blocks commonly catch `(OSError, UnicodeEncodeError)` for file I/O.
 
 ### Logging / debug pattern
 
@@ -270,7 +264,7 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 
 ### CLI scripts pattern
 
-- `pysmi/scripts/mibdump.py` and `pysmi/scripts/mibcopy.py` expose `start()` functions registered as console scripts in `pyproject.toml` (`[tool.poetry.scripts]`).
+- `pysmi/scripts/mibdump.py` and `pysmi/scripts/mibcopy.py` expose `start()` functions registered as console scripts in `pyproject.toml` (`[project.scripts]`: `mibcopy = "pysmi.scripts.mibcopy:start"`, `mibdump = "pysmi.scripts.mibdump:start"`).
 - They use `getopt` (not `argparse`) for option parsing and follow `sysexits.h` exit codes (`EX_OK=0`, `EX_USAGE=64`, `EX_SOFTWARE=70`, `EX_MIB_MISSING=79`).
 - Help text is a multi-line string built with `.format(...)`. Errors print to `sys.stderr` with the help message and exit with the appropriate code.
 - New CLI scripts must follow this `getopt` + `sysexits.h` pattern and be registered in `pyproject.toml`.
@@ -283,7 +277,7 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 
 ### Observed versioning pattern
 
-- Version is `1.1.12` (Semantic Versioning), declared in both `pyproject.toml` (`version = "1.1.12"`) and `pysmi/__init__.py` (`__version__ = "1.1.12"`). Keep these two in sync.
+- Version is `1.2.0` (Semantic Versioning), declared in both `pyproject.toml` (`version = "1.2.0"`, under `[project]`) and `pysmi/__init__.py` (`__version__ = "1.2.0"`). Keep these two in sync.
 - `CHANGES.rst` uses the reStructuredText format with `Revision <version>, <date>` headers and bullet entries. Match this format for changelog entries.
 
 ## General Best Practices
@@ -303,5 +297,6 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 - When in doubt, prioritize consistency with existing code over external best practices
 - Preserve the standard file header, the `pysmi` debug-logging idiom, the `PySmiError` hierarchy, and the abstract-base-class component pattern
 - New components must be registered in the relevant `__init__.py` (`pysmi/reader/__init__.py`, `pysmi/searcher/__init__.py`, `pysmi/writer/__init__.py`, `pysmi/codegen/__init__.py`, `pysmi/borrower/__init__.py`)
-- Linting: `.flake8.ini` ignores `E123,E125,D104,D100,D101,D102,D103,D106,D107,D412,W504` and sets `builtins = _`; respect these when adding code
-- Formatting: `black ^24.3.0` and `isort ^5.10.1` are declared as dev dependencies (pre-commit hooks are currently commented out in `.pre-commit-config.yaml`); prefer black-compatible formatting
+- Linting: Ruff (configured in `pyproject.toml` under `[tool.ruff]`) with `target-version = "py310"`, `line-length = 120`, lint rules `E, W, F, I, UP, B, SIM, RUF`, and ignores `E501` (line length — left to ruff format) and `B028` (no-explicit-stacklevel — existing pattern). Respect these when adding code.
+- Additional linting: Pylint (`[tool.pylint.*]`) with `py-version = "3.10"` and disabled codes `C0114, C0115, C0116, C0301, R0903, R0913, R0914, W0212`.
+- Formatting: `ruff-format` (replaces black). Pre-commit hooks (`.pre-commit-config.yaml`) run `pyupgrade --py310-plus`, `ruff`, and `ruff-format`; prefer ruff-compatible formatting and run `pyupgrade --py310-plus` on new code.

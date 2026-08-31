@@ -60,12 +60,15 @@ select = [
     "I",      # isort
     "UP",     # pyupgrade
     "B",      # flake8-bugbear
+    "S",      # flake8-bandit (security)
     "SIM",    # flake8-simplify
     "RUF",    # ruff-specific rules
 ]
 ignore = [
     "E501",   # line too long (let ruff format handle it)
     "B028",   # no-explicit-stacklevel (existing pattern)
+    "S603",   # subprocess-without-shell-equals-true (was B603 in bandit)
+    "S607",   # start-process-with-partial-path (was B607 in bandit)
 ]
 
 [tool.ruff.lint.isort]

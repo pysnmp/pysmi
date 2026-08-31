@@ -562,7 +562,7 @@ Several files import `sys` but only use it for `sys.exc_info()` or `sys.version_
 **Missing dev dependencies:**
 - `ruff` — fast linter (recommended addition)
 - `mypy` — type checker (recommended if adding type hints)
-- `bandit` — security scanner (recommended)
+- `bandit` — replaced by ruff `S` rules (flake8-bandit compatibility)
 
 ---
 
@@ -632,7 +632,7 @@ Several files import `sys` but only use it for `sys.exc_info()` or `sys.version_
 4. **Consider migrating from `getopt` to `argparse`**
 5. **Add unit tests** for individual reader/searcher/writer/borrower components
 6. **Configure coverage** — add `[tool.pytest.ini_options]` with `--cov=pysmi`
-7. **Add `mypy` and `bandit`** to dev dependencies and CI
+7. **Add `mypy`** to dev dependencies and CI; `bandit` replaced by ruff `S` rules
 
 ### Long-term (architectural)
 1. **Refactor `Debug` class** to provide a cleaner logging API

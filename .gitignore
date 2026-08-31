@@ -30,3 +30,4 @@ out
 cache
 *.log
 index.*
+report.md
