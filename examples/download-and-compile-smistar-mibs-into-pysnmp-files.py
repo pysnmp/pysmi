@@ -15,12 +15,12 @@ compilation using noDeps flag.
 Also, we do not check if target file already exists thus MIB
 compilation occurs on every invocation.
 """#
+from pysmi.codegen import PySnmpCodeGen
+from pysmi.compiler import MibCompiler
+from pysmi.parser import SmiStarParser
 from pysmi.reader import HttpReader
 from pysmi.searcher import StubSearcher
 from pysmi.writer import PyFileWriter
-from pysmi.parser import SmiStarParser
-from pysmi.codegen import PySnmpCodeGen
-from pysmi.compiler import MibCompiler
 
 inputMibs = ['IF-MIB', 'IP-MIB']
 httpSources = [
@@ -43,4 +43,4 @@ mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs, **dict(noDeps=True))
 
-print('Results: %s' % ', '.join([f'{x}:{results[x]}' for x in results]))
+print('Results: {}'.format(', '.join([f'{x}:{results[x]}' for x in results])))

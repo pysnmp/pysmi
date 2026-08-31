@@ -4,16 +4,16 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import os
-import time
 import datetime
 import io
+import os
+import time
 import zipfile
-from pysmi.reader.base import AbstractReader
-from pysmi.mibinfo import MibInfo
+
+from pysmi import debug, error
 from pysmi.compat import decode
-from pysmi import debug
-from pysmi import error
+from pysmi.mibinfo import MibInfo
+from pysmi.reader.base import AbstractReader
 
 
 class ZipReader(AbstractReader):
@@ -39,7 +39,7 @@ class ZipReader(AbstractReader):
 
         try:
             with open(path, 'rb') as f:
-                self._members = self._readZipDirectory(fileObj=f)
+                self._members = self._readZipDirectory(fileObj=io.BytesIO(f.read()))
 
         except OSError as exc:
             debug.logger & debug.flagReader and debug.logger(
@@ -83,11 +83,16 @@ class ZipReader(AbstractReader):
         return members
 
     def _readZipFile(self, refs):
+        dataObj = None
+        mtime = None
 
-        for fileObj, filename, mtime in refs:
+        for fileObj, filename, ref_mtime in refs:
 
             if not fileObj:
                 fileObj = io.BytesIO(dataObj)
+
+            if ref_mtime is not None:
+                mtime = ref_mtime
 
             archive = zipfile.ZipFile(fileObj)
 
@@ -110,11 +115,11 @@ class ZipReader(AbstractReader):
             raise self._pendingError
 
         if not self._members:
-            raise error.PySmiReaderFileNotFoundError('source MIB %s not found' % mibname, reader=self)
+            raise error.PySmiReaderFileNotFoundError(f'source MIB {mibname} not found', reader=self)
 
         for mibalias, mibfile in self.getMibVariants(mibname, **options):
 
-            debug.logger & debug.flagReader and debug.logger('trying MIB %s' % mibfile)
+            debug.logger & debug.flagReader and debug.logger(f'trying MIB {mibfile}')
 
             try:
                 refs = self._members[mibfile]
@@ -137,4 +142,4 @@ class ZipReader(AbstractReader):
             return MibInfo(path=f'zip://{self._name}/{mibfile}',
                            file=mibfile, name=mibalias, mtime=mtime), decode(mibData)
 
-        raise error.PySmiReaderFileNotFoundError('source MIB %s not found' % mibname, reader=self)
+        raise error.PySmiReaderFileNotFoundError(f'source MIB {mibname} not found', reader=self)

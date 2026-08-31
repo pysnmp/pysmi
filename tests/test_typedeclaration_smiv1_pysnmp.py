@@ -7,11 +7,12 @@
 import sys
 import unittest
 
-from pysmi.parser.smi import parserFactory
-from pysmi.parser.dialect import smiV1Relaxed
+from pysnmp.smi.builder import MibBuilder
+
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysnmp.smi.builder import MibBuilder
+from pysmi.parser.dialect import smiV1Relaxed
+from pysmi.parser.smi import parserFactory
 
 
 class TypeDeclarationTestCase(unittest.TestCase):
@@ -58,7 +59,7 @@ END
 
     def protoTestSymbol(self, symbol, klass):
         self.assertTrue(
-            symbol in self.ctx, 'symbol %s not present' % symbol
+            symbol in self.ctx, f'symbol {symbol} not present'
         )
 
     def protoTestClass(self, symbol, klass):

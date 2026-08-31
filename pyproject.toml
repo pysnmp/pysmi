@@ -74,6 +74,20 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["pysmi"]
 
+# Package initializers deliberately re-export their public APIs. The code generator,
+# lexer, and reader class attributes are shared compatibility tables, not instance defaults.
+[tool.ruff.lint.per-file-ignores]
+"pysmi/**/__init__.py" = ["F401"]
+"pysmi/codegen/base.py" = ["RUF012"]
+"pysmi/codegen/jsondoc.py" = ["RUF012"]
+"pysmi/codegen/pysnmp.py" = ["RUF012"]
+"pysmi/codegen/symtable.py" = ["RUF012"]
+"pysmi/lexer/smi.py" = ["RUF012"]
+"pysmi/reader/base.py" = ["RUF012"]
+"pysmi/searcher/anyfile.py" = ["RUF012"]
+"tests/test_*_pysnmp.py" = ["S102"]
+"tests/test_zipreader.py" = ["RUF012"]
+
 [tool.pylint.messages_control]
 disable = [
     "C0114",  # missing-module-docstring

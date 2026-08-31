@@ -4,12 +4,12 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 import re
+
 import ply.lex as lex
+
+from pysmi import debug, error
 from pysmi.lexer.base import AbstractLexer
-from pysmi import error
-from pysmi import debug
 
 UNSIGNED32_MAX = 4294967295
 UNSIGNED64_MAX = 18446744073709551615
@@ -54,22 +54,7 @@ class SmiV2Lexer(AbstractLexer):
     ]
 
     # Token names required!
-    tokens = list(set([
-                          'BIN_STRING',
-                          'CHOICE',
-                          'COLON_COLON_EQUAL',
-                          'DOT_DOT',
-                          'EXPORTS',
-                          'HEX_STRING',
-                          'LOWERCASE_IDENTIFIER',
-                          'MACRO',
-                          'NEGATIVENUMBER',
-                          'NEGATIVENUMBER64',
-                          'NUMBER',
-                          'NUMBER64',
-                          'QUOTED_STRING',
-                          'UPPERCASE_IDENTIFIER',
-                      ] + list(reserved.values())
+    tokens = list(set(['BIN_STRING', 'CHOICE', 'COLON_COLON_EQUAL', 'DOT_DOT', 'EXPORTS', 'HEX_STRING', 'LOWERCASE_IDENTIFIER', 'MACRO', 'NEGATIVENUMBER', 'NEGATIVENUMBER64', 'NUMBER', 'NUMBER64', 'QUOTED_STRING', 'UPPERCASE_IDENTIFIER', *list(reserved.values())]
                       ))
 
     states = (
@@ -98,15 +83,9 @@ class SmiV2Lexer(AbstractLexer):
                                  outputdir=self._tempdir,
                                  debug=False)
         else:
-            if debug.logger & debug.flagLexer:
-                logger = debug.logger.getCurrentLogger()
-            else:
-                logger = lex.NullLogger()
+            logger = debug.logger.getCurrentLogger() if debug.logger & debug.flagLexer else lex.NullLogger()
 
-            if debug.logger & debug.flagGrammar:
-                debuglogger = debug.logger.getCurrentLogger()
-            else:
-                debuglogger = None
+            debuglogger = debug.logger.getCurrentLogger() if debug.logger & debug.flagGrammar else None
 
             self.lexer = lex.lex(module=self,
                                  reflags=re.DOTALL,
@@ -194,10 +173,10 @@ class SmiV2Lexer(AbstractLexer):
     def t_UPPERCASE_IDENTIFIER(self, t):
         r'[A-Z][-a-zA-z0-9]*'
         if t.value in self.forbidden_words:
-            raise error.PySmiLexerError("%s is forbidden" % t.value, lineno=t.lineno)
+            raise error.PySmiLexerError(f"{t.value} is forbidden", lineno=t.lineno)
 
         if t.value[-1] == '-':
-            raise error.PySmiLexerError("Identifier should not end with '-': %s" % t.value, lineno=t.lineno)
+            raise error.PySmiLexerError(f"Identifier should not end with '-': {t.value}", lineno=t.lineno)
 
         t.type = self.reserved.get(t.value, 'UPPERCASE_IDENTIFIER')
 
@@ -206,7 +185,7 @@ class SmiV2Lexer(AbstractLexer):
     def t_LOWERCASE_IDENTIFIER(self, t):
         r'[0-9]*[a-z][-a-zA-z0-9]*'
         if t.value[-1] == '-':
-            raise error.PySmiLexerError("Identifier should not end with '-': %s" % t.value, lineno=t.lineno)
+            raise error.PySmiLexerError(f"Identifier should not end with '-': {t.value}", lineno=t.lineno)
         return t
 
     def t_NUMBER(self, t):
@@ -229,7 +208,7 @@ class SmiV2Lexer(AbstractLexer):
                 t.type = 'NUMBER64'
 
         else:
-            raise error.PySmiLexerError("Number %s is too big" % t.value, lineno=t.lineno)
+            raise error.PySmiLexerError(f"Number {t.value} is too big", lineno=t.lineno)
 
         return t
 
@@ -353,7 +332,7 @@ def lexerFactory(**grammarOptions):
     for option in grammarOptions:
         if grammarOptions[option]:
             if option not in relaxedGrammar:
-                raise error.PySmiError('Unknown lexer relaxation option: %s' % option)
+                raise error.PySmiError(f'Unknown lexer relaxation option: {option}')
 
             for func in relaxedGrammar[option]:
                 classAttr[func.__name__] = func()

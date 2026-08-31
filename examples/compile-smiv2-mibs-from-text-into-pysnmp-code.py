@@ -12,12 +12,13 @@ We use noDeps flag to prevent MIB compiler from attemping
 to compile IMPORT'ed MIBs as well.
 """#
 import sys
+
+from pysmi.codegen import PySnmpCodeGen
+from pysmi.compiler import MibCompiler
+from pysmi.parser import SmiV2Parser
 from pysmi.reader import CallbackReader
 from pysmi.searcher import StubSearcher
 from pysmi.writer import CallbackWriter
-from pysmi.parser import SmiV2Parser
-from pysmi.codegen import PySnmpCodeGen
-from pysmi.compiler import MibCompiler
 
 inputMibs = ['IF-MIB', 'IP-MIB']
 srcDir = '/usr/share/snmp/mibs/'  # we will read MIBs from here
@@ -32,9 +33,12 @@ mibCompiler = MibCompiler(
 )
 
 # our own callback function serves as a MIB source here
-mibCompiler.addSources(
-  CallbackReader(lambda m, c: open(srcDir+m+'.txt').read())
-)
+def readMib(mibname, cbCtx):
+  with open(srcDir + mibname + '.txt') as srcFile:
+    return srcFile.read()
+
+
+mibCompiler.addSources(CallbackReader(readMib))
 
 # never recompile MIBs with MACROs
 mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
@@ -42,4 +46,4 @@ mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs, **dict(noDeps=True))
 
-print('Results: %s' % ', '.join([f'{x}:{results[x]}' for x in results]))
+print('Results: {}'.format(', '.join([f'{x}:{results[x]}' for x in results])))

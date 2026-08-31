@@ -6,10 +6,9 @@
 #
 import importlib.machinery
 
-SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
-
 from pysmi.borrower.base import AbstractBorrower
 
+SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
 
 class PyFileBorrower(AbstractBorrower):
     """Create PySNMP MIB file borrowing object"""

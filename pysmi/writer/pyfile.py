@@ -4,19 +4,17 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import os
-import tempfile
-import py_compile
-
+import contextlib
 import importlib.machinery
+import os
+import py_compile
+import tempfile
+
+from pysmi import debug, error
+from pysmi.compat import decode, encode
+from pysmi.writer.base import AbstractWriter
 
 SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
-
-from pysmi.writer.base import AbstractWriter
-from pysmi.compat import encode, decode
-from pysmi import debug
-from pysmi import error
-
 
 class PyFileWriter(AbstractWriter):
     """Stores transformed MIB modules as Python files at specified location.
@@ -49,10 +47,10 @@ class PyFileWriter(AbstractWriter):
 
             except OSError as exc:
                 raise error.PySmiWriterError(
-                    f'failure creating destination directory {self._path}: {exc}', writer=self)
+                    f'failure creating destination directory {self._path}: {exc}', writer=self) from exc
 
         if comments:
-            data = '#\n' + ''.join(['# %s\n' % x for x in comments]) + '#\n' + data
+            data = '#\n' + ''.join([f'# {x}\n' for x in comments]) + '#\n' + data
 
         pyfile = os.path.join(self._path, decode(mibname))
         pyfile += SOURCE_SUFFIXES[0]
@@ -67,15 +65,13 @@ class PyFileWriter(AbstractWriter):
 
         except (OSError, UnicodeEncodeError) as exc:
             if tfile:
-                try:
+                with contextlib.suppress(OSError):
                     os.unlink(tfile)
 
-                except OSError:
-                    pass
 
-            raise error.PySmiWriterError(f'failure writing file {pyfile}: {exc}', file=pyfile, writer=self)
+            raise error.PySmiWriterError(f'failure writing file {pyfile}: {exc}', file=pyfile, writer=self) from exc
 
-        debug.logger & debug.flagWriter and debug.logger('created file %s' % pyfile)
+        debug.logger & debug.flagWriter and debug.logger(f'created file {pyfile}')
 
         if self.pyCompile:
             try:
@@ -85,15 +81,12 @@ class PyFileWriter(AbstractWriter):
                 pass  # XXX
 
             except Exception as exc:
-                try:
+                with contextlib.suppress(Exception):
                     os.unlink(pyfile)
-                except Exception:
-                    pass
 
-                raise error.PySmiWriterError(f'failure compiling {pyfile}: {exc}', file=mibname, writer=self)
+                raise error.PySmiWriterError(f'failure compiling {pyfile}: {exc}', file=mibname, writer=self) from exc
 
-        debug.logger & debug.flagWriter and debug.logger('%s stored' % mibname)
+        debug.logger & debug.flagWriter and debug.logger(f'{mibname} stored')
 
     def getData(self, filename):
         return ''
-

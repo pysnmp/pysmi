@@ -4,20 +4,18 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import os
-import time
-import struct
 import importlib.machinery
 import importlib.util
+import os
+import struct
+import time
+
+from pysmi import debug, error
+from pysmi.compat import decode
+from pysmi.searcher.base import AbstractSearcher
 
 SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
 BYTECODE_SUFFIXES = importlib.machinery.BYTECODE_SUFFIXES
-
-from pysmi.searcher.base import AbstractSearcher
-from pysmi.compat import decode
-from pysmi import debug
-from pysmi import error
-
 
 class PyFileSearcher(AbstractSearcher):
     """Figures out if given Python file (source or bytecode) exists at given
@@ -36,7 +34,7 @@ class PyFileSearcher(AbstractSearcher):
 
     def fileExists(self, mibname, mtime, rebuild=False):
         if rebuild:
-            debug.logger & debug.flagSearcher and debug.logger('pretend %s is very old' % mibname)
+            debug.logger & debug.flagSearcher and debug.logger(f'pretend {mibname} is very old')
             return
 
         mibname = decode(mibname)
@@ -46,7 +44,7 @@ class PyFileSearcher(AbstractSearcher):
             f = pyfile + pySfx
 
             if not os.path.exists(f) or not os.path.isfile(f):
-                debug.logger & debug.flagSearcher and debug.logger('%s not present or not a file' % f)
+                debug.logger & debug.flagSearcher and debug.logger(f'{f} not present or not a file')
                 continue
 
             try:
@@ -55,7 +53,7 @@ class PyFileSearcher(AbstractSearcher):
 
             except OSError as exc:
                 raise error.PySmiSearcherError(f'failure opening compiled file {f}: {exc}',
-                                               searcher=self)
+                                               searcher=self) from exc
             if pyData[:4] == importlib.util.MAGIC_NUMBER:
                 pyData = pyData[4:]
                 pyTime = struct.unpack('<L', pyData[:4])[0]
@@ -65,17 +63,17 @@ class PyFileSearcher(AbstractSearcher):
                     raise error.PySmiFileNotModifiedError()
 
                 else:
-                    raise error.PySmiFileNotFoundError('older file %s exists' % mibname, searcher=self)
+                    raise error.PySmiFileNotFoundError(f'older file {mibname} exists', searcher=self)
 
             else:
-                debug.logger & debug.flagSearcher and debug.logger('bad magic in %s' % f)
+                debug.logger & debug.flagSearcher and debug.logger(f'bad magic in {f}')
                 continue
 
         for pySfx in SOURCE_SUFFIXES:
             f = pyfile + pySfx
 
             if not os.path.exists(f) or not os.path.isfile(f):
-                debug.logger & debug.flagSearcher and debug.logger('%s not present or not a file' % f)
+                debug.logger & debug.flagSearcher and debug.logger(f'{f} not present or not a file')
                 continue
 
             try:
@@ -83,7 +81,7 @@ class PyFileSearcher(AbstractSearcher):
 
             except OSError as exc:
                 raise error.PySmiSearcherError(f'failure opening compiled file {f}: {exc}',
-                                               searcher=self)
+                                               searcher=self) from exc
 
             debug.logger & debug.flagSearcher and debug.logger(
                 'found {}, mtime {}'.format(f, time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(pyTime))))
@@ -91,4 +89,4 @@ class PyFileSearcher(AbstractSearcher):
             if pyTime >= mtime:
                 raise error.PySmiFileNotModifiedError()
 
-        raise error.PySmiFileNotFoundError('no compiled file %s found' % mibname, searcher=self)
+        raise error.PySmiFileNotFoundError(f'no compiled file {mibname} found', searcher=self)

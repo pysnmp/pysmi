@@ -4,8 +4,9 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 from pysmi import error
+
+_RFC1155_RFC1065_KEY = 'RFC1155-SMI/RFC1065-SMI'
 
 
 def dorepr(s):
@@ -34,7 +35,7 @@ class AbstractCodeGen:
                 'SNMPv2-CONF')
 
     # Explicit SMIv1 -> SMIv2 mapping for standard MIBs
-    commonSyms = {'RFC1155-SMI/RFC1065-SMI':
+    commonSyms = {_RFC1155_RFC1065_KEY:
                       {'internet': [('SNMPv2-SMI', 'internet')],
                        'directory': [('SNMPv2-SMI', 'directory')],
                        'mgmt': [('SNMPv2-SMI', 'mgmt')],
@@ -212,10 +213,10 @@ class AbstractCodeGen:
                        'snmpEnableAuthenTraps': [('SNMPv2-MIB', 'snmpEnableAuthenTraps')]}}
 
     convertImportv2 = {
-        'RFC1065-SMI': commonSyms['RFC1155-SMI/RFC1065-SMI'],
-        'RFC1155-SMI': commonSyms['RFC1155-SMI/RFC1065-SMI'],
+        'RFC1065-SMI': commonSyms[_RFC1155_RFC1065_KEY],
+        'RFC1155-SMI': commonSyms[_RFC1155_RFC1065_KEY],
         'RFC1158-MIB': updateDict(
-            dict(commonSyms['RFC1155-SMI/RFC1065-SMI']),
+            dict(commonSyms[_RFC1155_RFC1065_KEY]),
                  (('nullSpecific', [('SNMPv2-SMI', 'zeroDotZero')]),
                   ('ipRoutingTable', [('RFC1213-MIB', 'ipRouteTable')]),
                   ('ipRouteEntry', [('RFC1213-MIB', 'ipRouteEntry')]),

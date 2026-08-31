@@ -4,8 +4,7 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-from pysmi import error
-from pysmi import debug
+from pysmi import debug, error
 
 
 class AbstractBorrower:
@@ -28,9 +27,7 @@ class AbstractBorrower:
         self._reader = reader
 
     def __str__(self):
-        return '{}{{{}, genTexts={}, exts={}}}'.format(self.__class__.__name__,
-                                                 self._reader, self.genTexts,
-                                                 self.exts)
+        return f'{self.__class__.__name__}{{{self._reader}, genTexts={self.genTexts}, exts={self.exts}}}'
 
     def setOptions(self, **kwargs):
         self._reader.setOptions(**kwargs)

@@ -5,8 +5,8 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import logging
-from pysmi import error
-from pysmi import __version__
+
+from pysmi import __version__, error
 
 flagNone = 0x0000
 flagSearcher = 0x0001
@@ -88,7 +88,7 @@ class Debug:
             else:
                 self._printer = Printer()
 
-        self('running pysmi version %s' % __version__)
+        self(f'running pysmi version {__version__}')
 
         for flag in flags:
             inverse = flag and flag[0] in ('!', '~')
@@ -102,10 +102,10 @@ class Debug:
                 else:
                     self._flags |= flagMap[flag]
 
-            except KeyError:
-                raise error.PySmiError('bad debug flag %s' % flag)
+            except KeyError as exc:
+                raise error.PySmiError(f'bad debug flag {flag}') from exc
 
-            self('debug category \'{}\' {}'.format(flag, inverse and 'disabled' or 'enabled'))
+            self('debug category \'{}\' {}'.format(flag, (inverse and 'disabled') or 'enabled'))
 
     def __str__(self):
         return f'logger {self._printer}, flags {self._flags:x}'
@@ -123,7 +123,7 @@ class Debug:
         return self._printer
 
     def getCurrentLogger(self):
-        return self._printer and self._printer.getCurrentLogger() or None
+        return (self._printer and self._printer.getCurrentLogger()) or None
 
 
 # This will yield false from bitwise and with a flag, and save
@@ -131,6 +131,6 @@ class Debug:
 logger = 0
 
 
-def setLogger(l):
+def setLogger(logger_instance):
     global logger
-    logger = l
+    logger = logger_instance
