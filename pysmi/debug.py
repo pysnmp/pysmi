@@ -64,13 +64,7 @@ class Printer:
         return self.__logger
 
 
-if hasattr(logging, 'NullHandler'):
-    NullHandler = logging.NullHandler
-else:
-    # Python 2.6 and older
-    class NullHandler(logging.Handler):
-        def emit(self, record):
-            pass
+NullHandler = logging.NullHandler
 
 
 class Debug:

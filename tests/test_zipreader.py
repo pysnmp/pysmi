@@ -8,17 +8,9 @@ import sys
 import os
 import tempfile
 
-try:
-    import unittest2 as unittest
+import unittest
 
-except ImportError:
-    import unittest
-
-try:
-    import StringIO
-
-except ImportError:
-    from io import StringIO
+from io import StringIO
 
 from pysmi.reader.zipreader import ZipReader
 

@@ -4,7 +4,6 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 import re
 from time import strptime, strftime
 from keyword import iskeyword
@@ -817,7 +816,7 @@ for _%(name)s_obj in [%(objects)s]:
 
                 try:
                     val = str(self.genNumericOid(self.symbolTable[module][defval]['oid']))
-                except:
+                except Exception:
                     # or no module if it will be borrowed later
                     raise error.PySmiSemanticError(f'no symbol "{defval}" in module "{module}"')
 

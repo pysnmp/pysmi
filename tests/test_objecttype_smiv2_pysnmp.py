@@ -5,11 +5,7 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import sys
-try:
-    import unittest2 as unittest
-
-except ImportError:
-    import unittest
+import unittest
 
 from pyasn1.compat.octets import str2octs
 from pysmi.parser.smi import parserFactory

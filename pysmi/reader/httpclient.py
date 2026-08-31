@@ -18,8 +18,6 @@ from pysmi import __version__ as pysmi_version
 from pysmi import error
 from pysmi import debug
 
-from pysmi import debug
-
 #debug.setLogger(debug.Debug('all'))
 
 class HttpReader(AbstractReader):
@@ -81,8 +79,8 @@ class HttpReader(AbstractReader):
             try:
                 response = self.session.get(url,headers=headers)
                 
-            except Exception:
-                debug.logger & debug.flagReader and debug.logger(f'failed to fetch MIB from {url}: {sys.exc_info()[1]}')
+            except Exception as exc:
+                debug.logger & debug.flagReader and debug.logger(f'failed to fetch MIB from {url}: {exc}')
                 continue
 
             debug.logger & debug.flagReader and debug.logger('HTTP response %s' % response.status_code)
@@ -91,8 +89,8 @@ class HttpReader(AbstractReader):
                 try:
                     mtime = time.mktime(time.strptime(response.headers['Last-Modified'], "%a, %d %b %Y %H:%M:%S %Z"))
 
-                except Exception:
-                    debug.logger & debug.flagReader and debug.logger('malformed HTTP headers: %s' % sys.exc_info()[1])
+                except Exception as exc:
+                    debug.logger & debug.flagReader and debug.logger(f'malformed HTTP headers: {exc}')
                     mtime = time.time()
 
                 debug.logger & debug.flagReader and debug.logger(

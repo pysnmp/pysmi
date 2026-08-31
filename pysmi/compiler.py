@@ -8,11 +8,7 @@ import sys
 import os
 import time
 
-try:
-    from pwd import getpwuid
-except ImportError:
-    # noinspection PyPep8
-    getpwuid = lambda x: ['<unknown>']
+from pwd import getpwuid
 from pysmi import __name__ as packageName
 from pysmi import __version__ as packageVersion
 from pysmi.mibinfo import MibInfo
@@ -157,16 +153,13 @@ class MibCompiler:
         return self
 
     def _get_system_info(self):
-
         try:
             platform_info = os.uname()
-
         except AttributeError:
             platform_info = ('?',) * 6
 
         try:
             user_info = getpwuid(os.getuid())
-
         except Exception:
             user_info = ('?',) * 7
 
@@ -258,8 +251,7 @@ class MibCompiler:
                     debug.logger & debug.flagCompiler and debug.logger(f'no {mibname} found at {source}')
                     continue
 
-                except error.PySmiError:
-                    exc_class, exc, tb = sys.exc_info()
+                except error.PySmiError as exc:
                     exc.source = source
                     exc.mibname = mibname
                     exc.msg += ' at MIB %s' % mibname
@@ -282,7 +274,7 @@ class MibCompiler:
                 if mibname not in processed:
                     processed[mibname] = statusMissing
 
-        print(
+        debug.logger & debug.flagCompiler and debug.logger(
             f'MIBs analyzed {len(parsedMibs)}, MIBs failed {len(failedMibs)}')
 
         #
@@ -310,8 +302,7 @@ class MibCompiler:
                     processed[mibname] = statusUntouched
                     break
 
-                except error.PySmiError:
-                    exc_class, exc, tb = sys.exc_info()
+                except error.PySmiError as exc:
                     exc.searcher = searcher
                     exc.mibname = mibname
                     exc.msg += ' at MIB %s' % mibname
@@ -366,8 +357,7 @@ class MibCompiler:
                 debug.logger & debug.flagCompiler and debug.logger(
                     f'{mibname} read from {fileInfo.path} and compiled by {self._writer}')
 
-            except error.PySmiError:
-                exc_class, exc, tb = sys.exc_info()
+            except error.PySmiError as exc:
                 exc.handler = self._codegen
                 exc.mibname = mibname
                 exc.msg += ' at MIB %s' % mibname
@@ -406,8 +396,8 @@ class MibCompiler:
                     debug.logger & debug.flagCompiler and debug.logger(f'{mibname} borrowed with {borrower}')
                     break
 
-                except error.PySmiError:
-                    debug.logger & debug.flagCompiler and debug.logger(f'error from {borrower}: {sys.exc_info()[1]}')
+                except error.PySmiError as exc:
+                    debug.logger & debug.flagCompiler and debug.logger(f'error from {borrower}: {exc}')
 
         debug.logger & debug.flagCompiler and debug.logger(
             f'MIBs available for borrowing {len(borrowedMibs)}, MIBs failed {len(failedMibs)}')
@@ -437,8 +427,7 @@ class MibCompiler:
                     processed[mibname] = statusUntouched
                     break
 
-                except error.PySmiError:
-                    exc_class, exc, tb = sys.exc_info()
+                except error.PySmiError as exc:
                     exc.searcher = searcher
                     exc.mibname = mibname
                     exc.msg += ' at MIB %s' % mibname
@@ -514,8 +503,7 @@ class MibCompiler:
                         compliance=mibInfo.compliance,
                     )
 
-            except error.PySmiError:
-                exc_class, exc, tb = sys.exc_info()
+            except error.PySmiError as exc:
                 exc.handler = self._codegen
                 exc.mibname = mibname
                 exc.msg += ' at MIB %s' % mibname
@@ -551,8 +539,7 @@ class MibCompiler:
                 ),
                 dryRun=options.get('dryRun')
             )
-        except error.PySmiError:
-            exc_class, exc, tb = sys.exc_info()
+        except error.PySmiError as exc:
             exc.msg += ' at MIB index %s' % self.indexFile
 
             debug.logger & debug.flagCompiler and debug.logger(f'error {exc} when building {self.indexFile}')
@@ -560,7 +547,4 @@ class MibCompiler:
             if options.get('ignoreErrors'):
                 return
 
-            if hasattr(exc, 'with_traceback'):
-                raise exc.with_traceback(tb)
-            else:
-                raise exc
+            raise exc

@@ -23,7 +23,7 @@ Features
   HTTP and FTP servers
 * 100% Python, works with Python 2.4 up to Python 3.7
 
-Rendered PySMI documentation can be found at [pysmi site](http://snmplabs.com/pysmi).
+
 
 How to use PySMI
 ----------------

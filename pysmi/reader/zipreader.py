@@ -5,66 +5,15 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import os
-import sys
 import time
 import datetime
+import io
 import zipfile
 from pysmi.reader.base import AbstractReader
 from pysmi.mibinfo import MibInfo
 from pysmi.compat import decode
 from pysmi import debug
 from pysmi import error
-
-
-class FileLike:
-    """Stripped down, binary file mock to work with ZipFile"""
-    def __init__(self, buf, name):
-        self.name = name
-        self.buf = buf
-        self.null = buf[:0]
-        self.len = len(buf)
-        self.buflist = []
-        self.pos = 0
-        self.closed = False
-        self.softspace = 0
-
-    def close(self):
-        if not self.closed:
-            self.closed = True
-            self.buf = self.null
-            self.pos = 0
-
-    def seek(self, pos, mode = 0):
-        if self.buflist:
-            self.buf += self.null.join(self.buflist)
-            self.buflist = []
-
-        if mode == 1:
-            pos += self.pos
-
-        elif mode == 2:
-            pos += self.len
-
-        self.pos = max(0, pos)
-
-    def tell(self):
-        return self.pos
-
-    def read(self, n=-1):
-        if self.buflist:
-            self.buf += self.null.join(self.buflist)
-            self.buflist = []
-
-        if n < 0:
-            newpos = self.len
-        else:
-            newpos = min(self.pos + n, self.len)
-
-        r = self.buf[self.pos:newpos]
-
-        self.pos = newpos
-
-        return r
 
 
 class ZipReader(AbstractReader):
@@ -89,21 +38,19 @@ class ZipReader(AbstractReader):
         self._pendingError = None
 
         try:
-            self._members = self._readZipDirectory(fileObj=open(path, 'rb'))
+            with open(path, 'rb') as f:
+                self._members = self._readZipDirectory(fileObj=f)
 
-        except Exception:
+        except OSError as exc:
             debug.logger & debug.flagReader and debug.logger(
-                f'ZIP file {self._name} open failure: {sys.exc_info()[1]}')
+                f'ZIP file {self._name} open failure: {exc}')
 
             if not ignoreErrors:
-                self._pendingError = error.PySmiError(f'file {self._name} access error: {sys.exc_info()[1]}')
+                self._pendingError = error.PySmiError(f'file {self._name} access error: {exc}')
 
     def _readZipDirectory(self, fileObj):
 
         archive = zipfile.ZipFile(fileObj)
-
-        if isinstance(fileObj, FileLike):
-            fileObj = None
 
         members = {}
 
@@ -118,7 +65,7 @@ class ZipReader(AbstractReader):
 
                 innerZipBlob = archive.read(member.filename)
 
-                innerMembers = self._readZipDirectory(FileLike(innerZipBlob, member.filename))
+                innerMembers = self._readZipDirectory(io.BytesIO(innerZipBlob))
 
                 for innerFilename, ref in innerMembers.items():
 
@@ -140,15 +87,15 @@ class ZipReader(AbstractReader):
         for fileObj, filename, mtime in refs:
 
             if not fileObj:
-                fileObj = FileLike(dataObj, name=self._name)
+                fileObj = io.BytesIO(dataObj)
 
             archive = zipfile.ZipFile(fileObj)
 
             try:
                 dataObj = archive.read(filename)
 
-            except Exception:
-                debug.logger & debug.flagReader and debug.logger(f'ZIP read component {fileObj.name} read error: {sys.exc_info()[1]}')
+            except Exception as exc:
+                debug.logger & debug.flagReader and debug.logger(f'ZIP read component {fileObj.name} read error: {exc}')
                 return '', 0
 
         return dataObj, mtime

@@ -5,26 +5,13 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import os
-import sys
 import time
 import struct
-try:
-    import importlib
+import importlib.machinery
+import importlib.util
 
-    try:
-        SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
-        BYTECODE_SUFFIXES = importlib.machinery.BYTECODE_SUFFIXES
-
-    except Exception:
-        raise ImportError()
-
-except ImportError:
-    import imp
-
-    SOURCE_SUFFIXES = [s[0] for s in imp.get_suffixes()
-                       if s[2] == imp.PY_SOURCE]
-    BYTECODE_SUFFIXES = [s[0] for s in imp.get_suffixes()
-                         if s[2] == imp.PY_COMPILED]
+SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
+BYTECODE_SUFFIXES = importlib.machinery.BYTECODE_SUFFIXES
 
 from pysmi.searcher.base import AbstractSearcher
 from pysmi.compat import decode
@@ -63,14 +50,13 @@ class PyFileSearcher(AbstractSearcher):
                 continue
 
             try:
-                fp = open(f, 'rb')
-                pyData = fp.read(8)
-                fp.close()
+                with open(f, 'rb') as fp:
+                    pyData = fp.read(8)
 
-            except OSError:
-                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {sys.exc_info()[1]}',
+            except OSError as exc:
+                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {exc}',
                                                searcher=self)
-            if pyData[:4] == imp.get_magic():
+            if pyData[:4] == importlib.util.MAGIC_NUMBER:
                 pyData = pyData[4:]
                 pyTime = struct.unpack('<L', pyData[:4])[0]
                 debug.logger & debug.flagSearcher and debug.logger(
@@ -93,10 +79,10 @@ class PyFileSearcher(AbstractSearcher):
                 continue
 
             try:
-                pyTime = os.stat(f)[8]
+                pyTime = os.stat(f).st_mtime
 
-            except OSError:
-                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {sys.exc_info()[1]}',
+            except OSError as exc:
+                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {exc}',
                                                searcher=self)
 
             debug.logger & debug.flagSearcher and debug.logger(

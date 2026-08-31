@@ -5,7 +5,6 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import os
-import sys
 import time
 from pysmi.searcher.base import AbstractSearcher
 from pysmi.compat import decode
@@ -44,10 +43,10 @@ class AnyFileSearcher(AbstractSearcher):
                 continue
 
             try:
-                fileTime = os.stat(f)[8]
+                fileTime = os.stat(f).st_mtime
 
-            except OSError:
-                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {sys.exc_info()[1]}',
+            except OSError as exc:
+                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {exc}',
                                                searcher=self)
 
             debug.logger & debug.flagSearcher and debug.logger(

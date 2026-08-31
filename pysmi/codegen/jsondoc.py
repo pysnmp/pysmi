@@ -4,17 +4,10 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 import re
+import json
+from collections import OrderedDict
 from time import strptime, strftime
-try:
-    import json
-except ImportError:
-    import simplejson as json
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
 from pysmi.mibinfo import MibInfo
 from pysmi.codegen.base import AbstractCodeGen
 from pysmi import error
@@ -636,7 +629,7 @@ class JsonCodeGen(AbstractCodeGen):
                 try:
                     val = str(self.genNumericOid(self.symbolTable[module][defval]['oid']))
                     outDict.update(value=val, format='oid')
-                except:
+                except Exception:
                     # or no module if it will be borrowed later
                     raise error.PySmiSemanticError(f'no symbol "{defval}" in module "{module}"')
 
@@ -982,8 +975,8 @@ class JsonCodeGen(AbstractCodeGen):
                     json.loads(kwargs['old_index_data'])
                 )
 
-            except Exception:
-                raise error.PySmiCodegenError('Index load error: %s' % sys.exc_info()[1])
+            except Exception as exc:
+                raise error.PySmiCodegenError(f'Index load error: {exc}')
 
         def order(top):
             if isinstance(top, dict):

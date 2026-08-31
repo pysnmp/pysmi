@@ -5,24 +5,12 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import os
-import sys
 import tempfile
 import py_compile
 
-try:
-    import importlib
+import importlib.machinery
 
-    try:
-        SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
-
-    except Exception:
-        raise ImportError()
-
-except ImportError:
-    import imp
-
-    SOURCE_SUFFIXES = [s[0] for s in imp.get_suffixes()
-                       if s[2] == imp.PY_SOURCE]
+SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
 
 from pysmi.writer.base import AbstractWriter
 from pysmi.compat import encode, decode
@@ -59,9 +47,9 @@ class PyFileWriter(AbstractWriter):
             try:
                 os.makedirs(self._path)
 
-            except OSError:
+            except OSError as exc:
                 raise error.PySmiWriterError(
-                    f'failure creating destination directory {self._path}: {sys.exc_info()[1]}', writer=self)
+                    f'failure creating destination directory {self._path}: {exc}', writer=self)
 
         if comments:
             data = '#\n' + ''.join(['# %s\n' % x for x in comments]) + '#\n' + data
@@ -77,8 +65,7 @@ class PyFileWriter(AbstractWriter):
             os.close(fd)
             os.rename(tfile, pyfile)
 
-        except (OSError, UnicodeEncodeError):
-            exc = sys.exc_info()
+        except (OSError, UnicodeEncodeError) as exc:
             if tfile:
                 try:
                     os.unlink(tfile)
@@ -86,7 +73,7 @@ class PyFileWriter(AbstractWriter):
                 except OSError:
                     pass
 
-            raise error.PySmiWriterError(f'failure writing file {pyfile}: {exc[1]}', file=pyfile, writer=self)
+            raise error.PySmiWriterError(f'failure writing file {pyfile}: {exc}', file=pyfile, writer=self)
 
         debug.logger & debug.flagWriter and debug.logger('created file %s' % pyfile)
 
@@ -97,13 +84,13 @@ class PyFileWriter(AbstractWriter):
             except (SyntaxError, py_compile.PyCompileError):
                 pass  # XXX
 
-            except:
+            except Exception as exc:
                 try:
                     os.unlink(pyfile)
                 except Exception:
                     pass
 
-                raise error.PySmiWriterError(f'failure compiling {pyfile}: {sys.exc_info()[1]}', file=mibname, writer=self)
+                raise error.PySmiWriterError(f'failure compiling {pyfile}: {exc}', file=mibname, writer=self)
 
         debug.logger & debug.flagWriter and debug.logger('%s stored' % mibname)
 

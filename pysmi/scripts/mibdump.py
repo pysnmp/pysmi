@@ -95,9 +95,9 @@ def start():
             'generate-mib-texts', 'disable-fuzzy-source', 'keep-texts-layout']
         )
 
-    except getopt.GetoptError:
+    except getopt.GetoptError as exc:
         if verboseFlag:
-            sys.stderr.write(f'ERROR: {sys.exc_info()[1]}\r\n{helpMessage}\r\n')
+            sys.stderr.write(f'ERROR: {exc}\r\n{helpMessage}\r\n')
 
         sys.exit(EX_USAGE)
 
@@ -370,8 +370,8 @@ def start():
                 ignoreErrors=True
             )
 
-    except error.PySmiError:
-        sys.stderr.write('ERROR: %s\r\n' % sys.exc_info()[1])
+    except error.PySmiError as exc:
+        sys.stderr.write(f'ERROR: {exc}\r\n')
         sys.exit(EX_SOFTWARE)
 
     else:

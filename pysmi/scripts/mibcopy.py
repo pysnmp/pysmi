@@ -162,8 +162,8 @@ def start():
                 mibFile, **dict(noDeps=True, rebuild=True, fuzzyMatching=False, ignoreErrors=ignoreErrorsFlag)
             )
 
-        except error.PySmiError:
-            sys.stderr.write('ERROR: %s\r\n' % sys.exc_info()[1])
+        except error.PySmiError as exc:
+            sys.stderr.write(f'ERROR: {exc}\r\n')
             sys.exit(EX_SOFTWARE)
 
         for canonicalMibName in processed:

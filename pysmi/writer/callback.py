@@ -4,7 +4,6 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 from pysmi.writer.base import AbstractWriter
 from pysmi import debug
 from pysmi import error
@@ -42,9 +41,9 @@ class CallbackWriter(AbstractWriter):
         try:
             self._cbFun(mibname, data, self._cbCtx)
 
-        except Exception:
+        except Exception as exc:
             raise error.PySmiWriterError(
-                f'user callback {self._cbFun} failure writing {mibname}: {sys.exc_info()[1]}', writer=self)
+                f'user callback {self._cbFun} failure writing {mibname}: {exc}', writer=self)
 
         debug.logger & debug.flagWriter and debug.logger('user callback for %s succeeded' % mibname)
 
