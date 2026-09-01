@@ -5,10 +5,10 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import time
-from pysmi.reader.base import AbstractReader
+
+from pysmi import debug, error
 from pysmi.mibinfo import MibInfo
-from pysmi import error
-from pysmi import debug
+from pysmi.reader.base import AbstractReader
 
 
 class CallbackReader(AbstractReader):

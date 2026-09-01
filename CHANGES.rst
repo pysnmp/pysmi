@@ -1,3 +1,19 @@
+Revision 1.2.0, 31-08-2026
+--------------------------
+
+- Removed all Python 2 era code patterns and bumped minimum Python
+  version to 3.10
+- Migrated build system from Poetry to UV with the hatchling backend
+- Replaced flake8/black/isort with ruff and pylint (configured in
+  ``pyproject.toml``)
+- Replaced ``sys.exc_info()`` with ``except ... as exc`` and removed
+  ``try/except ImportError`` import shims (``importlib``/``imp``,
+  ``json``/``simplejson``, ``OrderedDict``)
+- Dropped the ``unittest2`` fallback in favor of direct ``unittest``
+  with ``pytest`` as the test runner
+- Updated CLI script shebangs to ``python3`` and refreshed the Copilot
+  instructions to match the new toolchain
+
 Revision 1.1.12, 03-04-2024
 --------------------------
 

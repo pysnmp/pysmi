@@ -9,9 +9,11 @@ from pysmi.parser.base import AbstractParser
 
 class NullParser(AbstractParser):
     def __init__(self, startSym='mibFile', tempdir=''):
+        # Intentionally empty: NullParser performs no initialization.
         pass
 
     def reset(self):
+        # Intentionally empty: NullParser holds no state to reset.
         pass
 
     def parse(self, data, **kwargs):

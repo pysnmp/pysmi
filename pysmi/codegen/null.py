@@ -4,9 +4,9 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-from pysmi.mibinfo import MibInfo
-from pysmi.codegen.base import AbstractCodeGen
 from pysmi import debug
+from pysmi.codegen.base import AbstractCodeGen
+from pysmi.mibinfo import MibInfo
 
 
 class NullCodeGen(AbstractCodeGen):
@@ -16,7 +16,7 @@ class NullCodeGen(AbstractCodeGen):
     """
 
     def genCode(self, ast, symbolTable, **kwargs):
-        debug.logger & debug.flagCodegen and debug.logger('%s invoked' % self.__class__.__name__)
+        debug.logger & debug.flagCodegen and debug.logger(f'{self.__class__.__name__} invoked')
         return MibInfo(oid=None, name='', imported=[]), ''
 
     def genIndex(self, mibsMap, **kwargs):

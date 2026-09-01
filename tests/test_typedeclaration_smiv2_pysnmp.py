@@ -5,16 +5,13 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import sys
-try:
-    import unittest2 as unittest
+import unittest
 
-except ImportError:
-    import unittest
+from pysnmp.smi.builder import MibBuilder
 
-from pysmi.parser.smi import parserFactory
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysnmp.smi.builder import MibBuilder
+from pysmi.parser.smi import parserFactory
 
 
 class TypeDeclarationTestCase(unittest.TestCase):
@@ -100,7 +97,7 @@ END
 
     def protoTestSymbol(self, symbol, klass):
         self.assertTrue(
-            symbol in self.ctx, 'symbol %s not present' % symbol
+            symbol in self.ctx, f'symbol {symbol} not present'
         )
 
     def protoTestClass(self, symbol, klass):

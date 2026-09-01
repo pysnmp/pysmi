@@ -4,11 +4,7 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-try:
-    import unittest2 as unittest
-
-except ImportError:
-    import unittest
+import unittest
 
 suite = unittest.TestLoader().loadTestsFromNames(
     ['test_zipreader',

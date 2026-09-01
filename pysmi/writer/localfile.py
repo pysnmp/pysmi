@@ -4,13 +4,13 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import contextlib
 import os
-import sys
 import tempfile
+
+from pysmi import debug, error
+from pysmi.compat import decode, encode
 from pysmi.writer.base import AbstractWriter
-from pysmi.compat import encode, decode
-from pysmi import debug
-from pysmi import error
 
 
 class FileWriter(AbstractWriter):
@@ -35,17 +35,12 @@ class FileWriter(AbstractWriter):
     def getData(self, mibname, dryRun=False):
         filename = os.path.join(self._path, decode(mibname)) + self.suffix
 
-        f = None
-
         try:
-            f = open(filename)
-            data = f.read()
-            f.close()
+            with open(filename) as f:
+                data = f.read()
             return data
 
         except (OSError, UnicodeEncodeError):
-            if f:
-                f.close()
             return ''
 
     def putData(self, mibname, data, comments=(), dryRun=False):
@@ -57,12 +52,12 @@ class FileWriter(AbstractWriter):
             try:
                 os.makedirs(self._path)
 
-            except OSError:
+            except OSError as exc:
                 raise error.PySmiWriterError(
-                    f'failure creating destination directory {self._path}: {sys.exc_info()[1]}', writer=self)
+                    f'failure creating destination directory {self._path}: {exc}', writer=self) from exc
 
         if comments:
-            data = '#\n' + ''.join(['# %s\n' % x for x in comments]) + '#\n' + data
+            data = '#\n' + ''.join([f'# {x}\n' for x in comments]) + '#\n' + data
 
         filename = os.path.join(self._path, decode(mibname)) + self.suffix
 
@@ -74,15 +69,12 @@ class FileWriter(AbstractWriter):
             os.close(fd)
             os.rename(tfile, filename)
 
-        except (OSError, UnicodeEncodeError):
-            exc = sys.exc_info()
+        except (OSError, UnicodeEncodeError) as exc:
             if tfile:
-                try:
+                with contextlib.suppress(OSError):
                     os.unlink(tfile)
 
-                except OSError:
-                    pass
 
-            raise error.PySmiWriterError(f'failure writing file {filename}: {exc[1]}', file=filename, writer=self)
+            raise error.PySmiWriterError(f'failure writing file {filename}: {exc}', file=filename, writer=self) from exc
 
         debug.logger & debug.flagWriter and debug.logger(f'{mibname} stored in {filename}')

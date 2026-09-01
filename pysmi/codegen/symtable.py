@@ -6,12 +6,11 @@
 #
 # Build an internally used symbol table for each passed MIB.
 #
-import sys
 from keyword import iskeyword
-from pysmi.mibinfo import MibInfo
+
+from pysmi import debug, error
 from pysmi.codegen.base import AbstractCodeGen, dorepr
-from pysmi import error
-from pysmi import debug
+from pysmi.mibinfo import MibInfo
 
 
 class SymtableCodeGen(AbstractCodeGen):
@@ -168,7 +167,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     def regSym(self, symbol, symProps, parents=()):
         if symbol in self._out or symbol in self._postponedSyms:  # add to strict mode - or symbol in self._importMap:
-            raise error.PySmiSemanticError('Duplicate symbol found: %s' % symbol)
+            raise error.PySmiSemanticError(f'Duplicate symbol found: {symbol}')
 
         if self.allParentsExists(parents):
             self._out[symbol] = symProps
@@ -195,7 +194,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genAgentCapabilities(self, data, classmode=False):
-        origName, release, status, description, reference, oid = data
+        origName, _release, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
 
@@ -207,7 +206,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genModuleIdentity(self, data, classmode=False):
-        origName, lastUpdated, organization, contactInfo, description, revisions, oid = data
+        origName, _lastUpdated, _organization, _contactInfo, _description, revisions, oid = data
 
         pysmiName = self.transOpers(origName)
 
@@ -222,7 +221,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genModuleCompliance(self, data, classmode=False):
-        origName, status, description, reference, compliances, oid = data
+        origName, _status, _description, _reference, _compliances, oid = data
 
         pysmiName = self.transOpers(origName)
 
@@ -234,7 +233,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genNotificationGroup(self, data, classmode=False):
-        origName, objects, status, description, reference, oid = data
+        origName, _objects, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
 
@@ -246,7 +245,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genNotificationType(self, data, classmode=False):
-        origName, objects, status, description, reference, oid = data
+        origName, _objects, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
 
@@ -258,7 +257,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjectGroup(self, data, classmode=False):
-        origName, objects, status, description, reference, oid = data
+        origName, _objects, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
 
@@ -270,7 +269,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjectIdentity(self, data, classmode=False):
-        origName, status, description, reference, oid = data
+        origName, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
 
@@ -282,7 +281,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjectType(self, data, classmode=False):
-        origName, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
+        origName, syntax, _units, _maxaccess, _status, _description, _reference, augmention, index, defval, oid = data
 
         pysmiName = self.transOpers(origName)
 
@@ -301,11 +300,11 @@ class SymtableCodeGen(AbstractCodeGen):
 
         if index and index[1]:
             namepart, fakeIndexes, fakeSymSyntax = index
-            for fakeIdx, fakeSyntax in zip(fakeIndexes, fakeSymSyntax):
+            for fakeIdx, fakeSyntax in zip(fakeIndexes, fakeSymSyntax, strict=False):
                 fakeName = namepart + str(fakeIdx)
 
                 fakeSymProps = {'type': 'fakeColumn',
-                                'oid': oid + (fakeIdx,),
+                                'oid': (*oid, fakeIdx),
                                 'syntax': fakeSyntax,
                                 'origName': fakeName}
 
@@ -315,12 +314,12 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genTrapType(self, data, classmode=False):
-        origName, enterprise, variables, description, reference, value = data
+        origName, enterprise, _variables, _description, _reference, value = data
 
         pysmiName = self.transOpers(origName)
 
         symProps = {'type': 'NotificationType',
-                    'oid': enterprise + (0, value),
+                    'oid': (*enterprise, 0, value),
                     'origName': origName}
 
         self.regSym(pysmiName, symProps)
@@ -332,7 +331,7 @@ class SymtableCodeGen(AbstractCodeGen):
         pysmiName = self.transOpers(origName)
 
         if declaration:
-            parentType, attrs = declaration
+            parentType, _attrs = declaration
             if parentType:  # skipping SEQUENCE case
                 symProps = {'type': 'TypeDeclaration',
                             'syntax': declaration,  # (type, module), subtype
@@ -394,7 +393,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
         elif self.isBinary(defval):  # binary
             binval = defval[1:-2]
-            hexval = binval and hex(int(binval, 2))[2:] or ''
+            hexval = (binval and hex(int(binval, 2))[2:]) or ''
             val = 'hexValue="' + hexval + '"'
 
         elif isinstance(defval, list):  # bits list
@@ -404,10 +403,7 @@ class SymtableCodeGen(AbstractCodeGen):
             val = dorepr(defval[1:-1])
 
         else:  # symbol (oid as defval) or name for enumeration member
-            if defval in self._out or defval in self._importMap:
-                val = defval + '.getName()'
-            else:
-                val = dorepr(defval)
+            val = defval + '.getName()' if defval in self._out or defval in self._importMap else dorepr(defval)
 
         return val
 
@@ -475,7 +471,7 @@ class SymtableCodeGen(AbstractCodeGen):
                 out += (el[1],)  # XXX Do we need to create a new object el[0]?
 
             else:
-                raise error.PySmiSemanticError('unknown datatype for OID: %s' % el)
+                raise error.PySmiSemanticError(f'unknown datatype for OID: {el}')
 
         return out
 
@@ -503,7 +499,7 @@ class SymtableCodeGen(AbstractCodeGen):
     def genRow(self, data, classmode=False):
         row = data[0]
         row = self.transOpers(row)
-        return row in self._rows and (('MibTableRow', ''), '') or self.genSimpleSyntax(data, classmode=classmode)
+        return (row in self._rows and (('MibTableRow', ''), '')) or self.genSimpleSyntax(data, classmode=classmode)
 
     # noinspection PyUnusedLocal
     def genSequence(self, data, classmode=False):
@@ -523,7 +519,7 @@ class SymtableCodeGen(AbstractCodeGen):
         if objType not in self.baseTypes:
             module = self._importMap.get(objType, self.moduleName[0])
 
-        subtype = len(data) == 2 and data[1] or ''
+        subtype = (len(data) == 2 and data[1]) or ''
 
         return (objType, module), subtype
 
@@ -534,7 +530,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
         else:
             # Textual convention
-            display, status, description, reference, syntax = data
+            _display, _status, _description, _reference, syntax = data
             parentType, attrs = syntax
 
         return parentType, attrs
@@ -598,7 +594,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self._out = {}  # should be new object, do not use `clear` method
         self.moduleName[0], moduleOid, imports, declarations = ast
 
-        out, importedModules = self.genImports(imports or {})
+        _out, importedModules = self.genImports(imports or {})
 
         for declr in declarations or []:
             if declr:
@@ -607,11 +603,11 @@ class SymtableCodeGen(AbstractCodeGen):
                 self.handlersTable[declr[0]](self, self.prepData(declr[1:], classmode), classmode)
 
         if self._postponedSyms:
-            raise error.PySmiSemanticError('Unknown parents for symbols: %s' % ', '.join(self._postponedSyms))
+            raise error.PySmiSemanticError('Unknown parents for symbols: {}'.format(', '.join(self._postponedSyms)))
 
         for sym in self._parentOids:
             if sym not in self._out and sym not in self._importMap:
-                raise error.PySmiSemanticError('Unknown parent symbol: %s' % sym)
+                raise error.PySmiSemanticError(f'Unknown parent symbol: {sym}')
 
         self._out['_symtable_order'] = list(self._symsOrder)
         self._out['_symtable_cols'] = list(self._cols)

@@ -17,7 +17,7 @@
 class PySmiError(Exception):
     def __init__(self, *args, **kwargs):
         Exception.__init__(self, *args)
-        self.msg = args and args[0] or ''
+        self.msg = (args and args[0]) or ''
         for k in kwargs:
             setattr(self, k, kwargs[k])
 
@@ -33,7 +33,7 @@ class PySmiLexerError(PySmiError):
     lineno = '?'
 
     def __str__(self):
-        return self.msg + ', line %s' % self.lineno
+        return self.msg + f', line {self.lineno}'
 
 
 class PySmiParserError(PySmiLexerError):

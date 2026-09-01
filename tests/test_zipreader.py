@@ -4,21 +4,10 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 import os
+import sys
 import tempfile
-
-try:
-    import unittest2 as unittest
-
-except ImportError:
-    import unittest
-
-try:
-    import StringIO
-
-except ImportError:
-    from io import StringIO
+import unittest
 
 from pysmi.reader.zipreader import ZipReader
 
@@ -176,19 +165,14 @@ class ZipReaderTestCase(unittest.TestCase):
 
             zipReader = ZipReader(filename)
 
-            mibinfo, data = zipReader.getData('testA')
+            _mibinfo, data = zipReader.getData('testA')
 
-            assert data == 'A\n'
+            self.assertEqual(data, 'A\n')
 
-        except Exception:
-            pass
-
-        if filename:
-            try:
+        finally:
+            if filename:
                 os.remove(filename)
 
-            except Exception:
-                pass
 
     def testGetInnerZipData(self):
         filename = None
@@ -200,19 +184,14 @@ class ZipReaderTestCase(unittest.TestCase):
 
             zipReader = ZipReader(filename)
 
-            mibinfo, data = zipReader.getData('testC')
+            _mibinfo, data = zipReader.getData('testC')
 
-            assert data == 'C\n'
+            self.assertEqual(data, 'C\n')
 
-        except Exception:
-            pass
-
-        if filename:
-            try:
+        finally:
+            if filename:
                 os.remove(filename)
 
-            except Exception:
-                pass
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
 

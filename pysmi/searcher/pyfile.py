@@ -4,33 +4,18 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import importlib.machinery
+import importlib.util
 import os
-import sys
-import time
 import struct
-try:
-    import importlib
+import time
 
-    try:
-        SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
-        BYTECODE_SUFFIXES = importlib.machinery.BYTECODE_SUFFIXES
-
-    except Exception:
-        raise ImportError()
-
-except ImportError:
-    import imp
-
-    SOURCE_SUFFIXES = [s[0] for s in imp.get_suffixes()
-                       if s[2] == imp.PY_SOURCE]
-    BYTECODE_SUFFIXES = [s[0] for s in imp.get_suffixes()
-                         if s[2] == imp.PY_COMPILED]
-
-from pysmi.searcher.base import AbstractSearcher
+from pysmi import debug, error
 from pysmi.compat import decode
-from pysmi import debug
-from pysmi import error
+from pysmi.searcher.base import AbstractSearcher
 
+SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
+BYTECODE_SUFFIXES = importlib.machinery.BYTECODE_SUFFIXES
 
 class PyFileSearcher(AbstractSearcher):
     """Figures out if given Python file (source or bytecode) exists at given
@@ -49,7 +34,7 @@ class PyFileSearcher(AbstractSearcher):
 
     def fileExists(self, mibname, mtime, rebuild=False):
         if rebuild:
-            debug.logger & debug.flagSearcher and debug.logger('pretend %s is very old' % mibname)
+            debug.logger & debug.flagSearcher and debug.logger(f'pretend {mibname} is very old')
             return
 
         mibname = decode(mibname)
@@ -59,18 +44,17 @@ class PyFileSearcher(AbstractSearcher):
             f = pyfile + pySfx
 
             if not os.path.exists(f) or not os.path.isfile(f):
-                debug.logger & debug.flagSearcher and debug.logger('%s not present or not a file' % f)
+                debug.logger & debug.flagSearcher and debug.logger(f'{f} not present or not a file')
                 continue
 
             try:
-                fp = open(f, 'rb')
-                pyData = fp.read(8)
-                fp.close()
+                with open(f, 'rb') as fp:
+                    pyData = fp.read(8)
 
-            except OSError:
-                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {sys.exc_info()[1]}',
-                                               searcher=self)
-            if pyData[:4] == imp.get_magic():
+            except OSError as exc:
+                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {exc}',
+                                               searcher=self) from exc
+            if pyData[:4] == importlib.util.MAGIC_NUMBER:
                 pyData = pyData[4:]
                 pyTime = struct.unpack('<L', pyData[:4])[0]
                 debug.logger & debug.flagSearcher and debug.logger(
@@ -79,25 +63,25 @@ class PyFileSearcher(AbstractSearcher):
                     raise error.PySmiFileNotModifiedError()
 
                 else:
-                    raise error.PySmiFileNotFoundError('older file %s exists' % mibname, searcher=self)
+                    raise error.PySmiFileNotFoundError(f'older file {mibname} exists', searcher=self)
 
             else:
-                debug.logger & debug.flagSearcher and debug.logger('bad magic in %s' % f)
+                debug.logger & debug.flagSearcher and debug.logger(f'bad magic in {f}')
                 continue
 
         for pySfx in SOURCE_SUFFIXES:
             f = pyfile + pySfx
 
             if not os.path.exists(f) or not os.path.isfile(f):
-                debug.logger & debug.flagSearcher and debug.logger('%s not present or not a file' % f)
+                debug.logger & debug.flagSearcher and debug.logger(f'{f} not present or not a file')
                 continue
 
             try:
-                pyTime = os.stat(f)[8]
+                pyTime = os.stat(f).st_mtime
 
-            except OSError:
-                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {sys.exc_info()[1]}',
-                                               searcher=self)
+            except OSError as exc:
+                raise error.PySmiSearcherError(f'failure opening compiled file {f}: {exc}',
+                                               searcher=self) from exc
 
             debug.logger & debug.flagSearcher and debug.logger(
                 'found {}, mtime {}'.format(f, time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(pyTime))))
@@ -105,4 +89,4 @@ class PyFileSearcher(AbstractSearcher):
             if pyTime >= mtime:
                 raise error.PySmiFileNotModifiedError()
 
-        raise error.PySmiFileNotFoundError('no compiled file %s found' % mibname, searcher=self)
+        raise error.PySmiFileNotFoundError(f'no compiled file {mibname} found', searcher=self)

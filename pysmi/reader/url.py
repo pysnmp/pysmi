@@ -4,14 +4,14 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
 
 from urllib import parse as urlparse
 from urllib.request import url2pathname
+
+from pysmi import error
+from pysmi.reader.httpclient import HttpReader
 from pysmi.reader.localfile import FileReader
 from pysmi.reader.zipreader import ZipReader
-from pysmi.reader.httpclient import HttpReader
-from pysmi import error
 
 
 def getReadersFromUrls(*sourceUrls, **options):
@@ -37,6 +37,6 @@ def getReadersFromUrls(*sourceUrls, **options):
             readers.append(HttpReader(sourceUrl).setOptions(**options))
 
         else:
-            raise error.PySmiError('Unsupported URL scheme %s' % sourceUrl)
+            raise error.PySmiError(f'Unsupported URL scheme {sourceUrl}')
 
     return readers

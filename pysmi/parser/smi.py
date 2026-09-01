@@ -5,12 +5,12 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import os
-import sys
+
 import ply.yacc as yacc
+
+from pysmi import debug, error
 from pysmi.lexer.smi import lexerFactory
 from pysmi.parser.base import AbstractParser
-from pysmi import error
-from pysmi import debug
 
 YACC_VERSION = [int(x) for x in yacc.__version__.split('.')]
 
@@ -24,9 +24,9 @@ class SmiV2Parser(AbstractParser):
             tempdir = os.path.join(tempdir, startSym)
             try:
                 os.makedirs(tempdir)
-            except OSError:
-                if sys.exc_info()[1].errno != 17:
-                    raise error.PySmiError(f'Failed to create cache directory {tempdir}: {sys.exc_info()[1]}')
+            except OSError as exc:
+                if exc.errno != 17:
+                    raise error.PySmiError(f'Failed to create cache directory {tempdir}: {exc}') from exc
 
         self.lexer = self.defaultLexer(tempdir=tempdir)
 
@@ -40,15 +40,9 @@ class SmiV2Parser(AbstractParser):
                                     debug=False,
                                     outputdir=tempdir)
         else:
-            if debug.logger & debug.flagParser:
-                logger = debug.logger.getCurrentLogger()
-            else:
-                logger = yacc.NullLogger()
+            logger = debug.logger.getCurrentLogger() if debug.logger & debug.flagParser else yacc.NullLogger()
 
-            if debug.logger & debug.flagGrammar:
-                debuglogger = debug.logger.getCurrentLogger()
-            else:
-                debuglogger = None
+            debuglogger = debug.logger.getCurrentLogger() if debug.logger & debug.flagGrammar else None
 
             self.parser = yacc.yacc(module=self,
                                     start=startSym,
@@ -404,7 +398,7 @@ class SmiV2Parser(AbstractParser):
     def p_VarPart(self, p):
         """VarPart : VARIABLES '{' VarTypes '}'
                    | empty"""
-        p[0] = p[1] and p[3] or []
+        p[0] = (p[1] and p[3]) or []
 
     def p_VarTypes(self, p):
         """VarTypes : VarTypes ',' VarType
@@ -802,7 +796,7 @@ class SmiV2Parser(AbstractParser):
     def p_NotificationObjectsPart(self, p):
         """NotificationObjectsPart : OBJECTS '{' Objects '}'
                                    | empty"""
-        p[0] = p[1] and p[3] or []
+        p[0] = (p[1] and p[3]) or []
 
     def p_ObjectGroupObjectsPart(self, p):
         """ObjectGroupObjectsPart : OBJECTS '{' Objects '}'"""
@@ -939,8 +933,8 @@ class SmiV2Parser(AbstractParser):
 
     def p_ComplianceModule(self, p):
         """ComplianceModule : MODULE ComplianceModuleName MandatoryPart CompliancePart"""
-        objects = p[3] and p[3][1] or []
-        objects += p[4] and p[4][1] or []
+        objects = (p[3] and p[3][1]) or []
+        objects += (p[4] and p[4][1]) or []
         p[0] = (p[2],  # ModuleName
                 objects)  # MandatoryPart + CompliancePart
 
@@ -980,9 +974,9 @@ class SmiV2Parser(AbstractParser):
                        | Compliance"""
         n = len(p)
         if n == 3:
-            p[0] = p[1] and p[2] and ('Compliances', p[1][1] + [p[2]]) or p[1]
+            p[0] = (p[1] and p[2] and ('Compliances', p[1][1] + [p[2]])) or p[1]
         elif n == 2:
-            p[0] = p[1] and ('Compliances', [p[1]]) or None
+            p[0] = (p[1] and ('Compliances', [p[1]])) or None
 
     def p_Compliance(self, p):
         """Compliance : ComplianceGroup
@@ -1242,7 +1236,7 @@ class SupportIndex:
 
         # libsmi: TODO: use the SYNTAX value of the correspondent
         #               OBJECT-TYPE invocation
-        p[0] = isinstance(p[1], tuple) and p[1][1][0] or p[1]
+        p[0] = (isinstance(p[1], tuple) and p[1][1][0]) or p[1]
 
     # for Index rule
     @staticmethod
@@ -1252,7 +1246,7 @@ class SupportIndex:
                      | IPADDRESS
                      | NETWORKADDRESS"""
         n = len(p)
-        indextype = n == 3 and p[1] + ' ' + p[2] or p[1]
+        indextype = (n == 3 and p[1] + ' ' + p[2]) or p[1]
         p[0] = indextype
 
 
@@ -1439,7 +1433,7 @@ def parserFactory(**grammarOptions):
     for option in grammarOptions:
         if grammarOptions[option]:
             if option not in relaxedGrammar:
-                raise error.PySmiError('Unknown parser relaxation option: %s' % option)
+                raise error.PySmiError(f'Unknown parser relaxation option: {option}')
 
             for func in relaxedGrammar[option]:
                 classAttr[func.__name__] = func

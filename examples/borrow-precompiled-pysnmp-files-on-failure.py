@@ -7,14 +7,14 @@ If no required MIB is found or its compilation fails for
 some reason, attempt to download precompiled version of
 failed MIB and store it locally as if we had compiled it.
 """#
-from pysmi.reader import HttpReader
-from pysmi.searcher import PyFileSearcher
-from pysmi.searcher import StubSearcher
 from pysmi.borrower import PyFileBorrower
-from pysmi.writer import PyFileWriter
-from pysmi.parser import SmiStarParser
 from pysmi.codegen import PySnmpCodeGen
 from pysmi.compiler import MibCompiler
+from pysmi.parser import SmiStarParser
+from pysmi.reader import HttpReader
+from pysmi.searcher import PyFileSearcher, StubSearcher
+from pysmi.writer import PyFileWriter
+
 # from pysmi import debug
 
 # debug.setLogger(debug.Debug('borrower', 'reader', 'searcher'))
@@ -45,4 +45,4 @@ mibCompiler.addBorrowers(*[PyFileBorrower(HttpReader('https://pysnmp.github.io/m
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs)
 
-print('Results: %s' % ', '.join([f'{x}:{results[x]}' for x in results]))
+print('Results: {}'.format(', '.join([f'{x}:{results[x]}' for x in results])))

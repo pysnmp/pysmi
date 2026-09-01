@@ -5,17 +5,14 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import sys
-try:
-    import unittest2 as unittest
-
-except ImportError:
-    import unittest
+import unittest
 
 from pyasn1.compat.octets import str2octs
-from pysmi.parser.smi import parserFactory
+from pysnmp.smi.builder import MibBuilder
+
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysnmp.smi.builder import MibBuilder
+from pysmi.parser.smi import parserFactory
 
 
 class ObjectTypeBasicTestCase(unittest.TestCase):
@@ -237,7 +234,7 @@ testObjectType OBJECT-TYPE
     MAX-ACCESS      read-only
     STATUS          current
     DESCRIPTION     "Test object"
-    DEFVAL          { 0 } 
+    DEFVAL          { 0 }
  ::= { 1 3 }
 
 END
@@ -375,7 +372,7 @@ IMPORTS
     FROM SNMPv2-SMI;
 
   testTable OBJECT-TYPE
-    SYNTAX          SEQUENCE OF TestEntry 
+    SYNTAX          SEQUENCE OF TestEntry
     MAX-ACCESS      not-accessible
     STATUS          current
     DESCRIPTION     "Test table"
@@ -386,7 +383,7 @@ IMPORTS
     MAX-ACCESS      not-accessible
     STATUS          current
     DESCRIPTION     "Test row"
-    INDEX           { testIndex } 
+    INDEX           { testIndex }
   ::= { testTable 1 }
 
   TestEntry ::= SEQUENCE {
@@ -458,7 +455,7 @@ IMPORTS
     FROM SNMPv2-SMI;
 
   testTable OBJECT-TYPE
-    SYNTAX          SEQUENCE OF TestEntry 
+    SYNTAX          SEQUENCE OF TestEntry
     MAX-ACCESS      not-accessible
     STATUS          current
     DESCRIPTION     "Test table"
@@ -469,7 +466,7 @@ IMPORTS
     MAX-ACCESS      not-accessible
     STATUS          current
     DESCRIPTION     "Test row"
-    INDEX           { IMPLIED testIndex } 
+    INDEX           { IMPLIED testIndex }
   ::= { testTable 3 }
 
   TestEntry ::= SEQUENCE {
@@ -512,7 +509,7 @@ IMPORTS
     FROM SNMPv2-SMI;
 
   testTable OBJECT-TYPE
-    SYNTAX          SEQUENCE OF TestEntry 
+    SYNTAX          SEQUENCE OF TestEntry
     MAX-ACCESS      not-accessible
     STATUS          current
     DESCRIPTION     "Test table"
@@ -523,7 +520,7 @@ IMPORTS
     MAX-ACCESS      not-accessible
     STATUS          current
     DESCRIPTION     "Test row"
-    INDEX           { testIndex, testValue } 
+    INDEX           { testIndex, testValue }
   ::= { testTable 3 }
 
   TestEntry ::= SEQUENCE {
@@ -574,7 +571,7 @@ IMPORTS
     FROM SNMPv2-SMI;
 
   testTable OBJECT-TYPE
-    SYNTAX          SEQUENCE OF TestEntry 
+    SYNTAX          SEQUENCE OF TestEntry
     MAX-ACCESS      not-accessible
     STATUS          current
     DESCRIPTION     "Test table"
@@ -585,7 +582,7 @@ IMPORTS
     MAX-ACCESS      not-accessible
     STATUS          current
     DESCRIPTION     "Test row"
-    INDEX           { testIndex } 
+    INDEX           { testIndex }
   ::= { testTable 3 }
 
   TestEntry ::= SEQUENCE {
@@ -641,7 +638,7 @@ END
     def testObjectTypeTableRowAugmention(self):
         # XXX provide getAugmentation() method
         self.assertEqual(
-            list(self.ctx['testEntry'].augmentingRows.keys())[0],
+            next(iter(self.ctx['testEntry'].augmentingRows.keys())),
             ('TEST-MIB', 'testEntryExt'),
             'bad AUGMENTS table clause'
         )

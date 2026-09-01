@@ -5,17 +5,14 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import sys
-try:
-    import unittest2 as unittest
+import unittest
 
-except ImportError:
-    import unittest
+from pysnmp.smi.builder import MibBuilder
 
-from pysmi.parser.smi import parserFactory
-from pysmi.parser.dialect import smiV2
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysnmp.smi.builder import MibBuilder
+from pysmi.parser.dialect import smiV2
+from pysmi.parser.smi import parserFactory
 
 
 class ObjectGroupTestCase(unittest.TestCase):
