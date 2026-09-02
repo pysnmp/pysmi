@@ -623,7 +623,12 @@ class JsonCodeGen(AbstractCodeGen):
         name = self.transOpers(name)
 
         oidStr, parentOid = oid
-        indexStr, _fakeStrlist, _fakeSyms = index or ("", "", [])
+        # genTableIndex returns lists throughout, so an absent INDEX stands in
+        # as empty ones rather than as the empty strings pysnmp source uses.
+        indexStr: list[Any]
+        fakeStrlist: list[OrderedDict[str, Any]]
+        fakeSyms: list[str]
+        indexStr, fakeStrlist, fakeSyms = index or ([], [], [])
 
         defval = self.genDefVal(defval, objname=name)
 
@@ -663,11 +668,12 @@ class JsonCodeGen(AbstractCodeGen):
             outDict["description"] = description
 
         self.regSym(name, outDict, parentOid)
-        # TODO
-        #        if fakeSyms:  # fake symbols for INDEX to support SMIv1
-        #            for i in range(len(fakeSyms)):
-        #                fakeOutStr = fakeStrlist[i] % oidStr
-        #                self.regSym(fakeSyms[i], fakeOutStr, name)
+
+        if fakeSyms:  # fake symbols for INDEX to support SMIv1
+            for idx, fakeSym in enumerate(fakeSyms):
+                fakeOutDict = fakeStrlist[idx]
+                fakeOutDict["oid"] = fakeOutDict["oid"] % oidStr
+                self.regSym(fakeSym, fakeOutDict, oidStr)
 
         return outDict
 
@@ -1031,12 +1037,13 @@ class JsonCodeGen(AbstractCodeGen):
             data: converted clause values
 
         Returns:
-            One entry per index naming the column and its module, and the
-            synthetic columns an SMIv1 index would need, which
-            :py:meth:`genObjectType` does not yet emit.
+            One entry per index naming the column and its module, the
+            synthetic columns an SMIv1 index needs, and their names.
+            :py:meth:`genObjectType` emits the synthetic columns once it knows
+            the OID of the row they hang off.
         """
 
-        def genFakeSyms(fakeidx: int, idxType: str) -> tuple[dict[str, Any], str]:
+        def genFakeSyms(fakeidx: int, idxType: str) -> tuple["OrderedDict[str, Any]", str]:
             """Render a synthetic column for an SMIv1 index.
 
             Args:
@@ -1044,15 +1051,24 @@ class JsonCodeGen(AbstractCodeGen):
                 idxType: type the index named in place of a column
 
             Returns:
-                The column as a JSON object, with its parent OID left to be filled
-                in, and the name it was given.
+                The column as a JSON object, with its parent OID left as a
+                template to be filled in, and the name it was given.
             """
             fakeSymName = f"pysmiFakeCol{fakeidx}"
 
             objType = self.typeClasses.get(idxType, idxType)
             objType = self.transOpers(objType)
 
-            return {"module": self.moduleName[0], "object": objType}, fakeSymName
+            outDict: OrderedDict[str, Any] = OrderedDict()
+            outDict["name"] = fakeSymName
+            # The row's OID is not known here, so leave a template for
+            # genObjectType to fill in, as the pysnmp backend does.
+            outDict["oid"] = "%s." + str(fakeidx)
+            outDict["nodetype"] = "column"
+            outDict["class"] = "objecttype"
+            outDict["syntax"] = OrderedDict([("type", objType), ("class", "type")])
+
+            return outDict, fakeSymName
 
         indexes = data[0]
         idxStrlist, fakeSyms, fakeStrlist = [], [], []
