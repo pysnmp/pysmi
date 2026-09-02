@@ -12,12 +12,12 @@
 def encode(s):
     """Encode str to bytes using UTF-8."""
     if isinstance(s, str):
-        s = s.encode('utf-8', 'ignore')
+        s = s.encode("utf-8", "ignore")
     return s
 
 
 def decode(s):
     """Decode bytes to str using UTF-8."""
     if isinstance(s, bytes):
-        s = s.decode('utf-8', 'ignore')
+        s = s.decode("utf-8", "ignore")
     return s

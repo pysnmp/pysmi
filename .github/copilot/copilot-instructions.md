@@ -136,10 +136,10 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
   ```python
   class PySnmpCodeGen(AbstractCodeGen):
       """Builds PySnMP-specific Python code representing MIB module supplied
-         in form of an Abstract Syntax Tree on input.
+      in form of an Abstract Syntax Tree on input.
 
-         Instance of this class is supposed to be passed to *MibCompiler*,
-         the rest is internal to *MibCompiler*.
+      Instance of this class is supposed to be passed to *MibCompiler*,
+      the rest is internal to *MibCompiler*.
       """
   ```
 - **Method docstrings**: Google-style with `Args:`, `Keyword Args:`, `Returns:` sections. Example from `pysmi/compiler.py`:
@@ -175,18 +175,19 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
   ```python
   class ObjectTypeBasicTestCase(unittest.TestCase):
       """
-  TEST-MIB DEFINITIONS ::= BEGIN
-  ...
-  END
-  """
+      TEST-MIB DEFINITIONS ::= BEGIN
+      ...
+      END
+      """
+
       def setUp(self):
           ast = parserFactory()().parse(self.__class__.__doc__)[0]
           mibInfo, symtable = SymtableCodeGen().genCode(ast, {}, genTexts=True)
           self.mibInfo, pycode = PySnmpCodeGen().genCode(ast, {mibInfo.name: symtable}, genTexts=True)
-          codeobj = compile(pycode, 'test', 'exec')
+          codeobj = compile(pycode, "test", "exec")
           mibBuilder = MibBuilder()
           mibBuilder.loadTexts = True
-          self.ctx = {'mibBuilder': mibBuilder}
+          self.ctx = {"mibBuilder": mibBuilder}
           exec(codeobj, self.ctx, self.ctx)
   ```
 - **Assertions**: `self.assertTrue(..., 'message')`, `self.assertEqual(actual, expected, 'message')` — always include a trailing failure-message string.
@@ -231,7 +232,7 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
   class PySmiError(Exception):
       def __init__(self, *args, **kwargs):
           Exception.__init__(self, *args)
-          self.msg = args and args[0] or ''
+          self.msg = args and args[0] or ""
           for k in kwargs:
               setattr(self, k, kwargs[k])
   ```
@@ -239,7 +240,7 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 - Raise the most specific exception class, passing context as kwargs:
   ```python
   raise error.PySmiReaderFileNotFoundError(mibname=mibname, reader=self._reader)
-  raise error.PySmiWriterError(f'failure writing file {pyfile}: {exc[1]}', file=pyfile, writer=self)
+  raise error.PySmiWriterError(f"failure writing file {pyfile}: {exc[1]}", file=pyfile, writer=self)
   ```
 - Use the modern `except ... as exc` form and interpolate `exc` (or `exc[1]` from a caught tuple) into a new error. The legacy `sys.exc_info()[1]` pattern has been removed; do not reintroduce it.
 - `try/except` blocks commonly catch `(OSError, UnicodeEncodeError)` for file I/O.
@@ -249,7 +250,7 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 - `pysmi/debug.py` defines a flag-based debug system, not stdlib `logging` directly. Module-level singleton `debug.logger` is a `Debug` instance; flags live in `pysmi/debug.py` (`flagReader`, `flagLexer`, `flagParser`, `flagGrammar`, `flagCodegen`, `flagWriter`, `flagCompiler`, `flagBorrower`, `flagSearcher`, `flagAll`).
 - Emit debug lines using the bitwise-and short-circuit form (do not use `if` statements):
   ```python
-  debug.logger & debug.flagReader and debug.logger(f'looking for MIB {mibname}')
+  debug.logger & debug.flagReader and debug.logger(f"looking for MIB {mibname}")
   ```
 - For components that need the underlying stdlib logger (e.g. PLY), call `debug.logger.getCurrentLogger()`.
 - New components must follow this exact debug-logging idiom.

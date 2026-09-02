@@ -6,7 +6,8 @@ Look up specific ASN.1 MIBs at configured Web/FTP sites.
 If no required MIB is found or its compilation fails for
 some reason, attempt to download precompiled version of
 failed MIB and store it locally as if we had compiled it.
-"""#
+"""  #
+
 from pysmi.borrower import PyFileBorrower
 from pysmi.codegen import PySnmpCodeGen
 from pysmi.compiler import MibCompiler
@@ -19,19 +20,17 @@ from pysmi.writer import PyFileWriter
 
 # debug.setLogger(debug.Debug('borrower', 'reader', 'searcher'))
 
-inputMibs = ['MIKROTIK-MIB']
+inputMibs = ["MIKROTIK-MIB"]
 
 
-dstDirectory = '.pysnmp-mibs'
+dstDirectory = ".pysnmp-mibs"
 
 # Initialize compiler infrastructure
 
-mibCompiler = MibCompiler(
-    SmiStarParser(), PySnmpCodeGen(), PyFileWriter(dstDirectory)
-)
+mibCompiler = MibCompiler(SmiStarParser(), PySnmpCodeGen(), PyFileWriter(dstDirectory))
 
 # search for source MIBs at Web sites
-mibCompiler.addSources(HttpReader('https://pysnmp.github.io/mibs/asn1/@mib@'))
+mibCompiler.addSources(HttpReader("https://pysnmp.github.io/mibs/asn1/@mib@"))
 
 # never recompile MIBs with MACROs
 mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
@@ -40,9 +39,9 @@ mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 mibCompiler.addSearchers(PyFileSearcher(dstDirectory))
 
 # search for compiled MIBs at Web sites if source is not available or broken
-mibCompiler.addBorrowers(*[PyFileBorrower(HttpReader('https://pysnmp.github.io/mibs/notexts/@mib@'))])
+mibCompiler.addBorrowers(*[PyFileBorrower(HttpReader("https://pysnmp.github.io/mibs/notexts/@mib@"))])
 
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs)
 
-print('Results: {}'.format(', '.join([f'{x}:{results[x]}' for x in results])))
+print("Results: {}".format(", ".join([f"{x}:{results[x]}" for x in results])))

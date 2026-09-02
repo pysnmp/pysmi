@@ -10,11 +10,11 @@ from pysmi.writer.base import AbstractWriter
 
 class CallbackWriter(AbstractWriter):
     """Invokes user-specified callable and passes transformed
-       MIB module to it.
+    MIB module to it.
 
-       Note: user callable object signature must be as follows
+    Note: user callable object signature must be as follows
 
-       .. function:: cbFun(mibname, contents, cbCtx)
+    .. function:: cbFun(mibname, contents, cbCtx)
 
     """
 
@@ -34,7 +34,7 @@ class CallbackWriter(AbstractWriter):
 
     def putData(self, mibname, data, comments=(), dryRun=False):
         if dryRun:
-            debug.logger & debug.flagWriter and debug.logger('dry run mode')
+            debug.logger & debug.flagWriter and debug.logger("dry run mode")
             return
 
         try:
@@ -42,9 +42,10 @@ class CallbackWriter(AbstractWriter):
 
         except Exception as exc:
             raise error.PySmiWriterError(
-                f'user callback {self._cbFun} failure writing {mibname}: {exc}', writer=self) from exc
+                f"user callback {self._cbFun} failure writing {mibname}: {exc}", writer=self
+            ) from exc
 
-        debug.logger & debug.flagWriter and debug.logger(f'user callback for {mibname} succeeded')
+        debug.logger & debug.flagWriter and debug.logger(f"user callback for {mibname} succeeded")
 
     def getData(self, filename):
-        return ''
+        return ""

@@ -8,7 +8,8 @@ In this example no attempt is made to find and compile ASN.1
 MIB source.
 
 Fetched pysnmp MIB(s) are stored in a local directory.
-"""#
+"""  #
+
 from pysmi.borrower import PyFileBorrower
 from pysmi.codegen import NullCodeGen
 from pysmi.compiler import MibCompiler
@@ -17,24 +18,22 @@ from pysmi.reader import HttpReader
 from pysmi.searcher import PyFileSearcher
 from pysmi.writer import PyFileWriter
 
-inputMibs = ['MIKROTIK-MIB']
+inputMibs = ["MIKROTIK-MIB"]
 
 
-dstDirectory = '.pysnmp-mibs'
+dstDirectory = ".pysnmp-mibs"
 
 # Initialize compiler infrastructure
 
-mibCompiler = MibCompiler(
-    NullParser(), NullCodeGen(), PyFileWriter(dstDirectory)
-)
+mibCompiler = MibCompiler(NullParser(), NullCodeGen(), PyFileWriter(dstDirectory))
 
 # check compiled/borrowed MIBs in our own productions
 mibCompiler.addSearchers(PyFileSearcher(dstDirectory))
 
 # search for precompiled MIBs at Web sites
-mibCompiler.addBorrowers(*[PyFileBorrower(HttpReader('https://pysnmp.github.io/mibs/notexts/@mib@'))])
+mibCompiler.addBorrowers(*[PyFileBorrower(HttpReader("https://pysnmp.github.io/mibs/notexts/@mib@"))])
 
 # run MIB compilation
 results = mibCompiler.compile(*inputMibs)
 
-print('Results: {}'.format(', '.join([f'{x}:{results[x]}' for x in results])))
+print("Results: {}".format(", ".join([f"{x}:{results[x]}" for x in results])))

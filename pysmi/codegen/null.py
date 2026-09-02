@@ -12,12 +12,12 @@ from pysmi.mibinfo import MibInfo
 class NullCodeGen(AbstractCodeGen):
     """Dummy code generation backend.
 
-       Could be used for disabling code generation at *MibCompiler*.
+    Could be used for disabling code generation at *MibCompiler*.
     """
 
     def genCode(self, ast, symbolTable, **kwargs):
-        debug.logger & debug.flagCodegen and debug.logger(f'{self.__class__.__name__} invoked')
-        return MibInfo(oid=None, name='', imported=[]), ''
+        debug.logger & debug.flagCodegen and debug.logger(f"{self.__class__.__name__} invoked")
+        return MibInfo(oid=None, name="", imported=[]), ""
 
     def genIndex(self, mibsMap, **kwargs):
-        return ''
+        return ""
