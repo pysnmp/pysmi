@@ -16,8 +16,13 @@ from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
+    ComplianceClause,
+    DefValClause,
     IndexClause,
     NamedNumbersClause,
+    OidClause,
+    RangesClause,
+    RevisionsClause,
     SequenceClause,
     SymbolsClause,
     TextClause,
@@ -1049,7 +1054,7 @@ for _{name}_obj in [{objects}]:
         return "Bits", outStr
 
     # noinspection PyUnusedLocal
-    def gen_compliances(self, data: Any, classmode: bool = False) -> str:
+    def gen_compliances(self, data: ComplianceClause, classmode: bool = False) -> str:
         """Render the objects a MODULE-COMPLIANCE clause requires.
 
         The objects are set in a loop when the clause names more of them than
@@ -1137,7 +1142,9 @@ for _{name}_obj in [{objects}]:
         return self.indent + "displayHint = " + dorepr(data[0]) + "\n"
 
     # noinspection PyUnusedLocal
-    def gen_def_val(self, data: Any, classmode: bool = False, objname: str | None = None) -> "bool | list[Any] | str":
+    def gen_def_val(
+        self, data: DefValClause | None, classmode: bool = False, objname: str | None = None
+    ) -> "bool | list[Any] | str":
         """Render a DEFVAL as a value of the object's own type.
 
         The default is interpreted according to the base type the object
@@ -1194,8 +1201,13 @@ for _{name}_obj in [{objects}]:
             val = dorepr(defval[1:-1])
 
         else:  # symbol (oid as defval) or name for enumeration member
-            if defvalType[0][0] == "ObjectIdentifier" and (
-                defval in self.symbolTable[self.moduleName[0]] or defval in self._importMap
+            # A bits list reaching an OID-typed object is a broken MIB; the
+            # membership tests below would raise TypeError on the unhashable
+            # list, so leave it to the branches that handle a list.
+            if (
+                defvalType[0][0] == "ObjectIdentifier"
+                and isinstance(defval, str)
+                and (defval in self.symbolTable[self.moduleName[0]] or defval in self._importMap)
             ):  # oid
                 module = self._importMap.get(defval, self.moduleName[0])
 
@@ -1396,7 +1408,7 @@ for _{name}_obj in [{objects}]:
 
         return ".setIndexNames(" + ", ".join(idxStrlist) + ")", fakeStrlist, fakeSyms
 
-    def gen_integer_sub_type(self, data: Any, classmode: bool = False) -> str:
+    def gen_integer_sub_type(self, data: RangesClause, classmode: bool = False) -> str:
         """Render an integer range restriction.
 
         Several ranges are joined into a union.
@@ -1437,7 +1449,7 @@ for _{name}_obj in [{objects}]:
         access = data[0].replace("-", "")
         return (access != "notaccessible" and '.setMaxAccess("' + access + '")') or ""
 
-    def gen_octet_string_sub_type(self, data: Any, classmode: bool = False) -> str:
+    def gen_octet_string_sub_type(self, data: RangesClause, classmode: bool = False) -> str:
         """Render an octet string size restriction.
 
         Several sizes are joined into a union, and a size that permits only one
@@ -1455,25 +1467,30 @@ for _{name}_obj in [{objects}]:
         outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
         outStr += (not singleRange and self._CONSTRAINTS_UNION) or ""
 
+        vminStr = vmaxStr = ""
         for rng in data[0]:
             vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
-            vmin, vmax = str(self.str2int(vmin)), str(self.str2int(vmax))
-            outStr += "ValueSizeConstraint(" + vmin + ", " + vmax + ")" + ((not singleRange and ", ") or "")
+            vminStr, vmaxStr = str(self.str2int(vmin)), str(self.str2int(vmax))
+            outStr += "ValueSizeConstraint(" + vminStr + ", " + vmaxStr + ")" + ((not singleRange and ", ") or "")
 
         outStr += (not singleRange and ((classmode and ")") or "))")) or ((not classmode and ")") or "\n")
 
         if data[0]:
-            # noinspection PyUnboundLocalVariable
+            # vminStr and vmaxStr hold the last size rendered above; a single
+            # size that spans one length is also emitted as a fixed length.
             outStr += (
                 singleRange
-                and vmin == vmax
-                and ((classmode and self.indent + "fixedLength = " + vmin + "\n") or ".setFixedLength(" + vmin + ")")
+                and vminStr == vmaxStr
+                and (
+                    (classmode and self.indent + "fixedLength = " + vminStr + "\n")
+                    or ".setFixedLength(" + vminStr + ")"
+                )
             ) or ""
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_oid(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_oid(self, data: OidClause, classmode: bool = False) -> tuple[Any, ...]:
         """Resolve an OID and render it as numbers.
 
         Args:
@@ -1520,7 +1537,7 @@ for _{name}_obj in [{objects}]:
         return []
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_time(self, data: Any, classmode: bool = False) -> list[Any]:
+    def gen_time(self, data: TextClause, classmode: bool = False) -> list[Any]:
         """Render MIB timestamps as readable dates.
 
         Two-digit SMIv1 years are read as nineteen-hundreds. A timestamp that
@@ -1581,7 +1598,7 @@ for _{name}_obj in [{objects}]:
         return ".setOrganization(" + dorepr(text) + ")"
 
     # noinspection PyUnusedLocal
-    def gen_revisions(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_revisions(self, data: RevisionsClause, classmode: bool = False) -> tuple[Any, ...]:
         """Render a module's revision history.
 
         Args:

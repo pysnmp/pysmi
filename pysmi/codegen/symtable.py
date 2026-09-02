@@ -22,8 +22,13 @@ from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
+    ComplianceClause,
+    DefValClause,
     IndexClause,
     NamedNumbersClause,
+    OidClause,
+    RangesClause,
+    RevisionsClause,
     SequenceClause,
     SymbolsClause,
     TextClause,
@@ -574,7 +579,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return ("Bits", ""), bits
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_compliances(self, data: Any, classmode: bool = False) -> str:
+    def gen_compliances(self, data: ComplianceClause, classmode: bool = False) -> str:
         """Ignore a MODULE-COMPLIANCE body; it defines no symbols.
 
         Returns:
@@ -620,7 +625,9 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal
-    def gen_def_val(self, data: Any, classmode: bool = False) -> str | list[Any]:  # XXX should be fixed, see pysnmp.py
+    def gen_def_val(
+        self, data: DefValClause, classmode: bool = False
+    ) -> str | list[Any]:  # XXX should be fixed, see pysnmp.py
         """Render a DEFVAL as the Python source for that value.
 
         Numbers, hexadecimal and binary strings, quoted strings, bit lists and
@@ -738,7 +745,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return fakeIdxName, fakeIndexes, fakeSymsSyntax
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_integer_sub_type(self, data: Any, classmode: bool = False) -> str:
+    def gen_integer_sub_type(self, data: RangesClause, classmode: bool = False) -> str:
         """Ignore an integer range restriction.
 
         Returns:
@@ -756,7 +763,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_octet_string_sub_type(self, data: Any, classmode: bool = False) -> str:
+    def gen_octet_string_sub_type(self, data: RangesClause, classmode: bool = False) -> str:
         """Ignore an octet string size restriction.
 
         Returns:
@@ -765,7 +772,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal
-    def gen_oid(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_oid(self, data: OidClause, classmode: bool = False) -> tuple[Any, ...]:
         """Resolve an OID into sub-identifiers and the modules they come from.
 
         Each name in the OID is recorded as a parent, so that a symbol is not
@@ -810,7 +817,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_time(self, data: Any, classmode: bool = False) -> str:
+    def gen_time(self, data: TextClause, classmode: bool = False) -> str:
         """Ignore a timestamp.
 
         Returns:
@@ -845,7 +852,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return data[0]
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_revisions(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_revisions(self, data: RevisionsClause, classmode: bool = False) -> tuple[Any, ...]:
         """Return the module's most recent revision.
 
         Args:

@@ -16,6 +16,8 @@ These tests compile a MIB that exercises the annotated clauses and check every
 value actually handed to a handler against the alias that handler declares.
 """
 
+import functools
+import operator
 import types
 import typing
 import unittest
@@ -31,7 +33,7 @@ IMPORTS
         FROM SNMPv2-SMI
     TEXTUAL-CONVENTION, DisplayString
         FROM SNMPv2-TC
-    OBJECT-GROUP, AGENT-CAPABILITIES
+    OBJECT-GROUP, AGENT-CAPABILITIES, MODULE-COMPLIANCE
         FROM SNMPv2-CONF;
 
 testMib MODULE-IDENTITY
@@ -72,6 +74,22 @@ testBits OBJECT-TYPE
     DESCRIPTION "A scalar carrying BITS."
     DEFVAL      { { readable } }
     ::= { testMib 3 }
+
+testRanged OBJECT-TYPE
+    SYNTAX      Integer32 (0..100 | 200)
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "A scalar with a range, for the range constraint."
+    DEFVAL      { 7 }
+    ::= { testMib 7 }
+
+testSized OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE(0..16 | 32))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "A scalar with a size, for the size constraint."
+    DEFVAL      { "abc" }
+    ::= { testMib 8 }
 
 testTable OBJECT-TYPE
     SYNTAX      SEQUENCE OF TestEntry
@@ -120,6 +138,15 @@ testCaps AGENT-CAPABILITIES
             DESCRIPTION "A variation."
     ::= { 1 3 6 1 2 1 9999 6 }
 
+testCompliance MODULE-COMPLIANCE
+    STATUS      current
+    DESCRIPTION "A compliance, for the MODULE clause."
+    MODULE
+        MANDATORY-GROUPS { testGroup }
+        GROUP       testGroup
+        DESCRIPTION "A group requirement."
+    ::= { testMib 9 }
+
 testGroup OBJECT-GROUP
     OBJECTS     { testScalar, testEnum, testBits }
     STATUS      current
@@ -128,6 +155,23 @@ testGroup OBJECT-GROUP
 
 END
 """
+
+
+# SymtableCodeGen.gen_time is a stub returning "": it is in no handlersTable
+# and nothing calls it, so no MIB can reach it. It is annotated for consistency
+# with the other two backends. Listed here so that any *other* handler the MIB
+# fails to reach is still a failure. See https://github.com/pysnmp/pysmi/issues/71.
+UNREACHABLE = {("SymtableCodeGen", "gen_time")}
+
+
+def withoutNone(hint):
+    """Drop None from a union, leaving the shape the clause actually carries."""
+    if typing.get_origin(hint) in (typing.Union, types.UnionType):
+        args = tuple(a for a in typing.get_args(hint) if a is not type(None))
+        if len(args) == 1:
+            return args[0]
+        return functools.reduce(operator.or_, args)
+    return hint
 
 
 def conforms(value, hint):
@@ -242,21 +286,61 @@ class ClauseTypeTestCase(unittest.TestCase):
             with self.subTest(backend=backend.__name__):
                 seen, violations = set(), []
                 hints = compileWatching(backend, seen, violations)
-                self.assertEqual(sorted(set(hints) - seen), [])
+                unreached = {n for n in set(hints) - seen if (backend.__name__, n) not in UNREACHABLE}
+                self.assertEqual(sorted(unreached), [])
 
     def testBackendsAgreeOnClauseShape(self):
-        # The same clause must not be annotated differently in two backends.
+        # The same clause must not be annotated with a different shape in two
+        # backends. Whether a backend also accepts None is a property of how it
+        # reaches the handler, not of the clause: pysnmp and JSON call
+        # gen_def_val from gen_object_type whether or not a default was given,
+        # while the symbol table only ever reaches it by dispatch on DEFVAL.
         byName = {}
         for backend in self.backends:
             for name, hint in annotatedHandlers(backend).items():
-                byName.setdefault(name, {})[backend.__name__] = hint
+                byName.setdefault(name, {})[backend.__name__] = withoutNone(hint)
 
         for name, hints in byName.items():
             with self.subTest(handler=name):
                 self.assertEqual(len(set(hints.values())), 1, hints)
 
     def testConformsRejectsWrongShapes(self):
-        from pysmi.codegen.base import IndexClause, NamedNumbersClause, TextClause
+        from pysmi.codegen.base import (
+            ComplianceClause,
+            DefValClause,
+            IndexClause,
+            NamedNumbersClause,
+            OidClause,
+            RangesClause,
+            RevisionsClause,
+            TextClause,
+        )
+
+        # An OID arc is a name, a number, or the name(number) form.
+        self.assertTrue(conforms([["mib-2", 1, ("org", 3)]], OidClause))
+        self.assertFalse(conforms([[1.5]], OidClause))
+        self.assertFalse(conforms([[("org", "3")]], OidClause))
+
+        # A default is an int, a bits list, or a string.
+        self.assertTrue(conforms([7], DefValClause))
+        self.assertTrue(conforms(["enabled"], DefValClause))
+        self.assertTrue(conforms([["readable"]], DefValClause))
+        self.assertFalse(conforms([{"bits": 1}], DefValClause))
+
+        # A range or size entry is one bound or two, and a bound written as a
+        # hex or binary literal stays a string.
+        self.assertTrue(conforms([[(0, 100), (200,)]], RangesClause))
+        self.assertTrue(conforms([[(1, "'ffffffff'h")]], RangesClause))
+        self.assertFalse(conforms([[(0, 1, 2)]], RangesClause))
+        self.assertFalse(conforms([[[0, 1]]], RangesClause))
+
+        self.assertTrue(conforms([[("202601010000Z", ("DESCRIPTION", "text"))]], RevisionsClause))
+        self.assertFalse(conforms([[("202601010000Z", "text")]], RevisionsClause))
+
+        # The module name is absent when the clause means the current module.
+        self.assertTrue(conforms([[(None, ["aGroup"])]], ComplianceClause))
+        self.assertTrue(conforms([[("SNMPv2-MIB", ["aGroup"])]], ComplianceClause))
+        self.assertFalse(conforms([[(None, "aGroup")]], ComplianceClause))
 
         self.assertTrue(conforms(["a text"], TextClause))
         self.assertFalse(conforms("a text", TextClause))
