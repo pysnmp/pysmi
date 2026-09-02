@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Rendering parsed MIB modules into their destination format."""
+
 from pysmi.codegen.jsondoc import JsonCodeGen
 from pysmi.codegen.null import NullCodeGen
 from pysmi.codegen.pysnmp import PySnmpCodeGen

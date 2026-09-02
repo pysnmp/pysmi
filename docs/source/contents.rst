@@ -7,7 +7,7 @@ SNMP SMI compiler
 
 The PySMI library and tools are designed to parse, verify and transform
 `SNMP SMI <https://en.wikipedia.org/wiki/Management_information_base>`_ MIB
-modules from their original ASN.1 form into JSON or `pysnmp <http://snmplabs.com/pysnmp/>`_
+modules from their original ASN.1 form into JSON or `pysnmp <https://github.com/pysnmp/pysnmp>`_
 representation.
 
 Documentation
@@ -21,7 +21,7 @@ Documentation
 Source code & Changelog
 -----------------------
 
-Project source code is hosted at `GitHub <https://github.com/etingof/pysmi>`_.
+Project source code is hosted at `GitHub <https://github.com/pysnmp/pysmi>`_.
 Everyone is welcome to fork and contribute back!
 
 We maintain the detailed :doc:`log of changes </changelog>` to our software.
@@ -60,7 +60,7 @@ of publicly available ASN.1 MIB files collected on the Internet. You are
 welcome to use this MIBs archive however we can't guarantee any degree
 of consistency or reliability when it comes to these MIB modules.
 
-The *mibdump.py* tool as well as many other utilities based on PySMI
+The *mibdump* tool as well as many other utilities based on PySMI
 are programmed to use this MIB repository for automatic download and
 dependency resolution.
 
@@ -71,5 +71,5 @@ Contact
 -------
 
 In case of questions or troubles using SNMP SMI library, please open up an
-`issue <https://github.com/etingof/pysmi/issues>`_ at GitHub or ask at
+`issue <https://github.com/pysnmp/pysmi/issues>`_ at GitHub or ask at
 `Stack Overflow <http://stackoverflow.com/questions/tagged/pysmi>`_ .

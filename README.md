@@ -3,14 +3,14 @@ SNMP MIB parser
 ---------------
 
 [![Python Versions](https://img.shields.io/pypi/pyversions/pysnmp-pysmi.svg)](https://pypi.org/project/pysnmp-pysmi/)
-[![Build status](https://travis-ci.org/etingof/pysmi.svg?branch=master)](https://secure.travis-ci.org/etingof/pysmi)
+[![Build status](https://github.com/pysnmp/pysmi/actions/workflows/build-test-release.yml/badge.svg)](https://github.com/pysnmp/pysmi/actions/workflows/build-test-release.yml)
 [![Coverage Status](https://img.shields.io/codecov/c/github/pysnmp/pysmi.svg)](https://codecov.io/github/pysnmp/pysmi)
 [![GitHub license](https://img.shields.io/badge/license-BSD-blue.svg)](https://raw.githubusercontent.com/pysnmp/pysmi/main/LICENSE.rst)
 
 PySMI is a pure-Python implementation of
 [SNMP SMI](https://en.wikipedia.org/wiki/Management_information_base) MIB parser.
 This tool is designed to turn ASN.1 MIBs into various formats. As of this moment,
-JSON and [pysnmp](https://github.com/etingof/pysnmp) modules can be generated
+JSON and [pysnmp](https://github.com/pysnmp/pysnmp) modules can be generated
 from ASN.1 MIBs.
 
 Features
@@ -21,7 +21,7 @@ Features
 * Maintains an index of MIB objects over many MIB modules
 * Automatically pulls ASN.1 MIBs from local directories, ZIP archives,
   HTTP and FTP servers
-* 100% Python, works with Python 2.4 up to Python 3.7
+* 100% Python, requires Python 3.10 or newer
 
 
 
@@ -30,12 +30,12 @@ How to use PySMI
 
 If you are using pysnmp, you might never notice pysmi presence - pysnmp
 calls pysmi for MIB download and compilation behind the scenes (you can
-still can do that manually by invoking *mibdump.py* tool).
+still can do that manually by invoking *mibdump* tool).
 
-To turn ASN.1 MIB into a JSON document, call *mibdump.py* tool like this:
+To turn ASN.1 MIB into a JSON document, call *mibdump* tool like this:
 
 ```
-$ mibdump.py --generate-mib-texts  --destination-format json IF-MIB
+$ mibdump --generate-mib-texts  --destination-format json IF-MIB
 Source MIB repositories: file:///usr/share/snmp/mibs, https://pysnmp.github.io/mibs/asn1/@mib@
 Borrow missing/failed MIBs from: http://pysnmp.github.io/json/fulltexts/@mib@
 Existing/compiled MIB locations: 
@@ -187,14 +187,50 @@ How to get PySMI
 ----------------
 
 The pysmi package is distributed under terms and conditions of 2-clause
-BSD [license](http://snmplabs.com/pysmi/license.html). Source code is freely
+BSD [license](https://github.com/pysnmp/pysmi/blob/main/LICENSE.rst). Source code is freely
 available as a GitHub [repo](https://github.com/pysnmp/pysmi).
 
-You could `pip install pysnmp-pysmi` or download it from [PyPI](https://pypi.org/project/pysnmp-pysmi/).
+Run `uv add pysnmp-pysmi` or `pip install pysnmp-pysmi`, or download it from
+[PyPI](https://pypi.org/project/pysnmp-pysmi/). Note the name: `pysmi` is the original,
+unmaintained package.
+
+To try the command-line tools without installing anything permanently:
+
+```
+$ uvx --from pysnmp-pysmi mibdump --help
+```
+
+How to develop PySMI
+--------------------
+
+PySMI uses [uv](https://docs.astral.sh/uv/) for dependency management, builds and
+releases.
+
+```
+$ uv sync            # create .venv and install everything, including dev tools
+$ uv run pytest      # run the test suite
+$ uv run mibdump --help
+```
+
+Linting, formatting and type checking are run through pre-commit, which is what CI
+checks:
+
+```
+$ uv run pre-commit install     # optional, to run these on every commit
+$ uv run pre-commit run --all-files
+```
+
+That covers [ruff](https://docs.astral.sh/ruff/) for linting and formatting, and
+[mypy](https://mypy-lang.org/) for type checking. To build the documentation:
+
+```
+$ uv run sphinx-build -b html docs/source docs/build
+```
 
 If something does not work as expected,
 [open an issue](https://github.com/pysnmp/pysmi/issues) at GitHub or
 post your question [on Stack Overflow](http://stackoverflow.com/questions/ask).
 
 Copyright (c) 2015-2020, [Ilya Etingof](mailto:etingof@gmail.com).
+Copyright (c) 2024-2026, the PySNMP maintainers.
 All rights reserved.

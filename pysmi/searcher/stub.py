@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Treating a fixed list of MIB modules as always up to date."""
+
 import logging
 
 from pysmi import error

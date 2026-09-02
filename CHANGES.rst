@@ -15,7 +15,7 @@ Revision 1.2.0, 31-08-2026
   instructions to match the new toolchain
 
 Revision 1.1.12, 03-04-2024
---------------------------
+---------------------------
 
 - Fix parsing path on windows
 - Bump jinja2, pycryptodomex and black version

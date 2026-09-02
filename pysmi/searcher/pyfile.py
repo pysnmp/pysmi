@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Looking for an already-compiled PySNMP module on disk."""
+
 import importlib.machinery
 import importlib.util
 import logging

@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Parsers that tolerate the deviations found in real-world MIBs."""
+
 from pysmi.parser.dialect import smiV1Relaxed
 from pysmi.parser.smi import parserFactory
 

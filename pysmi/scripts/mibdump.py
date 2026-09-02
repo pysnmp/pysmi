@@ -7,6 +7,8 @@
 #
 # SNMP SMI/MIB data management tool
 #
+"""The *mibdump* tool: compile ASN.1 MIBs into PySNMP modules or JSON."""
+
 import getopt
 import os
 import sys
@@ -81,7 +83,7 @@ def start():
                 Use @mib@ placeholder token in URI to refer directly to
                 the required MIB module when source does not support
                 directory listing (e.g. HTTP).
-        FORMAT   - pysnmp, json, null""".format(sys.argv[0], "|".join(sorted(debug.DEBUG_CATEGORIES)))
+        FORMAT   - pysnmp, json, null""".format(os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES)))
 
     try:
         opts, inputMibs = getopt.getopt(
@@ -125,7 +127,7 @@ def start():
     Synopsis:
     SNMP SMI/MIB files conversion tool
     Documentation:
-    http://snmplabs.com/pysmi
+    https://github.com/pysnmp/pysmi
     {helpMessage}
     """)
             sys.exit(EX_OK)
@@ -136,7 +138,7 @@ def start():
             sys.stderr.write(f"""\
     SNMP SMI/MIB library version {__version__}, written by Ilya Etingof <etingof@gmail.com>
     Python interpreter: {sys.version}
-    Software documentation and support at http://snmplabs.com/pysmi
+    Software documentation and support at https://github.com/pysnmp/pysmi
     {helpMessage}
     """)
             sys.exit(EX_OK)

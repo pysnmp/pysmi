@@ -77,7 +77,7 @@ Such cases include:
 name based on whatever reason it is aware of.
 
 In general, *searcher* logic is specific to target format. At the time being,
-only `pysnmp <http://snmplabs.com/pysnmp>`_ code generation backend requires
+only `pysnmp <https://github.com/pysnmp/pysnmp>`_ code generation backend requires
 such filtering.
 
 .. toctree::

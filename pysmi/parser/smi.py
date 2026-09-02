@@ -4,6 +4,12 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""PLY grammar for SMI.
+
+The docstring of each ``p_*`` function is its grammar rule, read by PLY at
+import time. They are grammar, not documentation.
+"""
+
 import logging
 import os
 

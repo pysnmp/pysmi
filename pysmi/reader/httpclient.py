@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Reading MIB text from a web server."""
+
 import logging
 import sys
 import time

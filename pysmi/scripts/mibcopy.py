@@ -7,6 +7,8 @@
 #
 # SNMP SMI/MIB copying tool
 #
+"""The *mibcopy* tool: normalize MIB file names and keep the newest revision."""
+
 import contextlib
 import getopt
 import os
@@ -52,7 +54,7 @@ def start():
                 Use @mib@ placeholder token in URI to refer directly to
                 the required MIB module when source does not support
                 directory listing (e.g. HTTP).
-    """.format(sys.argv[0], "|".join(sorted(debug.DEBUG_CATEGORIES)))
+    """.format(os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES)))
 
     # TODO(etingof): add the option to copy MIBs into enterprise-indexed subdirs
 
@@ -89,7 +91,7 @@ def start():
     is older.
 
     Documentation:
-    http://snmplabs.com/pysmi
+    https://github.com/pysnmp/pysmi
     {helpMessage}
     """)
             sys.exit(EX_OK)
@@ -100,7 +102,7 @@ def start():
             sys.stderr.write(f"""\
     SNMP SMI/MIB library version {__version__}, written by Ilya Etingof <etingof@gmail.com>
     Python interpreter: {sys.version}
-    Software documentation and support at http://snmplabs.com/pysmi
+    Software documentation and support at https://github.com/pysnmp/pysmi
     {helpMessage}
     """)
             sys.exit(EX_OK)
