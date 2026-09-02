@@ -58,6 +58,7 @@ select = [
     "B",      # flake8-bugbear
     "S",      # flake8-bandit (security)
     "SIM",    # flake8-simplify
+    "BLE",    # flake8-blind-except
     "RUF",    # ruff-specific rules
 ]
 ignore = [

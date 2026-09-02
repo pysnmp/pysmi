@@ -170,7 +170,8 @@ def start():
                 try:
                     revision = datetime.strptime(processed[canonicalMibName].revision, "%Y-%m-%d %H:%M")
 
-                except Exception:
+                except (TypeError, ValueError):
+                    # Missing or unparsable revision date.
                     revision = datetime.fromtimestamp(0)
 
                 return canonicalMibName, revision
@@ -259,7 +260,7 @@ def start():
             try:
                 shutil.copy(os.path.join(mibDir, mibFile), os.path.join(dstDirectory, mibName))
 
-            except Exception as ex:
+            except OSError as ex:
                 if verboseFlag:
                     sys.stderr.write(
                         f'Failed to copy MIB "{os.path.join(mibDir, mibFile)}" -> "{os.path.join(dstDirectory, mibName)}" ({mibName}): "{ex}"\r\n'

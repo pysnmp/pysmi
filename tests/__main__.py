@@ -9,6 +9,7 @@ import unittest
 suite = unittest.TestLoader().loadTestsFromNames(
     [
         "test_debug",
+        "test_reader_errors",
         "test_zipreader",
         "test_agentcapabilities_smiv2_pysnmp",
         "test_imports_smiv2_pysnmp",

@@ -44,6 +44,8 @@ class CallbackWriter(AbstractWriter):
         try:
             self._cbFun(mibname, data, self._cbCtx)
 
+        # The callback is arbitrary user code, so anything it raises is turned
+        # into a writer error rather than escaping as itself.
         except Exception as exc:
             raise error.PySmiWriterError(
                 f"user callback {self._cbFun} failure writing {mibname}: {exc}", writer=self
