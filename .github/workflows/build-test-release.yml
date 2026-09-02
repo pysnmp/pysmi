@@ -35,7 +35,7 @@ jobs:
           enable-cache: true
       - name: Run tests
         run: >
-          uv run --locked --extra dev --python ${{ matrix.python }}
+          uv run --locked --group dev --python ${{ matrix.python }}
           pytest --junitxml=test-results/results.xml --cov=pysmi --cov-report=xml tests
       - uses: actions/upload-artifact@v4
         if: always()

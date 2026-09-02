@@ -6,6 +6,7 @@
 #
 import os
 import time
+from typing import ClassVar
 
 from pysmi import debug, error
 from pysmi.compat import decode
@@ -15,7 +16,7 @@ from pysmi.searcher.base import AbstractSearcher
 class AnyFileSearcher(AbstractSearcher):
     """Figures out if given file exists at given location."""
 
-    exts = []
+    exts: ClassVar[list[str]] = []
 
     def __init__(self, path):
         """Create an instance of *AnyFileSearcher* bound to specific directory.

@@ -5,3 +5,10 @@ repos:
     -   id: ruff-check
         args: [--fix]
     -   id: ruff-format
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+    -   id: mypy
+        args: [--ignore-missing-imports]
+        additional_dependencies: [types-requests]
+        files: ^pysmi/
