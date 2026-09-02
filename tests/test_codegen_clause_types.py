@@ -157,11 +157,11 @@ END
 """
 
 
-# SymtableCodeGen.gen_time is a stub returning "": it is in no handlersTable
-# and nothing calls it, so no MIB can reach it. It is annotated for consistency
-# with the other two backends. Listed here so that any *other* handler the MIB
-# fails to reach is still a failure. See https://github.com/pysnmp/pysmi/issues/71.
-UNREACHABLE = {("SymtableCodeGen", "gen_time")}
+# Every annotated handler is now reachable from the MIB below. A handler that
+# cannot be reached is either dead, as SymtableCodeGen.gen_time was, or the MIB
+# has stopped covering it; either way the test should fail rather than pass over
+# it, so this stays empty unless there is a reason on record.
+UNREACHABLE: set[tuple[str, str]] = set()
 
 
 def withoutNone(hint):
