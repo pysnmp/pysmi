@@ -14,7 +14,15 @@ from typing import Any, cast
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
-from pysmi.codegen.base import AbstractCodeGen, dorepr
+from pysmi.codegen.base import (
+    AbstractCodeGen,
+    IndexClause,
+    NamedNumbersClause,
+    SequenceClause,
+    SymbolsClause,
+    TextClause,
+    dorepr,
+)
 from pysmi.mibinfo import MibInfo
 
 logger = logging.getLogger(__name__)
@@ -989,7 +997,7 @@ for _{name}_obj in [{objects}]:
         names = data[0]
         return names
 
-    def gen_bit_names(self, data: Any, classmode: bool = False) -> Any:
+    def gen_bit_names(self, data: SymbolsClause, classmode: bool = False) -> Any:
         """Return the names listed in a BITS or enumeration clause.
 
         Args:
@@ -1002,7 +1010,7 @@ for _{name}_obj in [{objects}]:
         names = data[0]
         return names
 
-    def gen_bits(self, data: Any, classmode: bool = False) -> tuple[str, str]:
+    def gen_bits(self, data: NamedNumbersClause, classmode: bool = False) -> tuple[str, str]:
         """Render a BITS clause as named values.
 
         The values are built in batches when there are more of them than may be
@@ -1095,7 +1103,7 @@ for _{name}_obj in [{objects}]:
         return "MibTable", ""
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_contact_info(self, data: Any, classmode: bool = False) -> str:
+    def gen_contact_info(self, data: TextClause, classmode: bool = False) -> str:
         """Render a CONTACT-INFO clause.
 
         Args:
@@ -1109,7 +1117,7 @@ for _{name}_obj in [{objects}]:
         return ".setContactInfo(" + dorepr(text) + ")"
 
     # noinspection PyUnusedLocal
-    def gen_display_hint(self, data: Any, classmode: bool = False) -> str:
+    def gen_display_hint(self, data: TextClause, classmode: bool = False) -> str:
         """Render a DISPLAY-HINT as a class attribute.
 
         Args:
@@ -1221,7 +1229,7 @@ for _{name}_obj in [{objects}]:
         return ".clone(" + val + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_description(self, data: Any, classmode: bool = False) -> str:
+    def gen_description(self, data: TextClause, classmode: bool = False) -> str:
         """Render a DESCRIPTION clause.
 
         A handler is called in one of two modes. In class mode it is rendering
@@ -1242,7 +1250,7 @@ for _{name}_obj in [{objects}]:
         ) + ")"
 
     # noinspection PyMethodMayBeStatic
-    def gen_reference(self, data: Any, classmode: bool = False) -> str:
+    def gen_reference(self, data: TextClause, classmode: bool = False) -> str:
         """Render a REFERENCE clause.
 
         Args:
@@ -1258,7 +1266,7 @@ for _{name}_obj in [{objects}]:
         ) + ")"
 
     # noinspection PyMethodMayBeStatic
-    def gen_status(self, data: Any, classmode: bool = False) -> str:
+    def gen_status(self, data: TextClause, classmode: bool = False) -> str:
         """Render a STATUS clause.
 
         Args:
@@ -1272,7 +1280,7 @@ for _{name}_obj in [{objects}]:
         return (classmode and self.indent + "status = " + dorepr(text) + "\n") or ".setStatus(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic
-    def gen_product_release(self, data: Any, classmode: bool = False) -> Any:
+    def gen_product_release(self, data: TextClause, classmode: bool = False) -> Any:
         """Render a PRODUCT-RELEASE clause.
 
         Args:
@@ -1287,7 +1295,7 @@ for _{name}_obj in [{objects}]:
             classmode and self.indent + "productRelease = " + dorepr(text) + "\n"
         ) or ".setProductRelease(" + dorepr(text) + ")"
 
-    def gen_enum_spec(self, data: Any, classmode: bool = False) -> str:
+    def gen_enum_spec(self, data: NamedNumbersClause, classmode: bool = False) -> str:
         """Render an enumeration as a value constraint and named values.
 
         The permitted values are constrained in batches, joined into a union,
@@ -1321,7 +1329,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_table_index(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_table_index(self, data: IndexClause, classmode: bool = False) -> tuple[Any, ...]:
         """Render an INDEX clause as the row's index names.
 
         SMIv1 allows an index to name a bare type instead of a column. Such an
@@ -1408,7 +1416,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_max_access(self, data: Any, classmode: bool = False) -> str:
+    def gen_max_access(self, data: TextClause, classmode: bool = False) -> str:
         """Render a MAX-ACCESS clause.
 
         Args:
@@ -1490,7 +1498,7 @@ for _{name}_obj in [{objects}]:
         return str(self.gen_numeric_oid(out)), parent
 
     # noinspection PyUnusedLocal
-    def gen_objects(self, data: Any, classmode: bool = False) -> list[Any]:
+    def gen_objects(self, data: SymbolsClause, classmode: bool = False) -> list[Any]:
         """Return the names in an OBJECTS or NOTIFICATIONS list.
 
         Args:
@@ -1538,7 +1546,7 @@ for _{name}_obj in [{objects}]:
         return times
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_last_updated(self, data: Any, classmode: bool = False) -> str:
+    def gen_last_updated(self, data: TextClause, classmode: bool = False) -> str:
         """Render a LAST-UPDATED clause.
 
         Args:
@@ -1552,7 +1560,7 @@ for _{name}_obj in [{objects}]:
         return ".setLastUpdated(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_organization(self, data: Any, classmode: bool = False) -> str:
+    def gen_organization(self, data: TextClause, classmode: bool = False) -> str:
         """Render an ORGANIZATION clause.
 
         Args:
@@ -1590,7 +1598,7 @@ for _{name}_obj in [{objects}]:
 
         return lastRevision, revisions, descriptions
 
-    def gen_row(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_row(self, data: TextClause, classmode: bool = False) -> tuple[Any, ...]:
         """Render the class of a table row.
 
         A name the symbol table recorded as a table's row is a row; anything
@@ -1611,7 +1619,7 @@ for _{name}_obj in [{objects}]:
         ) or self.gen_simple_syntax(data, classmode=classmode)
 
     # noinspection PyUnusedLocal
-    def gen_sequence(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_sequence(self, data: SequenceClause, classmode: bool = False) -> tuple[Any, ...]:
         """Record the columns of a SEQUENCE.
 
         Args:
@@ -1696,7 +1704,7 @@ for _{name}_obj in [{objects}]:
         return parentType, attrs
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_units(self, data: Any, classmode: bool = False) -> str:
+    def gen_units(self, data: TextClause, classmode: bool = False) -> str:
         """Render a UNITS clause.
 
         Args:

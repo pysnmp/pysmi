@@ -16,11 +16,19 @@ symbols across modules.
 import logging
 from collections.abc import Sequence
 from keyword import iskeyword
-from typing import Any, cast
+from typing import Any
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
-from pysmi.codegen.base import AbstractCodeGen, dorepr
+from pysmi.codegen.base import (
+    AbstractCodeGen,
+    IndexClause,
+    NamedNumbersClause,
+    SequenceClause,
+    SymbolsClause,
+    TextClause,
+    dorepr,
+)
 from pysmi.mibinfo import MibInfo
 
 logger = logging.getLogger(__name__)
@@ -537,7 +545,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # Subparts generation functions
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
-    def gen_bit_names(self, data: Any, classmode: bool = False) -> Any:
+    def gen_bit_names(self, data: SymbolsClause, classmode: bool = False) -> Any:
         """Return the names listed in a BITS or enumeration clause.
 
         Args:
@@ -551,7 +559,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return names
 
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
-    def gen_bits(self, data: Any, classmode: bool = False) -> tuple[tuple[str, str], list[Any]]:
+    def gen_bits(self, data: NamedNumbersClause, classmode: bool = False) -> tuple[tuple[str, str], list[Any]]:
         """Return the syntax of a BITS clause.
 
         Args:
@@ -594,7 +602,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return ("MibTable", ""), ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_contact_info(self, data: Any, classmode: bool = False) -> str:
+    def gen_contact_info(self, data: TextClause, classmode: bool = False) -> str:
         """Ignore CONTACT-INFO text.
 
         Returns:
@@ -603,7 +611,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_display_hint(self, data: Any, classmode: bool = False) -> str:
+    def gen_display_hint(self, data: TextClause, classmode: bool = False) -> str:
         """Ignore a DISPLAY-HINT.
 
         Returns:
@@ -651,7 +659,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return val
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_description(self, data: Any, classmode: bool = False) -> str:
+    def gen_description(self, data: TextClause, classmode: bool = False) -> str:
         """Ignore DESCRIPTION text.
 
         Returns:
@@ -659,7 +667,7 @@ class SymtableCodeGen(AbstractCodeGen):
         """
         return ""
 
-    def gen_reference(self, data: Any, classmode: bool = False) -> str:
+    def gen_reference(self, data: TextClause, classmode: bool = False) -> str:
         """Ignore REFERENCE text.
 
         Returns:
@@ -667,7 +675,7 @@ class SymtableCodeGen(AbstractCodeGen):
         """
         return ""
 
-    def gen_status(self, data: Any, classmode: bool = False) -> str:
+    def gen_status(self, data: TextClause, classmode: bool = False) -> str:
         """Ignore a STATUS clause.
 
         Returns:
@@ -675,7 +683,7 @@ class SymtableCodeGen(AbstractCodeGen):
         """
         return ""
 
-    def gen_product_release(self, data: Any, classmode: bool = False) -> str:
+    def gen_product_release(self, data: TextClause, classmode: bool = False) -> str:
         """Ignore a PRODUCT-RELEASE clause.
 
         Returns:
@@ -683,7 +691,7 @@ class SymtableCodeGen(AbstractCodeGen):
         """
         return ""
 
-    def gen_enum_spec(self, data: Any, classmode: bool = False) -> list[Any]:
+    def gen_enum_spec(self, data: NamedNumbersClause, classmode: bool = False) -> list[Any]:
         """Return the names of an enumeration's members.
 
         Args:
@@ -695,7 +703,7 @@ class SymtableCodeGen(AbstractCodeGen):
         """
         return self.gen_bits(data, classmode=classmode)[1]
 
-    def gen_index_clause(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_index_clause(self, data: IndexClause, classmode: bool = False) -> tuple[Any, ...]:
         """Work out which INDEX entries need a synthetic column.
 
         SMIv1 allows an index to name a bare type instead of a column. Such an
@@ -739,7 +747,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_max_access(self, data: Any, classmode: bool = False) -> str:
+    def gen_max_access(self, data: TextClause, classmode: bool = False) -> str:
         """Ignore a MAX-ACCESS clause.
 
         Returns:
@@ -793,7 +801,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return out
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_objects(self, data: Any, classmode: bool = False) -> str:
+    def gen_objects(self, data: SymbolsClause, classmode: bool = False) -> str:
         """Ignore an OBJECTS or NOTIFICATIONS list.
 
         Returns:
@@ -811,7 +819,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_last_updated(self, data: Any, classmode: bool = False) -> str:
+    def gen_last_updated(self, data: TextClause, classmode: bool = False) -> str:
         """Return the LAST-UPDATED timestamp.
 
         Args:
@@ -821,10 +829,10 @@ class SymtableCodeGen(AbstractCodeGen):
         Returns:
             The timestamp as written.
         """
-        return cast(str, data[0])
+        return data[0]
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_organization(self, data: Any, classmode: bool = False) -> str:
+    def gen_organization(self, data: TextClause, classmode: bool = False) -> str:
         """Return the ORGANIZATION text.
 
         Args:
@@ -834,7 +842,7 @@ class SymtableCodeGen(AbstractCodeGen):
         Returns:
             The organization as written.
         """
-        return cast(str, data[0])
+        return data[0]
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def gen_revisions(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
@@ -850,7 +858,7 @@ class SymtableCodeGen(AbstractCodeGen):
         lastRevision, lastDescription = data[0][0][0], data[0][0][1][1]
         return lastRevision, lastDescription
 
-    def gen_row(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_row(self, data: TextClause, classmode: bool = False) -> tuple[Any, ...]:
         """Return the syntax of a table row.
 
         A name already seen as a table's row is a row; anything else is an
@@ -869,7 +877,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return (row in self._rows and (("MibTableRow", ""), "")) or self.gen_simple_syntax(data, classmode=classmode)
 
     # noinspection PyUnusedLocal
-    def gen_sequence(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_sequence(self, data: SequenceClause, classmode: bool = False) -> tuple[Any, ...]:
         """Record the columns of a SEQUENCE.
 
         Args:
@@ -937,7 +945,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return parentType, attrs
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_units(self, data: Any, classmode: bool = False) -> str:
+    def gen_units(self, data: TextClause, classmode: bool = False) -> str:
         """Ignore a UNITS clause.
 
         Returns:
