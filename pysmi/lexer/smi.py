@@ -4,6 +4,12 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""PLY lexer for SMI.
+
+The docstring of each ``t_*`` function is its token regexp, read by PLY at
+import time. They are grammar, not documentation.
+"""
+
 import logging
 import re
 

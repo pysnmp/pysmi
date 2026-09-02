@@ -12,6 +12,12 @@
 # exception handlers may insert their own attributes into exception
 # object.
 #
+"""Exceptions raised by PySMI.
+
+Every exception carries a *msg* and accepts arbitrary keyword arguments that
+become attributes, so a handler part-way up the stack can attach context to an
+error it is not ready to report.
+"""
 
 
 class PySmiError(Exception):

@@ -6,6 +6,13 @@
 #
 # Build an internally used symbol table for each passed MIB.
 #
+"""Building the symbol table of a MIB module.
+
+This backend produces no output of its own. It records what a module defines
+and what it refers to, which is what the other backends consult to resolve
+symbols across modules.
+"""
+
 import logging
 from keyword import iskeyword
 

@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Interface shared by the readers, and the MIB file name guessing they share."""
+
 import os
 from typing import ClassVar
 

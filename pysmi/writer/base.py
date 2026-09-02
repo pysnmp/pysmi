@@ -4,6 +4,7 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Interface shared by the writers."""
 
 
 class AbstractWriter:

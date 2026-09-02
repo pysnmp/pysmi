@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Storing transformed MIB modules."""
+
 from pysmi.writer.callback import CallbackWriter
 from pysmi.writer.localfile import FileWriter
 from pysmi.writer.pyfile import PyFileWriter

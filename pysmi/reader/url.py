@@ -4,6 +4,7 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Building readers from source URLs."""
 
 from urllib import parse as urlparse
 from urllib.request import url2pathname

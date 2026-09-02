@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Passing transformed modules to a user-supplied callable."""
+
 import logging
 
 from pysmi import error

@@ -7,6 +7,10 @@
 # Python 2 compatibility shims removed in 1.2.0.
 # These helpers are kept as thin wrappers for backward compatibility
 # with any external code that imports from pysmi.compat.
+"""Text encoding helpers.
+
+Python 2 support is gone; these remain because external code imports them.
+"""
 
 
 def encode(s):

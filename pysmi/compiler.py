@@ -4,6 +4,15 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Driving the transformation of MIB modules.
+
+:class:`MibCompiler` ties together the other parts of PySMI: readers pull ASN.1
+text from somewhere, a parser turns it into an AST, a code generator renders it
+into the destination format, a writer stores the result, searchers decide what
+can be skipped and borrowers supply a pre-compiled module when compilation
+fails.
+"""
+
 import logging
 import os
 import sys

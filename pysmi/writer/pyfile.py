@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Storing transformed modules as Python files, optionally byte-compiled."""
+
 import contextlib
 import importlib.machinery
 import logging

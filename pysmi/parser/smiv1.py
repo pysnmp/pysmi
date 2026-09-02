@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Parser for SMIv1 modules."""
+
 from pysmi.parser.dialect import smiV1
 from pysmi.parser.smi import parserFactory
 

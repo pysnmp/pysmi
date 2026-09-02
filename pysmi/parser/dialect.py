@@ -4,6 +4,11 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Relaxations of the SMI grammar.
+
+MIBs in the wild routinely deviate from the standards. Each of these describes
+one set of deviations to tolerate.
+"""
 
 from typing import Any
 

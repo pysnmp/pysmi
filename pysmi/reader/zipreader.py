@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Reading MIB text from a ZIP archive, including nested archives."""
+
 import datetime
 import io
 import logging

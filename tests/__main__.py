@@ -4,30 +4,23 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Run the whole test suite with ``python -m tests``.
+
+Modules are discovered rather than listed, so a new one is picked up by
+being named ``test_*.py``. CI runs the same tests through pytest.
+"""
+
+import os
+import sys
 import unittest
 
-suite = unittest.TestLoader().loadTestsFromNames(
-    [
-        "test_debug",
-        "test_reader_errors",
-        "test_zipreader",
-        "test_agentcapabilities_smiv2_pysnmp",
-        "test_imports_smiv2_pysnmp",
-        "test_modulecompliance_smiv2_pysnmp",
-        "test_moduleidentity_smiv2_pysnmp",
-        "test_notificationgroup_smiv2_pysnmp",
-        "test_notificationtype_smiv2_pysnmp",
-        "test_objectgroup_smiv2_pysnmp",
-        "test_objectidentity_smiv2_pysnmp",
-        "test_objecttype_smiv2_pysnmp",
-        "test_smiv1_smiv2_pysnmp",
-        "test_traptype_smiv2_pysnmp",
-        "test_typedeclaration_smiv1_pysnmp",
-        "test_typedeclaration_smiv2_pysnmp",
-        "test_valuedeclaration_smiv2_pysnmp",
-    ]
+suite = unittest.TestLoader().discover(
+    start_dir=os.path.dirname(__file__),
+    pattern="test_*.py",
+    top_level_dir=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 )
 
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    sys.exit(not result.wasSuccessful())

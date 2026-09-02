@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""A parser that parses nothing."""
+
 from pysmi.parser.base import AbstractParser
 
 
