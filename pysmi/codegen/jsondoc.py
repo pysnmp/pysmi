@@ -921,14 +921,17 @@ class JsonCodeGen(AbstractCodeGen):
 
         elif self.is_hex(defval):  # hex
             if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
-                outDict.update(value=str(int((len(defval) > 3 and defval[1:-2]) or "0", 16)), format="hex")
+                # The digits are a number here, not octets, so they are reported
+                # as one. Saying "hex" would have a reader decode them a second
+                # time and arrive at a different value.
+                outDict.update(value=int((len(defval) > 3 and defval[1:-2]) or "0", 16), format="decimal")
             else:
                 outDict.update(value=defval[1:-2], format="hex")
 
         elif self.is_binary(defval):  # binary
             binval = defval[1:-2]
             if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
-                outDict.update(value=str(int(binval or "0", 2)), format="bin")
+                outDict.update(value=int(binval or "0", 2), format="decimal")
             else:
                 hexval = (binval and hex(int(binval, 2))[2:]) or ""
                 outDict.update(value=hexval, format="hex")
