@@ -15,15 +15,31 @@ _RFC1155_RFC1065_KEY: Final = "RFC1155-SMI/RFC1065-SMI"
 
 
 def dorepr(s: Any) -> str:
+    """Render a value as a Python literal for embedding in generated code."""
     return repr(s)
 
 
 def updateDict(d1: dict[Any, Any], d2: Any) -> dict[Any, Any]:
+    """Merge *d2* into *d1* and return *d1*.
+
+    Same as :py:meth:`dict.update` but returns the dictionary, so class-level
+    tables can be built from a base table in a single expression.
+    """
     d1.update(d2)
     return d1
 
 
 class AbstractCodeGen:
+    """Base class for code generators.
+
+    A code generator walks the parse tree of one MIB module and renders it in
+    some target form -- pysnmp Python source, JSON, or nothing at all. It also
+    keeps the tables describing which modules are supplied by the target
+    implementation rather than compiled, and how SMI base types map onto it.
+
+    Subclasses implement :py:meth:`genCode` and :py:meth:`genIndex`.
+    """
+
     # never compile these, they either:
     # - define MACROs (implementation supplies them)
     # - or carry conflicting OIDs (so that all IMPORT's of them will be rewritten)
@@ -278,20 +294,66 @@ class AbstractCodeGen:
     }
 
     def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, Any]:
+        """Render one parsed MIB module.
+
+        Args:
+            ast: parse tree of a single module, as produced by a parser
+            symbolTable: symbols of this module and everything it imports,
+                as built by :py:class:`~pysmi.codegen.symtable.SymtableCodeGen`
+
+        Keyword Args:
+            genTexts: carry human-readable texts into the output
+            textFilter: callable applied to each text before it is rendered
+            comments: lines to record in the generated output
+
+        Returns:
+            The module's :py:class:`~pysmi.mibinfo.MibInfo` and the rendered
+            module. What the second element holds depends on the generator:
+            source text for the real backends, the symbol table itself for
+            :py:class:`~pysmi.codegen.symtable.SymtableCodeGen`.
+
+        Raises:
+            PySmiCodegenError: the module could not be rendered.
+            PySmiSemanticError: the module is not internally consistent.
+        """
         raise NotImplementedError()
 
     def genIndex(self, processed: dict[str, Any], **kwargs: Any) -> str:
+        """Render an index over the modules compiled so far.
+
+        The index maps OIDs onto the modules that define them, so a consumer
+        can find the right MIB without loading all of them.
+
+        Args:
+            processed: MIB module names mapped to their compilation results
+
+        Keyword Args:
+            dstTemplate: destination the index will be stored at, used to
+                merge with an index already there
+
+        Returns:
+            The rendered index, empty when the generator produces none.
+        """
         raise NotImplementedError()
 
     @staticmethod
     def isBinary(s: Any) -> Any:
+        """Tell whether *s* is an SMI binary string such as ``\'1010\'b``."""
         return isinstance(s, str) and s[0] == "'" and s[-2:] in ("'b", "'B")
 
     @staticmethod
     def isHex(s: Any) -> Any:
+        """Tell whether *s* is an SMI hex string such as ``\'0a1b\'h``."""
         return isinstance(s, str) and s[0] == "'" and s[-2:] in ("'h", "'H")
 
     def str2int(self, s: Any) -> Any:
+        """Convert an SMI numeric literal to an int.
+
+        Accepts binary and hexadecimal SMI strings as well as plain decimal.
+
+        Raises:
+            PySmiSemanticError: the literal has no digits between its quotes.
+        """
         if self.isBinary(s):
             if s[1:-2]:
                 return int(s[1:-2], 2)

@@ -29,6 +29,16 @@ LEX_VERSION = [int(x) for x in lex.__version__.split(".")]
 # Do not overload single lexer methods - overload all or none of them!
 # noinspection PySingleQuotedDocstring,PyMethodMayBeStatic,PyIncorrectDocstring
 class SmiV2Lexer(AbstractLexer):
+    """Lexer for the SMIv2 grammar.
+
+    Builds a PLY lexer whose token rules are the ``t_*`` methods below, with
+    the SMI reserved words recognised as their own tokens. The generated
+    tables are cached on disk when a temporary directory is given.
+
+    The SMIv1 and relaxed dialects come from :py:func:`lexerFactory`, which
+    substitutes the word lists this class exposes.
+    """
+
     reserved_words = [
         "ACCESS",
         "AGENT-CAPABILITIES",
@@ -190,6 +200,7 @@ class SmiV2Lexer(AbstractLexer):
         self.reset()
 
     def reset(self) -> None:
+        """Rebuild the lexer, so line numbering restarts for another module."""
         if LEX_VERSION < [3, 0]:
             self.lexer = lex.lex(module=self, reflags=re.DOTALL, outputdir=self._tempdir, debug=False)
         else:
@@ -355,8 +366,15 @@ class SmiV2Lexer(AbstractLexer):
 
 
 class SupportSmiV1Keywords:
+    """The SMIv1 word lists, substituted into a lexer by :py:func:`lexerFactory`.
+
+    SMIv1 reserves words SMIv2 does not, so recognising an SMIv1 MIB means
+    replacing the word lists wholesale rather than adding to them.
+    """
+
     @staticmethod
     def reserved() -> dict[str, str]:
+        """Return the SMIv1 reserved words, mapped to their token names."""
         reserved_words = [
             "ACCESS",
             "AGENT-CAPABILITIES",
@@ -454,6 +472,7 @@ class SupportSmiV1Keywords:
 
     @staticmethod
     def forbidden_words() -> list[str]:
+        """Return the words an SMIv1 MIB may not use as identifiers."""
         return [
             "ABSENT",
             "ANY",
@@ -484,6 +503,7 @@ class SupportSmiV1Keywords:
 
     @staticmethod
     def tokens() -> list[str]:
+        """Return every token name the SMIv1 lexer can produce."""
         # Token names required!
         tokens = [
             "BIN_STRING",
@@ -523,6 +543,22 @@ relaxedGrammar = {
 
 
 def lexerFactory(**grammarOptions: bool) -> type[SmiV2Lexer]:
+    """Build a lexer class for a dialect of SMI.
+
+    Each enabled option contributes replacement word lists, which are mixed
+    into a subclass of :py:class:`SmiV2Lexer`. With no options the result
+    lexes plain SMIv2.
+
+    Keyword Args:
+        grammarOptions: relaxation names mapped to whether they apply; see
+            :py:mod:`pysmi.parser.dialect` for the preconfigured sets
+
+    Returns:
+        A lexer class, not an instance.
+
+    Raises:
+        PySmiError: an option is not one this lexer knows.
+    """
     classAttr: dict[str, Any] = {}
 
     for option in grammarOptions:

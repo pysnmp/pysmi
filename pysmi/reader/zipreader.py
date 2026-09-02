@@ -68,6 +68,11 @@ class ZipReader(AbstractReader):
                 self._pendingError = error.PySmiError(f"file {self._name} access error: {exc}")
 
     def _readZipDirectory(self, fileObj: IO[bytes]) -> dict[str, list[list[Any]]]:
+        """Index an archive's members by name, descending into nested archives.
+
+        Returns:
+            Member names mapped to the references needed to read them back.
+        """
         archive = zipfile.ZipFile(fileObj)
 
         members: dict[str, list[list[Any]]] = {}
@@ -97,6 +102,11 @@ class ZipReader(AbstractReader):
         return members
 
     def _readZipFile(self, refs: list[list[Any]]) -> tuple[bytes | str, float]:
+        """Read one member out of the archive, opening enclosing archives as needed.
+
+        Returns:
+            The member's contents and its modification time.
+        """
         dataObj: bytes | None = None
         mtime: float = 0
 
@@ -131,6 +141,13 @@ class ZipReader(AbstractReader):
         return f'{self.__class__.__name__}{{"{self._name}"}}'
 
     def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+        """Read a MIB from the ZIP archive.
+
+        Raises:
+            PySmiReaderFileNotFoundError: no member holds the module.
+            PySmiReaderFileNotModifiedError: the member is older than requested.
+            PySmiError: the archive itself could not be opened.
+        """
         logger.debug("looking for MIB %s at %s", mibname, self._name, extra={"mib": mibname, "path": self._name})
 
         if self._pendingError:

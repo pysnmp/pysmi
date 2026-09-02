@@ -34,6 +34,11 @@ class AnyFileSearcher(AbstractSearcher):
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+        """Compare a stored file's modification time against the MIB source.
+
+        Unlike the Python-specific searchers this reads no file contents, so
+        it works for any output format.
+        """
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
             return

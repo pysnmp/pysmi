@@ -25,6 +25,12 @@ from pysmi.writer import CallbackWriter
 
 
 def start() -> None:
+    """Entry point of the ``mibcopy`` command.
+
+    Copies MIB files, naming each destination after the module the file
+    actually defines and keeping only the newest revision of each. Exits with
+    a ``sysexits.h`` status.
+    """
     # sysexits.h
     EX_OK = 0
     EX_USAGE = 64
@@ -150,6 +156,18 @@ def start() -> None:
     fileWriter = CallbackWriter(lambda *x: None)
 
     def getMibRevision(mibDir: str, mibFile: str) -> tuple[str, datetime]:
+        """Read a MIB file just far enough to learn its name and revision.
+
+        Args:
+            mibDir (str): directory holding the file
+            mibFile (str): file to inspect
+
+        Returns:
+            The module name the file defines and its latest revision date.
+
+        Raises:
+            PySmiError: the file could not be read or holds no MIB.
+        """
         mibCompiler = MibCompiler(mibParser, codeGenerator, fileWriter)
 
         mibCompiler.addSources(
@@ -181,6 +199,7 @@ def start() -> None:
         raise error.PySmiError(f'Can\'t read or parse MIB "{os.path.join(mibDir, mibFile)}"')
 
     def shortenPath(path: str, maxLength: int = 45) -> str:
+        """Trim a path from the left for display, keeping the tail readable."""
         if len(path) > maxLength:
             return "..." + path[-maxLength:]
         else:

@@ -22,7 +22,7 @@ from pysmi.writer import CallbackWriter
 
 inputMibs = ["IF-MIB", "IP-MIB"]
 srcDirectories = ["/usr/share/snmp/mibs"]
-httpSources = [("pysnmp.github.io", 443, "mibs/asn1/@mib@", True)]
+httpSources = ["https://pysnmp.github.io/mibs/asn1/@mib@"]
 
 
 def printOut(mibName, jsonDoc, cbCtx):
@@ -38,7 +38,7 @@ mibCompiler = MibCompiler(SmiStarParser(), JsonCodeGen(), CallbackWriter(printOu
 mibCompiler.addSources(*[FileReader(x) for x in srcDirectories])
 
 # search for source MIBs at Web sites
-mibCompiler.addSources(*[HttpReader(*x) for x in httpSources])
+mibCompiler.addSources(*[HttpReader(x) for x in httpSources])
 
 # never recompile MIBs with MACROs
 mibCompiler.addSearchers(StubSearcher(*JsonCodeGen.baseMibs))

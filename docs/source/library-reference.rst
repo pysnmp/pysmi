@@ -19,7 +19,7 @@ This example showcases some of its features:
 
    inputMibs = ['IF-MIB', 'IP-MIB']
 
-   httpSources = [('pysnmp.github.io', 80, '/asn1/@mib@')]
+   httpSources = ['https://pysnmp.github.io/mibs/asn1/@mib@']
 
    # store compiled MIBs by calling this function
    def store_mibs(mibName, jsonDoc, cbCtx):
@@ -31,7 +31,7 @@ This example showcases some of its features:
    )
 
    # pull ASN.1 MIBs over HTTP
-   mibCompiler.addSources(*[HttpReader(*x) for x in httpSources])
+   mibCompiler.addSources(*[HttpReader(x) for x in httpSources])
 
    # never recompile MIBs with ASN.1 MACROs
    mibCompiler.addSearchers(StubSearcher(*JsonCodeGen.baseMibs))
@@ -142,6 +142,18 @@ object given to :ref:`MibCompiler <compiler.MibCompiler>` on instantiation.
    /pysmi/writer/localfile/filewriter
    /pysmi/writer/pyfile/pyfilewriter
    /pysmi/writer/callback/callbackwriter
+
+Extending PySMI
+---------------
+
+Each stage of the compiler is defined by a small interface, so a MIB source,
+searcher, parser, code generator or writer of your own can be dropped in
+beside the ones PySMI ships.
+
+.. toctree::
+   :maxdepth: 2
+
+   /pysmi/extending
 
 Examples
 --------

@@ -50,6 +50,23 @@ class FileReader(AbstractReader):
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def getSubdirs(self, path: str, recursive: bool = True, ignoreErrors: bool = True) -> list[str]:
+        """List *path* and every directory beneath it.
+
+        Args:
+            path (str): directory to start from
+
+        Keyword Args:
+            recursive: descend into subdirectories
+            ignoreErrors: skip directories that cannot be listed instead of
+                raising
+
+        Returns:
+            Directories to search, *path* first.
+
+        Raises:
+            PySmiError: a directory could not be listed and ``ignoreErrors``
+                is not set.
+        """
         if not recursive:
             return [path]
 
@@ -74,11 +91,28 @@ class FileReader(AbstractReader):
 
     @staticmethod
     def loadIndex(indexFile: str) -> dict[str, str]:
+        """Read a directory's MIB index, mapping module names to file names.
+
+        The index lets a MIB be found without opening every file to see which
+        module it defines. A missing or malformed index is not an error; the
+        reader falls back to guessing file names.
+
+        Args:
+            indexFile (str): path to the index
+
+        Returns:
+            Module names mapped to file names, empty when there is no usable
+            index.
+        """
         mibIndex: dict[str, str] = {}
         if os.path.exists(indexFile):
             try:
                 with open(indexFile) as f:
-                    mibIndex = dict([x.split()[:2] for x in f.readlines()])
+                    # Lines that are not a name/file pair, blank ones
+                    # included, are skipped rather than failing the read.
+                    mibIndex = {
+                        fields[0]: fields[1] for fields in (x.split() for x in f.readlines()) if len(fields) >= 2
+                    }
                 logger.debug(
                     "loaded MIB index map from %s file, %d entries",
                     indexFile,
@@ -92,6 +126,12 @@ class FileReader(AbstractReader):
         return mibIndex
 
     def getMibVariants(self, mibname: str, **options: Any) -> Iterable[tuple[str, str]]:
+        """Consult the directory index before guessing file names.
+
+        When the index names a file for this module, that file is tried first;
+        otherwise this behaves as
+        :py:meth:`~pysmi.reader.base.AbstractReader.getMibVariants`.
+        """
         if self.useIndexFile:
             if not self._indexLoaded:
                 self._mibIndex = self.loadIndex(os.path.join(self._path, self.indexFile))
@@ -111,6 +151,12 @@ class FileReader(AbstractReader):
         return super().getMibVariants(mibname, **options)
 
     def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+        """Read a MIB from the local directory tree.
+
+        Raises:
+            PySmiReaderFileNotFoundError: no file in the tree holds the module.
+            PySmiReaderFileNotModifiedError: the file is older than requested.
+        """
         logger.debug(
             "%slooking for MIB %s",
             "recursively " if self._recursive else "",

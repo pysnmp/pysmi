@@ -30,6 +30,11 @@ class StubSearcher(AbstractSearcher):
         return f"{self.__class__.__name__}"
 
     def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+        """Report the configured modules as permanently up to date.
+
+        These MIBs are supplied by the target implementation, so they must
+        never be compiled regardless of ``rebuild``.
+        """
         if mibname in self._mibnames:
             logger.debug("pretend compiled %s exists and is very new", mibname, extra={"mib": mibname})
             raise error.PySmiFileNotModifiedError(

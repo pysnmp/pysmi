@@ -41,6 +41,11 @@ class CallbackWriter(AbstractWriter):
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
     def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+        """Hand the generated MIB to the user callback.
+
+        Raises:
+            PySmiWriterError: the callback raised.
+        """
         if dryRun:
             logger.debug("dry run mode", extra={"mib": mibname})
             return
@@ -58,4 +63,5 @@ class CallbackWriter(AbstractWriter):
         logger.debug("user callback for %s succeeded", mibname, extra={"mib": mibname})
 
     def getData(self, filename: str) -> str:
+        """Return an empty string; a callback writer stores nothing to read back."""
         return ""

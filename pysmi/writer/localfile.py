@@ -39,6 +39,7 @@ class FileWriter(AbstractWriter):
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def getData(self, filename: str, dryRun: bool = False) -> str:
+        """Read back a file this writer stored, empty when it is not there."""
         path = os.path.join(self._path, decode(filename)) + self.suffix
 
         try:
@@ -50,6 +51,14 @@ class FileWriter(AbstractWriter):
             return ""
 
     def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+        """Write the generated MIB into the destination directory.
+
+        The file is written under a temporary name and moved into place, so a
+        failure part-way leaves no half-written MIB behind.
+
+        Raises:
+            PySmiWriterError: the destination could not be created or written.
+        """
         if dryRun:
             logger.debug("dry run mode", extra={"mib": mibname})
             return
