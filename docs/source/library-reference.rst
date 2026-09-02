@@ -165,5 +165,40 @@ and watch the output:
 
    from pysmi import debug
 
-   debug.setLogger(debug.Debug('all'))
+   debug.enableDebugLogging('all')
+
+Pass the names of the subsystems you are interested in to keep the
+output down, prefixing a name with ``!`` to leave that one out:
+
+.. code-block:: python
+
+   debug.enableDebugLogging('reader', 'compiler')
+   debug.enableDebugLogging('all', '!grammar')
+
+PySMI logs through the standard :mod:`logging` module, and each
+subsystem logs to the logger named after its package, so an
+application that already configures logging can select and route
+this output itself without going through PySMI at all:
+
+.. code-block:: python
+
+   import logging
+
+   logging.getLogger('pysmi.compiler').setLevel(logging.DEBUG)
+
+Messages carry their variable parts as structured fields on the log
+record -- the name of the MIB being worked on as ``mib``, the file
+being read or written as ``path``, and so on -- so a handler can pick
+them out individually:
+
+.. code-block:: python
+
+   class MibHandler(logging.Handler):
+       def emit(self, record):
+           print(record.getMessage(), getattr(record, 'mib', None))
+
+.. note::
+
+   ``debug.setLogger()`` and ``debug.Debug()`` still work, but are
+   deprecated in favour of ``debug.enableDebugLogging()``.
 

@@ -4,11 +4,14 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import logging
 import time
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.mibinfo import MibInfo
 from pysmi.reader.base import AbstractReader
+
+logger = logging.getLogger(__name__)
 
 
 class CallbackReader(AbstractReader):
@@ -35,7 +38,12 @@ class CallbackReader(AbstractReader):
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
     def getData(self, mibname, **options):
-        debug.logger & debug.flagReader and debug.logger(f"calling user callback {self._cbFun} for MIB {mibname}")
+        logger.debug(
+            "calling user callback %s for MIB %s",
+            self._cbFun,
+            mibname,
+            extra={"mib": mibname, "callback": str(self._cbFun)},
+        )
 
         res = self._cbFun(mibname, self._cbCtx)
         if res:

@@ -6,14 +6,17 @@
 #
 import datetime
 import io
+import logging
 import os
 import time
 import zipfile
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.compat import decode
 from pysmi.mibinfo import MibInfo
 from pysmi.reader.base import AbstractReader
+
+logger = logging.getLogger(__name__)
 
 
 class ZipReader(AbstractReader):
@@ -43,7 +46,7 @@ class ZipReader(AbstractReader):
                 self._members = self._readZipDirectory(fileObj=io.BytesIO(f.read()))
 
         except OSError as exc:
-            debug.logger & debug.flagReader and debug.logger(f"ZIP file {self._name} open failure: {exc}")
+            logger.debug("ZIP file %s open failure: %s", self._name, exc, extra={"path": self._name, "error": str(exc)})
 
             if not ignoreErrors:
                 self._pendingError = error.PySmiError(f"file {self._name} access error: {exc}")
@@ -94,7 +97,12 @@ class ZipReader(AbstractReader):
                 dataObj = archive.read(filename)
 
             except Exception as exc:
-                debug.logger & debug.flagReader and debug.logger(f"ZIP read component {fileObj.name} read error: {exc}")
+                logger.debug(
+                    "ZIP read component %s read error: %s",
+                    fileObj.name,
+                    exc,
+                    extra={"path": fileObj.name, "error": str(exc)},
+                )
                 return "", 0
 
         return dataObj, mtime
@@ -103,7 +111,7 @@ class ZipReader(AbstractReader):
         return f'{self.__class__.__name__}{{"{self._name}"}}'
 
     def getData(self, mibname, **options):
-        debug.logger & debug.flagReader and debug.logger(f"looking for MIB {mibname} at {self._name}")
+        logger.debug("looking for MIB %s at %s", mibname, self._name, extra={"mib": mibname, "path": self._name})
 
         if self._pendingError:
             raise self._pendingError
@@ -112,7 +120,7 @@ class ZipReader(AbstractReader):
             raise error.PySmiReaderFileNotFoundError(f"source MIB {mibname} not found", reader=self)
 
         for mibalias, mibfile in self.getMibVariants(mibname, **options):
-            debug.logger & debug.flagReader and debug.logger(f"trying MIB {mibfile}")
+            logger.debug("trying MIB %s", mibfile, extra={"mib": mibname, "mib_file": mibfile})
 
             try:
                 refs = self._members[mibfile]
@@ -125,10 +133,13 @@ class ZipReader(AbstractReader):
             if not mibData:
                 continue
 
-            debug.logger & debug.flagReader and debug.logger(
-                "source MIB {}, mtime {}, read from {}/{}".format(
-                    mibfile, time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(mtime)), self._name, mibfile
-                )
+            logger.debug(
+                "source MIB %s, mtime %s, read from %s/%s",
+                mibfile,
+                time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(mtime)),
+                self._name,
+                mibfile,
+                extra={"mib": mibname, "mib_file": mibfile, "path": self._name, "mtime": mtime},
             )
 
             if len(mibData) == self.maxMibSize:

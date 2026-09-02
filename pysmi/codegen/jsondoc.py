@@ -5,13 +5,16 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import json
+import logging
 import re
 from collections import OrderedDict
 from time import strftime, strptime
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.codegen.base import AbstractCodeGen
 from pysmi.mibinfo import MibInfo
+
+logger = logging.getLogger(__name__)
 
 
 class JsonCodeGen(AbstractCodeGen):
@@ -959,10 +962,18 @@ class JsonCodeGen(AbstractCodeGen):
             outDict["meta"]["comments"] = kwargs["comments"]
             outDict["meta"]["module"] = self.moduleName[0]
 
-        debug.logger & debug.flagCodegen and debug.logger(
-            "canonical MIB name {} ({}), imported MIB(s) {}, Python code size {} bytes".format(
-                self.moduleName[0], moduleOid, ",".join(importedModules) or "<none>", len(outDict)
-            )
+        logger.debug(
+            "canonical MIB name %s (%s), imported MIB(s) %s, Python code size %d bytes",
+            self.moduleName[0],
+            moduleOid,
+            ",".join(importedModules) or "<none>",
+            len(outDict),
+            extra={
+                "mib": self.moduleName[0],
+                "oid": str(moduleOid),
+                "imported": list(importedModules),
+                "size": len(outDict),
+            },
         )
 
         return MibInfo(
@@ -1059,6 +1070,6 @@ class JsonCodeGen(AbstractCodeGen):
         if "comments" in kwargs:
             outDict["meta"]["comments"] = kwargs["comments"]
 
-        debug.logger & debug.flagCodegen and debug.logger(f"OID->MIB index built, {len(processed)} entries")
+        logger.debug("OID->MIB index built, %d entries", len(processed), extra={"entries": len(processed)})
 
         return json.dumps(order(outDict), indent=2)

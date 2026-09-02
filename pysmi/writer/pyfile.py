@@ -6,13 +6,16 @@
 #
 import contextlib
 import importlib.machinery
+import logging
 import os
 import py_compile
 import tempfile
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.compat import decode, encode
 from pysmi.writer.base import AbstractWriter
+
+logger = logging.getLogger(__name__)
 
 SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
 
@@ -40,7 +43,7 @@ class PyFileWriter(AbstractWriter):
 
     def putData(self, mibname, data, comments=(), dryRun=False):
         if dryRun:
-            debug.logger & debug.flagWriter and debug.logger("dry run mode")
+            logger.debug("dry run mode", extra={"mib": mibname})
             return
 
         if not os.path.exists(self._path):
@@ -73,7 +76,7 @@ class PyFileWriter(AbstractWriter):
 
             raise error.PySmiWriterError(f"failure writing file {pyfile}: {exc}", file=pyfile, writer=self) from exc
 
-        debug.logger & debug.flagWriter and debug.logger(f"created file {pyfile}")
+        logger.debug("created file %s", pyfile, extra={"mib": mibname, "path": pyfile})
 
         if self.pyCompile:
             try:
@@ -88,7 +91,7 @@ class PyFileWriter(AbstractWriter):
 
                 raise error.PySmiWriterError(f"failure compiling {pyfile}: {exc}", file=mibname, writer=self) from exc
 
-        debug.logger & debug.flagWriter and debug.logger(f"{mibname} stored")
+        logger.debug("%s stored", mibname, extra={"mib": mibname})
 
     def getData(self, filename):
         return ""

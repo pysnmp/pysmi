@@ -4,18 +4,19 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import logging
 import sys
 import time
 
 from requests import session
 
 from pysmi import __version__ as pysmi_version
-from pysmi import debug, error
+from pysmi import error
 from pysmi.compat import decode
 from pysmi.mibinfo import MibInfo
 from pysmi.reader.base import AbstractReader
 
-# debug.setLogger(debug.Debug('all'))
+logger = logging.getLogger(__name__)
 
 
 class HttpReader(AbstractReader):
@@ -59,32 +60,46 @@ class HttpReader(AbstractReader):
 
         mibname = decode(mibname)
 
-        debug.logger & debug.flagReader and debug.logger(f"looking for MIB {mibname}")
+        logger.debug("looking for MIB %s", mibname, extra={"mib": mibname})
 
         for mibalias, mibfile in self.getMibVariants(mibname, **options):
             url = self._url.replace(self.MIB_MAGIC, mibfile) if self.MIB_MAGIC in self._url else self._url + mibfile
 
-            debug.logger & debug.flagReader and debug.logger(f"trying to fetch MIB from {url}")
+            logger.debug("trying to fetch MIB from %s", url, extra={"mib": mibname, "url": url})
 
             try:
                 response = self.session.get(url, headers=headers)
 
             except Exception as exc:
-                debug.logger & debug.flagReader and debug.logger(f"failed to fetch MIB from {url}: {exc}")
+                logger.debug(
+                    "failed to fetch MIB from %s: %s",
+                    url,
+                    exc,
+                    extra={"mib": mibname, "url": url, "error": str(exc)},
+                )
                 continue
 
-            debug.logger & debug.flagReader and debug.logger(f"HTTP response {response.status_code}")
+            logger.debug(
+                "HTTP response %s",
+                response.status_code,
+                extra={"mib": mibname, "url": url, "status_code": response.status_code},
+            )
 
             if response.status_code == 200:
                 try:
                     mtime = time.mktime(time.strptime(response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S %Z"))
 
                 except Exception as exc:
-                    debug.logger & debug.flagReader and debug.logger(f"malformed HTTP headers: {exc}")
+                    logger.debug(
+                        "malformed HTTP headers: %s", exc, extra={"mib": mibname, "url": url, "error": str(exc)}
+                    )
                     mtime = time.time()
 
-                debug.logger & debug.flagReader and debug.logger(
-                    "fetching source MIB {}, mtime {}".format(url, response.headers["Last-Modified"])
+                logger.debug(
+                    "fetching source MIB %s, mtime %s",
+                    url,
+                    response.headers["Last-Modified"],
+                    extra={"mib": mibname, "url": url, "mtime": mtime},
                 )
 
                 return MibInfo(path=url, file=mibfile, name=mibalias, mtime=mtime), response.content.decode("utf-8")
