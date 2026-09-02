@@ -14,7 +14,8 @@ compilation using noDeps flag.
 
 Also, we do not check if target file already exists thus MIB
 compilation occurs on every invocation.
-"""#
+"""  #
+
 from pysmi.codegen import PySnmpCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiStarParser
@@ -22,20 +23,17 @@ from pysmi.reader import HttpReader
 from pysmi.searcher import StubSearcher
 from pysmi.writer import PyFileWriter
 
-inputMibs = ['IF-MIB', 'IP-MIB']
-httpSources = [
-    'https://pysnmp.github.io/mibs/asn1/@mib@']
+inputMibs = ["IF-MIB", "IP-MIB"]
+httpSources = ["https://pysnmp.github.io/mibs/asn1/@mib@"]
 
-dstDirectory = '.pysnmp-mibs'
+dstDirectory = ".pysnmp-mibs"
 
 # Initialize compiler infrastructure
 
-mibCompiler = MibCompiler(
-    SmiStarParser(), PySnmpCodeGen(), PyFileWriter(dstDirectory)
-)
+mibCompiler = MibCompiler(SmiStarParser(), PySnmpCodeGen(), PyFileWriter(dstDirectory))
 
 # search for source MIBs at Web and FTP sites
-mibCompiler.addSources(HttpReader('https://pysnmp.github.io/mibs/asn1/@mib@'))
+mibCompiler.addSources(HttpReader("https://pysnmp.github.io/mibs/asn1/@mib@"))
 
 # never recompile MIBs with MACROs
 mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
@@ -43,4 +41,4 @@ mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs, **dict(noDeps=True))
 
-print('Results: {}'.format(', '.join([f'{x}:{results[x]}' for x in results])))
+print("Results: {}".format(", ".join([f"{x}:{results[x]}" for x in results])))

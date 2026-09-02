@@ -19,24 +19,23 @@ def getReadersFromUrls(*sourceUrls, **options):
     for sourceUrl in sourceUrls:
         mibSource = urlparse.urlparse(sourceUrl)
 
-        if mibSource.scheme in ('', 'file', 'zip'):
+        if mibSource.scheme in ("", "file", "zip"):
             scheme = mibSource.scheme
-            if scheme != 'file' and (mibSource.path.endswith('.zip') or
-                                     mibSource.path.endswith('.ZIP')):
-                scheme = 'zip'
+            if scheme != "file" and (mibSource.path.endswith(".zip") or mibSource.path.endswith(".ZIP")):
+                scheme = "zip"
 
             else:
-                scheme = 'file'
+                scheme = "file"
 
-            if scheme == 'file':
+            if scheme == "file":
                 readers.append(FileReader(url2pathname(mibSource.path)).setOptions(**options))
             else:
                 readers.append(ZipReader(url2pathname(mibSource.path)).setOptions(**options))
 
-        elif mibSource.scheme in ('http', 'https'):
+        elif mibSource.scheme in ("http", "https"):
             readers.append(HttpReader(sourceUrl).setOptions(**options))
 
         else:
-            raise error.PySmiError(f'Unsupported URL scheme {sourceUrl}')
+            raise error.PySmiError(f"Unsupported URL scheme {sourceUrl}")
 
     return readers

@@ -41,22 +41,6 @@
               }
             ],
             "countMatches": true
-          },
-          {
-            "files": [
-              "pyproject.toml"
-            ],
-            "from": "version ?=.*",
-            "to": "version = \"${nextRelease.version}\"",
-            "results": [
-              {
-                "file": "pyproject.toml",
-                "hasChanged": true,
-                "numMatches": 1,
-                "numReplacements": 1
-              }
-            ],
-            "countMatches": true
           }
         ]
       }

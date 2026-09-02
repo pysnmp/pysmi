@@ -14,21 +14,18 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-      - name: Install actionlint
-        run: |
-          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/v1.6.3/scripts/download-actionlint.bash)
-      - uses: pre-commit/action@v2.0.3
+          python-version: "3.12"
+      - uses: pre-commit/action@v3.0.1
 
   review_secrets:
     name: security-detect-secrets
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: false
           fetch-depth: "0"
@@ -49,105 +46,79 @@ jobs:
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
 
-  build:
-    name: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.10"
-      - name: Run image
-        uses: abatilo/actions-poetry@v2.0.0
-        with:
-          poetry-version: "1.5.1"
-      - name: Build
-        run: |
-          poetry install
-          poetry build
-      - uses: actions/upload-artifact@v2.2.4
-        with:
-          name: dist
-          path: dist
-      - uses: actions/upload-artifact@v2.2.4
-        with:
-          name: output
-          path: output
-
   run-unit-tests:
-    name: test-unit
+    name: test-unit (py${{ matrix.python }} ${{ matrix.os }})
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python: ["3.10", "3.11", "3.12", "3.13"]
-        poetry-version: ["1.5.1"]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    needs:
-      - build
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup python
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python }}
-      - name: Run image
-        uses: abatilo/actions-poetry@v2.0.0
+          enable-cache: true
+      - name: Run tests
+        run: >
+          uv run --locked --extra dev --python ${{ matrix.python }}
+          pytest --junitxml=test-results/results.xml --cov=pysmi --cov-report=xml tests
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: run tests
-        run: |
-          poetry install
-          poetry run pytest --junitxml=test-results/results.xml --cov=./ --cov-report=xml tests
-      - uses: actions/upload-artifact@v2.2.4
-        with:
-          name: unit tests test-results
+          name: test-results-${{ matrix.os }}-py${{ matrix.python }}
           path: test-results
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          #flags: ${{ matrix.os }}, ${{ matrix.poetry-version }}
-          fail_ci_if_error: true # optional (default = false)
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Build
+        run: uv build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
   publish:
     name: Build Release
     needs:
-      #- pre-commit
+      - pre-commit
       - review_secrets
       - semgrep
       - build
       - run-unit-tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: false
           # Very important: semantic-release won't trigger a tagged
           # build if this is not set false
           persist-credentials: false
-      - name: Setup python
-        uses: actions/setup-python@v2
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.10"
-      - name: Run image
-        uses: abatilo/actions-poetry@v2.0.0
+          enable-cache: true
+      - uses: actions/setup-node@v4
         with:
-          poetry-version: "1.5.1"
-      - name: Build
-        run: |
-          poetry install
-          poetry build
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14"
+          node-version: "20"
       - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v2
+        uses: cycjimmy/semantic-release-action@v4
         with:
-          semantic_version: 17
+          semantic_version: 24
           extra_plugins: |
             @semantic-release/exec
             @semantic-release/git
-            @google/semantic-release-replace-plugin@1.1.0
+            @google/semantic-release-replace-plugin@1.2.7
         env:
           GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
           PYPI_USERNAME: "__token__"
@@ -159,5 +130,5 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: haya14busa/action-update-semver@v1

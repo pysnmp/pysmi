@@ -22,55 +22,50 @@ class ZipReader(AbstractReader):
     *ZipReader* class instance tries to locate ASN.1 MIB files
     by name, fetch and return their contents to caller.
     """
+
     useIndexFile = False
 
     def __init__(self, path, ignoreErrors=True):
         """Create an instance of *ZipReader* serving a ZIP archive.
 
-           Args:
-               path (str): path to ZIP archive containing MIB files
+        Args:
+            path (str): path to ZIP archive containing MIB files
 
-           Keyword Args:
-               ignoreErrors (bool): ignore ZIP archive access errors
+        Keyword Args:
+            ignoreErrors (bool): ignore ZIP archive access errors
         """
         self._name = path
         self._members = {}
         self._pendingError = None
 
         try:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 self._members = self._readZipDirectory(fileObj=io.BytesIO(f.read()))
 
         except OSError as exc:
-            debug.logger & debug.flagReader and debug.logger(
-                f'ZIP file {self._name} open failure: {exc}')
+            debug.logger & debug.flagReader and debug.logger(f"ZIP file {self._name} open failure: {exc}")
 
             if not ignoreErrors:
-                self._pendingError = error.PySmiError(f'file {self._name} access error: {exc}')
+                self._pendingError = error.PySmiError(f"file {self._name} access error: {exc}")
 
     def _readZipDirectory(self, fileObj):
-
         archive = zipfile.ZipFile(fileObj)
 
         members = {}
 
         for member in archive.infolist():
-
             filename = os.path.basename(member.filename)
             if not filename:
                 continue
 
-            if (member.filename.endswith('.zip') or
-                    member.filename.endswith('.ZIP')):
-
+            if member.filename.endswith(".zip") or member.filename.endswith(".ZIP"):
                 innerZipBlob = archive.read(member.filename)
 
                 innerMembers = self._readZipDirectory(io.BytesIO(innerZipBlob))
 
                 for innerFilename, ref in innerMembers.items():
-
                     while innerFilename in members:
-                        innerFilename += '+'
+                        innerFilename += "+"
 
                     members[innerFilename] = [[fileObj, member.filename, None]]
                     members[innerFilename].extend(ref)
@@ -87,7 +82,6 @@ class ZipReader(AbstractReader):
         mtime = None
 
         for fileObj, filename, ref_mtime in refs:
-
             if not fileObj:
                 fileObj = io.BytesIO(dataObj)
 
@@ -100,8 +94,8 @@ class ZipReader(AbstractReader):
                 dataObj = archive.read(filename)
 
             except Exception as exc:
-                debug.logger & debug.flagReader and debug.logger(f'ZIP read component {fileObj.name} read error: {exc}')
-                return '', 0
+                debug.logger & debug.flagReader and debug.logger(f"ZIP read component {fileObj.name} read error: {exc}")
+                return "", 0
 
         return dataObj, mtime
 
@@ -109,17 +103,16 @@ class ZipReader(AbstractReader):
         return f'{self.__class__.__name__}{{"{self._name}"}}'
 
     def getData(self, mibname, **options):
-        debug.logger & debug.flagReader and debug.logger(f'looking for MIB {mibname} at {self._name}')
+        debug.logger & debug.flagReader and debug.logger(f"looking for MIB {mibname} at {self._name}")
 
         if self._pendingError:
             raise self._pendingError
 
         if not self._members:
-            raise error.PySmiReaderFileNotFoundError(f'source MIB {mibname} not found', reader=self)
+            raise error.PySmiReaderFileNotFoundError(f"source MIB {mibname} not found", reader=self)
 
         for mibalias, mibfile in self.getMibVariants(mibname, **options):
-
-            debug.logger & debug.flagReader and debug.logger(f'trying MIB {mibfile}')
+            debug.logger & debug.flagReader and debug.logger(f"trying MIB {mibfile}")
 
             try:
                 refs = self._members[mibfile]
@@ -133,13 +126,16 @@ class ZipReader(AbstractReader):
                 continue
 
             debug.logger & debug.flagReader and debug.logger(
-                'source MIB {}, mtime {}, read from {}/{}'.format(mibfile, time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(mtime)), self._name, mibfile)
+                "source MIB {}, mtime {}, read from {}/{}".format(
+                    mibfile, time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(mtime)), self._name, mibfile
+                )
             )
 
             if len(mibData) == self.maxMibSize:
-                raise OSError(f'MIB {self._name}/{mibfile} too large')
+                raise OSError(f"MIB {self._name}/{mibfile} too large")
 
-            return MibInfo(path=f'zip://{self._name}/{mibfile}',
-                           file=mibfile, name=mibalias, mtime=mtime), decode(mibData)
+            return MibInfo(path=f"zip://{self._name}/{mibfile}", file=mibfile, name=mibalias, mtime=mtime), decode(
+                mibData
+            )
 
-        raise error.PySmiReaderFileNotFoundError(f'source MIB {mibname} not found', reader=self)
+        raise error.PySmiReaderFileNotFoundError(f"source MIB {mibname} not found", reader=self)

@@ -9,26 +9,27 @@ from pysmi.searcher.base import AbstractSearcher
 
 
 class StubSearcher(AbstractSearcher):
-    """Figures out if given MIB module is present in a fixed list of modules.
-    """
+    """Figures out if given MIB module is present in a fixed list of modules."""
 
     def __init__(self, *mibnames):
         """Create an instance of *StubSearcher* initialized with a fixed list
-           or MIB modules names.
+        or MIB modules names.
 
-           Args:
-               mibnames (str): blacklisted MIB names
+        Args:
+            mibnames (str): blacklisted MIB names
         """
         self._mibnames = mibnames
 
     def __str__(self):
-        return f'{self.__class__.__name__}'
+        return f"{self.__class__.__name__}"
 
     def fileExists(self, mibname, mtime, rebuild=False):
         if mibname in self._mibnames:
-            debug.logger & debug.flagSearcher and debug.logger(f'pretend compiled {mibname} exists and is very new')
-            raise error.PySmiFileNotModifiedError('compiled file {} is among {}'.format(mibname, ', '.join(self._mibnames)),
-                                                  searcher=self)
+            debug.logger & debug.flagSearcher and debug.logger(f"pretend compiled {mibname} exists and is very new")
+            raise error.PySmiFileNotModifiedError(
+                "compiled file {} is among {}".format(mibname, ", ".join(self._mibnames)), searcher=self
+            )
 
-        raise error.PySmiFileNotFoundError('no compiled file {} found among {}'.format(mibname, ', '.join(self._mibnames)),
-                                           searcher=self)
+        raise error.PySmiFileNotFoundError(
+            "no compiled file {} found among {}".format(mibname, ", ".join(self._mibnames)), searcher=self
+        )

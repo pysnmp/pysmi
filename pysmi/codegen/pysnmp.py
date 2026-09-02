@@ -15,44 +15,62 @@ from pysmi.mibinfo import MibInfo
 
 class PySnmpCodeGen(AbstractCodeGen):
     """Builds PySNMP-specific Python code representing MIB module supplied
-       in form of an Abstract Syntax Tree on input.
+    in form of an Abstract Syntax Tree on input.
 
-       Instance of this class is supposed to be passed to *MibCompiler*,
-       the rest is internal to *MibCompiler*.
+    Instance of this class is supposed to be passed to *MibCompiler*,
+    the rest is internal to *MibCompiler*.
     """
-    defaultMibPackages = ('pysnmp.smi.mibs', 'pysnmp_mibs')
+
+    defaultMibPackages = ("pysnmp.smi.mibs", "pysnmp_mibs")
 
     symsTable = {
-        'MODULE-IDENTITY': ('ModuleIdentity',),
-        'OBJECT-TYPE': ('MibScalar', 'MibTable', 'MibTableRow', 'MibTableColumn'),
-        'NOTIFICATION-TYPE': ('NotificationType',),
-        'TEXTUAL-CONVENTION': ('TextualConvention',),
-        'MODULE-COMPLIANCE': ('ModuleCompliance',),
-        'OBJECT-GROUP': ('ObjectGroup',),
-        'NOTIFICATION-GROUP': ('NotificationGroup',),
-        'AGENT-CAPABILITIES': ('AgentCapabilities',),
-        'OBJECT-IDENTITY': ('ObjectIdentity',),
-        'TRAP-TYPE': ('NotificationType',),  # smidump always uses NotificationType
-        'BITS': ('Bits',),
+        "MODULE-IDENTITY": ("ModuleIdentity",),
+        "OBJECT-TYPE": ("MibScalar", "MibTable", "MibTableRow", "MibTableColumn"),
+        "NOTIFICATION-TYPE": ("NotificationType",),
+        "TEXTUAL-CONVENTION": ("TextualConvention",),
+        "MODULE-COMPLIANCE": ("ModuleCompliance",),
+        "OBJECT-GROUP": ("ObjectGroup",),
+        "NOTIFICATION-GROUP": ("NotificationGroup",),
+        "AGENT-CAPABILITIES": ("AgentCapabilities",),
+        "OBJECT-IDENTITY": ("ObjectIdentity",),
+        "TRAP-TYPE": ("NotificationType",),  # smidump always uses NotificationType
+        "BITS": ("Bits",),
     }
 
     constImports = {
-        'ASN1': ('Integer', 'OctetString', 'ObjectIdentifier'),
-        'ASN1-ENUMERATION': ('NamedValues',),
-        'ASN1-REFINEMENT': ('ConstraintsUnion', 'ConstraintsIntersection', 'SingleValueConstraint',
-                            'ValueRangeConstraint', 'ValueSizeConstraint'),
-        'SNMPv2-SMI': ('iso',
-                       'Bits',  # XXX
-                       'Integer32',  # XXX
-                       'TimeTicks',  # bug in some IETF MIBs
-                       'Counter32',  # bug in some IETF MIBs (e.g. DSA-MIB)
-                       'Counter64',  # bug in some MIBs (e.g.A3COM-HUAWEI-LswINF-MIB)
-                       'NOTIFICATION-TYPE',  # bug in some MIBs (e.g. A3COM-HUAWEI-DHCPSNOOP-MIB)
-                       'Gauge32',  # bug in some IETF MIBs (e.g. DSA-MIB)
-                       'MODULE-IDENTITY', 'OBJECT-TYPE', 'OBJECT-IDENTITY', 'Unsigned32', 'IpAddress',  # XXX
-                       'MibIdentifier'),  # OBJECT IDENTIFIER
-        'SNMPv2-TC': ('DisplayString', 'TEXTUAL-CONVENTION',),  # XXX
-        'SNMPv2-CONF': ('MODULE-COMPLIANCE', 'NOTIFICATION-GROUP',),  # XXX
+        "ASN1": ("Integer", "OctetString", "ObjectIdentifier"),
+        "ASN1-ENUMERATION": ("NamedValues",),
+        "ASN1-REFINEMENT": (
+            "ConstraintsUnion",
+            "ConstraintsIntersection",
+            "SingleValueConstraint",
+            "ValueRangeConstraint",
+            "ValueSizeConstraint",
+        ),
+        "SNMPv2-SMI": (
+            "iso",
+            "Bits",  # XXX
+            "Integer32",  # XXX
+            "TimeTicks",  # bug in some IETF MIBs
+            "Counter32",  # bug in some IETF MIBs (e.g. DSA-MIB)
+            "Counter64",  # bug in some MIBs (e.g.A3COM-HUAWEI-LswINF-MIB)
+            "NOTIFICATION-TYPE",  # bug in some MIBs (e.g. A3COM-HUAWEI-DHCPSNOOP-MIB)
+            "Gauge32",  # bug in some IETF MIBs (e.g. DSA-MIB)
+            "MODULE-IDENTITY",
+            "OBJECT-TYPE",
+            "OBJECT-IDENTITY",
+            "Unsigned32",
+            "IpAddress",  # XXX
+            "MibIdentifier",
+        ),  # OBJECT IDENTIFIER
+        "SNMPv2-TC": (
+            "DisplayString",
+            "TEXTUAL-CONVENTION",
+        ),  # XXX
+        "SNMPv2-CONF": (
+            "MODULE-COMPLIANCE",
+            "NOTIFICATION-GROUP",
+        ),  # XXX
     }
 
     # never compile these, they either:
@@ -60,38 +78,43 @@ class PySnmpCodeGen(AbstractCodeGen):
     # - or carry conflicting OIDs (so that all IMPORT's of them will be rewritten)
     # - or have manual fixes
     # - or import base ASN.1 types from implementation-specific MIBs
-    fakeMibs = ('ASN1',
-                'ASN1-ENUMERATION',
-                'ASN1-REFINEMENT')
-    baseMibs = ('PYSNMP-USM-MIB', 'SNMP-FRAMEWORK-MIB', 'SNMP-TARGET-MIB', 'TRANSPORT-ADDRESS-MIB', 'INET-ADDRESS-MIB', *AbstractCodeGen.baseMibs)
+    fakeMibs = ("ASN1", "ASN1-ENUMERATION", "ASN1-REFINEMENT")
+    baseMibs = (
+        "PYSNMP-USM-MIB",
+        "SNMP-FRAMEWORK-MIB",
+        "SNMP-TARGET-MIB",
+        "TRANSPORT-ADDRESS-MIB",
+        "INET-ADDRESS-MIB",
+        *AbstractCodeGen.baseMibs,
+    )
 
-    baseTypes = ['Integer', 'Integer32', 'Bits', 'ObjectIdentifier', 'OctetString']
+    baseTypes = ["Integer", "Integer32", "Bits", "ObjectIdentifier", "OctetString"]
 
     typeClasses = {
-        'COUNTER32': 'Counter32',
-        'COUNTER64': 'Counter64',
-        'GAUGE32': 'Gauge32',
-        'INTEGER': 'Integer32',  # XXX
-        'INTEGER32': 'Integer32',
-        'IPADDRESS': 'IpAddress',
-        'NETWORKADDRESS': 'IpAddress',
-        'OBJECT IDENTIFIER': 'ObjectIdentifier',
-        'OCTET STRING': 'OctetString',
-        'OPAQUE': 'Opaque',
-        'TIMETICKS': 'TimeTicks',
-        'UNSIGNED32': 'Unsigned32',
-        'Counter': 'Counter32',
-        'Gauge': 'Gauge32',
-        'NetworkAddress': 'IpAddress',  # RFC1065-SMI, RFC1155-SMI -> SNMPv2-SMI
-        'nullSpecific': 'zeroDotZero',  # RFC1158-MIB -> SNMPv2-SMI
-        'ipRoutingTable': 'ipRouteTable',  # RFC1158-MIB -> RFC1213-MIB
-        'snmpEnableAuthTraps': 'snmpEnableAuthenTraps'  # RFC1158-MIB -> SNMPv2-MIB
+        "COUNTER32": "Counter32",
+        "COUNTER64": "Counter64",
+        "GAUGE32": "Gauge32",
+        "INTEGER": "Integer32",  # XXX
+        "INTEGER32": "Integer32",
+        "IPADDRESS": "IpAddress",
+        "NETWORKADDRESS": "IpAddress",
+        "OBJECT IDENTIFIER": "ObjectIdentifier",
+        "OCTET STRING": "OctetString",
+        "OPAQUE": "Opaque",
+        "TIMETICKS": "TimeTicks",
+        "UNSIGNED32": "Unsigned32",
+        "Counter": "Counter32",
+        "Gauge": "Gauge32",
+        "NetworkAddress": "IpAddress",  # RFC1065-SMI, RFC1155-SMI -> SNMPv2-SMI
+        "nullSpecific": "zeroDotZero",  # RFC1158-MIB -> SNMPv2-SMI
+        "ipRoutingTable": "ipRouteTable",  # RFC1158-MIB -> RFC1213-MIB
+        "snmpEnableAuthTraps": "snmpEnableAuthenTraps",  # RFC1158-MIB -> SNMPv2-MIB
     }
 
-    smiv1IdxTypes = ['INTEGER', 'OCTET STRING', 'IPADDRESS', 'NETWORKADDRESS']
+    smiv1IdxTypes = ["INTEGER", "OCTET STRING", "IPADDRESS", "NETWORKADDRESS"]
 
-    ifTextStr = 'if mibBuilder.loadTexts: '
-    indent = ' ' * 4
+    ifTextStr = "if mibBuilder.loadTexts: "
+    indent = " " * 4
     fakeidx = 1000  # starting index for fake symbols
 
     # Template for version-guarded status assignment (duplicated across many
@@ -125,14 +148,14 @@ for _%(name)s_obj in [%(objects)s]:
 """
 
     # Common string fragments used in subtype constraint generation.
-    _SET_OBJECTS_CALL = '.setObjects('
-    _SUBTYPE_SPEC_CALL = '.subtype(subtypeSpec='
-    _SUBTYPE_SPEC_CLASSMODE = 'subtypeSpec = %s.subtypeSpec + '
-    _CONSTRAINTS_UNION = 'ConstraintsUnion('
+    _SET_OBJECTS_CALL = ".setObjects("
+    _SUBTYPE_SPEC_CALL = ".subtype(subtypeSpec="
+    _SUBTYPE_SPEC_CLASSMODE = "subtypeSpec = %s.subtypeSpec + "
+    _CONSTRAINTS_UNION = "ConstraintsUnion("
 
     def __init__(self):
         self._snmpTypes = set(self.typeClasses.values())
-        self._snmpTypes.add('Bits')
+        self._snmpTypes.add("Bits")
         self._rows = set()
         self._cols = {}  # k, v = name, datatype
         self._exports = set()
@@ -141,22 +164,22 @@ for _%(name)s_obj in [%(objects)s]:
         self._out = {}  # k, v = name, generated code
         self._moduleIdentityOid = None
         self._moduleRevision = None
-        self.moduleName = ['DUMMY']
-        self.genRules = {'text': True}
+        self.moduleName = ["DUMMY"]
+        self.genRules = {"text": True}
         self.symbolTable = {}
 
     def symTrans(self, symbol):
         if symbol in self.symsTable:
             return self.symsTable[symbol]
 
-        return symbol,
+        return (symbol,)
 
     @staticmethod
     def transOpers(symbol):
         if iskeyword(symbol):
-            symbol = 'pysmi_' + symbol
+            symbol = "pysmi_" + symbol
 
-        return symbol.replace('-', '_')
+        return symbol.replace("-", "_")
 
     def prepData(self, pdata, classmode=False):
         data = []
@@ -176,16 +199,13 @@ for _%(name)s_obj in [%(objects)s]:
         return data
 
     def genImports(self, imports):
-        outStr = ''
+        outStr = ""
 
         # conversion to SNMPv2
         toDel = []
         for module in list(imports):
-
             if module in self.convertImportv2:
-
                 for symbol in imports[module]:
-
                     if symbol in self.convertImportv2[module]:
                         toDel.append((module, symbol))
 
@@ -218,55 +238,57 @@ for _%(name)s_obj in [%(objects)s]:
                 self._seenSyms.update([self.transOpers(s) for s in symbols])
                 self._importMap.update([(self.transOpers(s), module) for s in symbols])
 
-                outStr += ', '.join([self.transOpers(s) for s in symbols])
+                outStr += ", ".join([self.transOpers(s) for s in symbols])
                 if len(symbols) < 2:
-                    outStr += ','
+                    outStr += ","
                 outStr += ' = mibBuilder.importSymbols("{}")\n'.format('", "'.join((module, *symbols)))
 
         return outStr, tuple(sorted(imports))
 
-    def genExports(self, ):
+    def genExports(
+        self,
+    ):
         exports = list(self._exports)
         if not exports:
-            return ''
+            return ""
 
         numFuncCalls = len(exports) // 254 + 1
 
-        outStr = ''
+        outStr = ""
 
         for idx in range(numFuncCalls):
             outStr += 'mibBuilder.exportSymbols("' + self.moduleName[0] + '", '
-            outStr += ', '.join(exports[254 * idx:254 * (idx + 1)]) + ')\n'
+            outStr += ", ".join(exports[254 * idx : 254 * (idx + 1)]) + ")\n"
 
         return outStr
 
     # noinspection PyMethodMayBeStatic
     def genLabel(self, symbol, classmode=False):
-        if '-' in symbol or iskeyword(symbol):
+        if "-" in symbol or iskeyword(symbol):
             return (classmode and 'label = "' + symbol + '"\n') or '.setLabel("' + symbol + '")'
 
-        return ''
+        return ""
 
     def addToExports(self, symbol, moduleIdentity=0):
         if moduleIdentity:
-            self._exports.add(f'PYSNMP_MODULE_ID={symbol}')
+            self._exports.add(f"PYSNMP_MODULE_ID={symbol}")
 
-        self._exports.add(f'{symbol}={symbol}')
+        self._exports.add(f"{symbol}={symbol}")
         self._seenSyms.add(symbol)
 
     # noinspection PyUnusedLocal
     def regSym(self, symbol, outStr, oidStr=None, moduleIdentity=False):
         if symbol in self._seenSyms and symbol not in self._importMap:
-            raise error.PySmiSemanticError(f'Duplicate symbol found: {symbol}')
+            raise error.PySmiSemanticError(f"Duplicate symbol found: {symbol}")
 
         self.addToExports(symbol, moduleIdentity)
         self._out[symbol] = outStr
 
         if moduleIdentity:
             if self._moduleIdentityOid:
-                raise error.PySmiSemanticError('Duplicate module identity')
+                raise error.PySmiSemanticError("Duplicate module identity")
             # TODO: turning literal tuple into a string - hackerish
-            self._moduleIdentityOid = '.'.join(oidStr.split(', '))[1:-1]
+            self._moduleIdentityOid = ".".join(oidStr.split(", "))[1:-1]
 
     def genNumericOid(self, oid):
         numericOid = ()
@@ -275,7 +297,7 @@ for _%(name)s_obj in [%(objects)s]:
             if isinstance(part, tuple):
                 parent, module = part
 
-                if parent == 'iso':
+                if parent == "iso":
                     numericOid += (1,)
                     continue
 
@@ -286,7 +308,7 @@ for _%(name)s_obj in [%(objects)s]:
                 if parent not in self.symbolTable[module]:
                     raise error.PySmiSemanticError(f'no symbol "{parent}" in module "{module}"')
 
-                numericOid += self.genNumericOid(self.symbolTable[module][parent]['oid'])
+                numericOid += self.genNumericOid(self.symbolTable[module][parent]["oid"])
 
             else:
                 numericOid += (part,)
@@ -300,7 +322,7 @@ for _%(name)s_obj in [%(objects)s]:
         if symName not in self.symbolTable[module]:
             raise error.PySmiSemanticError(f'no symbol "{symName}" in module "{module}"')
 
-        symType, symSubtype = self.symbolTable[module][symName].get('syntax', (('', ''), ''))
+        symType, symSubtype = self.symbolTable[module][symName].get("syntax", (("", ""), ""))
 
         if not symType[0]:
             raise error.PySmiSemanticError(f'unknown type for symbol "{symName}"')
@@ -329,7 +351,7 @@ for _%(name)s_obj in [%(objects)s]:
         name = self.transOpers(name)
 
         oidStr, _parentOid = oid
-        outStr = name + ' = AgentCapabilities(' + oidStr + ')' + label + '\n'
+        outStr = name + " = AgentCapabilities(" + oidStr + ")" + label + "\n"
 
         if productRelease:
             outStr += """\
@@ -340,11 +362,11 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if status:
             outStr += self._STATUS_VERSION_TEMPLATE % dict(name=name, status=status)
 
-        if self.genRules['text'] and description:
-            outStr += self.ifTextStr + name + description + '\n'
+        if self.genRules["text"] and description:
+            outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules['text'] and reference:
-            outStr += name + reference + '\n'
+        if self.genRules["text"] and reference:
+            outStr += name + reference + "\n"
 
         self.regSym(name, outStr, oidStr)
 
@@ -359,7 +381,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         oidStr, _parentOid = oid
 
-        outStr = name + ' = ModuleIdentity(' + oidStr + ')' + label + '\n'
+        outStr = name + " = ModuleIdentity(" + oidStr + ")" + label + "\n"
 
         if revisionsAndDescrs:
             last_revision, revisions, descriptions = revisionsAndDescrs
@@ -367,25 +389,25 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
             self._moduleRevision = last_revision
 
             if revisions:
-                outStr += name + revisions + '\n'
+                outStr += name + revisions + "\n"
 
-            if self.genRules['text'] and descriptions:
+            if self.genRules["text"] and descriptions:
                 outStr += """
 if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
     {ifTextStr}{name}{descriptions}
 """.format(**dict(ifTextStr=self.ifTextStr, name=name, descriptions=descriptions))
 
         if lastUpdated:
-            outStr += self.ifTextStr + name + lastUpdated + '\n'
+            outStr += self.ifTextStr + name + lastUpdated + "\n"
 
         if organization:
-            outStr += self.ifTextStr + name + organization + '\n'
+            outStr += self.ifTextStr + name + organization + "\n"
 
-        if self.genRules['text'] and contactInfo:
-            outStr += self.ifTextStr + name + contactInfo + '\n'
+        if self.genRules["text"] and contactInfo:
+            outStr += self.ifTextStr + name + contactInfo + "\n"
 
-        if self.genRules['text'] and description:
-            outStr += self.ifTextStr + name + description + '\n'
+        if self.genRules["text"] and description:
+            outStr += self.ifTextStr + name + description + "\n"
 
         self.regSym(name, outStr, oidStr, moduleIdentity=True)
 
@@ -399,17 +421,17 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         name = self.transOpers(name)
 
         oidStr, _parentOid = oid
-        outStr = name + ' = ModuleCompliance(' + oidStr + ')' + label
-        outStr += compliances + '\n'
+        outStr = name + " = ModuleCompliance(" + oidStr + ")" + label
+        outStr += compliances + "\n"
 
         if status:
             outStr += self._STATUS_VERSION_TEMPLATE % dict(name=name, status=status)
 
-        if self.genRules['text'] and description:
-            outStr += self.ifTextStr + name + description + '\n'
+        if self.genRules["text"] and description:
+            outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules['text'] and reference:
-            outStr += self.ifTextStr + name + reference + '\n'
+        if self.genRules["text"] and reference:
+            outStr += self.ifTextStr + name + reference + "\n"
 
         self.regSym(name, outStr, oidStr)
 
@@ -424,11 +446,13 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         oidStr, _parentOid = oid
 
-        outStr = name + ' = NotificationGroup(' + oidStr + ')' + label
+        outStr = name + " = NotificationGroup(" + oidStr + ")" + label
 
         if objects:
-            objects = ['("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
-                       for obj in objects]
+            objects = [
+                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
+                for obj in objects
+            ]
 
             numFuncCalls = len(objects) // 255 + 1
 
@@ -436,23 +460,23 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                 objStrParts = []
 
                 for idx in range(numFuncCalls):
-                    objStrParts.append('[' + ', '.join(objects[255 * idx:255 * (idx + 1)]) + ']')
+                    objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
 
-                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(name=name, objects=', '.join(objStrParts))
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(name=name, objects=", ".join(objStrParts))
 
             else:
-                outStr += self._SET_OBJECTS_CALL + ', '.join(objects) + ')'
+                outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
 
-        outStr += '\n'
+        outStr += "\n"
 
         if status:
             outStr += self._STATUS_VERSION_TEMPLATE % dict(name=name, status=status)
 
-        if self.genRules['text'] and description:
-            outStr += self.ifTextStr + name + description + '\n'
+        if self.genRules["text"] and description:
+            outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules['text'] and reference:
-            outStr += name + reference + '\n'
+        if self.genRules["text"] and reference:
+            outStr += name + reference + "\n"
 
         self.regSym(name, outStr, oidStr)
 
@@ -467,11 +491,13 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         oidStr, _parentOid = oid
 
-        outStr = name + ' = NotificationType(' + oidStr + ')' + label
+        outStr = name + " = NotificationType(" + oidStr + ")" + label
 
         if objects:
-            objects = ['("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
-                       for obj in objects]
+            objects = [
+                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
+                for obj in objects
+            ]
 
             numFuncCalls = len(objects) // 255 + 1
 
@@ -479,23 +505,23 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                 objStrParts = []
 
                 for idx in range(numFuncCalls):
-                    objStrParts.append('[' + ', '.join(objects[255 * idx:255 * (idx + 1)]) + ']')
+                    objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
 
-                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(name=name, objects=', '.join(objStrParts))
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(name=name, objects=", ".join(objStrParts))
 
             else:
-                outStr += self._SET_OBJECTS_CALL + ', '.join(objects) + ')'
+                outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
 
-        outStr += '\n'
+        outStr += "\n"
 
         if status:
-            outStr += self.ifTextStr + name + status + '\n'
+            outStr += self.ifTextStr + name + status + "\n"
 
-        if self.genRules['text'] and description:
-            outStr += self.ifTextStr + name + description + '\n'
+        if self.genRules["text"] and description:
+            outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules['text'] and reference:
-            outStr += self.ifTextStr + name + reference + '\n'
+        if self.genRules["text"] and reference:
+            outStr += self.ifTextStr + name + reference + "\n"
 
         self.regSym(name, outStr, oidStr)
 
@@ -510,11 +536,13 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         oidStr, _parentOid = oid
 
-        outStr = name + ' = ObjectGroup(' + oidStr + ')' + label
+        outStr = name + " = ObjectGroup(" + oidStr + ")" + label
 
         if objects:
-            objects = ['("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
-                       for obj in objects]
+            objects = [
+                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
+                for obj in objects
+            ]
 
             numFuncCalls = len(objects) // 255 + 1
 
@@ -522,7 +550,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                 objStrParts = []
 
                 for idx in range(numFuncCalls):
-                    objStrParts.append('[' + ', '.join(objects[255 * idx:255 * (idx + 1)]) + ']')
+                    objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
 
                 outStr += """
 for _{name}_obj in [{objects}]:
@@ -531,21 +559,21 @@ for _{name}_obj in [{objects}]:
         {name} = {name}.setObjects(*_{name}_obj)
     else:
         {name} = {name}.setObjects(*_{name}_obj, **dict(append=True))\
-""".format(**dict(name=name, objects=', '.join(objStrParts)))
+""".format(**dict(name=name, objects=", ".join(objStrParts)))
 
             else:
-                outStr += self._SET_OBJECTS_CALL + ', '.join(objects) + ')'
+                outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
 
-        outStr += '\n'
+        outStr += "\n"
 
         if status:
             outStr += self._STATUS_VERSION_TEMPLATE % dict(name=name, status=status)
 
-        if self.genRules['text'] and description:
-            outStr += self.ifTextStr + name + description + '\n'
+        if self.genRules["text"] and description:
+            outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules['text'] and reference:
-            outStr += self.ifTextStr + name + reference + '\n'
+        if self.genRules["text"] and reference:
+            outStr += self.ifTextStr + name + reference + "\n"
 
         self.regSym(name, outStr, oidStr)
 
@@ -559,16 +587,16 @@ for _{name}_obj in [{objects}]:
         name = self.transOpers(name)
 
         oidStr, _parentOid = oid
-        outStr = name + ' = ObjectIdentity(' + oidStr + ')' + label + '\n'
+        outStr = name + " = ObjectIdentity(" + oidStr + ")" + label + "\n"
 
         if status:
-            outStr += self.ifTextStr + name + status + '\n'
+            outStr += self.ifTextStr + name + status + "\n"
 
-        if self.genRules['text'] and description:
-            outStr += self.ifTextStr + name + description + '\n'
+        if self.genRules["text"] and description:
+            outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules['text'] and reference:
-            outStr += self.ifTextStr + name + reference + '\n'
+        if self.genRules["text"] and reference:
+            outStr += self.ifTextStr + name + reference + "\n"
 
         self.regSym(name, outStr, oidStr)
 
@@ -583,35 +611,42 @@ for _{name}_obj in [{objects}]:
 
         oidStr, parentOid = oid
 
-        indexStr, fakeStrlist, fakeSyms = index or ('', '', [])
-        subtype = (syntax[0] == 'Bits' and 'Bits()' + syntax[1]) or syntax[1]  # Bits hack #1
+        indexStr, fakeStrlist, fakeSyms = index or ("", "", [])
+        subtype = (syntax[0] == "Bits" and "Bits()" + syntax[1]) or syntax[1]  # Bits hack #1
 
         classtype = self.typeClasses.get(syntax[0], syntax[0])
         classtype = self.transOpers(classtype)
-        classtype = (syntax[0] == 'Bits' and 'MibScalar') or classtype  # Bits hack #2
-        classtype = (name in self.symbolTable[self.moduleName[0]]['_symtable_cols'] and 'MibTableColumn') or classtype
+        classtype = (syntax[0] == "Bits" and "MibScalar") or classtype  # Bits hack #2
+        classtype = (name in self.symbolTable[self.moduleName[0]]["_symtable_cols"] and "MibTableColumn") or classtype
 
         defval = self.genDefVal(defval, objname=name)
 
-        outStr = name + ' = ' + classtype + '(' + oidStr + ', ' + subtype + (defval or '') + ')' + label
-        outStr += units or ''
-        outStr += maxaccess or ''
-        outStr += indexStr or ''
-        outStr += '\n'
+        outStr = name + " = " + classtype + "(" + oidStr + ", " + subtype + (defval or "") + ")" + label
+        outStr += units or ""
+        outStr += maxaccess or ""
+        outStr += indexStr or ""
+        outStr += "\n"
 
-        if self.genRules['text'] and reference:
-            outStr += self.ifTextStr + name + reference + '\n'
+        if self.genRules["text"] and reference:
+            outStr += self.ifTextStr + name + reference + "\n"
 
         if augmention:
             augmention = self.transOpers(augmention)
-            outStr += augmention + '.registerAugmentions(("' + self._importMap.get(name, self.moduleName[0]) + '", "' + name + '"))\n'
-            outStr += name + '.setIndexNames(*' + augmention + '.getIndexNames())\n'
+            outStr += (
+                augmention
+                + '.registerAugmentions(("'
+                + self._importMap.get(name, self.moduleName[0])
+                + '", "'
+                + name
+                + '"))\n'
+            )
+            outStr += name + ".setIndexNames(*" + augmention + ".getIndexNames())\n"
 
         if status:
-            outStr += self.ifTextStr + name + status + '\n'
+            outStr += self.ifTextStr + name + status + "\n"
 
-        if self.genRules['text'] and description:
-            outStr += self.ifTextStr + name + description + '\n'
+        if self.genRules["text"] and description:
+            outStr += self.ifTextStr + name + description + "\n"
 
         self.regSym(name, outStr, parentOid)
 
@@ -631,11 +666,13 @@ for _{name}_obj in [{objects}]:
 
         enterpriseStr, _parentOid = enterprise
 
-        outStr = name + ' = NotificationType(' + enterpriseStr + ' + (0,' + str(value) + '))' + label
+        outStr = name + " = NotificationType(" + enterpriseStr + " + (0," + str(value) + "))" + label
 
         if objects:
-            objects = ['("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
-                       for obj in objects]
+            objects = [
+                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
+                for obj in objects
+            ]
 
             numFuncCalls = len(objects) // 255 + 1
 
@@ -643,20 +680,20 @@ for _{name}_obj in [{objects}]:
                 objStrParts = []
 
                 for idx in range(numFuncCalls):
-                    objStrParts.append('[' + ', '.join(objects[255 * idx:255 * (idx + 1)]) + ']')
+                    objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
 
-                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(name=name, objects=', '.join(objStrParts))
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(name=name, objects=", ".join(objStrParts))
 
             else:
-                outStr += self._SET_OBJECTS_CALL + ', '.join(objects) + ')'
+                outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
 
-        outStr += '\n'
+        outStr += "\n"
 
-        if self.genRules['text'] and description:
-            outStr += self.ifTextStr + name + description + '\n'
+        if self.genRules["text"] and description:
+            outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules['text'] and reference:
-            outStr += self.ifTextStr + name + reference + '\n'
+        if self.genRules["text"] and reference:
+            outStr += self.ifTextStr + name + reference + "\n"
 
         self.regSym(name, outStr, enterpriseStr)
 
@@ -664,7 +701,7 @@ for _{name}_obj in [{objects}]:
 
     # noinspection PyUnusedLocal
     def genTypeDeclaration(self, data, classmode=False):
-        outStr = ''
+        outStr = ""
 
         name, declaration = data
 
@@ -672,7 +709,7 @@ for _{name}_obj in [{objects}]:
             parentType, attrs = declaration
             if parentType:  # skipping SEQUENCE case
                 name = self.transOpers(name)
-                outStr = 'class ' + name + '(' + parentType + '):\n' + attrs + '\n'
+                outStr = "class " + name + "(" + parentType + "):\n" + attrs + "\n"
                 self.regSym(name, outStr)
 
         return outStr
@@ -685,7 +722,7 @@ for _{name}_obj in [{objects}]:
         name = self.transOpers(name)
 
         oidStr, _parentOid = oid
-        outStr = name + ' = MibIdentifier(' + oidStr + ')' + label + '\n'
+        outStr = name + " = MibIdentifier(" + oidStr + ")" + label + "\n"
 
         self.regSym(name, outStr, oidStr)
 
@@ -705,24 +742,26 @@ for _{name}_obj in [{objects}]:
     def genBits(self, data, classmode=False):
         bits = data[0]
 
-        namedval = ['("' + bit[0] + '", ' + str(bit[1]) + ')' for bit in bits]
+        namedval = ['("' + bit[0] + '", ' + str(bit[1]) + ")" for bit in bits]
 
         numFuncCalls = len(namedval) // 255 + 1
 
-        funcCalls = ''
+        funcCalls = ""
         for idx in range(numFuncCalls):
-            funcCalls += 'NamedValues(' + ', '.join(namedval[255 * idx:255 * (idx + 1)]) + ') + '
+            funcCalls += "NamedValues(" + ", ".join(namedval[255 * idx : 255 * (idx + 1)]) + ") + "
 
         funcCalls = funcCalls[:-3]
 
-        outStr = (classmode and self.indent + 'namedValues = ' + funcCalls + '\n') or '.clone(namedValues=' + funcCalls + ')'
+        outStr = (
+            classmode and self.indent + "namedValues = " + funcCalls + "\n"
+        ) or ".clone(namedValues=" + funcCalls + ")"
 
-        return 'Bits', outStr
+        return "Bits", outStr
 
     # noinspection PyUnusedLocal
     def genCompliances(self, data, classmode=False):
         if not data[0]:
-            return ''
+            return ""
 
         objects = []
 
@@ -730,7 +769,7 @@ for _{name}_obj in [{objects}]:
             name = complianceModule[0] or self.moduleName[0]
             objects += ['("' + name + '", "' + self.transOpers(compl) + '")' for compl in complianceModule[1]]
 
-        outStr = ''
+        outStr = ""
 
         numFuncCalls = len(objects) // 255 + 1
 
@@ -738,37 +777,37 @@ for _{name}_obj in [{objects}]:
             objStrParts = []
 
             for idx in range(numFuncCalls):
-                objStrParts.append('[' + ', '.join(objects[255 * idx:255 * (idx + 1)]) + ']')
+                objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
 
-            outStr += self._SET_OBJECTS_LOOP_TEMPLATE_NL % dict(name=name, objects=', '.join(objStrParts))
+            outStr += self._SET_OBJECTS_LOOP_TEMPLATE_NL % dict(name=name, objects=", ".join(objStrParts))
 
         else:
-            outStr += self._SET_OBJECTS_CALL + ', '.join(objects) + ')\n'
+            outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")\n"
 
         return outStr
 
     # noinspection PyUnusedLocal
     def genConceptualTable(self, data, classmode=False):
         row = data[0]
-        if row[1] and row[1][-2:] == '()':
+        if row[1] and row[1][-2:] == "()":
             row = row[1][:-2]
             self._rows.add(row)
 
-        return 'MibTable', ''
+        return "MibTable", ""
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genContactInfo(self, data, classmode=False):
-        text = self.textFilter('contact-info', data[0])
-        return '.setContactInfo(' + dorepr(text) + ')'
+        text = self.textFilter("contact-info", data[0])
+        return ".setContactInfo(" + dorepr(text) + ")"
 
     # noinspection PyUnusedLocal
     def genDisplayHint(self, data, classmode=False):
-        return self.indent + 'displayHint = ' + dorepr(data[0]) + '\n'
+        return self.indent + "displayHint = " + dorepr(data[0]) + "\n"
 
     # noinspection PyUnusedLocal
     def genDefVal(self, data, classmode=False, objname=None):
         if not data:
-            return ''
+            return ""
 
         if not objname:
             return data
@@ -780,48 +819,49 @@ for _{name}_obj in [{objects}]:
             val = str(defval)
 
         elif self.isHex(defval):  # hex
-            if defvalType[0][0] in ('Integer32', 'Integer'):  # common bug in MIBs
+            if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
                 val = str(int(defval[1:-2], 16))
             else:
                 val = 'hexValue="' + defval[1:-2] + '"'
 
         elif self.isBinary(defval):  # binary
             binval = defval[1:-2]
-            if defvalType[0][0] in ('Integer32', 'Integer'):  # common bug in MIBs
-                val = str(int(binval or '0', 2))
+            if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
+                val = str(int(binval or "0", 2))
             else:
-                hexval = (binval and hex(int(binval, 2))[2:]) or ''
+                hexval = (binval and hex(int(binval, 2))[2:]) or ""
                 val = 'hexValue="' + hexval + '"'
 
         elif defval[0] == defval[-1] and defval[0] == '"':  # quoted string
-            if defval[1:-1] == '' and defvalType != 'OctetString':  # common bug
+            if defval[1:-1] == "" and defvalType != "OctetString":  # common bug
                 # a warning should be here
                 return False  # we will set no default value
 
             val = dorepr(defval[1:-1])
 
         else:  # symbol (oid as defval) or name for enumeration member
-            if (defvalType[0][0] == 'ObjectIdentifier' and
-                    (defval in self.symbolTable[self.moduleName[0]] or defval in self._importMap)):  # oid
+            if defvalType[0][0] == "ObjectIdentifier" and (
+                defval in self.symbolTable[self.moduleName[0]] or defval in self._importMap
+            ):  # oid
                 module = self._importMap.get(defval, self.moduleName[0])
 
                 try:
-                    val = str(self.genNumericOid(self.symbolTable[module][defval]['oid']))
+                    val = str(self.genNumericOid(self.symbolTable[module][defval]["oid"]))
                 except Exception as exc:
                     # or no module if it will be borrowed later
                     raise error.PySmiSemanticError(f'no symbol "{defval}" in module "{module}"') from exc
 
             # enumeration
-            elif defvalType[0][0] in ('Integer32', 'Integer') and isinstance(defvalType[1], list):
+            elif defvalType[0][0] in ("Integer32", "Integer") and isinstance(defvalType[1], list):
                 if isinstance(defval, list):  # buggy MIB: DEFVAL { { ... } }
                     defval = [dv for dv in defval if dv in dict(defvalType[1])]
-                    val = (defval and dorepr(defval[0])) or ''
+                    val = (defval and dorepr(defval[0])) or ""
                 elif defval in dict(defvalType[1]):  # good MIB: DEFVAL { ... }
                     val = dorepr(defval)
                 else:
-                    val = ''
+                    val = ""
 
-            elif defvalType[0][0] == 'Bits':
+            elif defvalType[0][0] == "Bits":
                 defvalBits = []
                 bits = dict(defvalType[1])
 
@@ -836,29 +876,36 @@ for _{name}_obj in [{objects}]:
 
             else:
                 raise error.PySmiSemanticError(
-                    f'unknown type "{defvalType}" for defval "{defval}" of symbol "{objname}"')
+                    f'unknown type "{defvalType}" for defval "{defval}" of symbol "{objname}"'
+                )
 
-        return '.clone(' + val + ')'
+        return ".clone(" + val + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genDescription(self, data, classmode=False):
-        text = self.textFilter('description', data[0])
-        return (classmode and self.indent + 'description = ' + dorepr(text) + '\n') or '.setDescription(' + dorepr(text) + ')'
+        text = self.textFilter("description", data[0])
+        return (classmode and self.indent + "description = " + dorepr(text) + "\n") or ".setDescription(" + dorepr(
+            text
+        ) + ")"
 
     # noinspection PyMethodMayBeStatic
     def genReference(self, data, classmode=False):
-        text = self.textFilter('reference', data[0])
-        return (classmode and self.indent + 'reference = ' + dorepr(text) + '\n') or '.setReference(' + dorepr(text) + ')'
+        text = self.textFilter("reference", data[0])
+        return (classmode and self.indent + "reference = " + dorepr(text) + "\n") or ".setReference(" + dorepr(
+            text
+        ) + ")"
 
     # noinspection PyMethodMayBeStatic
     def genStatus(self, data, classmode=False):
         text = data[0]
-        return (classmode and self.indent + 'status = ' + dorepr(text) + '\n') or '.setStatus(' + dorepr(text) + ')'
+        return (classmode and self.indent + "status = " + dorepr(text) + "\n") or ".setStatus(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic
     def genProductRelease(self, data, classmode=False):
         text = data[0]
-        return (classmode and self.indent + 'productRelease = ' + dorepr(text) + '\n') or '.setProductRelease(' + dorepr(text) + ')'
+        return (
+            classmode and self.indent + "productRelease = " + dorepr(text) + "\n"
+        ) or ".setProductRelease(" + dorepr(text) + ")"
 
     def genEnumSpec(self, data, classmode=False):
         items = data[0]
@@ -866,17 +913,17 @@ for _{name}_obj in [{objects}]:
         outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
         numFuncCalls = len(singleval) / 255 + 1
         singleCall = numFuncCalls == 1
-        funcCalls = ''
+        funcCalls = ""
 
-        outStr += (not singleCall and self._CONSTRAINTS_UNION) or ''
+        outStr += (not singleCall and self._CONSTRAINTS_UNION) or ""
 
         for idx in range(int(numFuncCalls)):
             if funcCalls:
-                funcCalls += ', '
-            funcCalls += 'SingleValueConstraint(' + ', '.join(singleval[255 * idx:255 * (idx + 1)]) + ')'
+                funcCalls += ", "
+            funcCalls += "SingleValueConstraint(" + ", ".join(singleval[255 * idx : 255 * (idx + 1)]) + ")"
 
         outStr += funcCalls
-        outStr += (not singleCall and ((classmode and ')\n') or '))')) or ((not classmode and ')') or '\n')
+        outStr += (not singleCall and ((classmode and ")\n") or "))")) or ((not classmode and ")") or "\n")
         outStr += self.genBits(data, classmode=classmode)[1]
 
         return outStr
@@ -884,14 +931,20 @@ for _{name}_obj in [{objects}]:
     # noinspection PyUnusedLocal
     def genTableIndex(self, data, classmode=False):
         def genFakeSyms(fakeidx, idxType):
-            fakeSymName = f'pysmiFakeCol{fakeidx}'
+            fakeSymName = f"pysmiFakeCol{fakeidx}"
 
             objType = self.typeClasses.get(idxType, idxType)
             objType = self.transOpers(objType)
 
-            return (fakeSymName + ' = MibTableColumn(%s + (' + str(fakeidx) +
-                    ', ), ' + objType + '())\n',  # stub for parentOid
-                    fakeSymName)
+            return (
+                fakeSymName
+                + " = MibTableColumn(%s + ("
+                + str(fakeidx)
+                + ", ), "
+                + objType
+                + "())\n",  # stub for parentOid
+                fakeSymName,
+            )
 
         indexes = data[0]
         idxStrlist, fakeSyms, fakeStrlist = [], [], []
@@ -905,58 +958,59 @@ for _{name}_obj in [{objects}]:
                 fakeSyms.append(idxName)
                 self.fakeidx += 1
 
-            idxStrlist.append('(' + str(idx[0]) + ', "' +
-                              self._importMap.get(idxName, self.moduleName[0]) +
-                              '", "' + idxName + '")')
+            idxStrlist.append(
+                "(" + str(idx[0]) + ', "' + self._importMap.get(idxName, self.moduleName[0]) + '", "' + idxName + '")'
+            )
 
-        return '.setIndexNames(' + ', '.join(idxStrlist) + ')', fakeStrlist, fakeSyms
+        return ".setIndexNames(" + ", ".join(idxStrlist) + ")", fakeStrlist, fakeSyms
 
     def genIntegerSubType(self, data, classmode=False):
         singleRange = len(data[0]) == 1
 
         outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
-        outStr += (not singleRange and self._CONSTRAINTS_UNION) or ''
+        outStr += (not singleRange and self._CONSTRAINTS_UNION) or ""
 
         for rng in data[0]:
             vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
             vmin, vmax = str(self.str2int(vmin)), str(self.str2int(vmax))
-            outStr += 'ValueRangeConstraint(' + vmin + ', ' + vmax + ')' + ((not singleRange and ', ') or '')
+            outStr += "ValueRangeConstraint(" + vmin + ", " + vmax + ")" + ((not singleRange and ", ") or "")
 
-        outStr += (not singleRange and ((classmode and ')') or '))')) or ((not classmode and ')') or '\n')
+        outStr += (not singleRange and ((classmode and ")") or "))")) or ((not classmode and ")") or "\n")
 
         return outStr
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genMaxAccess(self, data, classmode=False):
-        access = data[0].replace('-', '')
-        return (access != 'notaccessible' and '.setMaxAccess("' + access + '")') or ''
+        access = data[0].replace("-", "")
+        return (access != "notaccessible" and '.setMaxAccess("' + access + '")') or ""
 
     def genOctetStringSubType(self, data, classmode=False):
         singleRange = len(data[0]) == 1
 
         outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
-        outStr += (not singleRange and self._CONSTRAINTS_UNION) or ''
+        outStr += (not singleRange and self._CONSTRAINTS_UNION) or ""
 
         for rng in data[0]:
             vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
             vmin, vmax = str(self.str2int(vmin)), str(self.str2int(vmax))
-            outStr += ('ValueSizeConstraint(' + vmin + ', ' + vmax + ')' +
-                       ((not singleRange and ', ') or ''))
+            outStr += "ValueSizeConstraint(" + vmin + ", " + vmax + ")" + ((not singleRange and ", ") or "")
 
-        outStr += (not singleRange and ((classmode and ')') or '))')) or ((not classmode and ')') or '\n')
+        outStr += (not singleRange and ((classmode and ")") or "))")) or ((not classmode and ")") or "\n")
 
         if data[0]:
             # noinspection PyUnboundLocalVariable
-            outStr += ((singleRange
-                       and vmin == vmax
-                       and ((classmode and self.indent + 'fixedLength = ' + vmin + '\n') or '.setFixedLength(' + vmin + ')')) or '')
+            outStr += (
+                singleRange
+                and vmin == vmax
+                and ((classmode and self.indent + "fixedLength = " + vmin + "\n") or ".setFixedLength(" + vmin + ")")
+            ) or ""
 
         return outStr
 
     # noinspection PyUnusedLocal
     def genOid(self, data, classmode=False):
         out = ()
-        parent = ''
+        parent = ""
         for el in data[0]:
             if isinstance(el, str):
                 parent = self.transOpers(el)
@@ -969,7 +1023,7 @@ for _{name}_obj in [{objects}]:
                 out += (el[1],)  # XXX Do we need to create a new object el[0]?
 
             else:
-                raise error.PySmiSemanticError(f'unknown datatype for OID: {el}')
+                raise error.PySmiSemanticError(f"unknown datatype for OID: {el}")
 
         return str(self.genNumericOid(out)), parent
 
@@ -984,41 +1038,41 @@ for _{name}_obj in [{objects}]:
         times = []
         for timeStr in data:
             if len(timeStr) == 11:
-                timeStr = '19' + timeStr
+                timeStr = "19" + timeStr
             # XXX raise in strict mode
             # elif lenTimeStr != 13:
             #  raise error.PySmiSemanticError("Invalid date %s" % t)
             try:
-                times.append(strftime('%Y-%m-%d %H:%M', strptime(timeStr, '%Y%m%d%H%MZ')))
+                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
 
             except ValueError:
                 # XXX raise in strict mode
                 # raise error.PySmiSemanticError("Invalid date %s: %s" % (t, sys.exc_info()[1]))
-                timeStr = '197001010000Z'  # dummy date for dates with typos
-                times.append(strftime('%Y-%m-%d %H:%M', strptime(timeStr, '%Y%m%d%H%MZ')))
+                timeStr = "197001010000Z"  # dummy date for dates with typos
+                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
 
         return times
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genLastUpdated(self, data, classmode=False):
         text = data[0]
-        return '.setLastUpdated(' + dorepr(text) + ')'
+        return ".setLastUpdated(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genOrganization(self, data, classmode=False):
-        text = self.textFilter('organization', data[0])
-        return '.setOrganization(' + dorepr(text) + ')'
+        text = self.textFilter("organization", data[0])
+        return ".setOrganization(" + dorepr(text) + ")"
 
     # noinspection PyUnusedLocal
     def genRevisions(self, data, classmode=False):
         times = self.genTime([x[0] for x in data[0]])
         times = [dorepr(x) for x in times]
 
-        revisions = '.setRevisions(({},))'.format(', '.join(times))
+        revisions = ".setRevisions(({},))".format(", ".join(times))
 
-        descriptions = '.setRevisionsDescriptions(({},))'.format(', '.join(
-            [dorepr(self.textFilter('description', x[1][1])) for x in data[0]]
-        ))
+        descriptions = ".setRevisionsDescriptions(({},))".format(
+            ", ".join([dorepr(self.textFilter("description", x[1][1])) for x in data[0]])
+        )
 
         lastRevision = data[0][0][0]
 
@@ -1027,29 +1081,30 @@ for _{name}_obj in [{objects}]:
     def genRow(self, data, classmode=False):
         row = data[0]
         row = self.transOpers(row)
-        return (row in self.symbolTable[self.moduleName[0]]['_symtable_rows'] and (
-             'MibTableRow', '')) or self.genSimpleSyntax(data, classmode=classmode)
+        return (
+            row in self.symbolTable[self.moduleName[0]]["_symtable_rows"] and ("MibTableRow", "")
+        ) or self.genSimpleSyntax(data, classmode=classmode)
 
     # noinspection PyUnusedLocal
     def genSequence(self, data, classmode=False):
         cols = data[0]
         self._cols.update(cols)
-        return '', ''
+        return "", ""
 
     def genSimpleSyntax(self, data, classmode=False):
         objType = data[0]
         objType = self.typeClasses.get(objType, objType)
         objType = self.transOpers(objType)
 
-        subtype = (len(data) == 2 and data[1]) or ''
+        subtype = (len(data) == 2 and data[1]) or ""
 
         if classmode:
-            subtype = ('%s' in subtype and subtype % objType) or subtype  # XXX hack?
+            subtype = ("%s" in subtype and subtype % objType) or subtype  # XXX hack?
             return objType, subtype
 
-        outStr = objType + '()' + subtype
+        outStr = objType + "()" + subtype
 
-        return 'MibScalar', outStr
+        return "MibScalar", outStr
 
     # noinspection PyUnusedLocal
     def genTypeDeclarationRHS(self, data, classmode=False):
@@ -1062,7 +1117,7 @@ for _{name}_obj in [{objects}]:
             parentType, attrs = syntax
 
             if parentType in self._snmpTypes:
-                parentType = 'TextualConvention, ' + parentType
+                parentType = "TextualConvention, " + parentType
 
             if display:
                 attrs = display + attrs
@@ -1070,69 +1125,68 @@ for _{name}_obj in [{objects}]:
             if status:
                 attrs = status + attrs
 
-            if self.genRules['text'] and description:
+            if self.genRules["text"] and description:
                 attrs = description + attrs
 
             if reference:
                 attrs = reference + attrs
 
-        attrs = attrs or self.indent + 'pass\n'
+        attrs = attrs or self.indent + "pass\n"
 
         return parentType, attrs
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genUnits(self, data, classmode=False):
         text = data[0]
-        return '.setUnits(' + dorepr(self.textFilter('units', text)) + ')'
+        return ".setUnits(" + dorepr(self.textFilter("units", text)) + ")"
 
     handlersTable = {
-        'agentCapabilitiesClause': genAgentCapabilities,
-        'moduleIdentityClause': genModuleIdentity,
-        'moduleComplianceClause': genModuleCompliance,
-        'notificationGroupClause': genNotificationGroup,
-        'notificationTypeClause': genNotificationType,
-        'objectGroupClause': genObjectGroup,
-        'objectIdentityClause': genObjectIdentity,
-        'objectTypeClause': genObjectType,
-        'trapTypeClause': genTrapType,
-        'typeDeclaration': genTypeDeclaration,
-        'valueDeclaration': genValueDeclaration,
-
-        'ApplicationSyntax': genSimpleSyntax,
-        'BitNames': genBitNames,
-        'BITS': genBits,
-        'ComplianceModules': genCompliances,
-        'conceptualTable': genConceptualTable,
-        'CONTACT-INFO': genContactInfo,
-        'DISPLAY-HINT': genDisplayHint,
-        'DEFVAL': genDefVal,
-        'DESCRIPTION': genDescription,
-        'REFERENCE': genReference,
-        'Status': genStatus,
-        'PRODUCT-RELEASE': genProductRelease,
-        'enumSpec': genEnumSpec,
-        'INDEX': genTableIndex,
-        'integerSubType': genIntegerSubType,
-        'MaxAccessPart': genMaxAccess,
-        'Notifications': genObjects,
-        'octetStringSubType': genOctetStringSubType,
-        'objectIdentifier': genOid,
-        'Objects': genObjects,
-        'LAST-UPDATED': genLastUpdated,
-        'ORGANIZATION': genOrganization,
-        'Revisions': genRevisions,
-        'row': genRow,
-        'SEQUENCE': genSequence,
-        'SimpleSyntax': genSimpleSyntax,
-        'typeDeclarationRHS': genTypeDeclarationRHS,
-        'UNITS': genUnits,
-        'VarTypes': genObjects,
+        "agentCapabilitiesClause": genAgentCapabilities,
+        "moduleIdentityClause": genModuleIdentity,
+        "moduleComplianceClause": genModuleCompliance,
+        "notificationGroupClause": genNotificationGroup,
+        "notificationTypeClause": genNotificationType,
+        "objectGroupClause": genObjectGroup,
+        "objectIdentityClause": genObjectIdentity,
+        "objectTypeClause": genObjectType,
+        "trapTypeClause": genTrapType,
+        "typeDeclaration": genTypeDeclaration,
+        "valueDeclaration": genValueDeclaration,
+        "ApplicationSyntax": genSimpleSyntax,
+        "BitNames": genBitNames,
+        "BITS": genBits,
+        "ComplianceModules": genCompliances,
+        "conceptualTable": genConceptualTable,
+        "CONTACT-INFO": genContactInfo,
+        "DISPLAY-HINT": genDisplayHint,
+        "DEFVAL": genDefVal,
+        "DESCRIPTION": genDescription,
+        "REFERENCE": genReference,
+        "Status": genStatus,
+        "PRODUCT-RELEASE": genProductRelease,
+        "enumSpec": genEnumSpec,
+        "INDEX": genTableIndex,
+        "integerSubType": genIntegerSubType,
+        "MaxAccessPart": genMaxAccess,
+        "Notifications": genObjects,
+        "octetStringSubType": genOctetStringSubType,
+        "objectIdentifier": genOid,
+        "Objects": genObjects,
+        "LAST-UPDATED": genLastUpdated,
+        "ORGANIZATION": genOrganization,
+        "Revisions": genRevisions,
+        "row": genRow,
+        "SEQUENCE": genSequence,
+        "SimpleSyntax": genSimpleSyntax,
+        "typeDeclarationRHS": genTypeDeclarationRHS,
+        "UNITS": genUnits,
+        "VarTypes": genObjects,
         # 'a': lambda x: genXXX(x, 'CONSTRAINT')
     }
 
     def genCode(self, ast, symbolTable, **kwargs):
-        self.genRules['text'] = kwargs.get('genTexts', False)
-        self.textFilter = kwargs.get('textFilter') or (lambda symbol, text: re.sub(r'\s+', ' ', text))
+        self.genRules["text"] = kwargs.get("genTexts", False)
+        self.textFilter = kwargs.get("textFilter") or (lambda symbol, text: re.sub(r"\s+", " ", text))
         self.symbolTable = symbolTable
         self._rows.clear()
         self._cols.clear()
@@ -1148,51 +1202,55 @@ for _{name}_obj in [{objects}]:
         for declr in declarations or []:
             if declr:
                 clausetype = declr[0]
-                classmode = clausetype == 'typeDeclaration'
+                classmode = clausetype == "typeDeclaration"
                 self.handlersTable[declr[0]](self, self.prepData(declr[1:], classmode), classmode)
 
-        for sym in self.symbolTable[self.moduleName[0]]['_symtable_order']:
+        for sym in self.symbolTable[self.moduleName[0]]["_symtable_order"]:
             if sym not in self._out:
-                raise error.PySmiCodegenError(f'No generated code for symbol {sym}')
+                raise error.PySmiCodegenError(f"No generated code for symbol {sym}")
             out += self._out[sym]
 
         out += self.genExports()
 
-        if 'comments' in kwargs:
-            out = ''.join([f'# {x}\n' for x in kwargs['comments']]) + '#\n' + out
-            out = f'#\n# PySNMP MIB module {self.moduleName[0]} (http://snmplabs.com/pysmi)\n' + out
+        if "comments" in kwargs:
+            out = "".join([f"# {x}\n" for x in kwargs["comments"]]) + "#\n" + out
+            out = f"#\n# PySNMP MIB module {self.moduleName[0]} (http://snmplabs.com/pysmi)\n" + out
 
         debug.logger & debug.flagCodegen and debug.logger(
-            'canonical MIB name {} ({}), imported MIB(s) {}, Python code size {} bytes'.format(
-                self.moduleName[0], moduleOid, ','.join(importedModules) or '<none>', len(out)))
+            "canonical MIB name {} ({}), imported MIB(s) {}, Python code size {} bytes".format(
+                self.moduleName[0], moduleOid, ",".join(importedModules) or "<none>", len(out)
+            )
+        )
 
-        return MibInfo(oid=moduleOid,
-                       identity=self._moduleIdentityOid,
-                       name=self.moduleName[0],
-                       revision=self._moduleRevision,
-                       oids=[],
-                       enterprise=None,
-                       compliance=[],
-                       imported=tuple(x for x in importedModules if x not in self.fakeMibs)), out
+        return MibInfo(
+            oid=moduleOid,
+            identity=self._moduleIdentityOid,
+            name=self.moduleName[0],
+            revision=self._moduleRevision,
+            oids=[],
+            enterprise=None,
+            compliance=[],
+            imported=tuple(x for x in importedModules if x not in self.fakeMibs),
+        ), out
 
     def genIndex(self, processed, **kwargs):
-        out = '\nfrom pysnmp.proto.rfc1902 import ObjectName\n\noidToMibMap = {\n'
+        out = "\nfrom pysnmp.proto.rfc1902 import ObjectName\n\noidToMibMap = {\n"
         count = 0
         for module, status in processed.items():
-            value = getattr(status, 'oid', None)
+            value = getattr(status, "oid", None)
             if value:
                 out += f'ObjectName("{value}"): "{module}",\n'
                 count += 1
-        out += '}\n'
+        out += "}\n"
 
-        if 'comments' in kwargs:
-            out = ''.join([f'# {x}\n' for x in kwargs['comments']]) + '#\n' + out
-            out = '#\n# PySNMP MIB indices (http://snmplabs.com/pysmi)\n' + out
+        if "comments" in kwargs:
+            out = "".join([f"# {x}\n" for x in kwargs["comments"]]) + "#\n" + out
+            out = "#\n# PySNMP MIB indices (http://snmplabs.com/pysmi)\n" + out
 
-        debug.logger & debug.flagCodegen and debug.logger(
-            f'OID->MIB index built, {count} entries, {len(out)} bytes')
+        debug.logger & debug.flagCodegen and debug.logger(f"OID->MIB index built, {count} entries, {len(out)} bytes")
 
         return out
+
 
 # backward compatibility
 baseMibs = PySnmpCodeGen.baseMibs

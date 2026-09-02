@@ -16,20 +16,22 @@ from pysmi.writer.base import AbstractWriter
 
 SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
 
+
 class PyFileWriter(AbstractWriter):
     """Stores transformed MIB modules as Python files at specified location.
 
-       User is expected to pass *PyFileWriter* class instance to
-       *MibCompiler* on instantiation. The rest is internal to *MibCompiler*.
+    User is expected to pass *PyFileWriter* class instance to
+    *MibCompiler* on instantiation. The rest is internal to *MibCompiler*.
     """
+
     pyCompile = True
     pyOptimizationLevel = -1
 
     def __init__(self, path):
         """Creates an instance of *PyFileWriter* class.
 
-           Args:
-               path: writable directory to store Python modules
+        Args:
+            path: writable directory to store Python modules
         """
         self._path = decode(os.path.normpath(path))
 
@@ -38,7 +40,7 @@ class PyFileWriter(AbstractWriter):
 
     def putData(self, mibname, data, comments=(), dryRun=False):
         if dryRun:
-            debug.logger & debug.flagWriter and debug.logger('dry run mode')
+            debug.logger & debug.flagWriter and debug.logger("dry run mode")
             return
 
         if not os.path.exists(self._path):
@@ -47,10 +49,11 @@ class PyFileWriter(AbstractWriter):
 
             except OSError as exc:
                 raise error.PySmiWriterError(
-                    f'failure creating destination directory {self._path}: {exc}', writer=self) from exc
+                    f"failure creating destination directory {self._path}: {exc}", writer=self
+                ) from exc
 
         if comments:
-            data = '#\n' + ''.join([f'# {x}\n' for x in comments]) + '#\n' + data
+            data = "#\n" + "".join([f"# {x}\n" for x in comments]) + "#\n" + data
 
         pyfile = os.path.join(self._path, decode(mibname))
         pyfile += SOURCE_SUFFIXES[0]
@@ -68,10 +71,9 @@ class PyFileWriter(AbstractWriter):
                 with contextlib.suppress(OSError):
                     os.unlink(tfile)
 
+            raise error.PySmiWriterError(f"failure writing file {pyfile}: {exc}", file=pyfile, writer=self) from exc
 
-            raise error.PySmiWriterError(f'failure writing file {pyfile}: {exc}', file=pyfile, writer=self) from exc
-
-        debug.logger & debug.flagWriter and debug.logger(f'created file {pyfile}')
+        debug.logger & debug.flagWriter and debug.logger(f"created file {pyfile}")
 
         if self.pyCompile:
             try:
@@ -84,9 +86,9 @@ class PyFileWriter(AbstractWriter):
                 with contextlib.suppress(Exception):
                     os.unlink(pyfile)
 
-                raise error.PySmiWriterError(f'failure compiling {pyfile}: {exc}', file=mibname, writer=self) from exc
+                raise error.PySmiWriterError(f"failure compiling {pyfile}: {exc}", file=mibname, writer=self) from exc
 
-        debug.logger & debug.flagWriter and debug.logger(f'{mibname} stored')
+        debug.logger & debug.flagWriter and debug.logger(f"{mibname} stored")
 
     def getData(self, filename):
-        return ''
+        return ""
