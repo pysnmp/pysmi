@@ -9,6 +9,7 @@ import sys
 import time
 
 from requests import session
+from requests.exceptions import RequestException
 
 from pysmi import __version__ as pysmi_version
 from pysmi import error
@@ -70,7 +71,7 @@ class HttpReader(AbstractReader):
             try:
                 response = self.session.get(url, headers=headers)
 
-            except Exception as exc:
+            except RequestException as exc:
                 logger.debug(
                     "failed to fetch MIB from %s: %s",
                     url,
@@ -89,16 +90,19 @@ class HttpReader(AbstractReader):
                 try:
                     mtime = time.mktime(time.strptime(response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S %Z"))
 
-                except Exception as exc:
+                except (KeyError, ValueError, OverflowError) as exc:
+                    # Header absent, unparsable, or outside the platform's time range.
                     logger.debug(
                         "malformed HTTP headers: %s", exc, extra={"mib": mibname, "url": url, "error": str(exc)}
                     )
                     mtime = time.time()
 
+                # Not response.headers["Last-Modified"]: the server need not send
+                # it, and mtime already holds the fallback for when it does not.
                 logger.debug(
                     "fetching source MIB %s, mtime %s",
                     url,
-                    response.headers["Last-Modified"],
+                    time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(mtime)),
                     extra={"mib": mibname, "url": url, "mtime": mtime},
                 )
 

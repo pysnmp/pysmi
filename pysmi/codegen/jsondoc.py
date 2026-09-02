@@ -643,7 +643,7 @@ class JsonCodeGen(AbstractCodeGen):
                 try:
                     val = str(self.genNumericOid(self.symbolTable[module][defval]["oid"]))
                     outDict.update(value=val, format="oid")
-                except Exception as exc:
+                except (KeyError, error.PySmiSemanticError) as exc:
                     # or no module if it will be borrowed later
                     raise error.PySmiSemanticError(f'no symbol "{defval}" in module "{module}"') from exc
 
@@ -999,7 +999,7 @@ class JsonCodeGen(AbstractCodeGen):
             try:
                 outDict.update(json.loads(kwargs["old_index_data"]))
 
-            except Exception as exc:
+            except (TypeError, ValueError) as exc:
                 raise error.PySmiCodegenError(f"Index load error: {exc}") from exc
 
         def order(top):

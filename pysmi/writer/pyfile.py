@@ -85,8 +85,9 @@ class PyFileWriter(AbstractWriter):
             except (SyntaxError, py_compile.PyCompileError):
                 pass  # XXX
 
+            # Whatever py_compile failed with, the half-written file has to go.
             except Exception as exc:
-                with contextlib.suppress(Exception):
+                with contextlib.suppress(OSError):
                     os.unlink(pyfile)
 
                 raise error.PySmiWriterError(f"failure compiling {pyfile}: {exc}", file=mibname, writer=self) from exc

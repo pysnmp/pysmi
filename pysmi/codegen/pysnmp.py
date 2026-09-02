@@ -850,7 +850,7 @@ for _{name}_obj in [{objects}]:
 
                 try:
                     val = str(self.genNumericOid(self.symbolTable[module][defval]["oid"]))
-                except Exception as exc:
+                except (KeyError, error.PySmiSemanticError) as exc:
                     # or no module if it will be borrowed later
                     raise error.PySmiSemanticError(f'no symbol "{defval}" in module "{module}"') from exc
 

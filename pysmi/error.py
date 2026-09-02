@@ -15,26 +15,30 @@
 
 
 class PySmiError(Exception):
-    def __init__(self, *args, **kwargs):
+    #: The error message. Handlers extend it as the error travels up the stack.
+    msg: str
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
         Exception.__init__(self, *args)
-        self.msg = (args and args[0]) or ""
+        self.msg = str(args[0]) if args else ""
         for k in kwargs:
             setattr(self, k, kwargs[k])
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "{}({})".format(
             self.__class__.__name__,
             ", ".join([f"{k}={getattr(self, k)!r}" for k in dir(self) if k[0] != "_" and k != "args"]),
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.msg
 
 
 class PySmiLexerError(PySmiError):
-    lineno = "?"
+    #: Line the offending token was read from, or "?" when it is not known.
+    lineno: "int | str" = "?"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.msg + f", line {self.lineno}"
 
 

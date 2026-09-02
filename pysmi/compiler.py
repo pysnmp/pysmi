@@ -174,7 +174,8 @@ class MibCompiler:
 
         try:
             user_info = getpwuid(os.getuid())
-        except Exception:
+        except (KeyError, OSError):
+            # No passwd entry for this uid, or no uid to look up.
             user_info = ("?",) * 7
 
         return platform_info, user_info

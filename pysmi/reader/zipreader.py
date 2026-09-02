@@ -18,6 +18,19 @@ from pysmi.reader.base import AbstractReader
 
 logger = logging.getLogger(__name__)
 
+# What zipfile raises for a member it cannot produce: a corrupt or truncated
+# archive, an unknown name, encryption, or a compression method unavailable here.
+ZIP_READ_ERRORS = (
+    KeyError,
+    RuntimeError,
+    NotImplementedError,
+    ValueError,
+    EOFError,
+    OSError,
+    zipfile.BadZipFile,
+    zipfile.LargeZipFile,
+)
+
 
 class ZipReader(AbstractReader):
     """Fetch ASN.1 MIB text by name from a ZIP archive.
@@ -96,12 +109,14 @@ class ZipReader(AbstractReader):
             try:
                 dataObj = archive.read(filename)
 
-            except Exception as exc:
+            except ZIP_READ_ERRORS as exc:
+                # Not fileObj.name: a nested archive is read from a BytesIO,
+                # which has no name, and the member is what went wrong anyway.
                 logger.debug(
                     "ZIP read component %s read error: %s",
-                    fileObj.name,
+                    filename,
                     exc,
-                    extra={"path": fileObj.name, "error": str(exc)},
+                    extra={"path": filename, "error": str(exc)},
                 )
                 return "", 0
 
