@@ -103,6 +103,12 @@ class PySnmpCodeGen(AbstractCodeGen):
         "INET-ADDRESS-MIB",
         *AbstractCodeGen.baseMibs,
     )
+    """MIB modules that are never compiled.
+
+    These carry ASN.1 MACRO definitions or base types that pysnmp implements
+    itself, so a :py:class:`~pysmi.searcher.stub.StubSearcher` built from this
+    tuple reports them as up to date and the compiler leaves them alone.
+    """
 
     baseTypes = ["Integer", "Integer32", "Bits", "ObjectIdentifier", "OctetString"]
 
@@ -221,7 +227,7 @@ for _%(name)s_obj in [%(objects)s]:
         """Convert a parse subtree into the values a clause handler expects.
 
         Each element that is a tagged tuple is dispatched through
-        :py:attr:`handlersTable` and replaced by whatever that handler returns.
+        ``handlersTable`` and replaced by whatever that handler returns.
         Children are converted before their parent, so by the time a clause
         handler runs, its ``data`` holds rendered source fragments rather than
         raw parse nodes.

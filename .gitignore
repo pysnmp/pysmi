@@ -35,3 +35,6 @@ report.md
 
 # Written by the example scripts when run from the repository.
 .pysnmp-mibs/
+
+# Sphinx output
+docs/build/
