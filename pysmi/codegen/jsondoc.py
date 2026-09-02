@@ -17,8 +17,13 @@ from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
+    ComplianceClause,
+    DefValClause,
     IndexClause,
     NamedNumbersClause,
+    OidClause,
+    RangesClause,
+    RevisionsClause,
     SequenceClause,
     SymbolsClause,
     TextClause,
@@ -816,7 +821,7 @@ class JsonCodeGen(AbstractCodeGen):
         return "scalar", outDict
 
     # noinspection PyUnusedLocal
-    def gen_compliances(self, data: Any) -> list[Any]:
+    def gen_compliances(self, data: ComplianceClause) -> list[Any]:
         """Render the objects a MODULE-COMPLIANCE clause requires.
 
         Args:
@@ -880,7 +885,7 @@ class JsonCodeGen(AbstractCodeGen):
         return data[0]
 
     # noinspection PyUnusedLocal
-    def gen_def_val(self, data: Any, objname: str | None = None) -> "dict[str, Any] | list[Any]":
+    def gen_def_val(self, data: DefValClause | None, objname: str | None = None) -> "dict[str, Any] | list[Any]":
         """Render a DEFVAL as a value of the object's own type.
 
         The default is interpreted according to the base type the object
@@ -935,8 +940,13 @@ class JsonCodeGen(AbstractCodeGen):
             outDict.update(value=defval[1:-1], format="string")
 
         else:  # symbol (oid as defval) or name for enumeration member
-            if defvalType[0][0] == "ObjectIdentifier" and (
-                defval in self.symbolTable[self.moduleName[0]] or defval in self._importMap
+            # A bits list reaching an OID-typed object is a broken MIB; the
+            # membership tests below would raise TypeError on the unhashable
+            # list, so leave it to the branches that handle a list.
+            if (
+                defvalType[0][0] == "ObjectIdentifier"
+                and isinstance(defval, str)
+                and (defval in self.symbolTable[self.moduleName[0]] or defval in self._importMap)
             ):  # oid
                 module = self._importMap.get(defval, self.moduleName[0])
 
@@ -1100,7 +1110,7 @@ class JsonCodeGen(AbstractCodeGen):
 
         return idxStrlist, fakeStrlist, fakeSyms
 
-    def gen_integer_sub_type(self, data: Any) -> dict[str, Any]:
+    def gen_integer_sub_type(self, data: RangesClause) -> dict[str, Any]:
         """Render an integer range restriction.
 
         Args:
@@ -1132,7 +1142,7 @@ class JsonCodeGen(AbstractCodeGen):
         """
         return data[0]
 
-    def gen_octet_string_sub_type(self, data: Any) -> dict[str, Any]:
+    def gen_octet_string_sub_type(self, data: RangesClause) -> dict[str, Any]:
         """Render an octet string size restriction.
 
         Args:
@@ -1154,7 +1164,7 @@ class JsonCodeGen(AbstractCodeGen):
         return {"size": sizes}
 
     # noinspection PyUnusedLocal
-    def gen_oid(self, data: Any) -> tuple[Any, ...]:
+    def gen_oid(self, data: OidClause) -> tuple[Any, ...]:
         """Resolve an OID and render it in dotted form.
 
         Args:
@@ -1199,7 +1209,7 @@ class JsonCodeGen(AbstractCodeGen):
         return []
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_time(self, data: Any) -> list[Any]:
+    def gen_time(self, data: TextClause) -> list[Any]:
         """Render MIB timestamps as readable dates.
 
         Two-digit SMIv1 years are read as nineteen-hundreds. A timestamp that
@@ -1257,7 +1267,7 @@ class JsonCodeGen(AbstractCodeGen):
         return self.textFilter("organization", data[0])
 
     # noinspection PyUnusedLocal
-    def gen_revisions(self, data: Any) -> list[Any]:
+    def gen_revisions(self, data: RevisionsClause) -> list[Any]:
         """Render a module's revision history.
 
         Args:

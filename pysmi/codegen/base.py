@@ -6,7 +6,7 @@
 #
 """Interface shared by the code generators, and helpers common to them."""
 
-from typing import Any, ClassVar, Final, TypeAlias
+from typing import Any, ClassVar, Final, TypeAlias, TypeGuard
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
@@ -42,6 +42,39 @@ IndexClause: TypeAlias = list[list[tuple[int, str]]]
 #: A SEQUENCE clause. Each entry is ``(name, type)`` and the entries are
 #: ``data[0]``.
 SequenceClause: TypeAlias = list[list[tuple[str, str]]]
+
+#: An OBJECT IDENTIFIER value. ``data[0]`` is the sequence of sub-identifiers.
+#: Each is a name still to be resolved, an arc written as a number, or the
+#: ``name(number)`` form, which the grammar keeps as ``(name, number)`` without
+#: defining the name in this module.
+OidClause: TypeAlias = list[list[str | int | tuple[str, int]]]
+
+#: A DEFVAL clause. ``data[0]`` is the default: an int for an integer, a list
+#: of bit names for BITS, and a string for everything else -- an enumeration
+#: label, an OID, or a quoted hex or binary literal. The pysnmp and JSON
+#: generators reach the handler from gen_object_type whether or not the object
+#: declares a default, so those two accept ``DefValClause | None``.
+DefValClause: TypeAlias = list[str] | list[int] | list[list[str]]
+
+#: A REVISION clause. Each entry is ``(timestamp, (kind, text))``, and the
+#: entries are ``data[0]``.
+RevisionsClause: TypeAlias = list[list[tuple[str, tuple[str, str]]]]
+
+#: The MODULE clauses of a MODULE-COMPLIANCE. Each entry is
+#: ``(module, groups)``; ``module`` is ``None`` where the clause leaves the
+#: module name out, meaning the one being defined. ``groups`` holds the names
+#: from MANDATORY-GROUPS and GROUP; an OBJECT clause contributes nothing.
+ComplianceClause: TypeAlias = list[list[tuple[str | None, list[str]]]]
+
+#: A bound in a range or size constraint. The lexer turns a decimal into an
+#: int; a hex or binary literal reaches the generator as the literal text.
+Bound: TypeAlias = int | str
+
+#: A range or SIZE constraint. Each entry is ``(low, high)``, or ``(value,)``
+#: where a single value is permitted rather than a span. The entries are
+#: ``data[0]``. Ranges and sizes share the grammar's ``ranges`` production, so
+#: the two constraints carry the same shape.
+RangesClause: TypeAlias = list[list[tuple[Bound] | tuple[Bound, Bound]]]
 
 
 def dorepr(s: Any) -> str:
@@ -368,12 +401,12 @@ class AbstractCodeGen:
         raise NotImplementedError()
 
     @staticmethod
-    def is_binary(s: Any) -> Any:
+    def is_binary(s: Any) -> TypeGuard[str]:
         """Tell whether *s* is an SMI binary string such as ``\'1010\'b``."""
         return isinstance(s, str) and s[0] == "'" and s[-2:] in ("'b", "'B")
 
     @staticmethod
-    def is_hex(s: Any) -> Any:
+    def is_hex(s: Any) -> TypeGuard[str]:
         """Tell whether *s* is an SMI hex string such as ``\'0a1b\'h``."""
         return isinstance(s, str) and s[0] == "'" and s[-2:] in ("'h", "'H")
 
