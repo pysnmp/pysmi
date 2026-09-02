@@ -84,9 +84,33 @@ class JsonCodeGen(AbstractCodeGen):
 
     @staticmethod
     def transOpers(symbol: str) -> Any:
+        """Turn a MIB symbol into a name usable as a JSON key.
+
+        Hyphens become underscores. Unlike the PySNMP backend, Python keywords
+        need no special treatment here.
+
+        Args:
+            symbol: symbol name as written in the MIB
+
+        Returns:
+            The translated name.
+        """
         return symbol.replace("-", "_")
 
     def prepData(self, pdata: Any) -> list[Any]:
+        """Convert a parse subtree into the values a clause handler expects.
+
+        Each element that is a tagged tuple is dispatched through
+        :py:attr:`handlersTable` and replaced by whatever that handler returns.
+        Children are converted before their parent, so by the time a clause
+        handler runs, its ``data`` holds finished values rather than raw nodes.
+
+        Args:
+            pdata: parse subtree
+
+        Returns:
+            One converted value per element of the subtree.
+        """
         data = []
         for el in pdata:
             if not isinstance(el, tuple):
@@ -99,6 +123,19 @@ class JsonCodeGen(AbstractCodeGen):
 
     def genImports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
         # convertion to SNMPv2
+        """Render the module's imports.
+
+        SMIv1 imports are rewritten to their SMIv2 equivalents, and the symbols
+        every module needs are merged in, before the imports are listed by the
+        module they come from.
+
+        Args:
+            imports: imported symbols, keyed by the module they come from
+
+        Returns:
+            The imports as a JSON object, and the names of the modules
+            imported, sorted.
+        """
         toDel = []
         for module in list(imports):
             if module in self.convertImportv2:
@@ -144,9 +181,26 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyMethodMayBeStatic
     def genLabel(self, symbol: str) -> str:
+        """Return the original MIB name for a symbol that had to be renamed.
+
+        Args:
+            symbol: symbol name as written in the MIB
+
+        Returns:
+            The name when it contains a hyphen, otherwise an empty string.
+        """
         return ("-" in symbol and symbol) or ""
 
     def addToExports(self, symbol: str, moduleIdentity: bool = False) -> None:
+        """Note that a symbol has been defined.
+
+        The JSON document lists no exports; this only guards against a module
+        defining the same symbol twice.
+
+        Args:
+            symbol: symbol name
+            moduleIdentity: unused; accepted for interface compatibility
+        """
         self._seenSyms.add(symbol)
 
     # noinspection PyUnusedLocal
@@ -158,6 +212,22 @@ class JsonCodeGen(AbstractCodeGen):
         moduleIdentity: bool = False,
         moduleCompliance: bool = False,
     ) -> None:
+        """Record the JSON rendered for a symbol.
+
+        The symbol's OID is also collected, and the first OID under the private
+        enterprises arc establishes the module's enterprise.
+
+        Args:
+            symbol: symbol name
+            outDict: JSON rendered for it
+            parentOid: OID it hangs off
+            moduleIdentity: the symbol is this module's MODULE-IDENTITY
+            moduleCompliance: the symbol is a MODULE-COMPLIANCE clause
+
+        Raises:
+            PySmiSemanticError: the module defines this symbol twice, or
+                declares a second module identity.
+        """
         if symbol in self._seenSyms and symbol not in self._importMap:
             raise error.PySmiSemanticError(f"Duplicate symbol found: {symbol}")
 
@@ -179,6 +249,21 @@ class JsonCodeGen(AbstractCodeGen):
                 self._complianceOids.append(outDict["oid"])
 
     def genNumericOid(self, oid: tuple[Any, ...]) -> tuple[Any, ...]:
+        """Resolve an OID to numbers, following names into other modules.
+
+        Every name in the OID is looked up in the symbol table and replaced by
+        the OID it stands for, recursively, until only numbers are left.
+
+        Args:
+            oid: sub-identifiers, each a number or a name paired with its module
+
+        Returns:
+            The fully numeric OID.
+
+        Raises:
+            PySmiSemanticError: a name refers to a module or symbol that is not
+                in the symbol table.
+        """
         numericOid: tuple[Any, ...] = ()
 
         for part in oid:
@@ -202,6 +287,23 @@ class JsonCodeGen(AbstractCodeGen):
         return numericOid
 
     def getBaseType(self, symName: str, module: str) -> tuple[Any, ...]:
+        """Resolve a type to the base type it is ultimately derived from.
+
+        Derived types are followed up the chain, gathering the restrictions
+        imposed along the way, so that a value can be rendered as the base type
+        it will really be stored as.
+
+        Args:
+            symName: type name
+            module: module that defines it
+
+        Returns:
+            The base type and the accumulated subtype restrictions.
+
+        Raises:
+            PySmiSemanticError: the module or symbol is not in the symbol
+                table, or the symbol has no syntax.
+        """
         if module not in self.symbolTable:
             raise error.PySmiSemanticError(f'no module "{module}" in symbolTable')
 
@@ -229,6 +331,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genAgentCapabilities(self, data: Any) -> Any:
+        """Render an AGENT-CAPABILITIES clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The clause as a JSON object.
+        """
         name, productRelease, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -259,6 +369,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genModuleIdentity(self, data: Any) -> "OrderedDict[str, Any]":
+        """Render a MODULE-IDENTITY clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The clause as a JSON object.
+        """
         name, lastUpdated, organization, contactInfo, description, revisions, oid = data
 
         self.genLabel(name)
@@ -292,6 +410,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genModuleCompliance(self, data: Any) -> "OrderedDict[str, Any]":
+        """Render a MODULE-COMPLIANCE clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The clause as a JSON object.
+        """
         name, status, description, reference, compliances, oid = data
 
         self.genLabel(name)
@@ -322,6 +448,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genNotificationGroup(self, data: Any) -> "OrderedDict[str, Any]":
+        """Render a NOTIFICATION-GROUP clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The clause as a JSON object.
+        """
         name, objects, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -354,6 +488,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genNotificationType(self, data: Any) -> "OrderedDict[str, Any]":
+        """Render a NOTIFICATION-TYPE clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The clause as a JSON object.
+        """
         name, objects, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -386,6 +528,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjectGroup(self, data: Any) -> "OrderedDict[str, Any]":
+        """Render an OBJECT-GROUP clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The clause as a JSON object.
+        """
         name, objects, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -415,6 +565,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjectIdentity(self, data: Any) -> Any:
+        """Render an OBJECT-IDENTITY clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The clause as a JSON object.
+        """
         name, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -442,6 +600,23 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjectType(self, data: Any) -> "OrderedDict[str, Any]":
+        """Render an OBJECT-TYPE clause.
+
+        What kind of node it is depends on what the object turned out to be: a
+        column if the symbol table recorded it as one, a table or row if its
+        syntax says so, and a scalar otherwise.
+
+        Note:
+            An SMIv1 index that names a bare type rather than a column needs a
+            synthetic column, which this backend does not yet emit. Such a MIB
+            fails to render as JSON; see issue #37.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The clause as a JSON object.
+        """
         name, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
 
         self.genLabel(name)
@@ -498,6 +673,18 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genTrapType(self, data: Any) -> Any:
+        """Render a TRAP-TYPE clause as a notification.
+
+        SMIv1 traps have no OID of their own; theirs is built from the
+        enterprise OID, a zero, and the trap number, which is how SMIv2 names
+        the same notification.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The clause as a JSON object.
+        """
         name, enterprise, variables, description, reference, value = data
 
         self.genLabel(name)
@@ -528,6 +715,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genTypeDeclaration(self, data: Any) -> "OrderedDict[str, Any]":
+        """Render a type declaration.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The declaration as a JSON object.
+        """
         name, declaration = data
 
         outDict = OrderedDict()
@@ -545,6 +740,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genValueDeclaration(self, data: Any) -> "OrderedDict[str, Any]":
+        """Render a plain OID assignment.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The assignment as a JSON object.
+        """
         name, oid = data
 
         self.genLabel(name)
@@ -564,10 +767,27 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genBitNames(self, data: Any) -> Any:
+        """Return the names listed in a BITS or enumeration clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The names, in the order they were written.
+        """
         names = data[0]
         return names
 
     def genBits(self, data: Any) -> tuple[Any, ...]:
+        """Render a BITS clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The ``scalar`` node type and the syntax, naming ``Bits`` and its
+            bits, keyed by name.
+        """
         bits = data[0]
 
         outDict: OrderedDict[str, Any] = OrderedDict()
@@ -582,6 +802,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genCompliances(self, data: Any) -> list[Any]:
+        """Render the objects a MODULE-COMPLIANCE clause requires.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            One entry per required object, naming the object and its module.
+        """
         compliances = []
 
         for complianceModule in data[0]:
@@ -592,6 +820,17 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genConceptualTable(self, data: Any) -> tuple[Any, ...]:
+        """Note the row a table contains and return the table's node type.
+
+        The row name is remembered so that :py:meth:`genRow` can recognise it
+        later as a row rather than an ordinary type.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The ``table`` node type and no syntax.
+        """
         row = data[0]
 
         if row[1] and row[1][-2:] == "()":
@@ -602,15 +841,51 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genContactInfo(self, data: Any) -> str:
+        """Render a CONTACT-INFO clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The contact information.
+        """
         text = data[0]
         return self.textFilter("contact-info", text)
 
     # noinspection PyUnusedLocal
     def genDisplayHint(self, data: Any) -> str:
+        """Render a DISPLAY-HINT.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The display hint.
+        """
         return data[0]
 
     # noinspection PyUnusedLocal
     def genDefVal(self, data: Any, objname: str | None = None) -> "dict[str, Any] | list[Any]":
+        """Render a DEFVAL as a value of the object's own type.
+
+        The default is interpreted according to the base type the object
+        resolves to, which is also how several common MIB errors are absorbed:
+        a hexadecimal or binary default written for an integer is converted to
+        one, and an empty string given for a non-string type is dropped rather
+        than rendered.
+
+        Args:
+            data: converted clause values
+            objname: object the default belongs to; without it the value is
+                returned unrendered
+
+        Returns:
+            The default value, paired with the format it was written in.
+
+        Raises:
+            PySmiSemanticError: the default names an unknown symbol or bit, or
+                the object's type cannot carry a default.
+        """
         if not data:
             return {}
         if not objname:
@@ -691,26 +966,87 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyMethodMayBeStatic
     def genDescription(self, data: Any) -> str:
+        """Render a DESCRIPTION clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The description text.
+        """
         return self.textFilter("description", data[0])
 
     # noinspection PyMethodMayBeStatic
     def genReference(self, data: Any) -> str:
+        """Render a REFERENCE clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The reference text.
+        """
         return self.textFilter("reference", data[0])
 
     # noinspection PyMethodMayBeStatic
     def genStatus(self, data: Any) -> str:
+        """Render a STATUS clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The status as written.
+        """
         return data[0]
 
     def genProductRelease(self, data: Any) -> Any:
+        """Render a PRODUCT-RELEASE clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The product release text.
+        """
         return data[0]
 
     def genEnumSpec(self, data: Any) -> dict[str, Any]:
+        """Render an enumeration.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The members, keyed by name.
+        """
         items = data[0]
         return {"enumeration": dict(items)}
 
     # noinspection PyUnusedLocal
     def genTableIndex(self, data: Any) -> tuple[Any, ...]:
+        """Render an INDEX clause as the row's indices.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            One entry per index naming the column and its module, and the
+            synthetic columns an SMIv1 index would need, which
+            :py:meth:`genObjectType` does not yet emit.
+        """
+
         def genFakeSyms(fakeidx: int, idxType: str) -> tuple[dict[str, Any], str]:
+            """Render a synthetic column for an SMIv1 index.
+
+            Args:
+                fakeidx: sub-identifier to give the column
+                idxType: type the index named in place of a column
+
+            Returns:
+                The column as a JSON object, with its parent OID left to be filled
+                in, and the name it was given.
+            """
             fakeSymName = f"pysmiFakeCol{fakeidx}"
 
             objType = self.typeClasses.get(idxType, idxType)
@@ -740,6 +1076,14 @@ class JsonCodeGen(AbstractCodeGen):
         return idxStrlist, fakeStrlist, fakeSyms
 
     def genIntegerSubType(self, data: Any) -> dict[str, Any]:
+        """Render an integer range restriction.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The permitted ranges.
+        """
         ranges = []
         for rng in data[0]:
             vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
@@ -753,9 +1097,25 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genMaxAccess(self, data: Any) -> str:
+        """Render a MAX-ACCESS clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The access level as written.
+        """
         return data[0]
 
     def genOctetStringSubType(self, data: Any) -> dict[str, Any]:
+        """Render an octet string size restriction.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The permitted sizes.
+        """
         sizes = []
         for rng in data[0]:
             vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
@@ -770,6 +1130,17 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genOid(self, data: Any) -> tuple[Any, ...]:
+        """Resolve an OID and render it in dotted form.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The numeric OID, and the name it hangs off.
+
+        Raises:
+            PySmiSemanticError: a sub-identifier is neither a name nor a number.
+        """
         out: tuple[Any, ...] = ()
         parent = ""
         for el in data[0]:
@@ -790,12 +1161,33 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjects(self, data: Any) -> list[Any]:
+        """Return the names in an OBJECTS or NOTIFICATIONS list.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The translated names, empty when the list is.
+        """
         if data[0]:
             return [self.transOpers(obj) for obj in data[0]]  # XXX self.transOpers or not??
         return []
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genTime(self, data: Any) -> list[Any]:
+        """Render MIB timestamps as readable dates.
+
+        Two-digit SMIv1 years are read as nineteen-hundreds. A timestamp that
+        cannot be parsed at all is replaced with the epoch rather than rejected,
+        because malformed dates are common and never affect the semantics of a
+        module.
+
+        Args:
+            data: timestamps as written in the MIB
+
+        Returns:
+            One formatted date per timestamp.
+        """
         times = []
         for timeStr in data:
             if len(timeStr) == 11:
@@ -817,14 +1209,38 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genLastUpdated(self, data: Any) -> str:
+        """Render a LAST-UPDATED clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The timestamp as a formatted date.
+        """
         return data[0]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genOrganization(self, data: Any) -> str:
+        """Render an ORGANIZATION clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The organization text.
+        """
         return self.textFilter("organization", data[0])
 
     # noinspection PyUnusedLocal
     def genRevisions(self, data: Any) -> list[Any]:
+        """Render a module's revision history.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            One entry per revision, with its date and description.
+        """
         revisions = []
         for x in data[0]:
             revision = OrderedDict()
@@ -834,6 +1250,18 @@ class JsonCodeGen(AbstractCodeGen):
         return revisions
 
     def genRow(self, data: Any) -> tuple[Any, ...]:
+        """Render the node type of a table row.
+
+        A name the symbol table recorded as a table's row is a row; anything
+        else is an ordinary type and is rendered as one.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The ``row`` node type with no syntax, or whatever
+            :py:meth:`genSimpleSyntax` makes of the name.
+        """
         row = data[0]
         row = self.transOpers(row)
 
@@ -843,11 +1271,31 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genSequence(self, data: Any) -> tuple[Any, ...]:
+        """Record the columns of a SEQUENCE.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            Empty node type and syntax; a SEQUENCE is not rendered itself.
+        """
         cols = data[0]
         self._cols.update(cols)
         return "", ""
 
     def genSimpleSyntax(self, data: Any) -> tuple[Any, ...]:
+        """Render a type reference.
+
+        SMIv1 type names are mapped to their SMIv2 equivalents, and any subtype
+        restriction is carried alongside.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The ``scalar`` node type and the syntax, naming the type and any
+            constraints on it.
+        """
         objType = data[0]
         objType = self.typeClasses.get(objType, objType)
         objType = self.transOpers(objType)
@@ -865,6 +1313,18 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genTypeDeclarationRHS(self, data: Any) -> "OrderedDict[str, Any] | tuple[Any, ...]":
+        """Render the body of a type declaration.
+
+        A textual convention carries display hint, status and text alongside its
+        syntax and is marked as such.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The type derived from and the body, or an empty object for a
+            declaration with no attributes.
+        """
         if len(data) == 1:
             parentType, attrs = data[0]
 
@@ -895,6 +1355,14 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genUnits(self, data: Any) -> str:
+        """Render a UNITS clause.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            The units text.
+        """
         text = data[0]
         return self.textFilter("units", text)
 
@@ -943,6 +1411,25 @@ class JsonCodeGen(AbstractCodeGen):
     }
 
     def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
+        """Render one parsed MIB module as a JSON document.
+
+        Args:
+            ast: parse tree of a single module
+            symbolTable: symbols of this module and everything it imports
+
+        Keyword Args:
+            genTexts: carry human-readable texts into the output
+            textFilter: callable applied to each text before it is rendered;
+                by default runs of whitespace are collapsed
+            comments: lines to record in the document
+
+        Returns:
+            The module's :py:class:`~pysmi.mibinfo.MibInfo` and the document.
+
+        Raises:
+            PySmiCodegenError: a symbol in the symbol table was never rendered.
+            PySmiSemanticError: the module is not internally consistent.
+        """
         self.genRules["text"] = kwargs.get("genTexts", False)
         self.textFilter = kwargs.get("textFilter") or (lambda symbol, text: re.sub(r"\s+", " ", text))
         self.symbolTable = symbolTable
@@ -1000,6 +1487,25 @@ class JsonCodeGen(AbstractCodeGen):
         ), json.dumps(outDict, indent=2)
 
     def genIndex(self, processed: dict[str, Any], **kwargs: Any) -> str:
+        """Render an index of the modules compiled and what they define.
+
+        An existing index may be passed in, in which case this run's modules
+        are merged into it rather than replacing it.
+
+        Args:
+            processed: compilation outcome per module, as reported by
+                :py:class:`~pysmi.compiler.MibCompiler`
+
+        Keyword Args:
+            old_index_data: an index to merge into, as JSON
+            comments: lines to record in the document
+
+        Returns:
+            The index as a JSON document.
+
+        Raises:
+            PySmiCodegenError: the index passed in could not be read.
+        """
         outDict: dict[str, Any] = {
             "meta": {},
             "identity": {},
@@ -1015,6 +1521,18 @@ class JsonCodeGen(AbstractCodeGen):
                 raise error.PySmiCodegenError(f"Index load error: {exc}") from exc
 
         def order(top: Any) -> Any:
+            """Sort a decoded index into a stable order, recursively.
+
+            Object keys sort numerically when they are all OIDs, and
+            lexicographically otherwise. Lists are sorted and de-duplicated. This
+            is what keeps the index reproducible across runs.
+
+            Args:
+                top: decoded JSON value
+
+            Returns:
+                The same value, ordered.
+            """
             if isinstance(top, dict):
                 new_top: Any = OrderedDict()
                 try:
