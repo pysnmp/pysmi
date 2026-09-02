@@ -6,13 +6,42 @@
 #
 """Interface shared by the code generators, and helpers common to them."""
 
-from typing import Any, ClassVar, Final
+from typing import Any, ClassVar, Final, TypeAlias
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.mibinfo import MibInfo
 
 _RFC1155_RFC1065_KEY: Final = "RFC1155-SMI/RFC1065-SMI"
+
+# Shapes of the parse tree values handed to the clause handlers.
+#
+# A handler receives the already-converted children of one clause, never a raw
+# parse node: prep_data walks depth first, so by the time a handler runs its
+# children have been through their own handlers. The aliases below name the
+# shapes that carry no further nesting, so they can be written down exactly.
+# Clauses whose shape varies with the clause body stay `Any` for now; see
+# https://github.com/pysnmp/pysmi/issues/47.
+
+#: A clause carrying one piece of text, e.g. DESCRIPTION or STATUS. The text
+#: is ``data[0]``.
+TextClause: TypeAlias = list[str]
+
+#: A clause carrying a list of symbol names, e.g. OBJECTS or the names of a
+#: BITS type. The names are ``data[0]``.
+SymbolsClause: TypeAlias = list[list[str]]
+
+#: A clause carrying named numbers, e.g. BITS or an INTEGER enumeration. Each
+#: pair is ``(name, number)`` and the pairs are ``data[0]``.
+NamedNumbersClause: TypeAlias = list[list[tuple[str, int]]]
+
+#: An INDEX clause. Each entry is ``(implied, name)``, where ``implied`` is 1
+#: for the IMPLIED column and 0 otherwise. The entries are ``data[0]``.
+IndexClause: TypeAlias = list[list[tuple[int, str]]]
+
+#: A SEQUENCE clause. Each entry is ``(name, type)`` and the entries are
+#: ``data[0]``.
+SequenceClause: TypeAlias = list[list[tuple[str, str]]]
 
 
 def dorepr(s: Any) -> str:

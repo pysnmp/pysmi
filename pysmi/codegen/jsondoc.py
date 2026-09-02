@@ -15,7 +15,14 @@ from typing import Any, cast
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
-from pysmi.codegen.base import AbstractCodeGen
+from pysmi.codegen.base import (
+    AbstractCodeGen,
+    IndexClause,
+    NamedNumbersClause,
+    SequenceClause,
+    SymbolsClause,
+    TextClause,
+)
 from pysmi.mibinfo import MibInfo
 
 logger = logging.getLogger(__name__)
@@ -774,7 +781,7 @@ class JsonCodeGen(AbstractCodeGen):
     # Subparts generation functions
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_bit_names(self, data: Any) -> Any:
+    def gen_bit_names(self, data: SymbolsClause) -> Any:
         """Return the names listed in a BITS or enumeration clause.
 
         Args:
@@ -786,7 +793,7 @@ class JsonCodeGen(AbstractCodeGen):
         names = data[0]
         return names
 
-    def gen_bits(self, data: Any) -> tuple[str, OrderedDict[str, Any]]:
+    def gen_bits(self, data: NamedNumbersClause) -> tuple[str, OrderedDict[str, Any]]:
         """Render a BITS clause.
 
         Args:
@@ -848,7 +855,7 @@ class JsonCodeGen(AbstractCodeGen):
         return "table", ""
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_contact_info(self, data: Any) -> str:
+    def gen_contact_info(self, data: TextClause) -> str:
         """Render a CONTACT-INFO clause.
 
         Args:
@@ -861,7 +868,7 @@ class JsonCodeGen(AbstractCodeGen):
         return self.textFilter("contact-info", text)
 
     # noinspection PyUnusedLocal
-    def gen_display_hint(self, data: Any) -> str:
+    def gen_display_hint(self, data: TextClause) -> str:
         """Render a DISPLAY-HINT.
 
         Args:
@@ -870,7 +877,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The display hint.
         """
-        return cast(str, data[0])
+        return data[0]
 
     # noinspection PyUnusedLocal
     def gen_def_val(self, data: Any, objname: str | None = None) -> "dict[str, Any] | list[Any]":
@@ -973,7 +980,7 @@ class JsonCodeGen(AbstractCodeGen):
         return {"default": outDict}
 
     # noinspection PyMethodMayBeStatic
-    def gen_description(self, data: Any) -> str:
+    def gen_description(self, data: TextClause) -> str:
         """Render a DESCRIPTION clause.
 
         Args:
@@ -985,7 +992,7 @@ class JsonCodeGen(AbstractCodeGen):
         return self.textFilter("description", data[0])
 
     # noinspection PyMethodMayBeStatic
-    def gen_reference(self, data: Any) -> str:
+    def gen_reference(self, data: TextClause) -> str:
         """Render a REFERENCE clause.
 
         Args:
@@ -997,7 +1004,7 @@ class JsonCodeGen(AbstractCodeGen):
         return self.textFilter("reference", data[0])
 
     # noinspection PyMethodMayBeStatic
-    def gen_status(self, data: Any) -> str:
+    def gen_status(self, data: TextClause) -> str:
         """Render a STATUS clause.
 
         Args:
@@ -1006,9 +1013,9 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The status as written.
         """
-        return cast(str, data[0])
+        return data[0]
 
-    def gen_product_release(self, data: Any) -> Any:
+    def gen_product_release(self, data: TextClause) -> Any:
         """Render a PRODUCT-RELEASE clause.
 
         Args:
@@ -1019,7 +1026,7 @@ class JsonCodeGen(AbstractCodeGen):
         """
         return data[0]
 
-    def gen_enum_spec(self, data: Any) -> dict[str, Any]:
+    def gen_enum_spec(self, data: NamedNumbersClause) -> dict[str, Any]:
         """Render an enumeration.
 
         Args:
@@ -1032,7 +1039,7 @@ class JsonCodeGen(AbstractCodeGen):
         return {"enumeration": dict(items)}
 
     # noinspection PyUnusedLocal
-    def gen_table_index(self, data: Any) -> tuple[Any, ...]:
+    def gen_table_index(self, data: IndexClause) -> tuple[Any, ...]:
         """Render an INDEX clause as the row's indices.
 
         Args:
@@ -1085,7 +1092,7 @@ class JsonCodeGen(AbstractCodeGen):
                 fakeSyms.append(idxName)
                 self.fakeidx += 1
 
-            index = OrderedDict()
+            index: OrderedDict[str, Any] = OrderedDict()
             index["module"] = self._importMap.get(idxName, self.moduleName[0])
             index["object"] = idxName
             index["implied"] = isImplied
@@ -1114,7 +1121,7 @@ class JsonCodeGen(AbstractCodeGen):
         return {"range": ranges}
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_max_access(self, data: Any) -> str:
+    def gen_max_access(self, data: TextClause) -> str:
         """Render a MAX-ACCESS clause.
 
         Args:
@@ -1123,7 +1130,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The access level as written.
         """
-        return cast(str, data[0])
+        return data[0]
 
     def gen_octet_string_sub_type(self, data: Any) -> dict[str, Any]:
         """Render an octet string size restriction.
@@ -1178,7 +1185,7 @@ class JsonCodeGen(AbstractCodeGen):
         return ".".join([str(x) for x in self.gen_numeric_oid(out)]), parent
 
     # noinspection PyUnusedLocal
-    def gen_objects(self, data: Any) -> list[Any]:
+    def gen_objects(self, data: SymbolsClause) -> list[Any]:
         """Return the names in an OBJECTS or NOTIFICATIONS list.
 
         Args:
@@ -1226,7 +1233,7 @@ class JsonCodeGen(AbstractCodeGen):
         return times
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_last_updated(self, data: Any) -> str:
+    def gen_last_updated(self, data: TextClause) -> str:
         """Render a LAST-UPDATED clause.
 
         Args:
@@ -1235,10 +1242,10 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The timestamp as a formatted date.
         """
-        return cast(str, data[0])
+        return data[0]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_organization(self, data: Any) -> str:
+    def gen_organization(self, data: TextClause) -> str:
         """Render an ORGANIZATION clause.
 
         Args:
@@ -1267,7 +1274,7 @@ class JsonCodeGen(AbstractCodeGen):
             revisions.append(revision)
         return revisions
 
-    def gen_row(self, data: Any) -> tuple[Any, ...]:
+    def gen_row(self, data: TextClause) -> tuple[Any, ...]:
         """Render the node type of a table row.
 
         A name the symbol table recorded as a table's row is a row; anything
@@ -1288,7 +1295,7 @@ class JsonCodeGen(AbstractCodeGen):
         ) or self.gen_simple_syntax(data)
 
     # noinspection PyUnusedLocal
-    def gen_sequence(self, data: Any) -> tuple[Any, ...]:
+    def gen_sequence(self, data: SequenceClause) -> tuple[Any, ...]:
         """Record the columns of a SEQUENCE.
 
         Args:
@@ -1372,7 +1379,7 @@ class JsonCodeGen(AbstractCodeGen):
         return parentType, outDict
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def gen_units(self, data: Any) -> str:
+    def gen_units(self, data: TextClause) -> str:
         """Render a UNITS clause.
 
         Args:
