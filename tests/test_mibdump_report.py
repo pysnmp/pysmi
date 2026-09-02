@@ -12,6 +12,7 @@ rather than left to manual inspection.
 """
 
 import io
+import os
 import sys
 import tempfile
 import unittest
@@ -60,10 +61,15 @@ def runMibdump(*args):
 class MibDumpReportTestCase(unittest.TestCase):
     """The report renders every branch of its status summary."""
 
+    # Sources are passed as relative paths and the test runs from the temporary
+    # directory: an absolute Windows path is rejected as a URL scheme (see #56).
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
-        self.src = Path(self._tmp.name) / "src"
-        self.dst = Path(self._tmp.name) / "dst"
+        self._cwd = os.getcwd()
+        os.chdir(self._tmp.name)
+
+        self.src = Path("src")
+        self.dst = Path("dst")
         self.src.mkdir()
         (self.src / "TEST-REPORT-MIB").write_text(STANDALONE_MIB)
 
@@ -71,6 +77,7 @@ class MibDumpReportTestCase(unittest.TestCase):
             (self.src / mib).write_text(f"{mib} DEFINITIONS ::= BEGIN\nEND\n")
 
     def tearDown(self):
+        os.chdir(self._cwd)
         self._tmp.cleanup()
 
     def _run(self, *extra):
