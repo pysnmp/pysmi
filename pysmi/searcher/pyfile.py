@@ -12,6 +12,7 @@ import logging
 import os
 import struct
 import time
+from typing import Final
 
 from pysmi import error
 from pysmi.compat import decode
@@ -19,8 +20,8 @@ from pysmi.searcher.base import AbstractSearcher
 
 logger = logging.getLogger(__name__)
 
-SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
-BYTECODE_SUFFIXES = importlib.machinery.BYTECODE_SUFFIXES
+SOURCE_SUFFIXES: Final = importlib.machinery.SOURCE_SUFFIXES
+BYTECODE_SUFFIXES: Final = importlib.machinery.BYTECODE_SUFFIXES
 
 
 class PyFileSearcher(AbstractSearcher):
@@ -28,7 +29,7 @@ class PyFileSearcher(AbstractSearcher):
     location.
     """
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         """Create an instance of *PyFileSearcher* bound to specific directory.
 
         Args:
@@ -36,10 +37,10 @@ class PyFileSearcher(AbstractSearcher):
         """
         self._path = os.path.normpath(decode(path))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def fileExists(self, mibname, mtime, rebuild=False):
+    def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
             return

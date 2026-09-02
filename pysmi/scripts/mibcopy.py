@@ -24,7 +24,7 @@ from pysmi.reader import FileReader, getReadersFromUrls
 from pysmi.writer import CallbackWriter
 
 
-def start():
+def start() -> None:
     # sysexits.h
     EX_OK = 0
     EX_USAGE = 64
@@ -149,7 +149,7 @@ def start():
 
     fileWriter = CallbackWriter(lambda *x: None)
 
-    def getMibRevision(mibDir, mibFile):
+    def getMibRevision(mibDir: str, mibFile: str) -> tuple[str, datetime]:
         mibCompiler = MibCompiler(mibParser, codeGenerator, fileWriter)
 
         mibCompiler.addSources(
@@ -180,7 +180,7 @@ def start():
 
         raise error.PySmiError(f'Can\'t read or parse MIB "{os.path.join(mibDir, mibFile)}"')
 
-    def shortenPath(path, maxLength=45):
+    def shortenPath(path: str, maxLength: int = 45) -> str:
         if len(path) > maxLength:
             return "..." + path[-maxLength:]
         else:
@@ -188,7 +188,7 @@ def start():
 
     mibsSeen = mibsCopied = mibsFailed = 0
 
-    mibsRevisions = {}
+    mibsRevisions: dict[str, datetime] = {}
 
     for srcDirectory in inputMibs:
         if verboseFlag:

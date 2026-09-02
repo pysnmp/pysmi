@@ -6,11 +6,11 @@
 #
 """Interface shared by the code generators, and helpers common to them."""
 
-from typing import ClassVar
+from typing import ClassVar, Final
 
 from pysmi import error
 
-_RFC1155_RFC1065_KEY = "RFC1155-SMI/RFC1065-SMI"
+_RFC1155_RFC1065_KEY: Final = "RFC1155-SMI/RFC1065-SMI"
 
 
 def dorepr(s):
@@ -279,7 +279,7 @@ class AbstractCodeGen:
     def genCode(self, ast, symbolTable, **kwargs):
         raise NotImplementedError()
 
-    def genIndex(self, mibsMap, **kwargs):
+    def genIndex(self, processed, **kwargs):
         raise NotImplementedError()
 
     @staticmethod

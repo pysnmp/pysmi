@@ -22,22 +22,23 @@ this and are deprecated; they remain so that existing code keeps working.
 
 import logging
 import warnings
+from typing import Any, ClassVar, Final, Optional
 
 from pysmi import __version__, error
 
-flagNone = 0x0000
-flagSearcher = 0x0001
-flagReader = 0x0002
-flagLexer = 0x0004
-flagParser = 0x0008
-flagGrammar = 0x0010
-flagCodegen = 0x0020
-flagWriter = 0x0040
-flagCompiler = 0x0080
-flagBorrower = 0x0100
-flagAll = 0xFFFF
+flagNone: Final = 0x0000
+flagSearcher: Final = 0x0001
+flagReader: Final = 0x0002
+flagLexer: Final = 0x0004
+flagParser: Final = 0x0008
+flagGrammar: Final = 0x0010
+flagCodegen: Final = 0x0020
+flagWriter: Final = 0x0040
+flagCompiler: Final = 0x0080
+flagBorrower: Final = 0x0100
+flagAll: Final = 0xFFFF
 
-flagMap = {
+flagMap: Final = {
     "searcher": flagSearcher,
     "reader": flagReader,
     "lexer": flagLexer,
@@ -52,7 +53,7 @@ flagMap = {
 
 #: Debug category name -> logger it enables. Categories are the values accepted
 #: by ``mibdump --debug``; each names the subsystem whose logger it turns on.
-DEBUG_CATEGORIES = {
+DEBUG_CATEGORIES: Final = {
     "searcher": "pysmi.searcher",
     "reader": "pysmi.reader",
     "lexer": "pysmi.lexer",
@@ -67,12 +68,12 @@ DEBUG_CATEGORIES = {
     "all": "pysmi",
 }
 
-PACKAGE_LOGGER = "pysmi"
+PACKAGE_LOGGER: Final = "pysmi"
 
 #: Logger carrying the PLY grammar traces, written by the lexer and the parser.
-GRAMMAR_LOGGER = DEBUG_CATEGORIES["grammar"]
+GRAMMAR_LOGGER: Final = DEBUG_CATEGORIES["grammar"]
 
-_DEFAULT_HANDLER_NAME = "pysmi-debug-console"
+_DEFAULT_HANDLER_NAME: Final = "pysmi-debug-console"
 
 
 def enableDebugLogging(*categories: str, handler: logging.Handler | None = None) -> None:
@@ -139,7 +140,12 @@ class Printer:
         Configure the ``pysmi`` logger with :mod:`logging` instead.
     """
 
-    def __init__(self, logger=None, handler=None, formatter=None):
+    def __init__(
+        self,
+        logger: logging.Logger | None = None,
+        handler: logging.Handler | None = None,
+        formatter: logging.Formatter | None = None,
+    ) -> None:
         """Create a printer writing to `logger` through `handler`."""
         if logger is None:
             logger = logging.getLogger(PACKAGE_LOGGER)
@@ -159,15 +165,15 @@ class Printer:
 
         self.__logger = logger
 
-    def __call__(self, msg):
+    def __call__(self, msg: str) -> None:
         """Log `msg` at debug level."""
         self.__logger.debug(msg)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Describe where this printer writes to."""
         return "<python built-in logging>"
 
-    def getCurrentLogger(self):
+    def getCurrentLogger(self) -> logging.Logger:
         """Return the underlying :class:`logging.Logger`."""
         return self.__logger
 
@@ -183,9 +189,9 @@ class Debug:
         :mod:`logging` directly.
     """
 
-    defaultPrinter = None
+    defaultPrinter: ClassVar[Optional["Printer"]] = None
 
-    def __init__(self, *flags, **options):
+    def __init__(self, *flags: str, **options: Any) -> None:
         """Enable debugging for the named `flags`."""
         warnings.warn(
             "pysmi.debug.Debug is deprecated; use pysmi.debug.enableDebugLogging() "
@@ -195,8 +201,9 @@ class Debug:
         )
 
         self._flags = flagNone
+        self._printer: Printer
         if options.get("printer") is not None:
-            self._printer = options.get("printer")
+            self._printer = options["printer"]
 
         elif self.defaultPrinter is not None:
             self._printer = self.defaultPrinter
@@ -252,37 +259,37 @@ class Debug:
             elif loggerName not in enabled:
                 logging.getLogger(loggerName).setLevel(logging.WARNING)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Describe the printer and enabled flags."""
         return f"logger {self._printer}, flags {self._flags:x}"
 
-    def __call__(self, msg):
+    def __call__(self, msg: str) -> None:
         """Log `msg` through the configured printer."""
         self._printer(msg)
 
-    def __and__(self, flag):
+    def __and__(self, flag: int) -> int:
         """Test `flag` against the enabled flags."""
         return self._flags & flag
 
-    def __rand__(self, flag):
+    def __rand__(self, flag: int) -> int:
         """Test `flag` against the enabled flags."""
         return flag & self._flags
 
-    def getCurrentPrinter(self):
+    def getCurrentPrinter(self) -> "Printer | None":
         """Return the printer in use."""
         return self._printer
 
-    def getCurrentLogger(self):
+    def getCurrentLogger(self) -> logging.Logger | None:
         """Return the :class:`logging.Logger` in use, if any."""
         return (self._printer and self._printer.getCurrentLogger()) or None
 
 
 # This will yield false from bitwise and with a flag, and save
 # on unnecessary calls
-logger = 0
+logger: Any = 0
 
 
-def setLogger(logger_instance):
+def setLogger(logger_instance: Any) -> None:
     """Install `logger_instance` as the debug logging switch.
 
     .. deprecated::

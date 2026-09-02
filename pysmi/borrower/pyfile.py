@@ -7,10 +7,11 @@
 """Borrowing pre-compiled PySNMP MIB modules."""
 
 import importlib.machinery
+from typing import Final
 
 from pysmi.borrower.base import AbstractBorrower
 
-SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
+SOURCE_SUFFIXES: Final = importlib.machinery.SOURCE_SUFFIXES
 
 
 class PyFileBorrower(AbstractBorrower):

@@ -19,16 +19,51 @@ become attributes, so a handler part-way up the stack can attach context to an
 error it is not ready to report.
 """
 
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pysmi.reader.base import AbstractReader
+    from pysmi.searcher.base import AbstractSearcher
+    from pysmi.writer.base import AbstractWriter
+
 
 class PySmiError(Exception):
     #: The error message. Handlers extend it as the error travels up the stack.
     msg: str
+
+    # Context attached at the raise site or by a handler on the way up. Each is
+    # present only when something set it, so reading one that was never set
+    # raises AttributeError.
+
+    #: MIB module the error concerns.
+    mibname: str
+    #: MIB file the error concerns.
+    file: str
+    #: Reader the MIB was being fetched from.
+    reader: "AbstractReader"
+    #: Reader that supplied the MIB, as recorded by the compiler.
+    source: "AbstractReader"
+    #: Searcher that was consulted.
+    searcher: "AbstractSearcher"
+    #: Writer that was storing the MIB.
+    writer: "AbstractWriter"
+    #: Component that was handling the MIB when it failed.
+    handler: Any
 
     def __init__(self, *args: object, **kwargs: object) -> None:
         Exception.__init__(self, *args)
         self.msg = str(args[0]) if args else ""
         for k in kwargs:
             setattr(self, k, kwargs[k])
+
+    def __getattr__(self, name: str) -> Any:
+        """Report the context attributes handlers attach as they re-raise.
+
+        Attributes are set from keyword arguments, so which ones exist depends
+        on where the error came from and who handled it on the way up. Missing
+        ones still raise AttributeError, as they always did.
+        """
+        raise AttributeError(name)
 
     def __repr__(self) -> str:
         return "{}({})".format(

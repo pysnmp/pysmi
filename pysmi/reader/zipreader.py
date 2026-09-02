@@ -12,6 +12,7 @@ import logging
 import os
 import time
 import zipfile
+from typing import IO, Any, Final
 
 from pysmi import error
 from pysmi.compat import decode
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # What zipfile raises for a member it cannot produce: a corrupt or truncated
 # archive, an unknown name, encryption, or a compression method unavailable here.
-ZIP_READ_ERRORS = (
+ZIP_READ_ERRORS: Final = (
     KeyError,
     RuntimeError,
     NotImplementedError,
@@ -43,7 +44,7 @@ class ZipReader(AbstractReader):
 
     useIndexFile = False
 
-    def __init__(self, path, ignoreErrors=True):
+    def __init__(self, path: str, ignoreErrors: bool = True) -> None:
         """Create an instance of *ZipReader* serving a ZIP archive.
 
         Args:
@@ -66,10 +67,10 @@ class ZipReader(AbstractReader):
             if not ignoreErrors:
                 self._pendingError = error.PySmiError(f"file {self._name} access error: {exc}")
 
-    def _readZipDirectory(self, fileObj):
+    def _readZipDirectory(self, fileObj: IO[bytes]) -> dict[str, list[list[Any]]]:
         archive = zipfile.ZipFile(fileObj)
 
-        members = {}
+        members: dict[str, list[list[Any]]] = {}
 
         for member in archive.infolist():
             filename = os.path.basename(member.filename)
@@ -95,12 +96,14 @@ class ZipReader(AbstractReader):
 
         return members
 
-    def _readZipFile(self, refs):
-        dataObj = None
-        mtime = None
+    def _readZipFile(self, refs: list[list[Any]]) -> tuple[bytes | str, float]:
+        dataObj: bytes | None = None
+        mtime: float = 0
 
         for fileObj, filename, ref_mtime in refs:
             if not fileObj:
+                if dataObj is None:
+                    return "", 0
                 fileObj = io.BytesIO(dataObj)
 
             if ref_mtime is not None:
@@ -122,12 +125,12 @@ class ZipReader(AbstractReader):
                 )
                 return "", 0
 
-        return dataObj, mtime
+        return dataObj if dataObj is not None else "", mtime
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._name}"}}'
 
-    def getData(self, mibname, **options):
+    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         logger.debug("looking for MIB %s at %s", mibname, self._name, extra={"mib": mibname, "path": self._name})
 
         if self._pendingError:

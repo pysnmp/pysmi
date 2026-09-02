@@ -13,14 +13,14 @@ Python 2 support is gone; these remain because external code imports them.
 """
 
 
-def encode(s):
+def encode(s: str | bytes) -> bytes:
     """Encode str to bytes using UTF-8."""
     if isinstance(s, str):
         s = s.encode("utf-8", "ignore")
     return s
 
 
-def decode(s):
+def decode(s: str | bytes) -> str:
     """Decode bytes to str using UTF-8."""
     if isinstance(s, bytes):
         s = s.decode("utf-8", "ignore")

@@ -15,6 +15,7 @@ symbols across modules.
 
 import logging
 from keyword import iskeyword
+from typing import Any
 
 from pysmi import error
 from pysmi.codegen.base import AbstractCodeGen, dorepr
@@ -164,7 +165,7 @@ class SymtableCodeGen(AbstractCodeGen):
                 imports[module] = self.constImports[module]
 
         for module in sorted(imports):
-            symbols = ()
+            symbols: tuple[Any, ...] = ()
             for symbol in set(imports[module]):
                 symbols += self.symTrans(symbol)
 
@@ -395,6 +396,7 @@ class SymtableCodeGen(AbstractCodeGen):
     # noinspection PyUnusedLocal
     def genDefVal(self, data, classmode=False):  # XXX should be fixed, see pysnmp.py
         defval = data[0]
+        val: Any
 
         if isinstance(defval, int):  # number
             val = str(defval)
@@ -434,7 +436,7 @@ class SymtableCodeGen(AbstractCodeGen):
     def genEnumSpec(self, data, classmode=False):
         return self.genBits(data, classmode=classmode)[1]
 
-    def genIndex(self, data, classmode=False):
+    def genIndexClause(self, data, classmode=False):
         indexes = data[0]
 
         fakeIdxName = "pysmiFakeCol"
@@ -468,7 +470,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genOid(self, data, classmode=False):
-        out = ()
+        out: tuple[Any, ...] = ()
         for el in data[0]:
             if isinstance(el, str):
                 parent = self.transOpers(el)
@@ -575,7 +577,7 @@ class SymtableCodeGen(AbstractCodeGen):
         "Status": genStatus,
         "PRODUCT-RELEASE": genProductRelease,
         "enumSpec": genEnumSpec,
-        "INDEX": genIndex,
+        "INDEX": genIndexClause,
         "integerSubType": genIntegerSubType,
         "MaxAccessPart": genMaxAccess,
         "Notifications": genObjects,

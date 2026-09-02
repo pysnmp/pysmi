@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class StubSearcher(AbstractSearcher):
     """Figures out if given MIB module is present in a fixed list of modules."""
 
-    def __init__(self, *mibnames):
+    def __init__(self, *mibnames: str) -> None:
         """Create an instance of *StubSearcher* initialized with a fixed list
         or MIB modules names.
 
@@ -26,10 +26,10 @@ class StubSearcher(AbstractSearcher):
         """
         self._mibnames = mibnames
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}"
 
-    def fileExists(self, mibname, mtime, rebuild=False):
+    def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
         if mibname in self._mibnames:
             logger.debug("pretend compiled %s exists and is very new", mibname, extra={"mib": mibname})
             raise error.PySmiFileNotModifiedError(

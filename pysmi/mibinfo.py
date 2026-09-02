@@ -6,44 +6,47 @@
 #
 """Metadata describing a single MIB module."""
 
+from datetime import datetime
+from typing import Any, Optional
+
 
 class MibInfo:
     #: actual MIB name
-    name = ""
+    name: str = ""
 
     #: possible alternative to MIB name
-    alias = ""
+    alias: str = ""
 
     #: URL to MIB file
-    path = ""
+    path: str = ""
 
     #: MIB file name
-    file = ""
+    file: str = ""
 
     #: MIB file modification time
-    mtime = 0
+    mtime: float = 0
 
     #: module OID
-    oid = ""
+    oid: str = ""
 
     #: MIB revision as `datetime`
-    revision = None
+    revision: Optional["datetime"] = None
 
     #: all OIDs defined in this module
-    oids = ()
+    oids: tuple[str, ...] = ()
 
     #: MODULE-IDENTITY OID
-    identity = ""
+    identity: str = ""
 
     #: Enterprise OID
-    enterprise = ()
+    enterprise: tuple[str, ...] = ()
 
     #: MODULE-COMPLIANCE OIDs
-    compliance = ()
+    compliance: tuple[str, ...] = ()
 
     #: imported MIB names
-    imported = ()
+    imported: tuple[str, ...] = ()
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         for k in kwargs:
             setattr(self, k, kwargs[k])

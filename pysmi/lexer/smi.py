@@ -12,6 +12,7 @@ import time. They are grammar, not documentation.
 
 import logging
 import re
+from typing import Any, Final
 
 import ply.lex as lex
 
@@ -20,8 +21,8 @@ from pysmi.lexer.base import AbstractLexer
 
 logger = logging.getLogger(__name__)
 
-UNSIGNED32_MAX = 4294967295
-UNSIGNED64_MAX = 18446744073709551615
+UNSIGNED32_MAX: Final = 4294967295
+UNSIGNED64_MAX: Final = 18446744073709551615
 LEX_VERSION = [int(x) for x in lex.__version__.split(".")]
 
 
@@ -183,12 +184,12 @@ class SmiV2Lexer(AbstractLexer):
 
     t_ignore = " \t"
 
-    def __init__(self, tempdir=""):
+    def __init__(self, tempdir: str = "") -> None:
         self._tempdir = tempdir
-        self.lexer = None
+        self.lexer: Any = None
         self.reset()
 
-    def reset(self):
+    def reset(self) -> None:
         if LEX_VERSION < [3, 0]:
             self.lexer = lex.lex(module=self, reflags=re.DOTALL, outputdir=self._tempdir, debug=False)
         else:
@@ -355,7 +356,7 @@ class SmiV2Lexer(AbstractLexer):
 
 class SupportSmiV1Keywords:
     @staticmethod
-    def reserved():
+    def reserved() -> dict[str, str]:
         reserved_words = [
             "ACCESS",
             "AGENT-CAPABILITIES",
@@ -452,7 +453,7 @@ class SupportSmiV1Keywords:
         return reserved
 
     @staticmethod
-    def forbidden_words():
+    def forbidden_words() -> list[str]:
         return [
             "ABSENT",
             "ANY",
@@ -482,7 +483,7 @@ class SupportSmiV1Keywords:
         ]
 
     @staticmethod
-    def tokens():
+    def tokens() -> list[str]:
         # Token names required!
         tokens = [
             "BIN_STRING",
@@ -521,8 +522,8 @@ relaxedGrammar = {
 }
 
 
-def lexerFactory(**grammarOptions):
-    classAttr = {}
+def lexerFactory(**grammarOptions: bool) -> type[SmiV2Lexer]:
+    classAttr: dict[str, Any] = {}
 
     for option in grammarOptions:
         if grammarOptions[option]:

@@ -7,22 +7,25 @@
 """Interface shared by the readers, and the MIB file name guessing they share."""
 
 import os
-from typing import ClassVar
+from collections.abc import Iterable
+from typing import Any
+
+from pysmi.mibinfo import MibInfo
 
 
 class AbstractReader:
     maxMibSize = 10000000  # MIBs can't be that large
     fuzzyMatching = True  # try different file names while searching for MIB
     originalMatching = uppercaseMatching = lowcaseMatching = True
-    exts: ClassVar[list[str]] = ["", os.path.extsep + "txt", os.path.extsep + "mib", os.path.extsep + "my"]
+    exts: list[str] = ["", os.path.extsep + "txt", os.path.extsep + "mib", os.path.extsep + "my"]  # noqa: RUF012
     exts.extend([x.upper() for x in exts if x])
 
-    def setOptions(self, **kwargs):
+    def setOptions(self, **kwargs: Any) -> "AbstractReader":
         for k in kwargs:
             setattr(self, k, kwargs[k])
         return self
 
-    def getMibVariants(self, mibname, **options):
+    def getMibVariants(self, mibname: str, **options: Any) -> Iterable[tuple[str, str]]:
         filenames = []
 
         if self.originalMatching:
@@ -45,5 +48,5 @@ class AbstractReader:
 
         return ((x, x + y) for x in filenames for y in options.get("exts", self.exts))
 
-    def getData(self, filename, **options):
+    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         raise NotImplementedError()

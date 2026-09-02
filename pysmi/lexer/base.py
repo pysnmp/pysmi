@@ -8,5 +8,5 @@
 
 
 class AbstractLexer:
-    def reset(self):
+    def reset(self) -> None:
         raise NotImplementedError()

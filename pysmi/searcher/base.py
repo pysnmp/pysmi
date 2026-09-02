@@ -6,12 +6,14 @@
 #
 """Interface shared by the searchers."""
 
+from typing import Any
+
 
 class AbstractSearcher:
-    def setOptions(self, **kwargs):
+    def setOptions(self, **kwargs: Any) -> "AbstractSearcher":
         for k in kwargs:
             setattr(self, k, kwargs[k])
         return self
 
-    def fileExists(self, mibname, mtime, rebuild=False):
+    def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
         raise NotImplementedError()

@@ -9,6 +9,7 @@
 import logging
 import sys
 import time
+from typing import Any
 
 from requests import session
 from requests.exceptions import RequestException
@@ -31,7 +32,7 @@ class HttpReader(AbstractReader):
 
     MIB_MAGIC = "@mib@"
 
-    def __init__(self, url):
+    def __init__(self, url: str) -> None:
         """Create an instance of *HttpReader* bound to specific URL.
 
         Note:
@@ -55,10 +56,10 @@ class HttpReader(AbstractReader):
 
         self._user_agent = f"pysmi-{pysmi_version}; python-{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}; {sys.platform}"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._url
 
-    def getData(self, mibname, **options):
+    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         headers = {"Accept": "text/plain", "User-Agent": self._user_agent}
 
         mibname = decode(mibname)

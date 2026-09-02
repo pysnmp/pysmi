@@ -27,7 +27,7 @@ class FileWriter(AbstractWriter):
 
     suffix = ""
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         """Creates an instance of *FileReader* class.
 
         Args:
@@ -35,21 +35,21 @@ class FileWriter(AbstractWriter):
         """
         self._path = decode(os.path.normpath(path))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def getData(self, mibname, dryRun=False):
-        filename = os.path.join(self._path, decode(mibname)) + self.suffix
+    def getData(self, filename: str, dryRun: bool = False) -> str:
+        path = os.path.join(self._path, decode(filename)) + self.suffix
 
         try:
-            with open(filename) as f:
+            with open(path) as f:
                 data = f.read()
             return data
 
         except (OSError, UnicodeEncodeError):
             return ""
 
-    def putData(self, mibname, data, comments=(), dryRun=False):
+    def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
         if dryRun:
             logger.debug("dry run mode", extra={"mib": mibname})
             return

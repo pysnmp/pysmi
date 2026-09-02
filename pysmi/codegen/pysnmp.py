@@ -10,6 +10,7 @@ import logging
 import re
 from keyword import iskeyword
 from time import strftime, strptime
+from typing import Any
 
 from pysmi import error
 from pysmi.codegen.base import AbstractCodeGen, dorepr
@@ -234,7 +235,7 @@ for _%(name)s_obj in [%(objects)s]:
                 imports[module] = self.constImports[module]
 
         for module in sorted(imports):
-            symbols = ()
+            symbols: tuple[Any, ...] = ()
 
             for symbol in set(imports[module]):
                 symbols += self.symTrans(symbol)
@@ -296,7 +297,7 @@ for _%(name)s_obj in [%(objects)s]:
             self._moduleIdentityOid = ".".join(oidStr.split(", "))[1:-1]
 
     def genNumericOid(self, oid):
-        numericOid = ()
+        numericOid: tuple[Any, ...] = ()
 
         for part in oid:
             if isinstance(part, tuple):
@@ -1014,7 +1015,7 @@ for _{name}_obj in [{objects}]:
 
     # noinspection PyUnusedLocal
     def genOid(self, data, classmode=False):
-        out = ()
+        out: tuple[Any, ...] = ()
         parent = ""
         for el in data[0]:
             if isinstance(el, str):
