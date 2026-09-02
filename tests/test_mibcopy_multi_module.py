@@ -21,6 +21,7 @@ from pathlib import Path
 
 from pysmi.scripts import mibcopy
 
+
 def module(name, oid, updated):
     """Return the text of a module carrying a LAST-UPDATED date."""
     return f"""{name} DEFINITIONS ::= BEGIN
@@ -71,12 +72,23 @@ class MibCopyMultiModuleTestCase(unittest.TestCase):
 
         self.src = Path(self._tmp.name) / "src"
         self.dst = Path(self._tmp.name) / "dst"
+        self.base = Path(self._tmp.name) / "base"
         self.src.mkdir()
         self.dst.mkdir()
+        self.base.mkdir()
+
+        # Kept out of the copied directory so it does not turn up in the counts.
+        for mib in ("SNMPv2-SMI", "SNMPv2-TC", "SNMPv2-CONF"):
+            (self.base / mib).write_text(f"{mib} DEFINITIONS ::= BEGIN\nEND\n")
 
     def copy(self):
-        """Run mibcopy over the fixture directories."""
-        return runMibcopy(str(self.src), str(self.dst))
+        """Run mibcopy over the fixture directories.
+
+        The source is pinned to the fixture. Left to its defaults mibcopy also
+        consults /usr/share/snmp/mibs and a MIB archive over HTTPS, which would
+        make these tests depend on the host and the network.
+        """
+        return runMibcopy(f"--mib-source={self.base}", str(self.src), str(self.dst))
 
     def testBothModulesOfOneFileAreCopied(self):
         """A file defining two modules lands under both names."""
