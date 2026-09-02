@@ -24,6 +24,55 @@ logger = logging.getLogger(__name__)
 
 YACC_VERSION = [int(x) for x in yacc.__version__.split(".")]
 
+# SMIv1 lets the upper bound of a range be written as MAX, meaning the largest
+# value the type can hold. It is resolved here, while the syntax still says
+# which type the constraint was written against; nothing downstream ever sees
+# the keyword. MIN has no counterpart: it is a forbidden word in both dialects,
+# so an SMIv1 MIB cannot write it.
+_TYPE_BOUNDS: dict[str, int] = {
+    "INTEGER": 2147483647,
+    "Integer32": 2147483647,
+    "Counter": 4294967295,
+    "Counter32": 4294967295,
+    "Gauge": 4294967295,
+    "Gauge32": 4294967295,
+    "Unsigned32": 4294967295,
+    "TimeTicks": 4294967295,
+    "Counter64": 18446744073709551615,
+}
+
+# A SIZE is a count of octets, so it is bounded by the longest OCTET STRING an
+# SNMP message can carry rather than by the type named in front of it.
+_SIZE_BOUNDS: int = 65535
+
+
+def _resolve_max_bound(typeName: Any, subType: Any) -> Any:
+    """Replace MAX bounds in *subType* with the value it stands for.
+
+    *typeName* is the syntax the constraint was written against. An unknown name
+    is a textual convention, whose base type is not resolved until code
+    generation; those fall back to the widest signed integer, which is what an
+    SMIv1 MIB means by an unqualified INTEGER.
+
+    Returns:
+        *subType* with every MAX bound replaced by a number.
+    """
+    if not isinstance(subType, tuple) or len(subType) != 2:
+        return subType
+
+    tag, ranges = subType
+    if tag == "octetStringSubType":
+        high = _SIZE_BOUNDS
+    elif tag == "integerSubType":
+        high = _TYPE_BOUNDS.get(typeName, _TYPE_BOUNDS["INTEGER"])
+    else:
+        return subType
+
+    if not any(bound == "MAX" for rng in ranges for bound in rng):
+        return subType
+
+    return (tag, [tuple(high if b == "MAX" else b for b in rng) for rng in ranges])
+
 
 # noinspection PyMethodMayBeStatic,PyIncorrectDocstring
 class SmiV2Parser(AbstractParser):
@@ -598,10 +647,10 @@ class SmiV2Parser(AbstractParser):
             if p[1] == "OCTET":
                 p[0] = ("SimpleSyntax", p[1] + " " + p[2])
             else:
-                p[0] = ("SimpleSyntax", p[1], p[2])
+                p[0] = ("SimpleSyntax", p[1], _resolve_max_bound(p[1], p[2]))
 
         elif n == 4:
-            p[0] = ("SimpleSyntax", p[1] + " " + p[2], p[3])
+            p[0] = ("SimpleSyntax", p[1] + " " + p[2], _resolve_max_bound(p[1] + " " + p[2], p[3]))
 
     def p_valueofSimpleSyntax(self, p):
         """valueofSimpleSyntax : NUMBER
@@ -653,7 +702,7 @@ class SmiV2Parser(AbstractParser):
         if n == 2:
             p[0] = ("ApplicationSyntax", p[1])
         elif n == 3:
-            p[0] = ("ApplicationSyntax", p[1], p[2])
+            p[0] = ("ApplicationSyntax", p[1], _resolve_max_bound(p[1], p[2]))
 
     def p_sequenceApplicationSyntax(self, p):
         """sequenceApplicationSyntax : IPADDRESS anySubType
@@ -1260,6 +1309,18 @@ class SupportSmiV1Keywords:
         | UNSIGNED32"""
         p[0] = p[1]
 
+    # MAX is a range bound in SMIv1, and a forbidden word in SMIv2.
+    @staticmethod
+    def p_value(self, p):
+        """value : NEGATIVENUMBER
+        | NUMBER
+        | NEGATIVENUMBER64
+        | NUMBER64
+        | HEX_STRING
+        | BIN_STRING
+        | MAX"""
+        p[0] = p[1]
+
     # NETWORKADDRESS added
     @staticmethod
     def p_typeSMIandSPPI(self, p):
@@ -1291,7 +1352,7 @@ class SupportSmiV1Keywords:
         if n == 2:
             p[0] = ("ApplicationSyntax", p[1])
         elif n == 3:
-            p[0] = ("ApplicationSyntax", p[1], p[2])
+            p[0] = ("ApplicationSyntax", p[1], _resolve_max_bound(p[1], p[2]))
 
     # NETWORKADDRESS added for SEQUENCE syntax
     @staticmethod
@@ -1489,6 +1550,7 @@ class NoCells:
 relaxedGrammar = {
     "supportSmiV1Keywords": [
         SupportSmiV1Keywords.p_importedKeyword,
+        SupportSmiV1Keywords.p_value,
         SupportSmiV1Keywords.p_typeSMIandSPPI,
         SupportSmiV1Keywords.p_ApplicationSyntax,
         SupportSmiV1Keywords.p_sequenceApplicationSyntax,
