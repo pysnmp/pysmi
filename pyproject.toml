@@ -97,17 +97,9 @@ python_version = "3.10"
 files = ["pysmi"]
 ignore_missing_imports = true
 warn_unreachable = true
-# Everything except the PLY grammar modules exempted below, which cannot be
-# annotated usefully. strict_equality caught a live bug where a tuple was
-# compared against a string, so an empty DEFVAL was discarded for every type.
+# strict_equality caught a live bug where a tuple was compared against a string,
+# so an empty DEFVAL was discarded for every type.
 strict = true
-
-[[tool.mypy.overrides]]
-# PLY builds the lexer and parser by reflecting over p_* and t_* methods whose
-# docstrings are the grammar. Annotating them buys nothing.
-module = ["pysmi.lexer.*", "pysmi.parser.*"]
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

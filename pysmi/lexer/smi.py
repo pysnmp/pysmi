@@ -15,6 +15,7 @@ import re
 from typing import Any, Final
 
 import ply.lex as lex
+from ply.lex import LexToken
 
 from pysmi import debug, error
 from pysmi.lexer.base import AbstractLexer
@@ -213,71 +214,71 @@ class SmiV2Lexer(AbstractLexer):
                 module=self, reflags=re.DOTALL, outputdir=self._tempdir, debuglog=debuglog, errorlog=errorlog
             )
 
-    def t_newline(self, t):
+    def t_newline(self, t: LexToken) -> None:
         r"\r\n|\n|\r"
         t.lexer.lineno += 1
 
     # Skipping MACRO
-    def t_MACRO(self, t):
+    def t_MACRO(self, t: LexToken) -> LexToken:
         r"MACRO"
         t.lexer.begin("macro")
         return t
 
-    def t_macro_newline(self, t):
+    def t_macro_newline(self, t: LexToken) -> None:
         r"\r\n|\n|\r"
         t.lexer.lineno += 1
 
-    def t_macro_END(self, t):
+    def t_macro_END(self, t: LexToken) -> LexToken:
         r"END"
         t.lexer.begin("INITIAL")
         return t
 
-    def t_macro_body(self, t):
+    def t_macro_body(self, t: LexToken) -> None:
         r".+?(?=END)"
         pass
 
     # Skipping EXPORTS
-    def t_EXPORTS(self, t):
+    def t_EXPORTS(self, t: LexToken) -> LexToken:
         r"EXPORTS"
         t.lexer.begin("exports")
         return t
 
-    def t_exports_newline(self, t):
+    def t_exports_newline(self, t: LexToken) -> None:
         r"\r\n|\n|\r"
         t.lexer.lineno += 1
 
-    def t_exports_end(self, t):
+    def t_exports_end(self, t: LexToken) -> None:
         r";"
         t.lexer.begin("INITIAL")
 
-    def t_exports_body(self, t):
+    def t_exports_body(self, t: LexToken) -> None:
         r"[^;]+"
         pass
 
     # Skipping CHOICE
-    def t_CHOICE(self, t):
+    def t_CHOICE(self, t: LexToken) -> LexToken:
         r"CHOICE"
         t.lexer.begin("choice")
         return t
 
-    def t_choice_newline(self, t):
+    def t_choice_newline(self, t: LexToken) -> None:
         r"\r\n|\n|\r"
         t.lexer.lineno += 1
 
-    def t_choice_end(self, t):
+    def t_choice_end(self, t: LexToken) -> None:
         r"\}"
         t.lexer.begin("INITIAL")
 
-    def t_choice_body(self, t):
+    def t_choice_body(self, t: LexToken) -> None:
         r"[^\}]+"
         pass
 
     # Comment handling
-    def t_begin_comment(self, t):
+    def t_begin_comment(self, t: LexToken) -> None:
         r"--"
         t.lexer.begin("comment")
 
-    def t_comment_newline(self, t):
+    def t_comment_newline(self, t: LexToken) -> None:
         r"\r\n|\n|\r"
         t.lexer.lineno += 1
         t.lexer.begin("INITIAL")
@@ -286,11 +287,11 @@ class SmiV2Lexer(AbstractLexer):
     #    r'--'
     #    t.lexer.begin('INITIAL')
 
-    def t_comment_body(self, t):
+    def t_comment_body(self, t: LexToken) -> None:
         r"[^\r\n]+"
         pass
 
-    def t_UPPERCASE_IDENTIFIER(self, t):
+    def t_UPPERCASE_IDENTIFIER(self, t: LexToken) -> LexToken:
         r"[A-Z][-a-zA-z0-9]*"
         if t.value in self.forbidden_words:
             raise error.PySmiLexerError(f"{t.value} is forbidden", lineno=t.lineno)
@@ -302,13 +303,13 @@ class SmiV2Lexer(AbstractLexer):
 
         return t
 
-    def t_LOWERCASE_IDENTIFIER(self, t):
+    def t_LOWERCASE_IDENTIFIER(self, t: LexToken) -> LexToken:
         r"[0-9]*[a-z][-a-zA-z0-9]*"
         if t.value[-1] == "-":
             raise error.PySmiLexerError(f"Identifier should not end with '-': {t.value}", lineno=t.lineno)
         return t
 
-    def t_NUMBER(self, t):
+    def t_NUMBER(self, t: LexToken) -> LexToken:
         r"-?[0-9]+"
         t.value = int(t.value)
         neg = 0
@@ -332,7 +333,7 @@ class SmiV2Lexer(AbstractLexer):
 
         return t
 
-    def t_BIN_STRING(self, t):
+    def t_BIN_STRING(self, t: LexToken) -> LexToken:
         r"\'[01]*\'[bB]"
         value = t.value[1:-2]
         while value and value[0] == "0" and len(value) % 8:
@@ -342,7 +343,7 @@ class SmiV2Lexer(AbstractLexer):
         #      raise error.PySmiLexerError("Number of 0s and 1s have to divide by 8 in binary string %s" % t.value, lineno=t.lineno)
         return t
 
-    def t_HEX_STRING(self, t):
+    def t_HEX_STRING(self, t: LexToken) -> LexToken:
         r"\'[0-9a-fA-F]*\'[hH]"
         value = t.value[1:-2]
         while value and value[0] == "0" and len(value) % 2:
@@ -352,12 +353,12 @@ class SmiV2Lexer(AbstractLexer):
         #      raise error.PySmiLexerError("Number of symbols have to be even in hex string %s" % t.value, lineno=t.lineno)
         return t
 
-    def t_QUOTED_STRING(self, t):
+    def t_QUOTED_STRING(self, t: LexToken) -> LexToken:
         r"\"[^\"]*\""
         t.lexer.lineno += len(re.findall(r"\r\n|\n|\r", t.value))
         return t
 
-    def t_error(self, t):
+    def t_error(self, t: LexToken) -> None:
         raise error.PySmiLexerError(
             f"Illegal character '{t.value[0]}', {len(t.value) - 1} characters left unparsed at this stage",
             lineno=t.lineno,
