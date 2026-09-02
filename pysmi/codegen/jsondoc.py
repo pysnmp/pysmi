@@ -110,7 +110,7 @@ class JsonCodeGen(AbstractCodeGen):
         """Convert a parse subtree into the values a clause handler expects.
 
         Each element that is a tagged tuple is dispatched through
-        :py:attr:`handlersTable` and replaced by whatever that handler returns.
+        ``handlersTable`` and replaced by whatever that handler returns.
         Children are converted before their parent, so by the time a clause
         handler runs, its ``data`` holds finished values rather than raw nodes.
 

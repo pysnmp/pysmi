@@ -14,4 +14,4 @@ instance.
    .. note::
 
       A pysnmp-specific list of MIB names to be permanently excluded from
-      transformation can be found at :py:const:`pysmi.codegen.pysnmp.baseMibs`.
+      transformation can be found at :py:attr:`pysmi.codegen.pysnmp.PySnmpCodeGen.baseMibs`.

@@ -29,7 +29,7 @@ YACC_VERSION = [int(x) for x in yacc.__version__.split(".")]
 class SmiV2Parser(AbstractParser):
     """Parser for the SMIv2 grammar.
 
-    Builds a PLY parser over :py:class:`~pysmi.lexer.smi.SmiV2Lexer`. The
+    Builds a PLY parser over the SMIv2 lexer. The
     generated parse tables are cached on disk when a temporary directory is
     given, since building them is slow.
 

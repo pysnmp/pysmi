@@ -142,6 +142,7 @@ AST into desired representation of the MIB.
    /pysmi/codegen/jsondoc/jsoncodegen
    /pysmi/codegen/pysnmp/pysnmpcodegen
    /pysmi/codegen/null/nullcodegen
+   /pysmi/codegen/symtable/symtablecodegen
 
 Borrow pre-compiled MIBs
 ------------------------
@@ -182,6 +183,17 @@ beside the ones PySMI ships.
    :maxdepth: 2
 
    /pysmi/extending
+
+Exceptions
+----------
+
+Every stage reports failure by raising an exception of its own, all of them
+derived from a single base class.
+
+.. toctree::
+   :maxdepth: 2
+
+   /pysmi/error
 
 Examples
 --------
