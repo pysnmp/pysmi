@@ -24,8 +24,15 @@ jobs:
     name: test-unit (py${{ matrix.python }} ${{ matrix.os }})
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # Every supported Python on Linux; macOS and Windows track the newest
+        # one only, to catch platform breakage without a full cross product.
+        os: [ubuntu-latest]
         python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: macos-latest
+            python: "3.14"
+          - os: windows-latest
+            python: "3.14"
       fail-fast: false
     runs-on: ${{ matrix.os }}
     steps:

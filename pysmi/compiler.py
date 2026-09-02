@@ -14,11 +14,8 @@ fails.
 """
 
 import logging
-import os
 import sys
 import time
-from collections.abc import Sequence
-from pwd import getpwuid
 from typing import Any, Final
 
 from pysmi import __name__ as packageName
@@ -212,29 +209,6 @@ class MibCompiler:
         )
 
         return self
-
-    def _get_system_info(self) -> tuple[Sequence[str], Sequence[Any]]:
-        """Describe the host and user, for the header of generated MIBs.
-
-        Returns:
-            Platform details and the invoking user's passwd entry, with
-            placeholders where either cannot be determined.
-        """
-        platform_info: Sequence[str]
-        user_info: Sequence[Any]
-
-        try:
-            platform_info = os.uname()
-        except AttributeError:
-            platform_info = ("?",) * 6
-
-        try:
-            user_info = getpwuid(os.getuid())
-        except (KeyError, OSError):
-            # No passwd entry for this uid, or no uid to look up.
-            user_info = ("?",) * 7
-
-        return platform_info, user_info
 
     def compile(self, *mibnames: str, **options: Any) -> dict[str, MibStatus]:
         """Transform requested and possibly referred MIBs.
@@ -446,12 +420,9 @@ class MibCompiler:
                 "compiling %s read from %s", mibname, fileInfo.path, extra={"mib": mibname, "path": fileInfo.path}
             )
 
-            platform_info, user_info = self._get_system_info()
-
             comments = [
                 f"ASN.1 source {fileInfo.path}",
                 f"Produced by {packageName}-{packageVersion} at {time.asctime()}",
-                f"On host {platform_info[1]} platform {platform_info[0]} version {platform_info[2]} by user {user_info[0]}",
                 "Using Python version {}".format(sys.version.split("\n")[0]),
             ]
 
@@ -696,11 +667,8 @@ class MibCompiler:
             PySmiError: the index could not be built or stored, unless
                 ``ignoreErrors`` is set.
         """
-        platform_info, user_info = self._get_system_info()
-
         comments = [
             f"Produced by {packageName}-{packageVersion} at {time.asctime()}",
-            f"On host {platform_info[1]} platform {platform_info[0]} version {platform_info[2]} by user {user_info[0]}",
             "Using Python version {}".format(sys.version.split("\n")[0]),
         ]
 
