@@ -22,8 +22,10 @@ class NullCodeGen(AbstractCodeGen):
     """
 
     def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
+        """Discard the module and return an empty result."""
         logger.debug("%s invoked", self.__class__.__name__, extra={"codegen": self.__class__.__name__})
         return MibInfo(oid=None, name="", imported=[]), ""
 
     def genIndex(self, processed: dict[str, Any], **kwargs: Any) -> str:
+        """Return an empty index."""
         return ""

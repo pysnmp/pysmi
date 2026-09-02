@@ -45,6 +45,15 @@ class PyFileWriter(AbstractWriter):
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+        """Write the generated MIB as a Python module.
+
+        Comments are rendered as a module docstring. The module is also
+        byte-compiled when ``pyCompile`` is set, which it is by default; a
+        module that fails to compile is removed rather than left behind.
+
+        Raises:
+            PySmiWriterError: the module could not be written or compiled.
+        """
         if dryRun:
             logger.debug("dry run mode", extra={"mib": mibname})
             return
@@ -98,4 +107,5 @@ class PyFileWriter(AbstractWriter):
         logger.debug("%s stored", mibname, extra={"mib": mibname})
 
     def getData(self, filename: str) -> str:
+        """Return an empty string; compiled modules are not read back."""
         return ""

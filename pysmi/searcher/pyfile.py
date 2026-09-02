@@ -41,6 +41,11 @@ class PyFileSearcher(AbstractSearcher):
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+        """Compare a compiled Python module's timestamp against the MIB source.
+
+        The timestamp is read out of the bytecode header rather than from the
+        filesystem, so touching the file does not make it look current.
+        """
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
             return

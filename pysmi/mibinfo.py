@@ -11,6 +11,13 @@ from typing import Any, Optional
 
 
 class MibInfo:
+    """What PySMI knows about one MIB module.
+
+    Readers fill in where the module came from; code generators fill in what
+    it contains. Every field has a default, and any of them can be set from
+    keyword arguments at construction.
+    """
+
     #: actual MIB name
     name: str = ""
 

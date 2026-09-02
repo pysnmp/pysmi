@@ -80,6 +80,11 @@ class MibStatus(str):
     error: error.PySmiError
 
     def setOptions(self, **kwargs: Any) -> "MibStatus":
+        """Return a copy of this status carrying extra attributes.
+
+        The module-level statuses are shared constants, so detail about one
+        particular MIB is attached to a copy rather than to the original.
+        """
         n = self.__class__(self)
         for k in kwargs:
             setattr(n, k, kwargs[k])
@@ -209,6 +214,12 @@ class MibCompiler:
         return self
 
     def _get_system_info(self) -> tuple[Sequence[str], Sequence[Any]]:
+        """Describe the host and user, for the header of generated MIBs.
+
+        Returns:
+            Platform details and the invoking user's passwd entry, with
+            placeholders where either cannot be determined.
+        """
         platform_info: Sequence[str]
         user_info: Sequence[Any]
 
@@ -672,6 +683,19 @@ class MibCompiler:
         return processed
 
     def buildIndex(self, processedMibs: dict[str, MibStatus], **options: Any) -> None:
+        """Generate and store an index over the MIBs just compiled.
+
+        Args:
+            processedMibs: MIB module names mapped to their compilation results
+
+        Keyword Args:
+            dryRun: build the index but do not store it
+            ignoreErrors: log a failure to build the index instead of raising
+
+        Raises:
+            PySmiError: the index could not be built or stored, unless
+                ``ignoreErrors`` is set.
+        """
         platform_info, user_info = self._get_system_info()
 
         comments = [

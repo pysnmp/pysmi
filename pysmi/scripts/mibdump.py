@@ -30,6 +30,11 @@ _JSON_EXT: Final = ".json"
 
 
 def start() -> None:
+    """Entry point of the ``mibdump`` command.
+
+    Parses the command line, compiles the requested MIBs and reports what
+    happened. Exits with a ``sysexits.h`` status.
+    """
     # sysexits.h
     EX_OK = 0
     EX_USAGE = 64

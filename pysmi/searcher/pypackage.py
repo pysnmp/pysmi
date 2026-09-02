@@ -32,7 +32,9 @@ class _EggLoader(Protocol):
 
     _files: dict[str, tuple[Any, ...]]
 
-    def get_data(self, pathname: str) -> bytes: ...
+    def get_data(self, pathname: str) -> bytes:
+        """Return the bytes of a file inside the package."""
+        ...
 
 
 PY_MAGIC_NUMBER: Final = importlib.util.MAGIC_NUMBER
@@ -63,6 +65,10 @@ class PyPackageSearcher(AbstractSearcher):
 
     @staticmethod
     def _parseDosTime(dosdate: int, dostime: int) -> float:
+        """Convert a packed MS-DOS date and time to a POSIX timestamp.
+
+        ZIP archives, and so importable eggs, store timestamps this way.
+        """
         t = (
             ((dosdate >> 9) & 0x7F) + 1980,  # year
             ((dosdate >> 5) & 0x0F),  # month
@@ -77,6 +83,11 @@ class PyPackageSearcher(AbstractSearcher):
         return time.mktime(t)
 
     def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+        """Look for a compiled MIB inside an importable Python package.
+
+        Handles both packages on the filesystem and packages inside a zipped
+        egg, where timestamps come from the archive directory.
+        """
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
             return

@@ -18,6 +18,26 @@ from pysmi.reader.zipreader import ZipReader
 
 
 def getReadersFromUrls(*sourceUrls: str, **options: Any) -> list[AbstractReader]:
+    """Build readers from MIB source URLs.
+
+    The scheme picks the reader: ``http`` and ``https`` give an
+    :py:class:`~pysmi.reader.httpclient.HttpReader`, ``zip`` or a path ending
+    in ``.zip`` a :py:class:`~pysmi.reader.zipreader.ZipReader`, and ``file``
+    or a bare path a :py:class:`~pysmi.reader.localfile.FileReader`.
+
+    Args:
+        sourceUrls (str): URLs to build readers for
+
+    Keyword Args:
+        options: passed to :py:meth:`~pysmi.reader.base.AbstractReader.setOptions`
+            on every reader built
+
+    Returns:
+        Readers, in the order their URLs were given.
+
+    Raises:
+        PySmiError: a URL uses a scheme no reader handles.
+    """
     readers: list[AbstractReader] = []
     for sourceUrl in sourceUrls:
         mibSource = urlparse.urlparse(sourceUrl)

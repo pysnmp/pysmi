@@ -28,6 +28,11 @@ if TYPE_CHECKING:
 
 
 class PySmiError(Exception):
+    """Base class for every error PySMI raises.
+
+    Subclasses identify which stage failed. Catch this to catch them all.
+    """
+
     #: The error message. Handlers extend it as the error travels up the stack.
     msg: str
 
@@ -76,6 +81,12 @@ class PySmiError(Exception):
 
 
 class PySmiLexerError(PySmiError):
+    """A MIB could not be broken into tokens.
+
+    Raised for input the SMI grammar forbids outright: a reserved word used as
+    an identifier, or an identifier ending in a hyphen.
+    """
+
     #: Line the offending token was read from, or "?" when it is not known.
     lineno: "int | str" = "?"
 
@@ -84,44 +95,88 @@ class PySmiLexerError(PySmiError):
 
 
 class PySmiParserError(PySmiLexerError):
-    pass
+    """A MIB tokenised but did not parse.
+
+    Raised when the token stream does not fit the grammar. Carries the line
+    number of the offending token, inherited from :class:`PySmiLexerError`.
+    """
 
 
 class PySmiSyntaxError(PySmiParserError):
-    pass
+    """A more specific parse failure.
+
+    Nothing in PySMI raises this; it exists so callers can distinguish a
+    syntax error from other parser errors should a parser start reporting one.
+    """
 
 
 class PySmiSearcherError(PySmiError):
-    pass
+    """A searcher could not determine whether a compiled MIB is current.
+
+    Raised when the stored MIB exists but cannot be examined -- unreadable
+    file, or an unparsable timestamp in a compiled module.
+    """
 
 
 class PySmiFileNotModifiedError(PySmiSearcherError):
-    pass
+    """The compiled MIB is already up to date.
+
+    Not a failure: searchers raise it to tell the compiler it can skip this
+    MIB, and the compiler marks the module *untouched*.
+    """
 
 
 class PySmiFileNotFoundError(PySmiSearcherError):
-    pass
+    """No usable compiled MIB was found.
+
+    Raised when nothing is stored for the module, or what is stored is older
+    than the source and must be rebuilt.
+    """
 
 
 class PySmiReaderError(PySmiError):
-    pass
+    """Base class for failures fetching MIB source.
+
+    Nothing raises this directly; catch it to catch any reader failure.
+    """
 
 
 class PySmiReaderFileNotModifiedError(PySmiReaderError):
-    pass
+    """The MIB source is older than the caller asked for.
+
+    Raised when a reader is given a modification time to beat and the source
+    it found does not beat it.
+    """
 
 
 class PySmiReaderFileNotFoundError(PySmiReaderError):
-    pass
+    """A reader has no source for this MIB.
+
+    Every source is tried in turn, so this is the ordinary "not here, try the
+    next one" signal; it only reaches the caller when no source has the MIB.
+    """
 
 
 class PySmiCodegenError(PySmiError):
-    pass
+    """A code generator could not produce output for a MIB.
+
+    Raised when generation reaches an unusable state -- a symbol left without
+    generated code, or an existing MIB index that cannot be read back.
+    """
 
 
 class PySmiSemanticError(PySmiCodegenError):
-    pass
+    """A MIB parsed but does not mean anything consistent.
+
+    Raised for a MIB that is syntactically valid yet self-contradictory: a
+    duplicate symbol, a second module identity, or a reference to a module
+    absent from the symbol table.
+    """
 
 
 class PySmiWriterError(PySmiError):
-    pass
+    """Generated output could not be stored.
+
+    Raised when the destination cannot be created or written, or when a
+    caller-supplied callback raises while receiving the output.
+    """

@@ -27,6 +27,17 @@ YACC_VERSION = [int(x) for x in yacc.__version__.split(".")]
 
 # noinspection PyMethodMayBeStatic,PyIncorrectDocstring
 class SmiV2Parser(AbstractParser):
+    """Parser for the SMIv2 grammar.
+
+    Builds a PLY parser over :py:class:`~pysmi.lexer.smi.SmiV2Lexer`. The
+    generated parse tables are cached on disk when a temporary directory is
+    given, since building them is slow.
+
+    The SMIv1 and relaxed dialects are produced by
+    :py:func:`parserFactory`, which mixes the grammar relaxations below into
+    this class.
+    """
+
     defaultLexer = lexerFactory()
 
     def __init__(self, startSym: str = "mibFile", tempdir: str = "") -> None:
@@ -64,10 +75,23 @@ class SmiV2Parser(AbstractParser):
             )
 
     def reset(self) -> None:
+        """Ready the parser for another module."""
         # Ply requires lexer reinitialization for (at least) resetting lineno
         self.lexer.reset()
 
     def parse(self, data: str, **kwargs: Any) -> list[Any]:
+        """Parse ASN.1 MIB text into one parse tree per module.
+
+        Args:
+            data (str): ASN.1 MIB text
+
+        Returns:
+            One parse tree for each module in the text.
+
+        Raises:
+            PySmiLexerError: the text could not be tokenised.
+            PySmiParserError: the tokens do not fit the grammar.
+        """
         logger.debug(
             'source MIB size is %d characters, first 50 characters are "%s..."',
             len(data),
@@ -1210,6 +1234,12 @@ class SmiV2Parser(AbstractParser):
 
 # noinspection PyIncorrectDocstring
 class SupportSmiV1Keywords:
+    """Accept the SMIv1 keywords SMIv2 dropped.
+
+    Chiefly ``NETWORKADDRESS``, along with the SMIv1 spellings of the types
+    that survived into SMIv2 under other names.
+    """
+
     # NETWORKADDRESS added
     @staticmethod
     def p_importedKeyword(self, p):
@@ -1283,6 +1313,12 @@ class SupportSmiV1Keywords:
 
 # noinspection PyIncorrectDocstring
 class SupportIndex:
+    """Accept a base type in an ``INDEX`` clause.
+
+    SMIv1 lets a table be indexed by a type rather than by an object, so the
+    parser has to admit one where SMIv2 expects an object name.
+    """
+
     # SMIv1 IndexTypes added
     @staticmethod
     def p_Index(self, p):
@@ -1312,6 +1348,8 @@ class SupportIndex:
 
 # noinspection PyIncorrectDocstring
 class CommaInImport:
+    """Tolerate a trailing comma in an ``IMPORTS`` list."""
+
     # comma at the end of import list
     @staticmethod
     def p_importIdentifiers(self, p):
@@ -1329,6 +1367,8 @@ class CommaInImport:
 
 # noinspection PyIncorrectDocstring
 class CommaInSequence:
+    """Tolerate a trailing comma in a ``SEQUENCE`` list."""
+
     # comma at the end of sequence list
     @staticmethod
     def p_sequenceItems(self, p):
@@ -1347,6 +1387,8 @@ class CommaInSequence:
 
 # noinspection PyIncorrectDocstring
 class CommaAndSpaces:
+    """Tolerate commas and spaces used interchangeably as separators."""
+
     # common typos handled (mix of commas and spaces)
     @staticmethod
     def p_enumItems(self, p):
@@ -1368,6 +1410,8 @@ class CommaAndSpaces:
 
 # noinspection PyIncorrectDocstring
 class UppercaseIdentifier:
+    """Tolerate an upper-case identifier where SMI requires lower case."""
+
     # common mistake - using UPPERCASE_IDENTIFIER
     @staticmethod
     def p_enumItem(self, p):
@@ -1378,6 +1422,8 @@ class UppercaseIdentifier:
 
 # noinspection PyIncorrectDocstring
 class LowcaseIdentifier:
+    """Tolerate a lower-case identifier where SMI requires upper case."""
+
     # common mistake - LOWERCASE_IDENTIFIER in symbol's name
     @staticmethod
     def p_notificationTypeClause(self, p):
@@ -1396,6 +1442,8 @@ class LowcaseIdentifier:
 
 # noinspection PyIncorrectDocstring,PyIncorrectDocstring
 class CurlyBracesInEnterprises:
+    """Tolerate curly braces around the ``ENTERPRISE`` symbol of a TRAP-TYPE."""
+
     # common mistake - curly brackets around enterprise symbol
     @staticmethod
     def p_trapTypeClause(self, p):
@@ -1425,6 +1473,8 @@ class CurlyBracesInEnterprises:
 
 # noinspection PyIncorrectDocstring
 class NoCells:
+    """Tolerate a ``SEQUENCE`` with no entries."""
+
     # common mistake - no Cells
     @staticmethod
     def p_CreationPart(self, p):

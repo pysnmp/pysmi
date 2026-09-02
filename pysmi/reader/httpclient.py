@@ -60,6 +60,14 @@ class HttpReader(AbstractReader):
         return self._url
 
     def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+        """Download a MIB over HTTP, trying each candidate file name in turn.
+
+        Raises:
+            PySmiReaderFileNotFoundError: the server has none of the candidate
+                names, or the request failed.
+            PySmiReaderFileNotModifiedError: the server reports the MIB is
+                older than requested.
+        """
         headers = {"Accept": "text/plain", "User-Agent": self._user_agent}
 
         mibname = decode(mibname)

@@ -42,6 +42,11 @@ class CallbackReader(AbstractReader):
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
     def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+        """Ask the user callback for the MIB source.
+
+        Raises:
+            PySmiReaderFileNotFoundError: the callback returned nothing.
+        """
         logger.debug(
             "calling user callback %s for MIB %s",
             self._cbFun,
