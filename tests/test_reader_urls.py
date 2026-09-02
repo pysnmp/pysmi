@@ -6,6 +6,7 @@
 #
 """Tests for picking a reader out of a MIB source URL."""
 
+import os
 import sys
 import unittest
 
@@ -16,22 +17,31 @@ from pysmi.reader.url import getReadersFromUrls
 from pysmi.reader.zipreader import ZipReader
 
 
+def readerPath(reader):
+    """The path a reader was built with, as that platform spells it."""
+    return str(reader).split('"')[1]
+
+
 class GetReadersFromUrlsTestCase(unittest.TestCase):
     """A source URL selects the reader its scheme calls for."""
+
+    def assertPath(self, expected, reader):
+        """The reader holds *expected*, normalised the way the platform does."""
+        self.assertEqual(os.path.normpath(expected), readerPath(reader))
 
     def testWindowsPathIsNotAUrlScheme(self):
         """A drive letter is a path, not a scheme urlparse should honour."""
         (reader,) = getReadersFromUrls(r"C:\Users\me\mibs")
 
         self.assertIsInstance(reader, FileReader)
-        self.assertIn(r"C:\Users\me\mibs", str(reader))
+        self.assertPath(r"C:\Users\me\mibs", reader)
 
     def testWindowsPathWithForwardSlashes(self):
         """The same holds when the path is spelled with forward slashes."""
         (reader,) = getReadersFromUrls("C:/Users/me/mibs")
 
         self.assertIsInstance(reader, FileReader)
-        self.assertIn("C:/Users/me/mibs", str(reader))
+        self.assertPath("C:/Users/me/mibs", reader)
 
     def testWindowsZipPath(self):
         """A drive-lettered path ending in .zip still selects the zip reader."""
@@ -43,14 +53,14 @@ class GetReadersFromUrlsTestCase(unittest.TestCase):
         """A path is taken as it stands, so %XX in a directory name survives."""
         (reader,) = getReadersFromUrls(r"C:\mibs%20dir")
 
-        self.assertIn("%20", str(reader))
+        self.assertIn("%20", readerPath(reader))
 
     def testPosixAbsolutePath(self):
         """An absolute POSIX path selects the file reader."""
         (reader,) = getReadersFromUrls("/home/me/mibs")
 
         self.assertIsInstance(reader, FileReader)
-        self.assertIn("/home/me/mibs", str(reader))
+        self.assertPath("/home/me/mibs", reader)
 
     def testRelativePath(self):
         """A relative path selects the file reader."""
