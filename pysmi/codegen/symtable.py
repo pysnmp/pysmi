@@ -1038,7 +1038,7 @@ class SymtableCodeGen(AbstractCodeGen):
                 self.handlersTable[declr[0]](self, self.prep_data(declr[1:], classmode), classmode)
 
         if self._postponedSyms:
-            raise error.PySmiSemanticError("Unknown parents for symbols: {}".format(", ".join(self._postponedSyms)))
+            raise error.PySmiSemanticError(f"Unknown parents for symbols: {', '.join(self._postponedSyms)}")
 
         for sym in self._parentOids:
             if sym not in self._out and sym not in self._importMap:

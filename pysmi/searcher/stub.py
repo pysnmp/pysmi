@@ -40,9 +40,9 @@ class StubSearcher(AbstractSearcher):
         if mibname in self._mibnames:
             logger.debug("pretend compiled %s exists and is very new", mibname, extra={"mib": mibname})
             raise error.PySmiFileNotModifiedError(
-                "compiled file {} is among {}".format(mibname, ", ".join(self._mibnames)), searcher=self
+                f"compiled file {mibname} is among {', '.join(self._mibnames)}", searcher=self
             )
 
         raise error.PySmiFileNotFoundError(
-            "no compiled file {} found among {}".format(mibname, ", ".join(self._mibnames)), searcher=self
+            f"no compiled file {mibname} found among {', '.join(self._mibnames)}", searcher=self
         )

@@ -66,6 +66,9 @@ select = [
     "S",      # flake8-bandit (security)
     "SIM",    # flake8-simplify
     "BLE",    # flake8-blind-except
+    "G",      # flake8-logging-format (keep logging interpolation lazy)
+    "LOG",    # flake8-logging (logger misuse)
+    "FLY",    # flynt (static str.join -> f-string)
     "RUF",    # ruff-specific rules
 ]
 ignore = [

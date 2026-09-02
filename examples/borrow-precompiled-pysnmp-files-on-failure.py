@@ -44,4 +44,4 @@ mibCompiler.add_borrowers(*[PyFileBorrower(HttpReader("https://pysnmp.github.io/
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs)
 
-print("Results: {}".format(", ".join([f"{x}:{results[x]}" for x in results])))
+print("Results: " + ", ".join([f"{x}:{results[x]}" for x in results]))

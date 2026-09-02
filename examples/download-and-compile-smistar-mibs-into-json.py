@@ -46,4 +46,4 @@ mibCompiler.add_searchers(StubSearcher(*JsonCodeGen.baseMibs))
 # run recursive MIB compilation
 results = mibCompiler.compile(*inputMibs)
 
-print("\n# Results: {}".format(", ".join([f"{x}:{results[x]}" for x in results])))
+print("\n# Results: " + ", ".join([f"{x}:{results[x]}" for x in results]))
