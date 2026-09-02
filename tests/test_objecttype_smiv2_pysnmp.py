@@ -7,7 +7,6 @@
 import sys
 import unittest
 
-from pyasn1.compat.octets import str2octs
 from pysnmp.smi.builder import MibBuilder
 
 from pysmi.codegen.pysnmp import PySnmpCodeGen
@@ -77,7 +76,7 @@ END
 # TODO:revisit
 #    def testObjectTypeReference(self):
 #        self.assertEqual(
-#            self.ctx['testObjectType'].getReference(), str2octs('ABC'),
+#            self.ctx['testObjectType'].getReference(), b'ABC',
 #            'bad REFERENCE'
 #        )
 
@@ -216,7 +215,7 @@ END
 
     def testObjectTypeSyntax(self):
         self.assertEqual(
-            self.ctx['testObjectType'].getSyntax(), str2octs('test value'),
+            self.ctx['testObjectType'].getSyntax(), b'test value',
             'bad DEFVAL'
         )
 
@@ -324,7 +323,7 @@ END
 
     def testObjectTypeSyntax(self):
         self.assertEqual(
-            self.ctx['testObjectType'].getSyntax().clone(''), str2octs(''),
+            self.ctx['testObjectType'].getSyntax().clone(''), b'',
             'bad size constrained SYNTAX'
         )
 
@@ -359,7 +358,7 @@ END
 
     def testObjectTypeSyntax(self):
         self.assertEqual(
-            self.ctx['testObjectType'].getSyntax().clone(('set',)), str2octs('@'),
+            self.ctx['testObjectType'].getSyntax().clone(('set',)), b'@',
             'bad BITS SYNTAX'
         )
 

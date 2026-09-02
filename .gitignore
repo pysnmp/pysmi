@@ -31,3 +31,4 @@ cache
 *.log
 index.*
 report.md
+.DS_Store
