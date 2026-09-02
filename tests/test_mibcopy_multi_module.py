@@ -161,6 +161,51 @@ class MibCopyMultiModuleTestCase(unittest.TestCase):
         self.assertTrue((self.dst / "FIRST-MIB").exists())
         self.assertIn("copied: 1", output)
 
+    def testCopyFailureIsReportedAndCounted(self):
+        """A destination that cannot be written is a failure, not a silent skip."""
+        (self.src / "BOTH.mib").write_text(FIRST + "\n" + SECOND)
+
+        # A file where a directory has to be: the copy raises NotADirectoryError
+        # on every platform, without needing permissions the runner may ignore.
+        blocked = self.dst / "SECOND-MIB"
+        blocked.write_text("")
+        blocked.chmod(0o444)
+        # Windows will not remove a read-only file, so put it back for teardown.
+        self.addCleanup(blocked.chmod, 0o644)
+
+        code, output = self.copy()
+
+        self.assertEqual(0, code)
+        self.assertIn("FAILED", output)
+        self.assertIn("failed: 1", output)
+        # The module that could be written still was.
+        self.assertIn("copied: 1", output)
+        self.assertTrue((self.dst / "FIRST-MIB").is_file())
+
+    def testRevisionOfAModuleSeenTwiceIsRemembered(self):
+        """Two files defining one module compare against the revision in hand.
+
+        The first copy records what the destination now holds, so the second
+        file is judged against that rather than re-reading the destination.
+        """
+        (self.src / "ONE.mib").write_text(FIRST)
+        (self.src / "TWO.mib").write_text(FIRST)
+
+        _, output = self.copy()
+
+        self.assertEqual(1, output.count("COPIED") - output.count("NOT COPIED"))
+        self.assertIn("copied: 1", output)
+
+    def testVerboseNamesBothModules(self):
+        """--verbose reports each module it copies and where it puts it."""
+        (self.src / "BOTH.mib").write_text(FIRST + "\n" + SECOND)
+
+        _, output = runMibcopy("--verbose", f"--mib-source={self.base}", str(self.src), str(self.dst))
+
+        self.assertIn("FIRST-MIB", output)
+        self.assertIn("SECOND-MIB", output)
+        self.assertIn("Copying", output)
+
     def testUnparsableFileIsReportedAndSkipped(self):
         """A file that holds no MIB fails on its own, without stopping the run."""
         (self.src / "BROKEN.mib").write_text("this is not a MIB at all\n")
