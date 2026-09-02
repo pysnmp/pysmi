@@ -21,7 +21,13 @@
     },
   ],
   plugins: [
-    "@semantic-release/commit-analyzer",
+    # The default angular preset does not parse the "!" breaking-change
+    # marker at all, so "refactor!:" and "feat!:" were read as no release.
+    [
+      "@semantic-release/commit-analyzer",
+      { preset: "conventionalcommits"
+      },
+    ],
     [
       "@google/semantic-release-replace-plugin",
       {
@@ -45,7 +51,11 @@
         ]
       }
     ],
-    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/release-notes-generator",
+      { preset: "conventionalcommits"
+      },
+    ],
     [
       "@semantic-release/exec",
       {
