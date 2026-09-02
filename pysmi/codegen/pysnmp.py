@@ -287,7 +287,7 @@ for _%(name)s_obj in [%(objects)s]:
         for module in sorted(imports):
             symbols: tuple[Any, ...] = ()
 
-            for symbol in set(imports[module]):
+            for symbol in sorted(set(imports[module])):
                 symbols += self.sym_trans(symbol)
 
             if symbols:
@@ -312,7 +312,7 @@ for _%(name)s_obj in [%(objects)s]:
         Returns:
             The export statements, or an empty string when nothing is exported.
         """
-        exports = list(self._exports)
+        exports = sorted(self._exports)
         if not exports:
             return ""
 
