@@ -26,6 +26,20 @@ logger = logging.getLogger(__name__)
 
 
 class SymtableCodeGen(AbstractCodeGen):
+    """Collect the symbols a MIB module defines and refers to.
+
+    This generator renders no source. It walks the same parse tree as the
+    other backends, but instead of emitting code it records, for each symbol,
+    its type, OID, syntax and the symbols it depends on. The result is the
+    symbol table that :py:class:`~pysmi.codegen.pysnmp.PySnmpCodeGen` and
+    :py:class:`~pysmi.codegen.jsondoc.JsonCodeGen` consult to resolve
+    references into other modules.
+
+    Because only names, OIDs, types and parentage matter here, the handlers
+    for purely descriptive clauses (DESCRIPTION, REFERENCE, UNITS and the
+    rest) deliberately return an empty string.
+    """
+
     symsTable = {
         "MODULE-IDENTITY": ("ModuleIdentity",),
         "OBJECT-TYPE": ("MibScalar", "MibTable", "MibTableRow", "MibTableColumn"),
@@ -109,6 +123,15 @@ class SymtableCodeGen(AbstractCodeGen):
         self.genRules = {"text": True}
 
     def symTrans(self, symbol: str) -> tuple[Any, ...]:
+        """Map an SMI construct name onto the MIB symbols it introduces.
+
+        Args:
+            symbol: name as it appears in the MIB, such as ``OBJECT-TYPE``
+
+        Returns:
+            The symbols that construct defines, or the name unchanged when it
+            is not an SMI construct.
+        """
         if symbol in self.symsTable:
             return self.symsTable[symbol]
 
@@ -116,12 +139,37 @@ class SymtableCodeGen(AbstractCodeGen):
 
     @staticmethod
     def transOpers(symbol: str) -> Any:
+        """Turn a MIB symbol into a usable Python identifier.
+
+        Hyphens become underscores, and a name that collides with a Python
+        keyword is prefixed with ``pysmi_``.
+
+        Args:
+            symbol: symbol name as written in the MIB
+
+        Returns:
+            The Python-safe form of the name.
+        """
         if iskeyword(symbol):
             symbol = "pysmi_" + symbol
 
         return symbol.replace("-", "_")
 
     def prepData(self, pdata: Any, classmode: bool = False) -> list[Any]:
+        """Convert a parse subtree into the values a clause handler expects.
+
+        Each element that is a tagged tuple is dispatched through
+        :py:attr:`handlersTable` and replaced by whatever that handler returns.
+        Children are converted before their parent, so by the time a clause
+        handler runs, its ``data`` holds finished values rather than raw nodes.
+
+        Args:
+            pdata: parse subtree
+            classmode: the subtree sits inside a type declaration
+
+        Returns:
+            One converted value per element of the subtree.
+        """
         data = []
         for el in pdata:
             if not isinstance(el, tuple):
@@ -139,6 +187,19 @@ class SymtableCodeGen(AbstractCodeGen):
 
     def genImports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
         # convertion to SNMPv2
+        """Record which module each imported symbol comes from.
+
+        SMIv1 imports are rewritten to their SMIv2 equivalents, and the implicit
+        imports every module needs are merged in, before the symbol-to-module
+        map is built.
+
+        Args:
+            imports: imported symbols, keyed by the module they come from
+
+        Returns:
+            An empty mapping (this backend renders nothing) and the names of
+            the modules imported, sorted.
+        """
         toDel = []
         for module in list(imports):
             if module in self.convertImportv2:
@@ -176,6 +237,17 @@ class SymtableCodeGen(AbstractCodeGen):
         return {}, tuple(sorted(imports))
 
     def allParentsExists(self, parents: Sequence[Any]) -> bool:
+        """Report whether every parent of a symbol is already known.
+
+        A parent counts as known if this module has defined it, imports it, or
+        it is a base type or one of the conceptual-table classes.
+
+        Args:
+            parents: symbols the pending symbol depends on
+
+        Returns:
+            True when all of them can be resolved.
+        """
         parentsExists = True
         for parent in parents:
             if not (
@@ -191,6 +263,20 @@ class SymtableCodeGen(AbstractCodeGen):
         return parentsExists
 
     def regSym(self, symbol: str, symProps: dict[str, Any], parents: Sequence[Any] = ()) -> None:
+        """Add a symbol to the table, or hold it until its parents are known.
+
+        MIBs may define a symbol before the symbols it derives from. A symbol
+        whose parents are not all known yet is set aside and registered later,
+        once they are.
+
+        Args:
+            symbol: Python-safe symbol name
+            symProps: what is known about the symbol: type, OID, syntax
+            parents: symbols it derives from
+
+        Raises:
+            PySmiSemanticError: the module defines this symbol twice.
+        """
         if symbol in self._out or symbol in self._postponedSyms:  # add to strict mode - or symbol in self._importMap:
             raise error.PySmiSemanticError(f"Duplicate symbol found: {symbol}")
 
@@ -203,6 +289,11 @@ class SymtableCodeGen(AbstractCodeGen):
             self._postponedSyms[symbol] = (parents, symProps)
 
     def regPostponedSyms(self) -> None:
+        """Register any held-back symbols whose parents have since appeared.
+
+        Registering one symbol can resolve another, so this runs after every
+        successful registration.
+        """
         regedSyms = []
         for sym, val in self._postponedSyms.items():
             parents, symProps = val
@@ -219,6 +310,12 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genAgentCapabilities(self, data: Any, classmode: bool = False) -> None:
+        """Record an AGENT-CAPABILITIES clause.
+
+        Args:
+            data: converted clause values
+            classmode: unused; the clause never appears in a type declaration
+        """
         origName, _release, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
@@ -229,6 +326,12 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genModuleIdentity(self, data: Any, classmode: bool = False) -> None:
+        """Record a MODULE-IDENTITY clause and note the module's latest revision.
+
+        Args:
+            data: converted clause values
+            classmode: unused; the clause never appears in a type declaration
+        """
         origName, _lastUpdated, _organization, _contactInfo, _description, revisions, oid = data
 
         pysmiName = self.transOpers(origName)
@@ -242,6 +345,12 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genModuleCompliance(self, data: Any, classmode: bool = False) -> None:
+        """Record a MODULE-COMPLIANCE clause.
+
+        Args:
+            data: converted clause values
+            classmode: unused; the clause never appears in a type declaration
+        """
         origName, _status, _description, _reference, _compliances, oid = data
 
         pysmiName = self.transOpers(origName)
@@ -252,6 +361,12 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genNotificationGroup(self, data: Any, classmode: bool = False) -> None:
+        """Record a NOTIFICATION-GROUP clause.
+
+        Args:
+            data: converted clause values
+            classmode: unused; the clause never appears in a type declaration
+        """
         origName, _objects, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
@@ -262,6 +377,12 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genNotificationType(self, data: Any, classmode: bool = False) -> None:
+        """Record a NOTIFICATION-TYPE clause.
+
+        Args:
+            data: converted clause values
+            classmode: unused; the clause never appears in a type declaration
+        """
         origName, _objects, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
@@ -272,6 +393,12 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjectGroup(self, data: Any, classmode: bool = False) -> None:
+        """Record an OBJECT-GROUP clause.
+
+        Args:
+            data: converted clause values
+            classmode: unused; the clause never appears in a type declaration
+        """
         origName, _objects, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
@@ -282,6 +409,12 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjectIdentity(self, data: Any, classmode: bool = False) -> None:
+        """Record an OBJECT-IDENTITY clause.
+
+        Args:
+            data: converted clause values
+            classmode: unused; the clause never appears in a type declaration
+        """
         origName, _status, _description, _reference, oid = data
 
         pysmiName = self.transOpers(origName)
@@ -292,6 +425,17 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genObjectType(self, data: Any, classmode: bool = False) -> None:
+        """Record an OBJECT-TYPE clause and the symbols it depends on.
+
+        The object's syntax names its parent type, and AUGMENTS names another
+        row, so both are registered as parents. An SMIv1 index that names a bare
+        type rather than a column also causes a synthetic column to be recorded
+        here, matching what :py:meth:`genIndexClause` worked out.
+
+        Args:
+            data: converted clause values
+            classmode: unused; the clause never appears in a type declaration
+        """
         origName, syntax, _units, _maxaccess, _status, _description, _reference, augmention, index, defval, oid = data
 
         pysmiName = self.transOpers(origName)
@@ -329,6 +473,16 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genTrapType(self, data: Any, classmode: bool = False) -> None:
+        """Record a TRAP-TYPE clause as a notification.
+
+        SMIv1 traps have no OID of their own; theirs is built from the
+        enterprise OID, a zero, and the trap number, which is how SMIv2 names
+        the same notification.
+
+        Args:
+            data: converted clause values
+            classmode: unused; the clause never appears in a type declaration
+        """
         origName, enterprise, _variables, _description, _reference, value = data
 
         pysmiName = self.transOpers(origName)
@@ -339,6 +493,15 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genTypeDeclaration(self, data: Any, classmode: bool = False) -> None:
+        """Record a type declaration and the type it derives from.
+
+        A declaration with no parent type is a SEQUENCE, which defines no symbol
+        of its own and is skipped.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+        """
         origName, declaration = data
 
         pysmiName = self.transOpers(origName)
@@ -356,6 +519,12 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genValueDeclaration(self, data: Any, classmode: bool = False) -> None:
+        """Record a plain OID assignment.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+        """
         origName, oid = data
 
         pysmiName = self.transOpers(origName)
@@ -367,20 +536,56 @@ class SymtableCodeGen(AbstractCodeGen):
     # Subparts generation functions
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
     def genBitNames(self, data: Any, classmode: bool = False) -> Any:
+        """Return the names listed in a BITS or enumeration clause.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The names, in the order they were written.
+        """
         names = data[0]
         return names
 
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
     def genBits(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        """Return the syntax of a BITS clause.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The ``Bits`` type, with no defining module, and the bits
+            themselves, each a name and its value.
+        """
         bits = data[0]
         return ("Bits", ""), bits
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genCompliances(self, data: Any, classmode: bool = False) -> str:
+        """Ignore a MODULE-COMPLIANCE body; it defines no symbols.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     # noinspection PyUnusedLocal
     def genConceptualTable(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        """Note the row a table contains and return the table's syntax.
+
+        The row name is remembered so that :py:meth:`genRow` can recognise it
+        later as a row rather than an ordinary type.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The ``MibTable`` type, with no defining module, and no subtype.
+        """
         row = data[0]
         if row[0] and row[0][0]:
             self._rows.add(self.transOpers(row[0][0]))
@@ -388,14 +593,36 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genContactInfo(self, data: Any, classmode: bool = False) -> str:
+        """Ignore CONTACT-INFO text.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genDisplayHint(self, data: Any, classmode: bool = False) -> str:
+        """Ignore a DISPLAY-HINT.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     # noinspection PyUnusedLocal
     def genDefVal(self, data: Any, classmode: bool = False) -> str:  # XXX should be fixed, see pysnmp.py
+        """Render a DEFVAL as the Python source for that value.
+
+        Numbers, hexadecimal and binary strings, quoted strings, bit lists and
+        references to other symbols each render differently.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            Python source for the default value.
+        """
         defval = data[0]
         val: Any
 
@@ -423,21 +650,64 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genDescription(self, data: Any, classmode: bool = False) -> str:
+        """Ignore DESCRIPTION text.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     def genReference(self, data: Any, classmode: bool = False) -> str:
+        """Ignore REFERENCE text.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     def genStatus(self, data: Any, classmode: bool = False) -> str:
+        """Ignore a STATUS clause.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     def genProductRelease(self, data: Any, classmode: bool = False) -> str:
+        """Ignore a PRODUCT-RELEASE clause.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     def genEnumSpec(self, data: Any, classmode: bool = False) -> list[Any]:
+        """Return the names of an enumeration's members.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The members, each a name and its value.
+        """
         return self.genBits(data, classmode=classmode)[1]
 
     def genIndexClause(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        """Work out which INDEX entries need a synthetic column.
+
+        SMIv1 allows an index to name a bare type instead of a column. Such an
+        index has no column to point at, so one is invented here and recorded by
+        :py:meth:`genObjectType`.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The prefix used to name synthetic columns, the sub-identifier of
+            each one, and its syntax.
+        """
         indexes = data[0]
 
         fakeIdxName = "pysmiFakeCol"
@@ -459,18 +729,49 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genIntegerSubType(self, data: Any, classmode: bool = False) -> str:
+        """Ignore an integer range restriction.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genMaxAccess(self, data: Any, classmode: bool = False) -> str:
+        """Ignore a MAX-ACCESS clause.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genOctetStringSubType(self, data: Any, classmode: bool = False) -> str:
+        """Ignore an octet string size restriction.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     # noinspection PyUnusedLocal
     def genOid(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        """Resolve an OID into sub-identifiers and the modules they come from.
+
+        Each name in the OID is recorded as a parent, so that a symbol is not
+        registered before the symbols its OID is relative to.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            One element per sub-identifier: a number, or a name paired with the
+            module that defines it.
+
+        Raises:
+            PySmiSemanticError: a sub-identifier is neither a name nor a number.
+        """
         out: tuple[Any, ...] = ()
         for el in data[0]:
             if isinstance(el, str):
@@ -491,38 +792,110 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genObjects(self, data: Any, classmode: bool = False) -> str:
+        """Ignore an OBJECTS or NOTIFICATIONS list.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genTime(self, data: Any, classmode: bool = False) -> str:
+        """Ignore a timestamp.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genLastUpdated(self, data: Any, classmode: bool = False) -> str:
+        """Return the LAST-UPDATED timestamp.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The timestamp as written.
+        """
         return data[0]
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genOrganization(self, data: Any, classmode: bool = False) -> str:
+        """Return the ORGANIZATION text.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The organization as written.
+        """
         return data[0]
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genRevisions(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        """Return the module's most recent revision.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The revision date and its description.
+        """
         lastRevision, lastDescription = data[0][0][0], data[0][0][1][1]
         return lastRevision, lastDescription
 
     def genRow(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        """Return the syntax of a table row.
+
+        A name already seen as a table's row is a row; anything else is an
+        ordinary type and is resolved as one.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The ``MibTableRow`` type with no subtype, or whatever
+            :py:meth:`genSimpleSyntax` makes of the name.
+        """
         row = data[0]
         row = self.transOpers(row)
         return (row in self._rows and (("MibTableRow", ""), "")) or self.genSimpleSyntax(data, classmode=classmode)
 
     # noinspection PyUnusedLocal
     def genSequence(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        """Record the columns of a SEQUENCE.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            Empty type and subtype; a SEQUENCE defines no symbol itself.
+        """
         cols = data[0]
         self._cols.update(cols)
         return "", ""
 
     # noinspection PyUnusedLocal
     def genSimpleSyntax(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        """Resolve a type name to the type and the module that defines it.
+
+        SMIv1 type names are mapped to their SMIv2 equivalents. A base type has
+        no defining module; anything else is attributed to the module it was
+        imported from, or to this one.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The type paired with its module, and any subtype restriction.
+        """
         objType = data[0]
 
         module = ""
@@ -539,6 +912,18 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
     def genTypeDeclarationRHS(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        """Return the parent type and attributes of a type declaration.
+
+        A textual convention carries display hint, status and text before its
+        syntax; a plain declaration is just the syntax.
+
+        Args:
+            data: converted clause values
+            classmode: unused
+
+        Returns:
+            The type derived from and its attributes.
+        """
         if len(data) == 1:
             parentType, attrs = data[0]  # just syntax
 
@@ -551,6 +936,11 @@ class SymtableCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genUnits(self, data: Any, classmode: bool = False) -> str:
+        """Ignore a UNITS clause.
+
+        Returns:
+            An empty string.
+        """
         return ""
 
     handlersTable = {
@@ -597,6 +987,28 @@ class SymtableCodeGen(AbstractCodeGen):
     }
 
     def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, dict[str, Any]]:
+        """Build the symbol table for one parsed MIB module.
+
+        Args:
+            ast: parse tree of a single module
+            symbolTable: unused; this backend builds the table rather than
+                consulting one
+
+        Keyword Args:
+            genTexts: accepted for interface compatibility; texts are not
+                recorded in the symbol table
+
+        Returns:
+            The module's :py:class:`~pysmi.mibinfo.MibInfo` and its symbol
+            table. Alongside one entry per symbol, the table carries the order
+            symbols were defined in, and the names of the table columns and
+            rows the module declares.
+
+        Raises:
+            PySmiSemanticError: a symbol is defined twice, an OID names a
+                symbol that is never defined, or a symbol derives from one
+                that is.
+        """
         self.genRules["text"] = kwargs.get("genTexts", False)
         self._rows.clear()
         self._cols.clear()
