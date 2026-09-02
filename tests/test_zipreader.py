@@ -2738,7 +2738,7 @@ class ZipReaderTestCase(unittest.TestCase):
 
             zipReader = ZipReader(filename)
 
-            _mibinfo, data = zipReader.getData("testA")
+            _mibinfo, data = zipReader.get_data("testA")
 
             self.assertEqual(data, "A\n")
 
@@ -2756,7 +2756,7 @@ class ZipReaderTestCase(unittest.TestCase):
 
             zipReader = ZipReader(filename)
 
-            _mibinfo, data = zipReader.getData("testC")
+            _mibinfo, data = zipReader.get_data("testC")
 
             self.assertEqual(data, "C\n")
 

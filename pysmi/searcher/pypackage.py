@@ -15,6 +15,7 @@ import time
 from typing import Any, Final, Protocol, cast
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
 from pysmi.searcher.base import AbstractSearcher
 from pysmi.searcher.pyfile import PyFileSearcher
@@ -42,6 +43,7 @@ SOURCE_SUFFIXES: Final = importlib.machinery.SOURCE_SUFFIXES
 BYTECODE_SUFFIXES: Final = importlib.machinery.BYTECODE_SUFFIXES
 
 
+@deprecated_camel_case
 class PyPackageSearcher(AbstractSearcher):
     """Figures out if given Python module (source or bytecode) exists in given
     Python package.
@@ -82,7 +84,7 @@ class PyPackageSearcher(AbstractSearcher):
         )  # dst
         return time.mktime(t)
 
-    def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
         """Look for a compiled MIB inside an importable Python package.
 
         Handles both packages on the filesystem and packages inside a zipped
@@ -119,7 +121,7 @@ class PyPackageSearcher(AbstractSearcher):
                     self._package,
                     extra={"mib": mibname, "package": self._package},
                 )
-                return PyFileSearcher(os.path.split(packageFile)[0]).fileExists(mibname, mtime, rebuild=rebuild)
+                return PyFileSearcher(os.path.split(packageFile)[0]).file_exists(mibname, mtime, rebuild=rebuild)
 
             else:
                 raise error.PySmiFileNotFoundError(f"{self._package} is neither importable nor a file", searcher=self)

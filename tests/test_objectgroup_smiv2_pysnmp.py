@@ -37,8 +37,8 @@ class ObjectGroupTestCase(unittest.TestCase):
 
     def setUp(self):
         ast = parserFactory(**smiV2)().parse(self.__class__.__doc__)[0]
-        mibInfo, symtable = SymtableCodeGen().genCode(ast, {}, genTexts=True)
-        self.mibInfo, pycode = PySnmpCodeGen().genCode(ast, {mibInfo.name: symtable}, genTexts=True)
+        mibInfo, symtable = SymtableCodeGen().gen_code(ast, {}, genTexts=True)
+        self.mibInfo, pycode = PySnmpCodeGen().gen_code(ast, {mibInfo.name: symtable}, genTexts=True)
         codeobj = compile(pycode, "test", "exec")
 
         mibBuilder = MibBuilder()

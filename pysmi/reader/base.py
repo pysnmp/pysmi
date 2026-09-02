@@ -10,9 +10,11 @@ import os
 from collections.abc import Iterable
 from typing import Any
 
+from pysmi._aliases import deprecated_camel_case
 from pysmi.mibinfo import MibInfo
 
 
+@deprecated_camel_case
 class AbstractReader:
     """Base class for MIB source readers.
 
@@ -20,8 +22,8 @@ class AbstractReader:
     server, a ZIP archive. The compiler tries its readers in the order they
     were added and takes the first that produces the module.
 
-    Subclasses implement :py:meth:`getData`. The file name guessing in
-    :py:meth:`getMibVariants` is shared by all of them, since a MIB module is
+    Subclasses implement :py:meth:`get_data`. The file name guessing in
+    :py:meth:`get_mib_variants` is shared by all of them, since a MIB module is
     named inside the file but a reader only has the file name to go on.
     """
 
@@ -31,7 +33,7 @@ class AbstractReader:
     exts: list[str] = ["", os.path.extsep + "txt", os.path.extsep + "mib", os.path.extsep + "my"]  # noqa: RUF012
     exts.extend([x.upper() for x in exts if x])
 
-    def setOptions(self, **kwargs: Any) -> "AbstractReader":
+    def set_options(self, **kwargs: Any) -> "AbstractReader":
         """Set reader options as attributes.
 
         Keyword Args:
@@ -44,7 +46,7 @@ class AbstractReader:
             setattr(self, k, kwargs[k])
         return self
 
-    def getMibVariants(self, mibname: str, **options: Any) -> Iterable[tuple[str, str]]:
+    def get_mib_variants(self, mibname: str, **options: Any) -> Iterable[tuple[str, str]]:
         """Guess the file names a MIB module might be stored under.
 
         A module is named inside the file, not by it, so the same MIB turns up
@@ -84,14 +86,14 @@ class AbstractReader:
 
         return ((x, x + y) for x in filenames for y in options.get("exts", self.exts))
 
-    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Fetch the ASN.1 source of a MIB module.
 
         Args:
             mibname (str): MIB module name to fetch
 
         Keyword Args:
-            options: passed through to :py:meth:`getMibVariants`
+            options: passed through to :py:meth:`get_mib_variants`
 
         Returns:
             The module's :py:class:`~pysmi.mibinfo.MibInfo` and its ASN.1 text.

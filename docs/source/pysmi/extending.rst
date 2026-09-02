@@ -39,7 +39,7 @@ Code generators
 ---------------
 
 .. autoclass:: pysmi.codegen.base.AbstractCodeGen
-   :members: genCode, genIndex, isBinary, isHex, str2int
+   :members: gen_code, gen_index, is_binary, is_hex, str2int
 
 Borrowers
 ---------

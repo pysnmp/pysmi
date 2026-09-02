@@ -12,12 +12,14 @@ from collections.abc import Callable
 from typing import Any
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.mibinfo import MibInfo
 from pysmi.reader.base import AbstractReader
 
 logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class CallbackReader(AbstractReader):
     """Fetch ASN.1 MIB text by name by calling user-defined callable.
 
@@ -41,7 +43,7 @@ class CallbackReader(AbstractReader):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
-    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Ask the user callback for the MIB source.
 
         Raises:

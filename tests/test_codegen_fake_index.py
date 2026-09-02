@@ -67,7 +67,7 @@ def compileSmiV1Mib(codegen):
         codegen,
         CallbackWriter(lambda mibname, data, ctx: written.update({mibname: data})),
     )
-    compiler.addSources(CallbackReader(read))
+    compiler.add_sources(CallbackReader(read))
 
     # The base MIBs cannot be reached from here, and their absence would
     # otherwise roll back the one MIB that did compile.
@@ -88,7 +88,7 @@ class FakeIndexSymbolTestCase(unittest.TestCase):
         codegen = JsonCodeGen()
         codegen.moduleName = ["TEST-MIB"]
 
-        _indexes, fakeStrlist, fakeSyms = codegen.genTableIndex(SMIV1_BARE_TYPE_INDEX)
+        _indexes, fakeStrlist, fakeSyms = codegen.gen_table_index(SMIV1_BARE_TYPE_INDEX)
 
         self.assertEqual(fakeSyms, ["pysmiFakeCol1000"])
 
@@ -107,7 +107,7 @@ class FakeIndexSymbolTestCase(unittest.TestCase):
         codegen = PySnmpCodeGen()
         codegen.moduleName = ["TEST-MIB"]
 
-        _indexStr, fakeStrlist, fakeSyms = codegen.genTableIndex(SMIV1_BARE_TYPE_INDEX)
+        _indexStr, fakeStrlist, fakeSyms = codegen.gen_table_index(SMIV1_BARE_TYPE_INDEX)
 
         self.assertEqual(fakeSyms, ["pysmiFakeCol1000"])
         self.assertIn("MibTableColumn", fakeStrlist[0])
@@ -119,8 +119,8 @@ class FakeIndexSymbolTestCase(unittest.TestCase):
         pysnmpGen = PySnmpCodeGen()
         pysnmpGen.moduleName = ["TEST-MIB"]
 
-        _a, _b, jsonSyms = jsonGen.genTableIndex(SMIV1_BARE_TYPE_INDEX)
-        _c, _d, pysnmpSyms = pysnmpGen.genTableIndex(SMIV1_BARE_TYPE_INDEX)
+        _a, _b, jsonSyms = jsonGen.gen_table_index(SMIV1_BARE_TYPE_INDEX)
+        _c, _d, pysnmpSyms = pysnmpGen.gen_table_index(SMIV1_BARE_TYPE_INDEX)
 
         self.assertEqual(jsonSyms, pysnmpSyms)
 

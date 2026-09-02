@@ -9,11 +9,13 @@
 import logging
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.searcher.base import AbstractSearcher
 
 logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class StubSearcher(AbstractSearcher):
     """Figures out if given MIB module is present in a fixed list of modules."""
 
@@ -29,7 +31,7 @@ class StubSearcher(AbstractSearcher):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}"
 
-    def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
         """Report the configured modules as permanently up to date.
 
         These MIBs are supplied by the target implementation, so they must

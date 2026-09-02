@@ -28,10 +28,10 @@ dstDirectory = ".pysnmp-mibs"
 mibCompiler = MibCompiler(NullParser(), NullCodeGen(), PyFileWriter(dstDirectory))
 
 # check compiled/borrowed MIBs in our own productions
-mibCompiler.addSearchers(PyFileSearcher(dstDirectory))
+mibCompiler.add_searchers(PyFileSearcher(dstDirectory))
 
 # search for precompiled MIBs at Web sites
-mibCompiler.addBorrowers(*[PyFileBorrower(HttpReader("https://pysnmp.github.io/mibs/notexts/@mib@"))])
+mibCompiler.add_borrowers(*[PyFileBorrower(HttpReader("https://pysnmp.github.io/mibs/notexts/@mib@"))])
 
 # run MIB compilation
 results = mibCompiler.compile(*inputMibs)

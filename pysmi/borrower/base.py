@@ -14,10 +14,12 @@ if TYPE_CHECKING:
     from pysmi.reader.base import AbstractReader
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 
 logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class AbstractBorrower:
     """Base class for borrowers of pre-compiled MIBs.
 
@@ -48,7 +50,7 @@ class AbstractBorrower:
     def __str__(self) -> str:
         return f"{self.__class__.__name__}{{{self._reader}, genTexts={self.genTexts}, exts={self.exts}}}"
 
-    def setOptions(self, **kwargs: Any) -> "AbstractBorrower":
+    def set_options(self, **kwargs: Any) -> "AbstractBorrower":
         """Set options on this borrower and on the reader behind it.
 
         Keyword Args:
@@ -57,14 +59,14 @@ class AbstractBorrower:
         Returns:
             The borrower, so calls can be chained.
         """
-        self._reader.setOptions(**kwargs)
+        self._reader.set_options(**kwargs)
 
         for k in kwargs:
             setattr(self, k, kwargs[k])
 
         return self
 
-    def getData(self, mibname: str, **options: Any) -> tuple["MibInfo", str]:
+    def get_data(self, mibname: str, **options: Any) -> tuple["MibInfo", str]:
         """Fetch a pre-compiled MIB module.
 
         Args:
@@ -101,4 +103,4 @@ class AbstractBorrower:
         if "exts" not in options:
             options["exts"] = self.exts
 
-        return self._reader.getData(mibname, **options)
+        return self._reader.get_data(mibname, **options)

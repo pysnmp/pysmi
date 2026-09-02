@@ -9,6 +9,7 @@
 from typing import Any, ClassVar, Final
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.mibinfo import MibInfo
 
 _RFC1155_RFC1065_KEY: Final = "RFC1155-SMI/RFC1065-SMI"
@@ -29,6 +30,7 @@ def updateDict(d1: dict[Any, Any], d2: Any) -> dict[Any, Any]:
     return d1
 
 
+@deprecated_camel_case
 class AbstractCodeGen:
     """Base class for code generators.
 
@@ -37,7 +39,7 @@ class AbstractCodeGen:
     keeps the tables describing which modules are supplied by the target
     implementation rather than compiled, and how SMI base types map onto it.
 
-    Subclasses implement :py:meth:`genCode` and :py:meth:`genIndex`.
+    Subclasses implement :py:meth:`gen_code` and :py:meth:`gen_index`.
     """
 
     # never compile these, they either:
@@ -293,7 +295,7 @@ class AbstractCodeGen:
         "RFC-1215": {"TRAP-TYPE": [("SNMPv2-SMI", "TRAP-TYPE")]},
     }
 
-    def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, Any]:
+    def gen_code(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, Any]:
         """Render one parsed MIB module.
 
         Args:
@@ -318,7 +320,7 @@ class AbstractCodeGen:
         """
         raise NotImplementedError()
 
-    def genIndex(self, processed: dict[str, Any], **kwargs: Any) -> str:
+    def gen_index(self, processed: dict[str, Any], **kwargs: Any) -> str:
         """Render an index over the modules compiled so far.
 
         The index maps OIDs onto the modules that define them, so a consumer
@@ -337,12 +339,12 @@ class AbstractCodeGen:
         raise NotImplementedError()
 
     @staticmethod
-    def isBinary(s: Any) -> Any:
+    def is_binary(s: Any) -> Any:
         """Tell whether *s* is an SMI binary string such as ``\'1010\'b``."""
         return isinstance(s, str) and s[0] == "'" and s[-2:] in ("'b", "'B")
 
     @staticmethod
-    def isHex(s: Any) -> Any:
+    def is_hex(s: Any) -> Any:
         """Tell whether *s* is an SMI hex string such as ``\'0a1b\'h``."""
         return isinstance(s, str) and s[0] == "'" and s[-2:] in ("'h", "'H")
 
@@ -354,13 +356,13 @@ class AbstractCodeGen:
         Raises:
             PySmiSemanticError: the literal has no digits between its quotes.
         """
-        if self.isBinary(s):
+        if self.is_binary(s):
             if s[1:-2]:
                 return int(s[1:-2], 2)
             else:
                 raise error.PySmiSemanticError("empty binary string to int conversion")
 
-        elif self.isHex(s):
+        elif self.is_hex(s):
             if s[1:-2]:
                 return int(s[1:-2], 16)
             else:

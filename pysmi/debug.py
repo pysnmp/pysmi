@@ -25,6 +25,7 @@ import warnings
 from typing import Any, ClassVar, Final, Optional
 
 from pysmi import __version__, error
+from pysmi._aliases import deprecated_camel_case
 
 flagNone: Final = 0x0000
 flagSearcher: Final = 0x0001
@@ -133,6 +134,7 @@ def enableDebugLogging(*categories: str, handler: logging.Handler | None = None)
     logging.getLogger(__name__).debug("running pysmi version %s", __version__, extra={"version": __version__})
 
 
+@deprecated_camel_case
 class Printer:
     """Write debug messages to a :mod:`logging` logger.
 
@@ -173,7 +175,7 @@ class Printer:
         """Describe where this printer writes to."""
         return "<python built-in logging>"
 
-    def getCurrentLogger(self) -> logging.Logger:
+    def get_current_logger(self) -> logging.Logger:
         """Return the underlying :class:`logging.Logger`."""
         return self.__logger
 
@@ -181,6 +183,7 @@ class Printer:
 NullHandler = logging.NullHandler
 
 
+@deprecated_camel_case
 class Debug:
     """Debug logging switch selected by category flags.
 
@@ -275,13 +278,13 @@ class Debug:
         """Test `flag` against the enabled flags."""
         return flag & self._flags
 
-    def getCurrentPrinter(self) -> "Printer | None":
+    def get_current_printer(self) -> "Printer | None":
         """Return the printer in use."""
         return self._printer
 
-    def getCurrentLogger(self) -> logging.Logger | None:
+    def get_current_logger(self) -> logging.Logger | None:
         """Return the :class:`logging.Logger` in use, if any."""
-        return (self._printer and self._printer.getCurrentLogger()) or None
+        return (self._printer and self._printer.get_current_logger()) or None
 
 
 # This will yield false from bitwise and with a flag, and save

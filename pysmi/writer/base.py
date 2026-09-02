@@ -8,16 +8,19 @@
 
 from typing import Any
 
+from pysmi._aliases import deprecated_camel_case
 
+
+@deprecated_camel_case
 class AbstractWriter:
     """Base class for writers of generated MIBs.
 
     A writer stores what a code generator produced -- to a directory, into a
     Python package, or by handing it to a callback. Subclasses implement
-    :py:meth:`putData` and :py:meth:`getData`.
+    :py:meth:`put_data` and :py:meth:`get_data`.
     """
 
-    def setOptions(self, **kwargs: Any) -> "AbstractWriter":
+    def set_options(self, **kwargs: Any) -> "AbstractWriter":
         """Set writer options as attributes.
 
         Keyword Args:
@@ -30,7 +33,7 @@ class AbstractWriter:
             setattr(self, k, kwargs[k])
         return self
 
-    def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
         """Store the generated form of a MIB module.
 
         Args:
@@ -47,7 +50,7 @@ class AbstractWriter:
         """
         raise NotImplementedError()
 
-    def getData(self, filename: str) -> str:
+    def get_data(self, filename: str) -> str:
         """Read back something this writer stored.
 
         Args:
