@@ -27,8 +27,10 @@ Before generating code, scan the codebase to identify:
 
 3. **Library Versions**: Note the exact versions of key libraries and dependencies
    - Runtime dependencies: `ply>=3.11`, `requests>=2.31.0`
-   - Dev dependencies: `sphinx>=7.0`, `pysnmp>=4.4.12`, `pytest>=8.0`, `pytest-cov>=5.0`, `ruff>=0.8`, `pylint>=3.0`
-   - Tests import `pysnmp` (`from pysnmp.smi.builder import MibBuilder`) and `pyasn1` (`from pyasn1.compat.octets import str2octs`)
+   - Dev dependencies: `sphinx>=7.0`, `pysnmplib==6.0.0rc1`, `pytest>=8.0`, `pytest-cov>=5.0`, `ruff>=0.8`
+   - `pysnmplib` is the maintained pysnmp fork; it installs the `pysnmp` package and pulls in `pysnmp-pyasn1`
+   - Tests import `pysnmp` (`from pysnmp.smi.builder import MibBuilder`); use bytes literals (`b"ABC"`) rather than
+     the removed `pyasn1.compat.octets` helpers
    - Generate code compatible with these specific versions
 
 ## Context Files
@@ -298,6 +300,6 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 - When in doubt, prioritize consistency with existing code over external best practices
 - Preserve the standard file header, the `pysmi` debug-logging idiom, the `PySmiError` hierarchy, and the abstract-base-class component pattern
 - New components must be registered in the relevant `__init__.py` (`pysmi/reader/__init__.py`, `pysmi/searcher/__init__.py`, `pysmi/writer/__init__.py`, `pysmi/codegen/__init__.py`, `pysmi/borrower/__init__.py`)
-- Linting: Ruff (configured in `pyproject.toml` under `[tool.ruff]`) with `target-version = "py310"`, `line-length = 120`, lint rules `E, W, F, I, UP, B, SIM, RUF`, and ignores `E501` (line length — left to ruff format) and `B028` (no-explicit-stacklevel — existing pattern). Respect these when adding code.
-- Additional linting: Pylint (`[tool.pylint.*]`) with `py-version = "3.10"` and disabled codes `C0114, C0115, C0116, C0301, R0903, R0913, R0914, W0212`.
-- Formatting: `ruff-format` (replaces black). Pre-commit hooks (`.pre-commit-config.yaml`) run `pyupgrade --py310-plus`, `ruff`, and `ruff-format`; prefer ruff-compatible formatting and run `pyupgrade --py310-plus` on new code.
+- Linting: Ruff (configured in `pyproject.toml` under `[tool.ruff]`) with `target-version = "py310"`, `line-length = 120`, lint rules `E, W, F, I, UP, B, S, SIM, RUF`, and ignores `E501` (line length — left to ruff format), `B028` (no-explicit-stacklevel — existing pattern), `S603` and `S607` (subprocess calls in the CLI scripts). Respect these when adding code.
+- Ruff is the only linter. Pylint, black, isort, pyupgrade, and bandit have all been removed — their rules are covered by the `E/W/F/I/UP/S` rulesets above.
+- Formatting: `ruff-format`. Pre-commit hooks (`.pre-commit-config.yaml`) run `ruff check --fix` and `ruff-format`.
