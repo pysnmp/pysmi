@@ -4,13 +4,16 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import logging
 import os
 import time
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.compat import decode
 from pysmi.mibinfo import MibInfo
 from pysmi.reader.base import AbstractReader
+
+logger = logging.getLogger(__name__)
 
 
 class FileReader(AbstractReader):
@@ -72,8 +75,11 @@ class FileReader(AbstractReader):
             try:
                 with open(indexFile) as f:
                     mibIndex = dict([x.split()[:2] for x in f.readlines()])
-                debug.logger & debug.flagReader and debug.logger(
-                    f"loaded MIB index map from {indexFile} file, {len(mibIndex)} entries"
+                logger.debug(
+                    "loaded MIB index map from %s file, %d entries",
+                    indexFile,
+                    len(mibIndex),
+                    extra={"path": indexFile, "entries": len(mibIndex)},
                 )
 
             except OSError:
@@ -88,32 +94,39 @@ class FileReader(AbstractReader):
                 self._indexLoaded = True
 
             if mibname in self._mibIndex:
-                debug.logger & debug.flagReader and debug.logger(
-                    f"found {mibname} in MIB index: {self._mibIndex[mibname]}"
+                logger.debug(
+                    "found %s in MIB index: %s",
+                    mibname,
+                    self._mibIndex[mibname],
+                    extra={"mib": mibname, "indexed": self._mibIndex[mibname]},
                 )
                 return [(mibname, self._mibIndex[mibname])]
 
         return super().getMibVariants(mibname, **options)
 
     def getData(self, mibname, **options):
-        debug.logger & debug.flagReader and debug.logger(
-            "{}looking for MIB {}".format((self._recursive and "recursively ") or "", mibname)
+        logger.debug(
+            "%slooking for MIB %s",
+            "recursively " if self._recursive else "",
+            mibname,
+            extra={"mib": mibname, "recursive": bool(self._recursive)},
         )
 
         for path in self.getSubdirs(self._path, self._recursive, self._ignoreErrors):
             for mibalias, mibfile in self.getMibVariants(mibname, **options):
                 f = os.path.join(decode(path), decode(mibfile))
 
-                debug.logger & debug.flagReader and debug.logger(f"trying MIB {f}")
+                logger.debug("trying MIB %s", f, extra={"mib": mibname, "path": f})
 
                 if os.path.exists(f) and os.path.isfile(f):
                     try:
                         mtime = os.stat(f).st_mtime
 
-                        debug.logger & debug.flagReader and debug.logger(
-                            "source MIB {} mtime is {}, fetching data...".format(
-                                f, time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(mtime))
-                            )
+                        logger.debug(
+                            "source MIB %s mtime is %s, fetching data...",
+                            f,
+                            time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(mtime)),
+                            extra={"mib": mibname, "path": f, "mtime": mtime},
                         )
 
                         with open(f, mode="rb") as fp:
@@ -125,7 +138,12 @@ class FileReader(AbstractReader):
                         return MibInfo(path=f"file://{f}", file=mibfile, name=mibalias, mtime=mtime), decode(mibData)
 
                     except OSError as exc:
-                        debug.logger & debug.flagReader and debug.logger(f"source file {f} open failure: {exc}")
+                        logger.debug(
+                            "source file %s open failure: %s",
+                            f,
+                            exc,
+                            extra={"mib": mibname, "path": f, "error": str(exc)},
+                        )
 
                         if not self._ignoreErrors:
                             raise error.PySmiError(f"file {f} access error: {exc}") from exc

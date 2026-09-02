@@ -52,7 +52,7 @@ def start():
                 Use @mib@ placeholder token in URI to refer directly to
                 the required MIB module when source does not support
                 directory listing (e.g. HTTP).
-    """.format(sys.argv[0], "|".join([x for x in sorted(debug.flagMap)]))
+    """.format(sys.argv[0], "|".join(sorted(debug.DEBUG_CATEGORIES)))
 
     # TODO(etingof): add the option to copy MIBs into enterprise-indexed subdirs
 
@@ -112,7 +112,7 @@ def start():
             verboseFlag = True
 
         if opt[0] == "--debug":
-            debug.setLogger(debug.Debug(*opt[1].split(",")))
+            debug.enableDebugLogging(*opt[1].split(","))
 
         if opt[0] == "--mib-source":
             mibSources.append(opt[1])

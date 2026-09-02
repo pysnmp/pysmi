@@ -6,14 +6,17 @@
 #
 import importlib.machinery
 import importlib.util
+import logging
 import os
 import struct
 import time
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.compat import decode
 from pysmi.searcher.base import AbstractSearcher
 from pysmi.searcher.pyfile import PyFileSearcher
+
+logger = logging.getLogger(__name__)
 
 PY_MAGIC_NUMBER = importlib.util.MAGIC_NUMBER
 SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
@@ -58,7 +61,7 @@ class PyPackageSearcher(AbstractSearcher):
 
     def fileExists(self, mibname, mtime, rebuild=False):
         if rebuild:
-            debug.logger & debug.flagSearcher and debug.logger(f"pretend {mibname} is very old")
+            logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
             return
 
         mibname = decode(mibname)
@@ -69,13 +72,18 @@ class PyPackageSearcher(AbstractSearcher):
             if hasattr(p, "__loader__") and hasattr(p.__loader__, "_files"):
                 self.__loader = p.__loader__
                 self._package = self._package.replace(".", os.sep)
-                debug.logger & debug.flagSearcher and debug.logger(
-                    f"{self._package} is an importable egg at {os.path.split(p.__file__)[0]}"
+                logger.debug(
+                    "%s is an importable egg at %s",
+                    self._package,
+                    os.path.split(p.__file__)[0],
+                    extra={"mib": mibname, "package": self._package, "path": os.path.split(p.__file__)[0]},
                 )
 
             elif hasattr(p, "__file__"):
-                debug.logger & debug.flagSearcher and debug.logger(
-                    f"{self._package} is not an egg, trying it as a package directory"
+                logger.debug(
+                    "%s is not an egg, trying it as a package directory",
+                    self._package,
+                    extra={"mib": mibname, "package": self._package},
                 )
                 return PyFileSearcher(os.path.split(p.__file__)[0]).fileExists(mibname, mtime, rebuild=rebuild)
 
@@ -91,15 +99,20 @@ class PyPackageSearcher(AbstractSearcher):
             f = os.path.join(self._package, mibname.upper()) + pySfx
 
             if f not in self.__loader._files:
-                debug.logger & debug.flagSearcher and debug.logger(f"{f} is not in {self._package}")
+                logger.debug(
+                    "%s is not in %s", f, self._package, extra={"mib": mibname, "path": f, "package": self._package}
+                )
                 continue
 
             pyData = self.__loader.get_data(f)
             if pyData[:4] == PY_MAGIC_NUMBER:
                 pyData = pyData[4:]
                 pyTime = struct.unpack("<L", pyData[:4])[0]
-                debug.logger & debug.flagSearcher and debug.logger(
-                    "found {}, mtime {}".format(f, time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(pyTime)))
+                logger.debug(
+                    "found %s, mtime %s",
+                    f,
+                    time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(pyTime)),
+                    extra={"mib": mibname, "path": f, "mtime": pyTime},
                 )
                 if pyTime >= mtime:
                     raise error.PySmiFileNotModifiedError()
@@ -107,20 +120,25 @@ class PyPackageSearcher(AbstractSearcher):
                     raise error.PySmiFileNotFoundError(f"older file {mibname} exists", searcher=self)
 
             else:
-                debug.logger & debug.flagSearcher and debug.logger(f"bad magic in {f}")
+                logger.debug("bad magic in %s", f, extra={"mib": mibname, "path": f})
                 continue
 
         for pySfx in SOURCE_SUFFIXES:
             f = os.path.join(self._package, mibname.upper()) + pySfx
 
             if f not in self.__loader._files:
-                debug.logger & debug.flagSearcher and debug.logger(f"{f} is not in {self._package}")
+                logger.debug(
+                    "%s is not in %s", f, self._package, extra={"mib": mibname, "path": f, "package": self._package}
+                )
                 continue
 
             pyTime = self._parseDosTime(self.__loader._files[f][6], self.__loader._files[f][5])
 
-            debug.logger & debug.flagSearcher and debug.logger(
-                "found {}, mtime {}".format(f, time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(pyTime)))
+            logger.debug(
+                "found %s, mtime %s",
+                f,
+                time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(pyTime)),
+                extra={"mib": mibname, "path": f, "mtime": pyTime},
             )
             if pyTime >= mtime:
                 raise error.PySmiFileNotModifiedError()

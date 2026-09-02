@@ -18,7 +18,7 @@ from pysmi.writer import PyFileWriter
 
 # from pysmi import debug
 
-# debug.setLogger(debug.Debug('borrower', 'reader', 'searcher'))
+# debug.enableDebugLogging('borrower', 'reader', 'searcher')
 
 inputMibs = ["MIKROTIK-MIB"]
 

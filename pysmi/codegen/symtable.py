@@ -6,11 +6,14 @@
 #
 # Build an internally used symbol table for each passed MIB.
 #
+import logging
 from keyword import iskeyword
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.codegen.base import AbstractCodeGen, dorepr
 from pysmi.mibinfo import MibInfo
+
+logger = logging.getLogger(__name__)
 
 
 class SymtableCodeGen(AbstractCodeGen):
@@ -613,10 +616,18 @@ class SymtableCodeGen(AbstractCodeGen):
         self._out["_symtable_cols"] = list(self._cols)
         self._out["_symtable_rows"] = list(self._rows)
 
-        debug.logger & debug.flagCodegen and debug.logger(
-            "canonical MIB name {} ({}), imported MIB(s) {}, Symbol table size {} symbols".format(
-                self.moduleName[0], moduleOid, ",".join(importedModules) or "<none>", len(self._out)
-            )
+        logger.debug(
+            "canonical MIB name %s (%s), imported MIB(s) %s, Symbol table size %d symbols",
+            self.moduleName[0],
+            moduleOid,
+            ",".join(importedModules) or "<none>",
+            len(self._out),
+            extra={
+                "mib": self.moduleName[0],
+                "oid": str(moduleOid),
+                "imported": list(importedModules),
+                "symbols": len(self._out),
+            },
         )
 
         return MibInfo(

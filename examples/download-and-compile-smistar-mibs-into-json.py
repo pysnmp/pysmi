@@ -18,7 +18,7 @@ from pysmi.writer import CallbackWriter
 
 # from pysmi import debug
 
-# debug.setLogger(debug.Debug('reader', 'compiler'))
+# debug.enableDebugLogging('reader', 'compiler')
 
 inputMibs = ["IF-MIB", "IP-MIB"]
 srcDirectories = ["/usr/share/snmp/mibs"]

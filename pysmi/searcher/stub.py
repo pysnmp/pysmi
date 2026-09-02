@@ -4,8 +4,12 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-from pysmi import debug, error
+import logging
+
+from pysmi import error
 from pysmi.searcher.base import AbstractSearcher
+
+logger = logging.getLogger(__name__)
 
 
 class StubSearcher(AbstractSearcher):
@@ -25,7 +29,7 @@ class StubSearcher(AbstractSearcher):
 
     def fileExists(self, mibname, mtime, rebuild=False):
         if mibname in self._mibnames:
-            debug.logger & debug.flagSearcher and debug.logger(f"pretend compiled {mibname} exists and is very new")
+            logger.debug("pretend compiled %s exists and is very new", mibname, extra={"mib": mibname})
             raise error.PySmiFileNotModifiedError(
                 "compiled file {} is among {}".format(mibname, ", ".join(self._mibnames)), searcher=self
             )

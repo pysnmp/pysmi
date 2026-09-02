@@ -4,8 +4,12 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-from pysmi import debug, error
+import logging
+
+from pysmi import error
 from pysmi.writer.base import AbstractWriter
+
+logger = logging.getLogger(__name__)
 
 
 class CallbackWriter(AbstractWriter):
@@ -34,7 +38,7 @@ class CallbackWriter(AbstractWriter):
 
     def putData(self, mibname, data, comments=(), dryRun=False):
         if dryRun:
-            debug.logger & debug.flagWriter and debug.logger("dry run mode")
+            logger.debug("dry run mode", extra={"mib": mibname})
             return
 
         try:
@@ -45,7 +49,7 @@ class CallbackWriter(AbstractWriter):
                 f"user callback {self._cbFun} failure writing {mibname}: {exc}", writer=self
             ) from exc
 
-        debug.logger & debug.flagWriter and debug.logger(f"user callback for {mibname} succeeded")
+        logger.debug("user callback for %s succeeded", mibname, extra={"mib": mibname})
 
     def getData(self, filename):
         return ""

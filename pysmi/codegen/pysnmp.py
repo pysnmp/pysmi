@@ -4,13 +4,16 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import logging
 import re
 from keyword import iskeyword
 from time import strftime, strptime
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.codegen.base import AbstractCodeGen, dorepr
 from pysmi.mibinfo import MibInfo
+
+logger = logging.getLogger(__name__)
 
 
 class PySnmpCodeGen(AbstractCodeGen):
@@ -1216,10 +1219,18 @@ for _{name}_obj in [{objects}]:
             out = "".join([f"# {x}\n" for x in kwargs["comments"]]) + "#\n" + out
             out = f"#\n# PySNMP MIB module {self.moduleName[0]} (http://snmplabs.com/pysmi)\n" + out
 
-        debug.logger & debug.flagCodegen and debug.logger(
-            "canonical MIB name {} ({}), imported MIB(s) {}, Python code size {} bytes".format(
-                self.moduleName[0], moduleOid, ",".join(importedModules) or "<none>", len(out)
-            )
+        logger.debug(
+            "canonical MIB name %s (%s), imported MIB(s) %s, Python code size %d bytes",
+            self.moduleName[0],
+            moduleOid,
+            ",".join(importedModules) or "<none>",
+            len(out),
+            extra={
+                "mib": self.moduleName[0],
+                "oid": str(moduleOid),
+                "imported": list(importedModules),
+                "size": len(out),
+            },
         )
 
         return MibInfo(
@@ -1247,7 +1258,12 @@ for _{name}_obj in [{objects}]:
             out = "".join([f"# {x}\n" for x in kwargs["comments"]]) + "#\n" + out
             out = "#\n# PySNMP MIB indices (http://snmplabs.com/pysmi)\n" + out
 
-        debug.logger & debug.flagCodegen and debug.logger(f"OID->MIB index built, {count} entries, {len(out)} bytes")
+        logger.debug(
+            "OID->MIB index built, %d entries, %d bytes",
+            count,
+            len(out),
+            extra={"entries": count, "size": len(out)},
+        )
 
         return out
 

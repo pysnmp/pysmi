@@ -4,6 +4,7 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import logging
 import os
 
 import ply.yacc as yacc
@@ -11,6 +12,8 @@ import ply.yacc as yacc
 from pysmi import debug, error
 from pysmi.lexer.smi import lexerFactory
 from pysmi.parser.base import AbstractParser
+
+logger = logging.getLogger(__name__)
 
 YACC_VERSION = [int(x) for x in yacc.__version__.split(".")]
 
@@ -38,9 +41,10 @@ class SmiV2Parser(AbstractParser):
                 module=self, start=startSym, write_tables=bool(tempdir), debug=False, outputdir=tempdir
             )
         else:
-            logger = debug.logger.getCurrentLogger() if debug.logger & debug.flagParser else yacc.NullLogger()
+            errorlog = logger if logger.isEnabledFor(logging.DEBUG) else yacc.NullLogger()
 
-            debuglogger = debug.logger.getCurrentLogger() if debug.logger & debug.flagGrammar else None
+            grammarLogger = logging.getLogger(debug.GRAMMAR_LOGGER)
+            debuglog = grammarLogger if grammarLogger.isEnabledFor(logging.DEBUG) else None
 
             self.parser = yacc.yacc(
                 module=self,
@@ -48,8 +52,8 @@ class SmiV2Parser(AbstractParser):
                 write_tables=bool(tempdir),
                 debug=False,
                 outputdir=tempdir,
-                debuglog=debuglogger,
-                errorlog=logger,
+                debuglog=debuglog,
+                errorlog=errorlog,
             )
 
     def reset(self):
@@ -57,8 +61,11 @@ class SmiV2Parser(AbstractParser):
         self.lexer.reset()
 
     def parse(self, data, **kwargs):
-        debug.logger & debug.flagParser and debug.logger(
-            f'source MIB size is {len(data)} characters, first 50 characters are "{data[:50]}..."'
+        logger.debug(
+            'source MIB size is %d characters, first 50 characters are "%s..."',
+            len(data),
+            data[:50],
+            extra={"size": len(data)},
         )
 
         ast = self.parser.parse(data, lexer=self.lexer.lexer)

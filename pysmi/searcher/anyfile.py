@@ -4,13 +4,16 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import logging
 import os
 import time
 from typing import ClassVar
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.compat import decode
 from pysmi.searcher.base import AbstractSearcher
+
+logger = logging.getLogger(__name__)
 
 
 class AnyFileSearcher(AbstractSearcher):
@@ -31,7 +34,7 @@ class AnyFileSearcher(AbstractSearcher):
 
     def fileExists(self, mibname, mtime, rebuild=False):
         if rebuild:
-            debug.logger & debug.flagSearcher and debug.logger(f"pretend {mibname} is very old")
+            logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
             return
 
         mibname = decode(mibname)
@@ -40,7 +43,7 @@ class AnyFileSearcher(AbstractSearcher):
         for sfx in self.exts:
             f = basename + sfx
             if not os.path.exists(f) or not os.path.isfile(f):
-                debug.logger & debug.flagSearcher and debug.logger(f"{f} not present or not a file")
+                logger.debug("%s not present or not a file", f, extra={"mib": mibname, "path": f})
                 continue
 
             try:
@@ -49,8 +52,11 @@ class AnyFileSearcher(AbstractSearcher):
             except OSError as exc:
                 raise error.PySmiSearcherError(f"failure opening compiled file {f}: {exc}", searcher=self) from exc
 
-            debug.logger & debug.flagSearcher and debug.logger(
-                "found {}, mtime {}".format(f, time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(fileTime)))
+            logger.debug(
+                "found %s, mtime %s",
+                f,
+                time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime(fileTime)),
+                extra={"mib": mibname, "path": f, "mtime": fileTime},
             )
 
             if fileTime >= mtime:

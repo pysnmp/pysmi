@@ -4,12 +4,15 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+import logging
 import re
 
 import ply.lex as lex
 
 from pysmi import debug, error
 from pysmi.lexer.base import AbstractLexer
+
+logger = logging.getLogger(__name__)
 
 UNSIGNED32_MAX = 4294967295
 UNSIGNED64_MAX = 18446744073709551615
@@ -183,12 +186,13 @@ class SmiV2Lexer(AbstractLexer):
         if LEX_VERSION < [3, 0]:
             self.lexer = lex.lex(module=self, reflags=re.DOTALL, outputdir=self._tempdir, debug=False)
         else:
-            logger = debug.logger.getCurrentLogger() if debug.logger & debug.flagLexer else lex.NullLogger()
+            errorlog = logger if logger.isEnabledFor(logging.DEBUG) else lex.NullLogger()
 
-            debuglogger = debug.logger.getCurrentLogger() if debug.logger & debug.flagGrammar else None
+            grammarLogger = logging.getLogger(debug.GRAMMAR_LOGGER)
+            debuglog = grammarLogger if grammarLogger.isEnabledFor(logging.DEBUG) else None
 
             self.lexer = lex.lex(
-                module=self, reflags=re.DOTALL, outputdir=self._tempdir, debuglog=debuglogger, errorlog=logger
+                module=self, reflags=re.DOTALL, outputdir=self._tempdir, debuglog=debuglog, errorlog=errorlog
             )
 
     def t_newline(self, t):

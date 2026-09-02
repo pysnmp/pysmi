@@ -5,12 +5,15 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import contextlib
+import logging
 import os
 import tempfile
 
-from pysmi import debug, error
+from pysmi import error
 from pysmi.compat import decode, encode
 from pysmi.writer.base import AbstractWriter
+
+logger = logging.getLogger(__name__)
 
 
 class FileWriter(AbstractWriter):
@@ -46,7 +49,7 @@ class FileWriter(AbstractWriter):
 
     def putData(self, mibname, data, comments=(), dryRun=False):
         if dryRun:
-            debug.logger & debug.flagWriter and debug.logger("dry run mode")
+            logger.debug("dry run mode", extra={"mib": mibname})
             return
 
         if not os.path.exists(self._path):
@@ -78,4 +81,4 @@ class FileWriter(AbstractWriter):
 
             raise error.PySmiWriterError(f"failure writing file {filename}: {exc}", file=filename, writer=self) from exc
 
-        debug.logger & debug.flagWriter and debug.logger(f"{mibname} stored in {filename}")
+        logger.debug("%s stored in %s", mibname, filename, extra={"mib": mibname, "path": filename})
