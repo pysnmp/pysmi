@@ -268,7 +268,7 @@ def start() -> None:
 
         codeGenerator: AbstractCodeGen = PySnmpCodeGen()
 
-        fileWriter = PyFileWriter(dstDirectory).setOptions(
+        fileWriter = PyFileWriter(dstDirectory).set_options(
             pyCompile=pyCompileFlag, pyOptimizationLevel=pyOptimizationLevel
         )
 
@@ -288,15 +288,15 @@ def start() -> None:
         # Compiler infrastructure
 
         borrowers = [
-            AnyFileBorrower(x[1], genTexts=mibBorrowers[x[0]][1]).setOptions(exts=[_JSON_EXT])
+            AnyFileBorrower(x[1], genTexts=mibBorrowers[x[0]][1]).set_options(exts=[_JSON_EXT])
             for x in enumerate(getReadersFromUrls(*[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)))
         ]
 
-        searchers = [AnyFileSearcher(dstDirectory).setOptions(exts=[_JSON_EXT]), StubSearcher(*mibStubs)]
+        searchers = [AnyFileSearcher(dstDirectory).set_options(exts=[_JSON_EXT]), StubSearcher(*mibStubs)]
 
         codeGenerator = JsonCodeGen()
 
-        fileWriter = FileWriter(dstDirectory).setOptions(suffix=_JSON_EXT)
+        fileWriter = FileWriter(dstDirectory).set_options(suffix=_JSON_EXT)
 
     elif dstFormat == "null":
         if not mibStubs:
@@ -376,11 +376,11 @@ def start() -> None:
     mibCompiler = MibCompiler(SmiV1CompatParser(tempdir=cacheDirectory), codeGenerator, fileWriter)
 
     try:
-        mibCompiler.addSources(*getReadersFromUrls(*mibSources, **dict(fuzzyMatching=doFuzzyMatchingFlag)))
+        mibCompiler.add_sources(*getReadersFromUrls(*mibSources, **dict(fuzzyMatching=doFuzzyMatchingFlag)))
 
-        mibCompiler.addSearchers(*searchers)
+        mibCompiler.add_searchers(*searchers)
 
-        mibCompiler.addBorrowers(*borrowers)
+        mibCompiler.add_borrowers(*borrowers)
 
         processed = mibCompiler.compile(
             *inputMibs,
@@ -401,7 +401,7 @@ def start() -> None:
                 safe[x] = processed[x]
 
         if buildIndexFlag:
-            mibCompiler.buildIndex(safe, dryRun=dryrunFlag, ignoreErrors=True)
+            mibCompiler.build_index(safe, dryRun=dryrunFlag, ignoreErrors=True)
 
     except error.PySmiError as exc:
         sys.stderr.write(f"ERROR: {exc}\r\n")

@@ -31,10 +31,10 @@ This example showcases some of its features:
    )
 
    # pull ASN.1 MIBs over HTTP
-   mibCompiler.addSources(*[HttpReader(x) for x in httpSources])
+   mibCompiler.add_sources(*[HttpReader(x) for x in httpSources])
 
    # never recompile MIBs with ASN.1 MACROs
-   mibCompiler.addSearchers(StubSearcher(*JsonCodeGen.baseMibs))
+   mibCompiler.add_searchers(StubSearcher(*JsonCodeGen.baseMibs))
 
    status = mibCompiler.compile(*inputMibs)
 
@@ -45,6 +45,34 @@ This example showcases some of its features:
 
    /pysmi/compiler/mibcompiler
    /pysmi/compiler/mibstatus
+
+.. _camel-case-deprecation:
+
+Method naming
+-------------
+
+PySMI's methods were camelCase -- ``addSources``, ``getMibVariants``,
+``putData`` and so on. They are snake_case now, as :pep:`8` calls for:
+``add_sources``, ``get_mib_variants``, ``put_data``.
+
+Every renamed method keeps its old name, so existing code goes on working:
+
+.. code-block:: python
+
+   mibCompiler.addSources(HttpReader(url))   # works, warns
+   mibCompiler.add_sources(HttpReader(url))  # the same thing, quietly
+
+Calling the old name raises a :py:exc:`DeprecationWarning`, which Python hides
+by default. To see where your code still uses the old spelling, run it with
+warnings turned on::
+
+   python -W always::DeprecationWarning your_script.py
+
+The old names will be removed in a future major release.
+
+If you subclass a PySMI class and override a method under its old name, PySMI
+installs your override under the new name and warns, so it still runs. Renaming
+the override silences the warning.
 
 MIB sources
 -----------

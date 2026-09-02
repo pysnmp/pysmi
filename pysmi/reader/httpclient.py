@@ -16,6 +16,7 @@ from requests.exceptions import RequestException
 
 from pysmi import __version__ as pysmi_version
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
 from pysmi.mibinfo import MibInfo
 from pysmi.reader.base import AbstractReader
@@ -23,6 +24,7 @@ from pysmi.reader.base import AbstractReader
 logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class HttpReader(AbstractReader):
     """Fetch ASN.1 MIB text by name from a web site.
 
@@ -59,7 +61,7 @@ class HttpReader(AbstractReader):
     def __str__(self) -> str:
         return self._url
 
-    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Download a MIB over HTTP, trying each candidate file name in turn.
 
         Raises:
@@ -74,7 +76,7 @@ class HttpReader(AbstractReader):
 
         logger.debug("looking for MIB %s", mibname, extra={"mib": mibname})
 
-        for mibalias, mibfile in self.getMibVariants(mibname, **options):
+        for mibalias, mibfile in self.get_mib_variants(mibname, **options):
             url = self._url.replace(self.MIB_MAGIC, mibfile) if self.MIB_MAGIC in self._url else self._url + mibfile
 
             logger.debug("trying to fetch MIB from %s", url, extra={"mib": mibname, "url": url})

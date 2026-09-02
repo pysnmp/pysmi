@@ -35,7 +35,7 @@ class PyPackageSearcherTestCase(unittest.TestCase):
 
         self.assertRaises(
             error.PySmiFileNotFoundError,
-            PyPackageSearcher("pysmi_test_ns").fileExists,
+            PyPackageSearcher("pysmi_test_ns").file_exists,
             "IF-MIB",
             0,
         )
@@ -44,7 +44,7 @@ class PyPackageSearcherTestCase(unittest.TestCase):
         """A package that cannot be imported is reported as not found."""
         self.assertRaises(
             error.PySmiFileNotFoundError,
-            PyPackageSearcher("pysmi_no_such_package").fileExists,
+            PyPackageSearcher("pysmi_no_such_package").file_exists,
             "IF-MIB",
             0,
         )

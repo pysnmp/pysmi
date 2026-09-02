@@ -11,11 +11,13 @@ from collections.abc import Callable
 from typing import Any
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.writer.base import AbstractWriter
 
 logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class CallbackWriter(AbstractWriter):
     """Invokes user-specified callable and passes transformed
     MIB module to it.
@@ -40,7 +42,7 @@ class CallbackWriter(AbstractWriter):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
-    def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
         """Hand the generated MIB to the user callback.
 
         Raises:
@@ -62,6 +64,6 @@ class CallbackWriter(AbstractWriter):
 
         logger.debug("user callback for %s succeeded", mibname, extra={"mib": mibname})
 
-    def getData(self, filename: str) -> str:
+    def get_data(self, filename: str) -> str:
         """Return an empty string; a callback writer stores nothing to read back."""
         return ""

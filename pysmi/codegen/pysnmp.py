@@ -13,12 +13,14 @@ from time import strftime, strptime
 from typing import Any, cast
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import AbstractCodeGen, dorepr
 from pysmi.mibinfo import MibInfo
 
 logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class PySnmpCodeGen(AbstractCodeGen):
     """Builds PySNMP-specific Python code representing MIB module supplied
     in form of an Abstract Syntax Tree on input.
@@ -142,7 +144,7 @@ for _%(name)s_obj in [%(objects)s]:
 """
 
     # Variant of the setObjects loop template that ends with a newline rather
-    # than a line-continuation backslash (used by genCompliances).
+    # than a line-continuation backslash (used by gen_compliances).
     _SET_OBJECTS_LOOP_TEMPLATE_NL = """
 for _%(name)s_obj in [%(objects)s]:
     if getattr(mibBuilder, 'version', 0) < (4, 4, 2):
@@ -174,7 +176,7 @@ for _%(name)s_obj in [%(objects)s]:
         self.genRules: dict[str, Any] = {"text": True}
         self.symbolTable: dict[str, Any] = {}
 
-    def symTrans(self, symbol: str) -> tuple[Any, ...]:
+    def sym_trans(self, symbol: str) -> tuple[Any, ...]:
         """Map an SMI construct name onto the PySNMP classes it needs.
 
         Args:
@@ -190,7 +192,7 @@ for _%(name)s_obj in [%(objects)s]:
         return (symbol,)
 
     @staticmethod
-    def transOpers(symbol: str) -> Any:
+    def trans_opers(symbol: str) -> Any:
         """Turn a MIB symbol into a usable Python identifier.
 
         Hyphens become underscores, and a name that collides with a Python
@@ -207,7 +209,7 @@ for _%(name)s_obj in [%(objects)s]:
 
         return symbol.replace("-", "_")
 
-    def prepData(self, pdata: Any, classmode: bool = False) -> list[Any]:
+    def prep_data(self, pdata: Any, classmode: bool = False) -> list[Any]:
         """Convert a parse subtree into the values a clause handler expects.
 
         Each element that is a tagged tuple is dispatched through
@@ -234,12 +236,12 @@ for _%(name)s_obj in [%(objects)s]:
 
             else:
                 data.append(
-                    self.handlersTable[el[0]](self, self.prepData(el[1:], classmode=classmode), classmode=classmode)
+                    self.handlersTable[el[0]](self, self.prep_data(el[1:], classmode=classmode), classmode=classmode)
                 )
 
         return data
 
-    def genImports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
+    def gen_imports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
         """Render the module's import statements.
 
         SMIv1 imports are rewritten to their SMIv2 equivalents, and the classes
@@ -286,20 +288,20 @@ for _%(name)s_obj in [%(objects)s]:
             symbols: tuple[Any, ...] = ()
 
             for symbol in set(imports[module]):
-                symbols += self.symTrans(symbol)
+                symbols += self.sym_trans(symbol)
 
             if symbols:
-                self._seenSyms.update([self.transOpers(s) for s in symbols])
-                self._importMap.update([(self.transOpers(s), module) for s in symbols])
+                self._seenSyms.update([self.trans_opers(s) for s in symbols])
+                self._importMap.update([(self.trans_opers(s), module) for s in symbols])
 
-                outStr += ", ".join([self.transOpers(s) for s in symbols])
+                outStr += ", ".join([self.trans_opers(s) for s in symbols])
                 if len(symbols) < 2:
                     outStr += ","
                 outStr += ' = mibBuilder.importSymbols("{}")\n'.format('", "'.join((module, *symbols)))
 
         return outStr, tuple(sorted(imports))
 
-    def genExports(
+    def gen_exports(
         self,
     ) -> str:
         """Render the ``mibBuilder.exportSymbols()`` call for this module.
@@ -325,10 +327,10 @@ for _%(name)s_obj in [%(objects)s]:
         return outStr
 
     # noinspection PyMethodMayBeStatic
-    def genLabel(self, symbol: str, classmode: bool = False) -> str:
+    def gen_label(self, symbol: str, classmode: bool = False) -> str:
         """Render the original MIB name for a symbol that had to be renamed.
 
-        Only names that :py:meth:`transOpers` would alter need this; anything
+        Only names that :py:meth:`trans_opers` would alter need this; anything
         else already reads the same in Python as in the MIB.
 
         Args:
@@ -344,7 +346,7 @@ for _%(name)s_obj in [%(objects)s]:
 
         return ""
 
-    def addToExports(self, symbol: str, moduleIdentity: bool = False) -> None:
+    def add_to_exports(self, symbol: str, moduleIdentity: bool = False) -> None:
         """Mark a symbol to be exported from the generated module.
 
         Args:
@@ -358,7 +360,7 @@ for _%(name)s_obj in [%(objects)s]:
         self._seenSyms.add(symbol)
 
     # noinspection PyUnusedLocal
-    def regSym(self, symbol: str, outStr: str, oidStr: str = "", moduleIdentity: bool = False) -> None:
+    def reg_sym(self, symbol: str, outStr: str, oidStr: str = "", moduleIdentity: bool = False) -> None:
         """Record the source rendered for a symbol and mark it for export.
 
         Args:
@@ -374,7 +376,7 @@ for _%(name)s_obj in [%(objects)s]:
         if symbol in self._seenSyms and symbol not in self._importMap:
             raise error.PySmiSemanticError(f"Duplicate symbol found: {symbol}")
 
-        self.addToExports(symbol, moduleIdentity)
+        self.add_to_exports(symbol, moduleIdentity)
         self._out[symbol] = outStr
 
         if moduleIdentity:
@@ -383,7 +385,7 @@ for _%(name)s_obj in [%(objects)s]:
             # TODO: turning literal tuple into a string - hackerish
             self._moduleIdentityOid = ".".join(oidStr.split(", "))[1:-1]
 
-    def genNumericOid(self, oid: tuple[Any, ...]) -> tuple[Any, ...]:
+    def gen_numeric_oid(self, oid: tuple[Any, ...]) -> tuple[Any, ...]:
         """Resolve an OID to numbers, following names into other modules.
 
         Every name in the OID is looked up in the symbol table and replaced by
@@ -416,14 +418,14 @@ for _%(name)s_obj in [%(objects)s]:
                 if parent not in self.symbolTable[module]:
                     raise error.PySmiSemanticError(f'no symbol "{parent}" in module "{module}"')
 
-                numericOid += self.genNumericOid(self.symbolTable[module][parent]["oid"])
+                numericOid += self.gen_numeric_oid(self.symbolTable[module][parent]["oid"])
 
             else:
                 numericOid += (part,)
 
         return numericOid
 
-    def getBaseType(self, symName: str, module: str) -> tuple[Any, ...]:
+    def get_base_type(self, symName: str, module: str) -> tuple[Any, ...]:
         """Resolve a type to the base type it is ultimately derived from.
 
         Derived types are followed up the chain, gathering the restrictions
@@ -456,7 +458,7 @@ for _%(name)s_obj in [%(objects)s]:
             return symType, symSubtype
 
         else:
-            baseSymType, baseSymSubtype = self.getBaseType(*symType)
+            baseSymType, baseSymSubtype = self.get_base_type(*symType)
 
             if isinstance(baseSymSubtype, list):
                 if isinstance(symSubtype, list):
@@ -469,7 +471,7 @@ for _%(name)s_obj in [%(objects)s]:
     # Clause generation functions
 
     # noinspection PyUnusedLocal
-    def genAgentCapabilities(self, data: Any, classmode: bool = False) -> Any:
+    def gen_agent_capabilities(self, data: Any, classmode: bool = False) -> Any:
         """Render an AGENT-CAPABILITIES clause as an ``AgentCapabilities`` object.
 
         Args:
@@ -481,8 +483,8 @@ for _%(name)s_obj in [%(objects)s]:
         """
         name, productRelease, status, description, reference, oid = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         oidStr, _parentOid = oid
         outStr = name + " = AgentCapabilities(" + oidStr + ")" + label + "\n"
@@ -502,12 +504,12 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and reference:
             outStr += name + reference + "\n"
 
-        self.regSym(name, outStr, oidStr)
+        self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genModuleIdentity(self, data: Any, classmode: bool = False) -> str:
+    def gen_module_identity(self, data: Any, classmode: bool = False) -> str:
         """Render a MODULE-IDENTITY clause as a ``ModuleIdentity`` object.
 
         The revision descriptions are guarded, because older PySNMP versions
@@ -522,8 +524,8 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         """
         name, lastUpdated, organization, contactInfo, description, revisionsAndDescrs, oid = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         oidStr, _parentOid = oid
 
@@ -555,12 +557,12 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        self.regSym(name, outStr, oidStr, moduleIdentity=True)
+        self.reg_sym(name, outStr, oidStr, moduleIdentity=True)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genModuleCompliance(self, data: Any, classmode: bool = False) -> str:
+    def gen_module_compliance(self, data: Any, classmode: bool = False) -> str:
         """Render a MODULE-COMPLIANCE clause as a ``ModuleCompliance`` object.
 
         Args:
@@ -572,8 +574,8 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         """
         name, status, description, reference, compliances, oid = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         oidStr, _parentOid = oid
         outStr: str = name + " = ModuleCompliance(" + oidStr + ")" + label
@@ -588,12 +590,12 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and reference:
             outStr += self.ifTextStr + name + reference + "\n"
 
-        self.regSym(name, outStr, oidStr)
+        self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genNotificationGroup(self, data: Any, classmode: bool = False) -> str:
+    def gen_notification_group(self, data: Any, classmode: bool = False) -> str:
         """Render a NOTIFICATION-GROUP clause as a ``NotificationGroup`` object.
 
         The objects are set in batches when the group names more of them than
@@ -608,8 +610,8 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         """
         name, objects, status, description, reference, oid = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         oidStr, _parentOid = oid
 
@@ -617,7 +619,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         if objects:
             objects = [
-                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
+                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.trans_opers(obj) + '")'
                 for obj in objects
             ]
 
@@ -645,12 +647,12 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and reference:
             outStr += name + reference + "\n"
 
-        self.regSym(name, outStr, oidStr)
+        self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genNotificationType(self, data: Any, classmode: bool = False) -> str:
+    def gen_notification_type(self, data: Any, classmode: bool = False) -> str:
         """Render a NOTIFICATION-TYPE clause as a ``NotificationType`` object.
 
         Args:
@@ -662,8 +664,8 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         """
         name, objects, status, description, reference, oid = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         oidStr, _parentOid = oid
 
@@ -671,7 +673,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         if objects:
             objects = [
-                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
+                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.trans_opers(obj) + '")'
                 for obj in objects
             ]
 
@@ -699,12 +701,12 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and reference:
             outStr += self.ifTextStr + name + reference + "\n"
 
-        self.regSym(name, outStr, oidStr)
+        self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genObjectGroup(self, data: Any, classmode: bool = False) -> str:
+    def gen_object_group(self, data: Any, classmode: bool = False) -> str:
         """Render an OBJECT-GROUP clause as an ``ObjectGroup`` object.
 
         Args:
@@ -716,8 +718,8 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         """
         name, objects, status, description, reference, oid = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         oidStr, _parentOid = oid
 
@@ -725,7 +727,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         if objects:
             objects = [
-                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
+                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.trans_opers(obj) + '")'
                 for obj in objects
             ]
 
@@ -760,12 +762,12 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and reference:
             outStr += self.ifTextStr + name + reference + "\n"
 
-        self.regSym(name, outStr, oidStr)
+        self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genObjectIdentity(self, data: Any, classmode: bool = False) -> Any:
+    def gen_object_identity(self, data: Any, classmode: bool = False) -> Any:
         """Render an OBJECT-IDENTITY clause as an ``ObjectIdentity`` object.
 
         Args:
@@ -777,8 +779,8 @@ for _{name}_obj in [{objects}]:
         """
         name, status, description, reference, oid = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         oidStr, _parentOid = oid
         outStr = name + " = ObjectIdentity(" + oidStr + ")" + label + "\n"
@@ -792,12 +794,12 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and reference:
             outStr += self.ifTextStr + name + reference + "\n"
 
-        self.regSym(name, outStr, oidStr)
+        self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genObjectType(self, data: Any, classmode: bool = False) -> str:
+    def gen_object_type(self, data: Any, classmode: bool = False) -> str:
         """Render an OBJECT-TYPE clause as the object it describes.
 
         Which class is used depends on what the object turned out to be: a
@@ -805,7 +807,7 @@ for _{name}_obj in [{objects}]:
         syntax says so, and a scalar otherwise. AUGMENTS is rendered as a
         registration against the row being augmented, whose index names are
         then adopted. An SMIv1 index naming a bare type also emits the
-        synthetic column that :py:meth:`genTableIndex` prepared.
+        synthetic column that :py:meth:`gen_table_index` prepared.
 
         Args:
             data: rendered clause values
@@ -816,8 +818,8 @@ for _{name}_obj in [{objects}]:
         """
         name, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         oidStr, parentOid = oid
 
@@ -825,11 +827,11 @@ for _{name}_obj in [{objects}]:
         subtype = (syntax[0] == "Bits" and "Bits()" + syntax[1]) or syntax[1]  # Bits hack #1
 
         classtype = self.typeClasses.get(syntax[0], syntax[0])
-        classtype = self.transOpers(classtype)
+        classtype = self.trans_opers(classtype)
         classtype = (syntax[0] == "Bits" and "MibScalar") or classtype  # Bits hack #2
         classtype = (name in self.symbolTable[self.moduleName[0]]["_symtable_cols"] and "MibTableColumn") or classtype
 
-        defval = self.genDefVal(defval, objname=name)
+        defval = self.gen_def_val(defval, objname=name)
 
         outStr: str = name + " = " + classtype + "(" + oidStr + ", " + subtype + (defval or "") + ")" + label
         outStr += units or ""
@@ -841,7 +843,7 @@ for _{name}_obj in [{objects}]:
             outStr += self.ifTextStr + name + reference + "\n"
 
         if augmention:
-            augmention = self.transOpers(augmention)
+            augmention = self.trans_opers(augmention)
             outStr += (
                 augmention
                 + '.registerAugmentions(("'
@@ -858,17 +860,17 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        self.regSym(name, outStr, parentOid)
+        self.reg_sym(name, outStr, parentOid)
 
         if fakeSyms:  # fake symbols for INDEX to support SMIv1
             for idx, fakeSym in enumerate(fakeSyms):
                 fakeOutStr = fakeStrlist[idx] % oidStr
-                self.regSym(fakeSym, fakeOutStr, oidStr)
+                self.reg_sym(fakeSym, fakeOutStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genTrapType(self, data: Any, classmode: bool = False) -> Any:
+    def gen_trap_type(self, data: Any, classmode: bool = False) -> Any:
         """Render a TRAP-TYPE clause as a ``NotificationType`` object.
 
         SMIv1 traps have no OID of their own; theirs is built from the
@@ -884,8 +886,8 @@ for _{name}_obj in [{objects}]:
         """
         name, enterprise, objects, description, reference, value = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         enterpriseStr, _parentOid = enterprise
 
@@ -893,7 +895,7 @@ for _{name}_obj in [{objects}]:
 
         if objects:
             objects = [
-                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.transOpers(obj) + '")'
+                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.trans_opers(obj) + '")'
                 for obj in objects
             ]
 
@@ -918,12 +920,12 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and reference:
             outStr += self.ifTextStr + name + reference + "\n"
 
-        self.regSym(name, outStr, enterpriseStr)
+        self.reg_sym(name, outStr, enterpriseStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genTypeDeclaration(self, data: Any, classmode: bool = False) -> str:
+    def gen_type_declaration(self, data: Any, classmode: bool = False) -> str:
         """Render a type declaration as a Python class.
 
         A declaration with no parent type is a SEQUENCE, which PySNMP does not
@@ -943,14 +945,14 @@ for _{name}_obj in [{objects}]:
         if declaration:
             parentType, attrs = declaration
             if parentType:  # skipping SEQUENCE case
-                name = self.transOpers(name)
+                name = self.trans_opers(name)
                 outStr = "class " + name + "(" + parentType + "):\n" + attrs + "\n"
-                self.regSym(name, outStr)
+                self.reg_sym(name, outStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genValueDeclaration(self, data: Any, classmode: bool = False) -> str:
+    def gen_value_declaration(self, data: Any, classmode: bool = False) -> str:
         """Render a plain OID assignment as a ``MibIdentifier``.
 
         Args:
@@ -962,20 +964,20 @@ for _{name}_obj in [{objects}]:
         """
         name, oid = data
 
-        label = self.genLabel(name)
-        name = self.transOpers(name)
+        label = self.gen_label(name)
+        name = self.trans_opers(name)
 
         oidStr, _parentOid = oid
         outStr: str = name + " = MibIdentifier(" + oidStr + ")" + label + "\n"
 
-        self.regSym(name, outStr, oidStr)
+        self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # Subparts generation functions
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def ftNames(self, data: Any, classmode: bool = False) -> Any:
+    def ft_names(self, data: Any, classmode: bool = False) -> Any:
         """Return a symbol's name paired with the module it comes from.
 
         Args:
@@ -987,7 +989,7 @@ for _{name}_obj in [{objects}]:
         names = data[0]
         return names
 
-    def genBitNames(self, data: Any, classmode: bool = False) -> Any:
+    def gen_bit_names(self, data: Any, classmode: bool = False) -> Any:
         """Return the names listed in a BITS or enumeration clause.
 
         Args:
@@ -1000,7 +1002,7 @@ for _{name}_obj in [{objects}]:
         names = data[0]
         return names
 
-    def genBits(self, data: Any, classmode: bool = False) -> tuple[str, str]:
+    def gen_bits(self, data: Any, classmode: bool = False) -> tuple[str, str]:
         """Render a BITS clause as named values.
 
         The values are built in batches when there are more of them than may be
@@ -1032,7 +1034,7 @@ for _{name}_obj in [{objects}]:
         return "Bits", outStr
 
     # noinspection PyUnusedLocal
-    def genCompliances(self, data: Any, classmode: bool = False) -> str:
+    def gen_compliances(self, data: Any, classmode: bool = False) -> str:
         """Render the objects a MODULE-COMPLIANCE clause requires.
 
         The objects are set in a loop when the clause names more of them than
@@ -1052,7 +1054,7 @@ for _{name}_obj in [{objects}]:
 
         for complianceModule in data[0]:
             name = complianceModule[0] or self.moduleName[0]
-            objects += ['("' + name + '", "' + self.transOpers(compl) + '")' for compl in complianceModule[1]]
+            objects += ['("' + name + '", "' + self.trans_opers(compl) + '")' for compl in complianceModule[1]]
 
         outStr = ""
 
@@ -1072,10 +1074,10 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genConceptualTable(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_conceptual_table(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Note the row a table contains and return the table's class.
 
-        The row name is remembered so that :py:meth:`genRow` can recognise it
+        The row name is remembered so that :py:meth:`gen_row` can recognise it
         later as a row rather than an ordinary type.
 
         Args:
@@ -1093,7 +1095,7 @@ for _{name}_obj in [{objects}]:
         return "MibTable", ""
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genContactInfo(self, data: Any, classmode: bool = False) -> str:
+    def gen_contact_info(self, data: Any, classmode: bool = False) -> str:
         """Render a CONTACT-INFO clause.
 
         Args:
@@ -1107,7 +1109,7 @@ for _{name}_obj in [{objects}]:
         return ".setContactInfo(" + dorepr(text) + ")"
 
     # noinspection PyUnusedLocal
-    def genDisplayHint(self, data: Any, classmode: bool = False) -> str:
+    def gen_display_hint(self, data: Any, classmode: bool = False) -> str:
         """Render a DISPLAY-HINT as a class attribute.
 
         Args:
@@ -1120,7 +1122,7 @@ for _{name}_obj in [{objects}]:
         return self.indent + "displayHint = " + dorepr(data[0]) + "\n"
 
     # noinspection PyUnusedLocal
-    def genDefVal(self, data: Any, classmode: bool = False, objname: str | None = None) -> "bool | list[Any] | str":
+    def gen_def_val(self, data: Any, classmode: bool = False, objname: str | None = None) -> "bool | list[Any] | str":
         """Render a DEFVAL as a value of the object's own type.
 
         The default is interpreted according to the base type the object
@@ -1150,18 +1152,18 @@ for _{name}_obj in [{objects}]:
             return cast("bool | list[Any] | str", data)
 
         defval = data[0]
-        defvalType = self.getBaseType(objname, self.moduleName[0])
+        defvalType = self.get_base_type(objname, self.moduleName[0])
 
         if isinstance(defval, int):  # number
             val = str(defval)
 
-        elif self.isHex(defval):  # hex
+        elif self.is_hex(defval):  # hex
             if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
                 val = str(int(defval[1:-2], 16))
             else:
                 val = 'hexValue="' + defval[1:-2] + '"'
 
-        elif self.isBinary(defval):  # binary
+        elif self.is_binary(defval):  # binary
             binval = defval[1:-2]
             if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
                 val = str(int(binval or "0", 2))
@@ -1183,7 +1185,7 @@ for _{name}_obj in [{objects}]:
                 module = self._importMap.get(defval, self.moduleName[0])
 
                 try:
-                    val = str(self.genNumericOid(self.symbolTable[module][defval]["oid"]))
+                    val = str(self.gen_numeric_oid(self.symbolTable[module][defval]["oid"]))
                 except (KeyError, error.PySmiSemanticError) as exc:
                     # or no module if it will be borrowed later
                     raise error.PySmiSemanticError(f'no symbol "{defval}" in module "{module}"') from exc
@@ -1209,7 +1211,7 @@ for _{name}_obj in [{objects}]:
                     else:
                         raise error.PySmiSemanticError(f'no such bit as "{bit}" for symbol "{objname}"')
 
-                return self.genBits([defvalBits])[1]
+                return self.gen_bits([defvalBits])[1]
 
             else:
                 raise error.PySmiSemanticError(
@@ -1219,7 +1221,7 @@ for _{name}_obj in [{objects}]:
         return ".clone(" + val + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genDescription(self, data: Any, classmode: bool = False) -> str:
+    def gen_description(self, data: Any, classmode: bool = False) -> str:
         """Render a DESCRIPTION clause.
 
         A handler is called in one of two modes. In class mode it is rendering
@@ -1240,7 +1242,7 @@ for _{name}_obj in [{objects}]:
         ) + ")"
 
     # noinspection PyMethodMayBeStatic
-    def genReference(self, data: Any, classmode: bool = False) -> str:
+    def gen_reference(self, data: Any, classmode: bool = False) -> str:
         """Render a REFERENCE clause.
 
         Args:
@@ -1256,7 +1258,7 @@ for _{name}_obj in [{objects}]:
         ) + ")"
 
     # noinspection PyMethodMayBeStatic
-    def genStatus(self, data: Any, classmode: bool = False) -> str:
+    def gen_status(self, data: Any, classmode: bool = False) -> str:
         """Render a STATUS clause.
 
         Args:
@@ -1270,7 +1272,7 @@ for _{name}_obj in [{objects}]:
         return (classmode and self.indent + "status = " + dorepr(text) + "\n") or ".setStatus(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic
-    def genProductRelease(self, data: Any, classmode: bool = False) -> Any:
+    def gen_product_release(self, data: Any, classmode: bool = False) -> Any:
         """Render a PRODUCT-RELEASE clause.
 
         Args:
@@ -1285,7 +1287,7 @@ for _{name}_obj in [{objects}]:
             classmode and self.indent + "productRelease = " + dorepr(text) + "\n"
         ) or ".setProductRelease(" + dorepr(text) + ")"
 
-    def genEnumSpec(self, data: Any, classmode: bool = False) -> str:
+    def gen_enum_spec(self, data: Any, classmode: bool = False) -> str:
         """Render an enumeration as a value constraint and named values.
 
         The permitted values are constrained in batches, joined into a union,
@@ -1314,17 +1316,17 @@ for _{name}_obj in [{objects}]:
 
         outStr += funcCalls
         outStr += (not singleCall and ((classmode and ")\n") or "))")) or ((not classmode and ")") or "\n")
-        outStr += self.genBits(data, classmode=classmode)[1]
+        outStr += self.gen_bits(data, classmode=classmode)[1]
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def genTableIndex(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_table_index(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Render an INDEX clause as the row's index names.
 
         SMIv1 allows an index to name a bare type instead of a column. Such an
         index has no column to point at, so a synthetic one is rendered here for
-        :py:meth:`genObjectType` to emit alongside the row.
+        :py:meth:`gen_object_type` to emit alongside the row.
 
         Args:
             data: rendered clause values
@@ -1349,7 +1351,7 @@ for _{name}_obj in [{objects}]:
             fakeSymName = f"pysmiFakeCol{fakeidx}"
 
             objType = self.typeClasses.get(idxType, idxType)
-            objType = self.transOpers(objType)
+            objType = self.trans_opers(objType)
 
             return (
                 fakeSymName
@@ -1379,7 +1381,7 @@ for _{name}_obj in [{objects}]:
 
         return ".setIndexNames(" + ", ".join(idxStrlist) + ")", fakeStrlist, fakeSyms
 
-    def genIntegerSubType(self, data: Any, classmode: bool = False) -> str:
+    def gen_integer_sub_type(self, data: Any, classmode: bool = False) -> str:
         """Render an integer range restriction.
 
         Several ranges are joined into a union.
@@ -1406,7 +1408,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genMaxAccess(self, data: Any, classmode: bool = False) -> str:
+    def gen_max_access(self, data: Any, classmode: bool = False) -> str:
         """Render a MAX-ACCESS clause.
 
         Args:
@@ -1420,7 +1422,7 @@ for _{name}_obj in [{objects}]:
         access = data[0].replace("-", "")
         return (access != "notaccessible" and '.setMaxAccess("' + access + '")') or ""
 
-    def genOctetStringSubType(self, data: Any, classmode: bool = False) -> str:
+    def gen_octet_string_sub_type(self, data: Any, classmode: bool = False) -> str:
         """Render an octet string size restriction.
 
         Several sizes are joined into a union, and a size that permits only one
@@ -1456,7 +1458,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genOid(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_oid(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Resolve an OID and render it as numbers.
 
         Args:
@@ -1473,7 +1475,7 @@ for _{name}_obj in [{objects}]:
         parent = ""
         for el in data[0]:
             if isinstance(el, str):
-                parent = self.transOpers(el)
+                parent = self.trans_opers(el)
                 out += ((parent, self._importMap.get(parent, self.moduleName[0])),)
 
             elif isinstance(el, int):
@@ -1485,10 +1487,10 @@ for _{name}_obj in [{objects}]:
             else:
                 raise error.PySmiSemanticError(f"unknown datatype for OID: {el}")
 
-        return str(self.genNumericOid(out)), parent
+        return str(self.gen_numeric_oid(out)), parent
 
     # noinspection PyUnusedLocal
-    def genObjects(self, data: Any, classmode: bool = False) -> list[Any]:
+    def gen_objects(self, data: Any, classmode: bool = False) -> list[Any]:
         """Return the names in an OBJECTS or NOTIFICATIONS list.
 
         Args:
@@ -1499,11 +1501,11 @@ for _{name}_obj in [{objects}]:
             The Python-safe names, empty when the list is.
         """
         if data[0]:
-            return [self.transOpers(obj) for obj in data[0]]  # XXX self.transOpers or not??
+            return [self.trans_opers(obj) for obj in data[0]]  # XXX self.trans_opers or not??
         return []
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genTime(self, data: Any, classmode: bool = False) -> list[Any]:
+    def gen_time(self, data: Any, classmode: bool = False) -> list[Any]:
         """Render MIB timestamps as readable dates.
 
         Two-digit SMIv1 years are read as nineteen-hundreds. A timestamp that
@@ -1536,7 +1538,7 @@ for _{name}_obj in [{objects}]:
         return times
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genLastUpdated(self, data: Any, classmode: bool = False) -> str:
+    def gen_last_updated(self, data: Any, classmode: bool = False) -> str:
         """Render a LAST-UPDATED clause.
 
         Args:
@@ -1550,7 +1552,7 @@ for _{name}_obj in [{objects}]:
         return ".setLastUpdated(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genOrganization(self, data: Any, classmode: bool = False) -> str:
+    def gen_organization(self, data: Any, classmode: bool = False) -> str:
         """Render an ORGANIZATION clause.
 
         Args:
@@ -1564,7 +1566,7 @@ for _{name}_obj in [{objects}]:
         return ".setOrganization(" + dorepr(text) + ")"
 
     # noinspection PyUnusedLocal
-    def genRevisions(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_revisions(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Render a module's revision history.
 
         Args:
@@ -1575,7 +1577,7 @@ for _{name}_obj in [{objects}]:
             The most recent revision date, the call setting all revision dates,
             and the call setting their descriptions.
         """
-        times = self.genTime([x[0] for x in data[0]])
+        times = self.gen_time([x[0] for x in data[0]])
         times = [dorepr(x) for x in times]
 
         revisions = ".setRevisions(({},))".format(", ".join(times))
@@ -1588,7 +1590,7 @@ for _{name}_obj in [{objects}]:
 
         return lastRevision, revisions, descriptions
 
-    def genRow(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_row(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Render the class of a table row.
 
         A name the symbol table recorded as a table's row is a row; anything
@@ -1600,16 +1602,16 @@ for _{name}_obj in [{objects}]:
 
         Returns:
             The ``MibTableRow`` class with no subtype, or whatever
-            :py:meth:`genSimpleSyntax` makes of the name.
+            :py:meth:`gen_simple_syntax` makes of the name.
         """
         row = data[0]
-        row = self.transOpers(row)
+        row = self.trans_opers(row)
         return (
             row in self.symbolTable[self.moduleName[0]]["_symtable_rows"] and ("MibTableRow", "")
-        ) or self.genSimpleSyntax(data, classmode=classmode)
+        ) or self.gen_simple_syntax(data, classmode=classmode)
 
     # noinspection PyUnusedLocal
-    def genSequence(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_sequence(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Record the columns of a SEQUENCE.
 
         Args:
@@ -1623,12 +1625,12 @@ for _{name}_obj in [{objects}]:
         self._cols.update(cols)
         return "", ""
 
-    def genSimpleSyntax(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_simple_syntax(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Render a type reference as the object or class it becomes.
 
         In class mode the type is returned for the declaration to derive from.
         Otherwise it is instantiated, and the object is a scalar, which
-        :py:meth:`genObjectType` may still narrow to a column.
+        :py:meth:`gen_object_type` may still narrow to a column.
 
         Args:
             data: rendered clause values
@@ -1639,7 +1641,7 @@ for _{name}_obj in [{objects}]:
         """
         objType = data[0]
         objType = self.typeClasses.get(objType, objType)
-        objType = self.transOpers(objType)
+        objType = self.trans_opers(objType)
 
         subtype = (len(data) == 2 and data[1]) or ""
 
@@ -1652,7 +1654,7 @@ for _{name}_obj in [{objects}]:
         return "MibScalar", outStr
 
     # noinspection PyUnusedLocal
-    def genTypeDeclarationRHS(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_type_declaration_rhs(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Render the body of a type declaration.
 
         A textual convention carries display hint, status and text alongside its
@@ -1694,7 +1696,7 @@ for _{name}_obj in [{objects}]:
         return parentType, attrs
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genUnits(self, data: Any, classmode: bool = False) -> str:
+    def gen_units(self, data: Any, classmode: bool = False) -> str:
         """Render a UNITS clause.
 
         Args:
@@ -1708,50 +1710,50 @@ for _{name}_obj in [{objects}]:
         return ".setUnits(" + dorepr(self.textFilter("units", text)) + ")"
 
     handlersTable = {
-        "agentCapabilitiesClause": genAgentCapabilities,
-        "moduleIdentityClause": genModuleIdentity,
-        "moduleComplianceClause": genModuleCompliance,
-        "notificationGroupClause": genNotificationGroup,
-        "notificationTypeClause": genNotificationType,
-        "objectGroupClause": genObjectGroup,
-        "objectIdentityClause": genObjectIdentity,
-        "objectTypeClause": genObjectType,
-        "trapTypeClause": genTrapType,
-        "typeDeclaration": genTypeDeclaration,
-        "valueDeclaration": genValueDeclaration,
-        "ApplicationSyntax": genSimpleSyntax,
-        "BitNames": genBitNames,
-        "BITS": genBits,
-        "ComplianceModules": genCompliances,
-        "conceptualTable": genConceptualTable,
-        "CONTACT-INFO": genContactInfo,
-        "DISPLAY-HINT": genDisplayHint,
-        "DEFVAL": genDefVal,
-        "DESCRIPTION": genDescription,
-        "REFERENCE": genReference,
-        "Status": genStatus,
-        "PRODUCT-RELEASE": genProductRelease,
-        "enumSpec": genEnumSpec,
-        "INDEX": genTableIndex,
-        "integerSubType": genIntegerSubType,
-        "MaxAccessPart": genMaxAccess,
-        "Notifications": genObjects,
-        "octetStringSubType": genOctetStringSubType,
-        "objectIdentifier": genOid,
-        "Objects": genObjects,
-        "LAST-UPDATED": genLastUpdated,
-        "ORGANIZATION": genOrganization,
-        "Revisions": genRevisions,
-        "row": genRow,
-        "SEQUENCE": genSequence,
-        "SimpleSyntax": genSimpleSyntax,
-        "typeDeclarationRHS": genTypeDeclarationRHS,
-        "UNITS": genUnits,
-        "VarTypes": genObjects,
+        "agentCapabilitiesClause": gen_agent_capabilities,
+        "moduleIdentityClause": gen_module_identity,
+        "moduleComplianceClause": gen_module_compliance,
+        "notificationGroupClause": gen_notification_group,
+        "notificationTypeClause": gen_notification_type,
+        "objectGroupClause": gen_object_group,
+        "objectIdentityClause": gen_object_identity,
+        "objectTypeClause": gen_object_type,
+        "trapTypeClause": gen_trap_type,
+        "typeDeclaration": gen_type_declaration,
+        "valueDeclaration": gen_value_declaration,
+        "ApplicationSyntax": gen_simple_syntax,
+        "BitNames": gen_bit_names,
+        "BITS": gen_bits,
+        "ComplianceModules": gen_compliances,
+        "conceptualTable": gen_conceptual_table,
+        "CONTACT-INFO": gen_contact_info,
+        "DISPLAY-HINT": gen_display_hint,
+        "DEFVAL": gen_def_val,
+        "DESCRIPTION": gen_description,
+        "REFERENCE": gen_reference,
+        "Status": gen_status,
+        "PRODUCT-RELEASE": gen_product_release,
+        "enumSpec": gen_enum_spec,
+        "INDEX": gen_table_index,
+        "integerSubType": gen_integer_sub_type,
+        "MaxAccessPart": gen_max_access,
+        "Notifications": gen_objects,
+        "octetStringSubType": gen_octet_string_sub_type,
+        "objectIdentifier": gen_oid,
+        "Objects": gen_objects,
+        "LAST-UPDATED": gen_last_updated,
+        "ORGANIZATION": gen_organization,
+        "Revisions": gen_revisions,
+        "row": gen_row,
+        "SEQUENCE": gen_sequence,
+        "SimpleSyntax": gen_simple_syntax,
+        "typeDeclarationRHS": gen_type_declaration_rhs,
+        "UNITS": gen_units,
+        "VarTypes": gen_objects,
         # 'a': lambda x: genXXX(x, 'CONSTRAINT')
     }
 
-    def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
+    def gen_code(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
         """Render one parsed MIB module as PySNMP Python source.
 
         Symbols are emitted in the order the symbol table recorded them, so
@@ -1787,20 +1789,20 @@ for _{name}_obj in [{objects}]:
         self._moduleIdentityOid = None
         self.moduleName[0], moduleOid, imports, declarations = ast
 
-        out, importedModules = self.genImports(imports or {})
+        out, importedModules = self.gen_imports(imports or {})
 
         for declr in declarations or []:
             if declr:
                 clausetype = declr[0]
                 classmode = clausetype == "typeDeclaration"
-                self.handlersTable[declr[0]](self, self.prepData(declr[1:], classmode), classmode)
+                self.handlersTable[declr[0]](self, self.prep_data(declr[1:], classmode), classmode)
 
         for sym in self.symbolTable[self.moduleName[0]]["_symtable_order"]:
             if sym not in self._out:
                 raise error.PySmiCodegenError(f"No generated code for symbol {sym}")
             out += self._out[sym]
 
-        out += self.genExports()
+        out += self.gen_exports()
 
         if "comments" in kwargs:
             out = "".join([f"# {x}\n" for x in kwargs["comments"]]) + "#\n" + out
@@ -1831,7 +1833,7 @@ for _{name}_obj in [{objects}]:
             imported=tuple(x for x in importedModules if x not in self.fakeMibs),
         ), out
 
-    def genIndex(self, processed: dict[str, Any], **kwargs: Any) -> str:
+    def gen_index(self, processed: dict[str, Any], **kwargs: Any) -> str:
         """Render an index mapping OIDs to the modules that define them.
 
         Args:

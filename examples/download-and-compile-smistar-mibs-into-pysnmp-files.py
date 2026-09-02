@@ -33,10 +33,10 @@ dstDirectory = ".pysnmp-mibs"
 mibCompiler = MibCompiler(SmiStarParser(), PySnmpCodeGen(), PyFileWriter(dstDirectory))
 
 # search for source MIBs at Web and FTP sites
-mibCompiler.addSources(HttpReader("https://pysnmp.github.io/mibs/asn1/@mib@"))
+mibCompiler.add_sources(HttpReader("https://pysnmp.github.io/mibs/asn1/@mib@"))
 
 # never recompile MIBs with MACROs
-mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
+mibCompiler.add_searchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs, **dict(noDeps=True))

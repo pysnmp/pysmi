@@ -8,16 +8,19 @@
 
 from typing import Any
 
+from pysmi._aliases import deprecated_camel_case
 
+
+@deprecated_camel_case
 class AbstractSearcher:
     """Base class for searchers of already-compiled MIBs.
 
     A searcher answers one question for the compiler: is the compiled form of
     this MIB new enough to leave alone? It reports the answer by raising, so
-    subclasses implement :py:meth:`fileExists` and never return a verdict.
+    subclasses implement :py:meth:`file_exists` and never return a verdict.
     """
 
-    def setOptions(self, **kwargs: Any) -> "AbstractSearcher":
+    def set_options(self, **kwargs: Any) -> "AbstractSearcher":
         """Set searcher options as attributes.
 
         Keyword Args:
@@ -30,7 +33,7 @@ class AbstractSearcher:
             setattr(self, k, kwargs[k])
         return self
 
-    def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
         """Report whether a compiled MIB is current, by raising.
 
         Args:

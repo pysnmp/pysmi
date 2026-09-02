@@ -13,6 +13,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
 from pysmi.mibinfo import MibInfo
 from pysmi.reader.base import AbstractReader
@@ -20,6 +21,7 @@ from pysmi.reader.base import AbstractReader
 logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class FileReader(AbstractReader):
     """Fetch ASN.1 MIB text by name from local file.
 
@@ -49,7 +51,7 @@ class FileReader(AbstractReader):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def getSubdirs(self, path: str, recursive: bool = True, ignoreErrors: bool = True) -> list[str]:
+    def get_subdirs(self, path: str, recursive: bool = True, ignoreErrors: bool = True) -> list[str]:
         """List *path* and every directory beneath it.
 
         Args:
@@ -85,12 +87,12 @@ class FileReader(AbstractReader):
         for d in subdirs:
             d = os.path.join(decode(path), decode(d))
             if os.path.isdir(d):
-                dirs.extend(self.getSubdirs(d, recursive))
+                dirs.extend(self.get_subdirs(d, recursive))
 
         return dirs
 
     @staticmethod
-    def loadIndex(indexFile: str) -> dict[str, str]:
+    def load_index(indexFile: str) -> dict[str, str]:
         """Read a directory's MIB index, mapping module names to file names.
 
         The index lets a MIB be found without opening every file to see which
@@ -125,16 +127,16 @@ class FileReader(AbstractReader):
 
         return mibIndex
 
-    def getMibVariants(self, mibname: str, **options: Any) -> Iterable[tuple[str, str]]:
+    def get_mib_variants(self, mibname: str, **options: Any) -> Iterable[tuple[str, str]]:
         """Consult the directory index before guessing file names.
 
         When the index names a file for this module, that file is tried first;
         otherwise this behaves as
-        :py:meth:`~pysmi.reader.base.AbstractReader.getMibVariants`.
+        :py:meth:`~pysmi.reader.base.AbstractReader.get_mib_variants`.
         """
         if self.useIndexFile:
             if not self._indexLoaded:
-                self._mibIndex = self.loadIndex(os.path.join(self._path, self.indexFile))
+                self._mibIndex = self.load_index(os.path.join(self._path, self.indexFile))
                 self._indexLoaded = True
 
             mibIndex = self._mibIndex or {}
@@ -148,9 +150,9 @@ class FileReader(AbstractReader):
                 )
                 return [(mibname, mibIndex[mibname])]
 
-        return super().getMibVariants(mibname, **options)
+        return super().get_mib_variants(mibname, **options)
 
-    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Read a MIB from the local directory tree.
 
         Raises:
@@ -164,8 +166,8 @@ class FileReader(AbstractReader):
             extra={"mib": mibname, "recursive": bool(self._recursive)},
         )
 
-        for path in self.getSubdirs(self._path, self._recursive, self._ignoreErrors):
-            for mibalias, mibfile in self.getMibVariants(mibname, **options):
+        for path in self.get_subdirs(self._path, self._recursive, self._ignoreErrors):
+            for mibalias, mibfile in self.get_mib_variants(mibname, **options):
                 f = os.path.join(decode(path), decode(mibfile))
 
                 logger.debug("trying MIB %s", f, extra={"mib": mibname, "path": f})

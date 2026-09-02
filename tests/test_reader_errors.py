@@ -53,7 +53,7 @@ class HttpReaderTestCase(unittest.TestCase):
         self.server.server_close()
 
     def testMibWithoutLastModifiedHeader(self):
-        mibInfo, data = HttpReader(self.url).getData("TEST-MIB")
+        mibInfo, data = HttpReader(self.url).get_data("TEST-MIB")
 
         self.assertEqual(data, NoLastModifiedHandler.body.decode())
         # Falls back to now rather than failing.
@@ -71,7 +71,7 @@ class HttpReaderTestCase(unittest.TestCase):
         logger.setLevel(logging.DEBUG)
         logger.addHandler(handler)
         try:
-            HttpReader(self.url).getData("TEST-MIB")
+            HttpReader(self.url).get_data("TEST-MIB")
             for record in records:
                 record.getMessage()
         finally:
@@ -83,12 +83,12 @@ class HttpReaderTestCase(unittest.TestCase):
     def testUnreachableServerIsReportedAsNotFound(self):
         reader = HttpReader("http://127.0.0.1:9/@mib@")
 
-        self.assertRaises(error.PySmiReaderFileNotFoundError, reader.getData, "TEST-MIB")
+        self.assertRaises(error.PySmiReaderFileNotFoundError, reader.get_data, "TEST-MIB")
 
     def testMalformedUrlIsReportedAsNotFound(self):
         reader = HttpReader("not-a-url")
 
-        self.assertRaises(error.PySmiReaderFileNotFoundError, reader.getData, "TEST-MIB")
+        self.assertRaises(error.PySmiReaderFileNotFoundError, reader.get_data, "TEST-MIB")
 
 
 class ZipReaderTestCase(unittest.TestCase):
@@ -120,14 +120,14 @@ class ZipReaderTestCase(unittest.TestCase):
             os.write(fd, bytes(blob))
             os.close(fd)
 
-            self.assertRaises(error.PySmiReaderFileNotFoundError, ZipReader(path).getData, "TEST-MIB")
+            self.assertRaises(error.PySmiReaderFileNotFoundError, ZipReader(path).get_data, "TEST-MIB")
         finally:
             os.remove(path)
 
     def testMissingArchiveIsReportedAsNotFound(self):
         reader = ZipReader(os.path.join(tempfile.gettempdir(), "no-such-archive.zip"))
 
-        self.assertRaises(error.PySmiReaderFileNotFoundError, reader.getData, "TEST-MIB")
+        self.assertRaises(error.PySmiReaderFileNotFoundError, reader.get_data, "TEST-MIB")
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

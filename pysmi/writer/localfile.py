@@ -12,12 +12,14 @@ import os
 import tempfile
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode, encode
 from pysmi.writer.base import AbstractWriter
 
 logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class FileWriter(AbstractWriter):
     """Stores transformed MIB modules in files at specified location.
 
@@ -38,7 +40,7 @@ class FileWriter(AbstractWriter):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def getData(self, filename: str, dryRun: bool = False) -> str:
+    def get_data(self, filename: str, dryRun: bool = False) -> str:
         """Read back a file this writer stored, empty when it is not there."""
         path = os.path.join(self._path, decode(filename)) + self.suffix
 
@@ -50,7 +52,7 @@ class FileWriter(AbstractWriter):
         except (OSError, UnicodeEncodeError):
             return ""
 
-    def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
         """Write the generated MIB into the destination directory.
 
         The file is written under a temporary name and moved into place, so a

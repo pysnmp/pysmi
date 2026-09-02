@@ -43,19 +43,19 @@ END
 class DefValEmptyStringTestCase(unittest.TestCase):
     """An empty DEFVAL is kept for OCTET STRING and dropped for other types.
 
-    ``genDefVal`` used to compare the tuple returned by ``getBaseType`` against
+    ``gen_def_val`` used to compare the tuple returned by ``get_base_type`` against
     the string ``"OctetString"``. That comparison could never hold, so the
     guard meant to discard bogus empty defaults discarded every one of them.
     """
 
     def setUp(self):
         ast = parserFactory()().parse(MIB)[0]
-        mibInfo, symtable = SymtableCodeGen().genCode(ast, {})
+        mibInfo, symtable = SymtableCodeGen().gen_code(ast, {})
         self.symtable = {mibInfo.name: symtable}
         self.ast = ast
 
     def testPySnmpKeepsEmptyOctetStringDefault(self):
-        _, pycode = PySnmpCodeGen().genCode(self.ast, self.symtable)
+        _, pycode = PySnmpCodeGen().gen_code(self.ast, self.symtable)
 
         mibBuilder = MibBuilder()
         ctx = {"mibBuilder": mibBuilder}
@@ -68,7 +68,7 @@ class DefValEmptyStringTestCase(unittest.TestCase):
         )
 
     def testPySnmpDropsEmptyDefaultForOtherTypes(self):
-        _, pycode = PySnmpCodeGen().genCode(self.ast, self.symtable)
+        _, pycode = PySnmpCodeGen().gen_code(self.ast, self.symtable)
 
         self.assertNotIn(
             "testEmptyInteger = MibScalar((1, 3), Integer32().clone",
@@ -77,7 +77,7 @@ class DefValEmptyStringTestCase(unittest.TestCase):
         )
 
     def testJsonKeepsEmptyOctetStringDefault(self):
-        _, jsoncode = JsonCodeGen().genCode(self.ast, self.symtable)
+        _, jsoncode = JsonCodeGen().gen_code(self.ast, self.symtable)
         doc = json.loads(jsoncode)
 
         self.assertEqual(
@@ -87,7 +87,7 @@ class DefValEmptyStringTestCase(unittest.TestCase):
         )
 
     def testJsonDropsEmptyDefaultForOtherTypes(self):
-        _, jsoncode = JsonCodeGen().genCode(self.ast, self.symtable)
+        _, jsoncode = JsonCodeGen().gen_code(self.ast, self.symtable)
         doc = json.loads(jsoncode)
 
         self.assertNotIn("default", doc["testEmptyInteger"], "empty DEFVAL kept for Integer32")

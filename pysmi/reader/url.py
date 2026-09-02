@@ -29,7 +29,7 @@ def getReadersFromUrls(*sourceUrls: str, **options: Any) -> list[AbstractReader]
         sourceUrls (str): URLs to build readers for
 
     Keyword Args:
-        options: passed to :py:meth:`~pysmi.reader.base.AbstractReader.setOptions`
+        options: passed to :py:meth:`~pysmi.reader.base.AbstractReader.set_options`
             on every reader built
 
     Returns:
@@ -51,12 +51,12 @@ def getReadersFromUrls(*sourceUrls: str, **options: Any) -> list[AbstractReader]
                 scheme = "file"
 
             if scheme == "file":
-                readers.append(FileReader(url2pathname(mibSource.path)).setOptions(**options))
+                readers.append(FileReader(url2pathname(mibSource.path)).set_options(**options))
             else:
-                readers.append(ZipReader(url2pathname(mibSource.path)).setOptions(**options))
+                readers.append(ZipReader(url2pathname(mibSource.path)).set_options(**options))
 
         elif mibSource.scheme in ("http", "https"):
-            readers.append(HttpReader(sourceUrl).setOptions(**options))
+            readers.append(HttpReader(sourceUrl).set_options(**options))
 
         else:
             raise error.PySmiError(f"Unsupported URL scheme {sourceUrl}")

@@ -15,6 +15,7 @@ import tempfile
 from typing import Final
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode, encode
 from pysmi.writer.base import AbstractWriter
 
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 SOURCE_SUFFIXES: Final = importlib.machinery.SOURCE_SUFFIXES
 
 
+@deprecated_camel_case
 class PyFileWriter(AbstractWriter):
     """Stores transformed MIB modules as Python files at specified location.
 
@@ -44,7 +46,7 @@ class PyFileWriter(AbstractWriter):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
         """Write the generated MIB as a Python module.
 
         Comments are rendered as a module docstring. The module is also
@@ -106,6 +108,6 @@ class PyFileWriter(AbstractWriter):
 
         logger.debug("%s stored", mibname, extra={"mib": mibname})
 
-    def getData(self, filename: str) -> str:
+    def get_data(self, filename: str) -> str:
         """Return an empty string; compiled modules are not read back."""
         return ""

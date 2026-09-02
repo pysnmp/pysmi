@@ -15,6 +15,7 @@ import time
 from typing import Final
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
 from pysmi.searcher.base import AbstractSearcher
 
@@ -24,6 +25,7 @@ SOURCE_SUFFIXES: Final = importlib.machinery.SOURCE_SUFFIXES
 BYTECODE_SUFFIXES: Final = importlib.machinery.BYTECODE_SUFFIXES
 
 
+@deprecated_camel_case
 class PyFileSearcher(AbstractSearcher):
     """Figures out if given Python file (source or bytecode) exists at given
     location.
@@ -40,7 +42,7 @@ class PyFileSearcher(AbstractSearcher):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
         """Compare a compiled Python module's timestamp against the MIB source.
 
         The timestamp is read out of the bytecode header rather than from the

@@ -38,7 +38,7 @@ class LoadIndexTestCase(unittest.TestCase):
         path = self._writeIndex("IF-MIB if-mib.txt\nIP-MIB ip-mib.txt\n")
 
         self.assertEqual(
-            FileReader.loadIndex(path),
+            FileReader.load_index(path),
             {"IF-MIB": "if-mib.txt", "IP-MIB": "ip-mib.txt"},
         )
 
@@ -46,25 +46,25 @@ class LoadIndexTestCase(unittest.TestCase):
         """A blank final line is ordinary in a text file and must not fail."""
         path = self._writeIndex("IF-MIB if-mib.txt\n\n")
 
-        self.assertEqual(FileReader.loadIndex(path), {"IF-MIB": "if-mib.txt"})
+        self.assertEqual(FileReader.load_index(path), {"IF-MIB": "if-mib.txt"})
 
     def testShortLineIsSkipped(self):
         path = self._writeIndex("IF-MIB if-mib.txt\nSTRAY-TOKEN\nIP-MIB ip-mib.txt\n")
 
         self.assertEqual(
-            FileReader.loadIndex(path),
+            FileReader.load_index(path),
             {"IF-MIB": "if-mib.txt", "IP-MIB": "ip-mib.txt"},
         )
 
     def testTrailingFieldsAreIgnored(self):
         path = self._writeIndex("IF-MIB if-mib.txt extra junk\n")
 
-        self.assertEqual(FileReader.loadIndex(path), {"IF-MIB": "if-mib.txt"})
+        self.assertEqual(FileReader.load_index(path), {"IF-MIB": "if-mib.txt"})
 
     def testMissingIndexIsEmpty(self):
         missing = os.path.join(self._tmpdir, "absent.csv")
 
-        self.assertEqual(FileReader.loadIndex(missing), {})
+        self.assertEqual(FileReader.load_index(missing), {})
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

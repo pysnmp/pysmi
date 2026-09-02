@@ -170,7 +170,7 @@ def start() -> None:
         """
         mibCompiler = MibCompiler(mibParser, codeGenerator, fileWriter)
 
-        mibCompiler.addSources(
+        mibCompiler.add_sources(
             FileReader(mibDir, recursive=False, ignoreErrors=ignoreErrorsFlag), *getReadersFromUrls(*mibSources)
         )
 

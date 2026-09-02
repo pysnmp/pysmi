@@ -21,6 +21,7 @@ from typing import Any, Final
 from pysmi import __name__ as packageName
 from pysmi import __version__ as packageVersion
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.borrower.base import AbstractBorrower
 from pysmi.codegen.base import AbstractCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
@@ -35,6 +36,7 @@ logger = logging.getLogger(__name__)
 _AT_MIB_SUFFIX: Final = " at MIB %s"
 
 
+@deprecated_camel_case
 class MibStatus(str):
     """Indicate MIB transformation result.
 
@@ -51,7 +53,7 @@ class MibStatus(str):
     * *borrowed* - MIB transformation failed but pre-transformed version was used
     """
 
-    # Set by setOptions() when the compiler records an outcome, so which of
+    # Set by set_options() when the compiler records an outcome, so which of
     # these exist depends on the status. Reading one that was never set raises
     # AttributeError.
 
@@ -76,7 +78,7 @@ class MibStatus(str):
     #: Why the transformation failed.
     error: error.PySmiError
 
-    def setOptions(self, **kwargs: Any) -> "MibStatus":
+    def set_options(self, **kwargs: Any) -> "MibStatus":
         """Return a copy of this status carrying extra attributes.
 
         The module-level statuses are shared constants, so detail about one
@@ -96,6 +98,7 @@ statusMissing: Final = MibStatus("missing")
 statusBorrowed: Final = MibStatus("borrowed")
 
 
+@deprecated_camel_case
 class MibCompiler:
     """Top-level, user-facing, composite MIB compiler object.
 
@@ -136,7 +139,7 @@ class MibCompiler:
         self._searchers: list[AbstractSearcher] = []
         self._borrowers: list[AbstractBorrower] = []
 
-    def addSources(self, *sources: "AbstractReader") -> "MibCompiler":
+    def add_sources(self, *sources: "AbstractReader") -> "MibCompiler":
         """Add more ASN.1 MIB source repositories.
 
         MibCompiler.compile will invoke each of configured source objects
@@ -160,7 +163,7 @@ class MibCompiler:
 
         return self
 
-    def addSearchers(self, *searchers: "AbstractSearcher") -> "MibCompiler":
+    def add_searchers(self, *searchers: "AbstractSearcher") -> "MibCompiler":
         """Add more transformed MIBs repositories.
 
         MibCompiler.compile will invoke each of configured searcher objects
@@ -184,7 +187,7 @@ class MibCompiler:
 
         return self
 
-    def addBorrowers(self, *borrowers: "AbstractBorrower") -> "MibCompiler":
+    def add_borrowers(self, *borrowers: "AbstractBorrower") -> "MibCompiler":
         """Add more transformed MIBs repositories to borrow MIBs from.
 
         Whenever MibCompiler.compile encounters MIB module which neither of
@@ -262,10 +265,10 @@ class MibCompiler:
                 logger.debug("trying source %s", source, extra={"mib": mibname, "source": str(source)})
 
                 try:
-                    fileInfo, fileData = source.getData(mibname)
+                    fileInfo, fileData = source.get_data(mibname)
 
                     for mibTree in self._parser.parse(fileData):
-                        mibInfo, symbolTable = self._symbolgen.genCode(mibTree, symbolTableMap)
+                        mibInfo, symbolTable = self._symbolgen.gen_code(mibTree, symbolTableMap)
 
                         symbolTableMap[mibInfo.name] = symbolTable
 
@@ -328,7 +331,7 @@ class MibCompiler:
 
                     failedMibs[mibname] = exc
 
-                    processed[mibname] = statusFailed.setOptions(error=exc)
+                    processed[mibname] = statusFailed.set_options(error=exc)
 
             else:
                 notFound = error.PySmiError(f"MIB source {mibname} not found")
@@ -359,7 +362,7 @@ class MibCompiler:
 
             for searcher in self._searchers:
                 try:
-                    searcher.fileExists(mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")))
+                    searcher.file_exists(mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")))
 
                 except error.PySmiFileNotFoundError:
                     logger.debug(
@@ -427,7 +430,7 @@ class MibCompiler:
             ]
 
             try:
-                mibInfo, mibData = self._codegen.genCode(
+                mibInfo, mibData = self._codegen.gen_code(
                     mibTree,
                     symbolTableMap,
                     comments=comments,
@@ -458,7 +461,7 @@ class MibCompiler:
                     extra={"mib": mibname, "codegen": str(self._codegen), "error": str(exc)},
                 )
 
-                processed[mibname] = statusFailed.setOptions(error=exc)
+                processed[mibname] = statusFailed.set_options(error=exc)
 
                 failedMibs[mibname] = exc
                 del parsedMibs[mibname]
@@ -484,7 +487,7 @@ class MibCompiler:
                     "trying to borrow %s from %s", mibname, borrower, extra={"mib": mibname, "borrower": str(borrower)}
                 )
                 try:
-                    fileInfo, fileData = borrower.getData(mibname, genTexts=options.get("genTexts"))
+                    fileInfo, fileData = borrower.get_data(mibname, genTexts=options.get("genTexts"))
 
                     borrowedMibs[mibname] = fileInfo, MibInfo(name=mibname, imported=[]), fileData
 
@@ -521,7 +524,7 @@ class MibCompiler:
 
             for searcher in self._searchers:
                 try:
-                    searcher.fileExists(mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")))
+                    searcher.file_exists(mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")))
 
                 except error.PySmiFileNotFoundError:
                     logger.debug(
@@ -567,7 +570,7 @@ class MibCompiler:
                     logger.debug("will borrow MIB %s", mibname, extra={"mib": mibname})
                     builtMibs[mibname] = borrowedMibs[mibname]
 
-                    processed[mibname] = statusBorrowed.setOptions(
+                    processed[mibname] = statusBorrowed.set_options(
                         path=fileInfo.path, file=fileInfo.file, alias=fileInfo.name
                     )
 
@@ -608,7 +611,7 @@ class MibCompiler:
 
             try:
                 if options.get("writeMibs", True):
-                    self._writer.putData(mibname, mibData, dryRun=bool(options.get("dryRun")))
+                    self._writer.put_data(mibname, mibData, dryRun=bool(options.get("dryRun")))
 
                 logger.debug(
                     "%s stored by %s", mibname, self._writer, extra={"mib": mibname, "writer": str(self._writer)}
@@ -617,7 +620,7 @@ class MibCompiler:
                 del builtMibs[mibname]
 
                 if mibname not in processed:
-                    processed[mibname] = statusCompiled.setOptions(
+                    processed[mibname] = statusCompiled.set_options(
                         path=fileInfo.path,
                         file=fileInfo.file,
                         alias=fileInfo.name,
@@ -641,7 +644,7 @@ class MibCompiler:
                     extra={"mib": mibname, "writer": str(self._writer), "error": str(exc)},
                 )
 
-                processed[mibname] = statusFailed.setOptions(error=exc)
+                processed[mibname] = statusFailed.set_options(error=exc)
                 failedMibs[mibname] = exc
                 del builtMibs[mibname]
 
@@ -653,7 +656,7 @@ class MibCompiler:
 
         return processed
 
-    def buildIndex(self, processedMibs: dict[str, MibStatus], **options: Any) -> None:
+    def build_index(self, processedMibs: dict[str, MibStatus], **options: Any) -> None:
         """Generate and store an index over the MIBs just compiled.
 
         Args:
@@ -673,10 +676,10 @@ class MibCompiler:
         ]
 
         try:
-            self._writer.putData(
+            self._writer.put_data(
                 self.indexFile,
-                self._codegen.genIndex(
-                    processedMibs, comments=comments, old_index_data=self._writer.getData(self.indexFile)
+                self._codegen.gen_index(
+                    processedMibs, comments=comments, old_index_data=self._writer.get_data(self.indexFile)
                 ),
                 dryRun=bool(options.get("dryRun")),
             )

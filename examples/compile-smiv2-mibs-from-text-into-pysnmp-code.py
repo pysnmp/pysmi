@@ -40,10 +40,10 @@ def readMib(mibname, cbCtx):
         return srcFile.read()
 
 
-mibCompiler.addSources(CallbackReader(readMib))
+mibCompiler.add_sources(CallbackReader(readMib))
 
 # never recompile MIBs with MACROs
-mibCompiler.addSearchers(StubSearcher(*PySnmpCodeGen.baseMibs))
+mibCompiler.add_searchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs, **dict(noDeps=True))

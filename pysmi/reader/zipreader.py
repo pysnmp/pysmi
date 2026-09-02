@@ -15,6 +15,7 @@ import zipfile
 from typing import IO, Any, Final
 
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
 from pysmi.mibinfo import MibInfo
 from pysmi.reader.base import AbstractReader
@@ -35,6 +36,7 @@ ZIP_READ_ERRORS: Final = (
 )
 
 
+@deprecated_camel_case
 class ZipReader(AbstractReader):
     """Fetch ASN.1 MIB text by name from a ZIP archive.
 
@@ -140,7 +142,7 @@ class ZipReader(AbstractReader):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._name}"}}'
 
-    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Read a MIB from the ZIP archive.
 
         Raises:
@@ -156,7 +158,7 @@ class ZipReader(AbstractReader):
         if not self._members:
             raise error.PySmiReaderFileNotFoundError(f"source MIB {mibname} not found", reader=self)
 
-        for mibalias, mibfile in self.getMibVariants(mibname, **options):
+        for mibalias, mibfile in self.get_mib_variants(mibname, **options):
             logger.debug("trying MIB %s", mibfile, extra={"mib": mibname, "mib_file": mibfile})
 
             try:

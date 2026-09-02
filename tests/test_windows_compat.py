@@ -73,7 +73,7 @@ def compileTestMib() -> dict:
         JsonCodeGen(),
         CallbackWriter(lambda mibname, data, ctx: written.update({mibname: data})),
     )
-    compiler.addSources(CallbackReader(read))
+    compiler.add_sources(CallbackReader(read))
 
     # The base MIBs cannot be reached, and their absence would otherwise roll
     # back the one MIB that did compile.
