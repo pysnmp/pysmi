@@ -10,7 +10,7 @@ import logging
 import re
 from keyword import iskeyword
 from time import strftime, strptime
-from typing import Any
+from typing import Any, cast
 
 from pysmi import error
 from pysmi.codegen.base import AbstractCodeGen, dorepr
@@ -527,7 +527,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         oidStr, _parentOid = oid
 
-        outStr = name + " = ModuleIdentity(" + oidStr + ")" + label + "\n"
+        outStr: str = name + " = ModuleIdentity(" + oidStr + ")" + label + "\n"
 
         if revisionsAndDescrs:
             last_revision, revisions, descriptions = revisionsAndDescrs
@@ -576,7 +576,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         name = self.transOpers(name)
 
         oidStr, _parentOid = oid
-        outStr = name + " = ModuleCompliance(" + oidStr + ")" + label
+        outStr: str = name + " = ModuleCompliance(" + oidStr + ")" + label
         outStr += compliances + "\n"
 
         if status:
@@ -613,7 +613,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         oidStr, _parentOid = oid
 
-        outStr = name + " = NotificationGroup(" + oidStr + ")" + label
+        outStr: str = name + " = NotificationGroup(" + oidStr + ")" + label
 
         if objects:
             objects = [
@@ -667,7 +667,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         oidStr, _parentOid = oid
 
-        outStr = name + " = NotificationType(" + oidStr + ")" + label
+        outStr: str = name + " = NotificationType(" + oidStr + ")" + label
 
         if objects:
             objects = [
@@ -721,7 +721,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         oidStr, _parentOid = oid
 
-        outStr = name + " = ObjectGroup(" + oidStr + ")" + label
+        outStr: str = name + " = ObjectGroup(" + oidStr + ")" + label
 
         if objects:
             objects = [
@@ -831,7 +831,7 @@ for _{name}_obj in [{objects}]:
 
         defval = self.genDefVal(defval, objname=name)
 
-        outStr = name + " = " + classtype + "(" + oidStr + ", " + subtype + (defval or "") + ")" + label
+        outStr: str = name + " = " + classtype + "(" + oidStr + ", " + subtype + (defval or "") + ")" + label
         outStr += units or ""
         outStr += maxaccess or ""
         outStr += indexStr or ""
@@ -966,7 +966,7 @@ for _{name}_obj in [{objects}]:
         name = self.transOpers(name)
 
         oidStr, _parentOid = oid
-        outStr = name + " = MibIdentifier(" + oidStr + ")" + label + "\n"
+        outStr: str = name + " = MibIdentifier(" + oidStr + ")" + label + "\n"
 
         self.regSym(name, outStr, oidStr)
 
@@ -1000,7 +1000,7 @@ for _{name}_obj in [{objects}]:
         names = data[0]
         return names
 
-    def genBits(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def genBits(self, data: Any, classmode: bool = False) -> tuple[str, str]:
         """Render a BITS clause as named values.
 
         The values are built in batches when there are more of them than may be
@@ -1147,7 +1147,7 @@ for _{name}_obj in [{objects}]:
             return ""
 
         if not objname:
-            return data
+            return cast("bool | list[Any] | str", data)
 
         defval = data[0]
         defvalType = self.getBaseType(objname, self.moduleName[0])
@@ -1170,7 +1170,7 @@ for _{name}_obj in [{objects}]:
                 val = 'hexValue="' + hexval + '"'
 
         elif defval[0] == defval[-1] and defval[0] == '"':  # quoted string
-            if defval[1:-1] == "" and defvalType != "OctetString":  # common bug
+            if defval[1:-1] == "" and defvalType[0][0] != "OctetString":  # common bug
                 # a warning should be here
                 return False  # we will set no default value
 

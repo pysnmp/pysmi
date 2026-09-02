@@ -8,3 +8,8 @@
 
 from pysmi.borrower.anyfile import AnyFileBorrower
 from pysmi.borrower.pyfile import PyFileBorrower
+
+__all__ = [
+    "AnyFileBorrower",
+    "PyFileBorrower",
+]

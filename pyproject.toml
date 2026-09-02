@@ -78,31 +78,26 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["pysmi"]
 
-# Package initializers deliberately re-export their public APIs. The code generator,
-# lexer, and reader class attributes are shared compatibility tables, not instance defaults.
+# The code generator, lexer, and reader class attributes are shared compatibility
+# tables, not instance defaults. Tests execute the Python they generate.
 [tool.ruff.lint.per-file-ignores]
-"pysmi/**/__init__.py" = ["F401"]
 "pysmi/codegen/base.py" = ["RUF012"]
 "pysmi/codegen/jsondoc.py" = ["RUF012"]
 "pysmi/codegen/pysnmp.py" = ["RUF012"]
 "pysmi/codegen/symtable.py" = ["RUF012"]
 "pysmi/lexer/smi.py" = ["RUF012"]
-"tests/test_*_pysnmp.py" = ["S102"]
+"tests/test_*.py" = ["S102"]
 "tests/test_zipreader.py" = ["RUF012"]
 
 [tool.mypy]
 python_version = "3.10"
 files = ["pysmi"]
 ignore_missing_imports = true
-warn_unused_ignores = true
-warn_redundant_casts = true
 warn_unreachable = true
-# Check the bodies of functions that are not yet annotated. Without this mypy
-# skips them entirely, which hid most of the codebase.
-check_untyped_defs = true
-# Require annotations everywhere except the PLY grammar modules exempted below.
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
+# Everything except the PLY grammar modules exempted below, which cannot be
+# annotated usefully. strict_equality caught a live bug where a tuple was
+# compared against a string, so an empty DEFVAL was discarded for every type.
+strict = true
 
 [[tool.mypy.overrides]]
 # PLY builds the lexer and parser by reflecting over p_* and t_* methods whose
