@@ -155,15 +155,20 @@ def start() -> None:
 
     fileWriter = CallbackWriter(lambda *x: None)
 
-    def getMibRevision(mibDir: str, mibFile: str) -> tuple[str, datetime]:
-        """Read a MIB file just far enough to learn its name and revision.
+    def getMibRevisions(mibDir: str, mibFile: str) -> dict[str, datetime]:
+        """Read a MIB file just far enough to learn what it defines.
+
+        One file may hold several modules, which is common in vendor archives.
+        Every module is reported, so that each can be copied under its own name;
+        a reader asked for one of them looks for a file bearing that name.
 
         Args:
             mibDir (str): directory holding the file
             mibFile (str): file to inspect
 
         Returns:
-            The module name the file defines and its latest revision date.
+            The latest revision date of each module the file defines, keyed by
+            module name, in the order the modules appear.
 
         Raises:
             PySmiError: the file could not be read or holds no MIB.
@@ -183,6 +188,8 @@ def start() -> None:
             sys.stderr.write(f"ERROR: {exc}\r\n")
             sys.exit(EX_SOFTWARE)
 
+        revisions: dict[str, datetime] = {}
+
         for canonicalMibName in processed:
             if processed[canonicalMibName] == "compiled" and processed[
                 canonicalMibName
@@ -194,9 +201,12 @@ def start() -> None:
                     # Missing or unparsable revision date.
                     revision = datetime.fromtimestamp(0)
 
-                return canonicalMibName, revision
+                revisions[canonicalMibName] = revision
 
-        raise error.PySmiError(f'Can\'t read or parse MIB "{os.path.join(mibDir, mibFile)}"')
+        if not revisions:
+            raise error.PySmiError(f'Can\'t read or parse MIB "{os.path.join(mibDir, mibFile)}"')
+
+        return revisions
 
     def shortenPath(path: str, maxLength: int = 45) -> str:
         """Trim a path from the left for display, keeping the tail readable."""
@@ -229,7 +239,7 @@ def start() -> None:
             # TODO(etingof): also check module OID to make sure there is no name collision
 
             try:
-                mibName, srcMibRevision = getMibRevision(mibDir, mibFile)
+                srcMibRevisions = getMibRevisions(mibDir, mibFile)
 
             except error.PySmiError as ex:
                 if verboseFlag:
@@ -242,61 +252,64 @@ def start() -> None:
 
                 continue
 
-            if mibName in mibsRevisions:
-                dstMibRevision = mibsRevisions[mibName]
+            # A file holding several modules is copied once under each of their
+            # names: whoever looks a module up expects a file called after it.
+            for mibName, srcMibRevision in srcMibRevisions.items():
+                if mibName in mibsRevisions:
+                    dstMibRevision = mibsRevisions[mibName]
 
-            else:
-                try:
-                    _, dstMibRevision = getMibRevision(dstDirectory, mibName)
+                else:
+                    try:
+                        dstMibRevision = getMibRevisions(dstDirectory, mibName)[mibName]
 
-                except error.PySmiError as ex:
+                    except (error.PySmiError, KeyError) as ex:
+                        if verboseFlag:
+                            sys.stderr.write(
+                                f'MIB "{os.path.join(mibDir, mibFile)}" is not available at the '
+                                f'destination directory "{dstDirectory}": {ex}\r\n'
+                            )
+
+                        dstMibRevision = datetime.fromtimestamp(0)
+
+                    mibsRevisions[mibName] = dstMibRevision
+
+                if dstMibRevision >= srcMibRevision:
                     if verboseFlag:
                         sys.stderr.write(
-                            f'MIB "{os.path.join(mibDir, mibFile)}" is not available at the '
-                            f'destination directory "{dstDirectory}": {ex}\r\n'
+                            f'Destination MIB "{os.path.join(dstDirectory, mibName)}" has the same or newer revision as the '
+                            f'source MIB "{os.path.join(mibDir, mibFile)}"\r\n'
+                        )
+                    if not quietFlag:
+                        sys.stderr.write(f"NOT COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
+
+                    continue
+
+                mibsRevisions[mibName] = srcMibRevision
+
+                if verboseFlag:
+                    sys.stderr.write(
+                        f'Copying "{os.path.join(mibDir, mibFile)}" (revision "{srcMibRevision}") -> "{os.path.join(dstDirectory, mibName)}" (revision "{dstMibRevision}")\r\n'
+                    )
+
+                try:
+                    shutil.copy(os.path.join(mibDir, mibFile), os.path.join(dstDirectory, mibName))
+
+                except OSError as ex:
+                    if verboseFlag:
+                        sys.stderr.write(
+                            f'Failed to copy MIB "{os.path.join(mibDir, mibFile)}" -> "{os.path.join(dstDirectory, mibName)}" ({mibName}): "{ex}"\r\n'
                         )
 
-                    dstMibRevision = datetime.fromtimestamp(0)
+                    if not quietFlag:
+                        sys.stderr.write(f"FAILED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
 
-                mibsRevisions[mibName] = dstMibRevision
+                    mibsFailed += 1
 
-            if dstMibRevision >= srcMibRevision:
-                if verboseFlag:
-                    sys.stderr.write(
-                        f'Destination MIB "{os.path.join(dstDirectory, mibName)}" has the same or newer revision as the '
-                        f'source MIB "{os.path.join(mibDir, mibFile)}"\r\n'
-                    )
-                if not quietFlag:
-                    sys.stderr.write(f"NOT COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
+                else:
+                    if not quietFlag:
+                        sys.stderr.write(f"COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
 
-                continue
-
-            mibsRevisions[mibName] = srcMibRevision
-
-            if verboseFlag:
-                sys.stderr.write(
-                    f'Copying "{os.path.join(mibDir, mibFile)}" (revision "{srcMibRevision}") -> "{os.path.join(dstDirectory, mibName)}" (revision "{dstMibRevision}")\r\n'
-                )
-
-            try:
-                shutil.copy(os.path.join(mibDir, mibFile), os.path.join(dstDirectory, mibName))
-
-            except OSError as ex:
-                if verboseFlag:
-                    sys.stderr.write(
-                        f'Failed to copy MIB "{os.path.join(mibDir, mibFile)}" -> "{os.path.join(dstDirectory, mibName)}" ({mibName}): "{ex}"\r\n'
-                    )
-
-                if not quietFlag:
-                    sys.stderr.write(f"FAILED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
-
-                mibsFailed += 1
-
-            else:
-                if not quietFlag:
-                    sys.stderr.write(f"COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
-
-                mibsCopied += 1
+                    mibsCopied += 1
 
     if not quietFlag:
         sys.stderr.write(f"MIBs seen: {mibsSeen}, copied: {mibsCopied}, failed: {mibsFailed}\r\n")
