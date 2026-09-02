@@ -378,7 +378,7 @@ def start():
                 rebuild=rebuildFlag,
                 dryRun=dryrunFlag,
                 genTexts=genMibTextsFlag,
-                textFilter=(keepTextsLayout and (lambda symbol, text: text)) or None,
+                textFilter=(lambda symbol, text: text) if keepTextsLayout else None,
                 writeMibs=writeMibsFlag,
                 ignoreErrors=ignoreErrorsFlag,
             ),
