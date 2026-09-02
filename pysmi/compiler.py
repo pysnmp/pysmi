@@ -14,8 +14,6 @@ fails.
 """
 
 import logging
-import sys
-import time
 from typing import Any, Final
 
 from pysmi import __name__ as packageName
@@ -25,7 +23,7 @@ from pysmi._aliases import deprecated_camel_case
 from pysmi.borrower.base import AbstractBorrower
 from pysmi.codegen.base import AbstractCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysmi.mibinfo import MibInfo
+from pysmi.mibinfo import MibInfo, source_digest
 from pysmi.parser.base import AbstractParser
 from pysmi.reader.base import AbstractReader
 from pysmi.searcher.base import AbstractSearcher
@@ -267,6 +265,8 @@ class MibCompiler:
                 try:
                     fileInfo, fileData = source.get_data(mibname)
 
+                    fileInfo.digest = source_digest(fileData)
+
                     for mibTree in self._parser.parse(fileData):
                         mibInfo, symbolTable = self._symbolgen.gen_code(mibTree, symbolTableMap)
 
@@ -424,9 +424,9 @@ class MibCompiler:
             )
 
             comments = [
-                f"ASN.1 source {fileInfo.path}",
-                f"Produced by {packageName}-{packageVersion} at {time.asctime()}",
-                "Using Python version {}".format(sys.version.split("\n")[0]),
+                f"ASN.1 source {fileInfo.file or fileInfo.path}",
+                f"Source digest {fileInfo.digest}",
+                f"Produced by {packageName}-{packageVersion}",
             ]
 
             try:
@@ -671,8 +671,7 @@ class MibCompiler:
                 ``ignoreErrors`` is set.
         """
         comments = [
-            f"Produced by {packageName}-{packageVersion} at {time.asctime()}",
-            "Using Python version {}".format(sys.version.split("\n")[0]),
+            f"Produced by {packageName}-{packageVersion}",
         ]
 
         try:
