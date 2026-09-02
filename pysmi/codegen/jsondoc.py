@@ -67,26 +67,26 @@ class JsonCodeGen(AbstractCodeGen):
     indent = " " * 4
     fakeidx = 1000  # starting index for fake symbols
 
-    def __init__(self):
-        self._rows = set()
-        self._cols = {}  # k, v = name, datatype
-        self._seenSyms = set()
-        self._importMap = {}
-        self._out = {}  # k, v = name, generated code
-        self._moduleIdentityOid = None
-        self._moduleRevision = None
-        self._enterpriseOid = None
-        self._oids = set()
-        self._complianceOids = []
-        self.moduleName = ["DUMMY"]
-        self.genRules = {"text": True}
-        self.symbolTable = {}
+    def __init__(self) -> None:
+        self._rows: set[str] = set()
+        self._cols: dict[str, str] = {}  # k, v = name, datatype
+        self._seenSyms: set[str] = set()
+        self._importMap: dict[str, str] = {}
+        self._out: dict[str, Any] = {}  # k, v = name, generated code
+        self._moduleIdentityOid: str | None = None
+        self._moduleRevision: str | None = None
+        self._enterpriseOid: str | None = None
+        self._oids: set[str] = set()
+        self._complianceOids: list[str] = []
+        self.moduleName: list[str] = ["DUMMY"]
+        self.genRules: dict[str, Any] = {"text": True}
+        self.symbolTable: dict[str, Any] = {}
 
     @staticmethod
-    def transOpers(symbol):
+    def transOpers(symbol: str) -> Any:
         return symbol.replace("-", "_")
 
-    def prepData(self, pdata):
+    def prepData(self, pdata: Any) -> list[Any]:
         data = []
         for el in pdata:
             if not isinstance(el, tuple):
@@ -97,7 +97,7 @@ class JsonCodeGen(AbstractCodeGen):
                 data.append(self.handlersTable[el[0]](self, self.prepData(el[1:])))
         return data
 
-    def genImports(self, imports):
+    def genImports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
         # convertion to SNMPv2
         toDel = []
         for module in list(imports):
@@ -143,14 +143,21 @@ class JsonCodeGen(AbstractCodeGen):
         return OrderedDict(imports=outDict), tuple(sorted(imports))
 
     # noinspection PyMethodMayBeStatic
-    def genLabel(self, symbol):
+    def genLabel(self, symbol: str) -> str:
         return ("-" in symbol and symbol) or ""
 
-    def addToExports(self, symbol, moduleIdentity=0):
+    def addToExports(self, symbol: str, moduleIdentity: bool = False) -> None:
         self._seenSyms.add(symbol)
 
     # noinspection PyUnusedLocal
-    def regSym(self, symbol, outDict, parentOid=None, moduleIdentity=False, moduleCompliance=False):
+    def regSym(
+        self,
+        symbol: str,
+        outDict: "OrderedDict[str, Any]",
+        parentOid: str | None = None,
+        moduleIdentity: bool = False,
+        moduleCompliance: bool = False,
+    ) -> None:
         if symbol in self._seenSyms and symbol not in self._importMap:
             raise error.PySmiSemanticError(f"Duplicate symbol found: {symbol}")
 
@@ -171,7 +178,7 @@ class JsonCodeGen(AbstractCodeGen):
             if moduleCompliance:
                 self._complianceOids.append(outDict["oid"])
 
-    def genNumericOid(self, oid):
+    def genNumericOid(self, oid: tuple[Any, ...]) -> tuple[Any, ...]:
         numericOid: tuple[Any, ...] = ()
 
         for part in oid:
@@ -194,7 +201,7 @@ class JsonCodeGen(AbstractCodeGen):
 
         return numericOid
 
-    def getBaseType(self, symName, module):
+    def getBaseType(self, symName: str, module: str) -> tuple[Any, ...]:
         if module not in self.symbolTable:
             raise error.PySmiSemanticError(f'no module "{module}" in symbolTable')
 
@@ -221,7 +228,7 @@ class JsonCodeGen(AbstractCodeGen):
     # Clause generation functions
 
     # noinspection PyUnusedLocal
-    def genAgentCapabilities(self, data):
+    def genAgentCapabilities(self, data: Any) -> Any:
         name, productRelease, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -251,7 +258,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genModuleIdentity(self, data):
+    def genModuleIdentity(self, data: Any) -> "OrderedDict[str, Any]":
         name, lastUpdated, organization, contactInfo, description, revisions, oid = data
 
         self.genLabel(name)
@@ -284,7 +291,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genModuleCompliance(self, data):
+    def genModuleCompliance(self, data: Any) -> "OrderedDict[str, Any]":
         name, status, description, reference, compliances, oid = data
 
         self.genLabel(name)
@@ -314,7 +321,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genNotificationGroup(self, data):
+    def genNotificationGroup(self, data: Any) -> "OrderedDict[str, Any]":
         name, objects, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -346,7 +353,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genNotificationType(self, data):
+    def genNotificationType(self, data: Any) -> "OrderedDict[str, Any]":
         name, objects, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -378,7 +385,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genObjectGroup(self, data):
+    def genObjectGroup(self, data: Any) -> "OrderedDict[str, Any]":
         name, objects, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -407,7 +414,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genObjectIdentity(self, data):
+    def genObjectIdentity(self, data: Any) -> Any:
         name, status, description, reference, oid = data
 
         self.genLabel(name)
@@ -434,7 +441,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genObjectType(self, data):
+    def genObjectType(self, data: Any) -> "OrderedDict[str, Any]":
         name, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
 
         self.genLabel(name)
@@ -490,7 +497,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genTrapType(self, data):
+    def genTrapType(self, data: Any) -> Any:
         name, enterprise, variables, description, reference, value = data
 
         self.genLabel(name)
@@ -520,7 +527,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genTypeDeclaration(self, data):
+    def genTypeDeclaration(self, data: Any) -> "OrderedDict[str, Any]":
         name, declaration = data
 
         outDict = OrderedDict()
@@ -537,7 +544,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def genValueDeclaration(self, data):
+    def genValueDeclaration(self, data: Any) -> "OrderedDict[str, Any]":
         name, oid = data
 
         self.genLabel(name)
@@ -556,11 +563,11 @@ class JsonCodeGen(AbstractCodeGen):
     # Subparts generation functions
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genBitNames(self, data):
+    def genBitNames(self, data: Any) -> Any:
         names = data[0]
         return names
 
-    def genBits(self, data):
+    def genBits(self, data: Any) -> tuple[Any, ...]:
         bits = data[0]
 
         outDict: OrderedDict[str, Any] = OrderedDict()
@@ -574,7 +581,7 @@ class JsonCodeGen(AbstractCodeGen):
         return "scalar", outDict
 
     # noinspection PyUnusedLocal
-    def genCompliances(self, data):
+    def genCompliances(self, data: Any) -> list[Any]:
         compliances = []
 
         for complianceModule in data[0]:
@@ -584,7 +591,7 @@ class JsonCodeGen(AbstractCodeGen):
         return compliances
 
     # noinspection PyUnusedLocal
-    def genConceptualTable(self, data):
+    def genConceptualTable(self, data: Any) -> tuple[Any, ...]:
         row = data[0]
 
         if row[1] and row[1][-2:] == "()":
@@ -594,16 +601,16 @@ class JsonCodeGen(AbstractCodeGen):
         return "table", ""
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genContactInfo(self, data):
+    def genContactInfo(self, data: Any) -> str:
         text = data[0]
         return self.textFilter("contact-info", text)
 
     # noinspection PyUnusedLocal
-    def genDisplayHint(self, data):
+    def genDisplayHint(self, data: Any) -> str:
         return data[0]
 
     # noinspection PyUnusedLocal
-    def genDefVal(self, data, objname=None):
+    def genDefVal(self, data: Any, objname: str | None = None) -> "dict[str, Any] | list[Any]":
         if not data:
             return {}
         if not objname:
@@ -683,31 +690,33 @@ class JsonCodeGen(AbstractCodeGen):
         return {"default": outDict}
 
     # noinspection PyMethodMayBeStatic
-    def genDescription(self, data):
+    def genDescription(self, data: Any) -> str:
         return self.textFilter("description", data[0])
 
     # noinspection PyMethodMayBeStatic
-    def genReference(self, data):
+    def genReference(self, data: Any) -> str:
         return self.textFilter("reference", data[0])
 
     # noinspection PyMethodMayBeStatic
-    def genStatus(self, data):
+    def genStatus(self, data: Any) -> str:
         return data[0]
 
-    def genProductRelease(self, data):
+    def genProductRelease(self, data: Any) -> Any:
         return data[0]
 
-    def genEnumSpec(self, data):
+    def genEnumSpec(self, data: Any) -> dict[str, Any]:
         items = data[0]
         return {"enumeration": dict(items)}
 
     # noinspection PyUnusedLocal
-    def genTableIndex(self, data):
-        def genFakeSyms(fakeidx, idxType):
+    def genTableIndex(self, data: Any) -> tuple[Any, ...]:
+        def genFakeSyms(fakeidx: int, idxType: str) -> tuple[dict[str, Any], str]:
+            fakeSymName = f"pysmiFakeCol{fakeidx}"
+
             objType = self.typeClasses.get(idxType, idxType)
             objType = self.transOpers(objType)
 
-            return {"module": self.moduleName[0], object: objType}
+            return {"module": self.moduleName[0], "object": objType}, fakeSymName
 
         indexes = data[0]
         idxStrlist, fakeSyms, fakeStrlist = [], [], []
@@ -730,7 +739,7 @@ class JsonCodeGen(AbstractCodeGen):
 
         return idxStrlist, fakeStrlist, fakeSyms
 
-    def genIntegerSubType(self, data):
+    def genIntegerSubType(self, data: Any) -> dict[str, Any]:
         ranges = []
         for rng in data[0]:
             vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
@@ -743,10 +752,10 @@ class JsonCodeGen(AbstractCodeGen):
         return {"range": ranges}
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genMaxAccess(self, data):
+    def genMaxAccess(self, data: Any) -> str:
         return data[0]
 
-    def genOctetStringSubType(self, data):
+    def genOctetStringSubType(self, data: Any) -> dict[str, Any]:
         sizes = []
         for rng in data[0]:
             vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
@@ -760,7 +769,7 @@ class JsonCodeGen(AbstractCodeGen):
         return {"size": sizes}
 
     # noinspection PyUnusedLocal
-    def genOid(self, data):
+    def genOid(self, data: Any) -> tuple[Any, ...]:
         out: tuple[Any, ...] = ()
         parent = ""
         for el in data[0]:
@@ -780,13 +789,13 @@ class JsonCodeGen(AbstractCodeGen):
         return ".".join([str(x) for x in self.genNumericOid(out)]), parent
 
     # noinspection PyUnusedLocal
-    def genObjects(self, data):
+    def genObjects(self, data: Any) -> list[Any]:
         if data[0]:
             return [self.transOpers(obj) for obj in data[0]]  # XXX self.transOpers or not??
         return []
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genTime(self, data):
+    def genTime(self, data: Any) -> list[Any]:
         times = []
         for timeStr in data:
             if len(timeStr) == 11:
@@ -807,15 +816,15 @@ class JsonCodeGen(AbstractCodeGen):
         return times
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genLastUpdated(self, data):
+    def genLastUpdated(self, data: Any) -> str:
         return data[0]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genOrganization(self, data):
+    def genOrganization(self, data: Any) -> str:
         return self.textFilter("organization", data[0])
 
     # noinspection PyUnusedLocal
-    def genRevisions(self, data):
+    def genRevisions(self, data: Any) -> list[Any]:
         revisions = []
         for x in data[0]:
             revision = OrderedDict()
@@ -824,7 +833,7 @@ class JsonCodeGen(AbstractCodeGen):
             revisions.append(revision)
         return revisions
 
-    def genRow(self, data):
+    def genRow(self, data: Any) -> tuple[Any, ...]:
         row = data[0]
         row = self.transOpers(row)
 
@@ -833,12 +842,12 @@ class JsonCodeGen(AbstractCodeGen):
         )
 
     # noinspection PyUnusedLocal
-    def genSequence(self, data):
+    def genSequence(self, data: Any) -> tuple[Any, ...]:
         cols = data[0]
         self._cols.update(cols)
         return "", ""
 
-    def genSimpleSyntax(self, data):
+    def genSimpleSyntax(self, data: Any) -> tuple[Any, ...]:
         objType = data[0]
         objType = self.typeClasses.get(objType, objType)
         objType = self.transOpers(objType)
@@ -855,7 +864,7 @@ class JsonCodeGen(AbstractCodeGen):
         return "scalar", outDict
 
     # noinspection PyUnusedLocal
-    def genTypeDeclarationRHS(self, data):
+    def genTypeDeclarationRHS(self, data: Any) -> "OrderedDict[str, Any] | tuple[Any, ...]":
         if len(data) == 1:
             parentType, attrs = data[0]
 
@@ -885,7 +894,7 @@ class JsonCodeGen(AbstractCodeGen):
         return parentType, outDict
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genUnits(self, data):
+    def genUnits(self, data: Any) -> str:
         text = data[0]
         return self.textFilter("units", text)
 
@@ -933,7 +942,7 @@ class JsonCodeGen(AbstractCodeGen):
         # 'a': lambda x: genXXX(x, 'CONSTRAINT')
     }
 
-    def genCode(self, ast, symbolTable, **kwargs):
+    def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
         self.genRules["text"] = kwargs.get("genTexts", False)
         self.textFilter = kwargs.get("textFilter") or (lambda symbol, text: re.sub(r"\s+", " ", text))
         self.symbolTable = symbolTable
@@ -990,7 +999,7 @@ class JsonCodeGen(AbstractCodeGen):
             imported=tuple(x for x in importedModules if x not in self.fakeMibs),
         ), json.dumps(outDict, indent=2)
 
-    def genIndex(self, processed, **kwargs):
+    def genIndex(self, processed: dict[str, Any], **kwargs: Any) -> str:
         outDict: dict[str, Any] = {
             "meta": {},
             "identity": {},
@@ -1005,7 +1014,7 @@ class JsonCodeGen(AbstractCodeGen):
             except (TypeError, ValueError) as exc:
                 raise error.PySmiCodegenError(f"Index load error: {exc}") from exc
 
-        def order(top):
+        def order(top: Any) -> Any:
             if isinstance(top, dict):
                 new_top: Any = OrderedDict()
                 try:

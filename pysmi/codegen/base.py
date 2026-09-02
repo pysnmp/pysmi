@@ -6,18 +6,19 @@
 #
 """Interface shared by the code generators, and helpers common to them."""
 
-from typing import ClassVar, Final
+from typing import Any, ClassVar, Final
 
 from pysmi import error
+from pysmi.mibinfo import MibInfo
 
 _RFC1155_RFC1065_KEY: Final = "RFC1155-SMI/RFC1065-SMI"
 
 
-def dorepr(s):
+def dorepr(s: Any) -> str:
     return repr(s)
 
 
-def updateDict(d1, d2):
+def updateDict(d1: dict[Any, Any], d2: Any) -> dict[Any, Any]:
     d1.update(d2)
     return d1
 
@@ -276,21 +277,21 @@ class AbstractCodeGen:
         "RFC-1215": {"TRAP-TYPE": [("SNMPv2-SMI", "TRAP-TYPE")]},
     }
 
-    def genCode(self, ast, symbolTable, **kwargs):
+    def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, Any]:
         raise NotImplementedError()
 
-    def genIndex(self, processed, **kwargs):
+    def genIndex(self, processed: dict[str, Any], **kwargs: Any) -> str:
         raise NotImplementedError()
 
     @staticmethod
-    def isBinary(s):
+    def isBinary(s: Any) -> Any:
         return isinstance(s, str) and s[0] == "'" and s[-2:] in ("'b", "'B")
 
     @staticmethod
-    def isHex(s):
+    def isHex(s: Any) -> Any:
         return isinstance(s, str) and s[0] == "'" and s[-2:] in ("'h", "'H")
 
-    def str2int(self, s):
+    def str2int(self, s: Any) -> Any:
         if self.isBinary(s):
             if s[1:-2]:
                 return int(s[1:-2], 2)

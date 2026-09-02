@@ -93,8 +93,7 @@ warn_unreachable = true
 # Check the bodies of functions that are not yet annotated. Without this mypy
 # skips them entirely, which hid most of the codebase.
 check_untyped_defs = true
-# Require annotations. The code generators are not converted yet, so they are
-# exempted below; everything else is enforced and must stay that way.
+# Require annotations everywhere except the PLY grammar modules exempted below.
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
@@ -102,12 +101,6 @@ disallow_incomplete_defs = true
 # PLY builds the lexer and parser by reflecting over p_* and t_* methods whose
 # docstrings are the grammar. Annotating them buys nothing.
 module = ["pysmi.lexer.*", "pysmi.parser.*"]
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-
-[[tool.mypy.overrides]]
-# Still to be annotated: ~160 SMI construct handlers. Their bodies are checked.
-module = ["pysmi.codegen.*"]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 

@@ -159,35 +159,35 @@ for _%(name)s_obj in [%(objects)s]:
     _SUBTYPE_SPEC_CLASSMODE = "subtypeSpec = %s.subtypeSpec + "
     _CONSTRAINTS_UNION = "ConstraintsUnion("
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._snmpTypes = set(self.typeClasses.values())
         self._snmpTypes.add("Bits")
-        self._rows = set()
-        self._cols = {}  # k, v = name, datatype
-        self._exports = set()
-        self._seenSyms = set()
-        self._importMap = {}
-        self._out = {}  # k, v = name, generated code
-        self._moduleIdentityOid = None
-        self._moduleRevision = None
-        self.moduleName = ["DUMMY"]
-        self.genRules = {"text": True}
-        self.symbolTable = {}
+        self._rows: set[str] = set()
+        self._cols: dict[str, str] = {}  # k, v = name, datatype
+        self._exports: set[str] = set()
+        self._seenSyms: set[str] = set()
+        self._importMap: dict[str, str] = {}
+        self._out: dict[str, Any] = {}  # k, v = name, generated code
+        self._moduleIdentityOid: str | None = None
+        self._moduleRevision: str | None = None
+        self.moduleName: list[str] = ["DUMMY"]
+        self.genRules: dict[str, Any] = {"text": True}
+        self.symbolTable: dict[str, Any] = {}
 
-    def symTrans(self, symbol):
+    def symTrans(self, symbol: str) -> tuple[Any, ...]:
         if symbol in self.symsTable:
             return self.symsTable[symbol]
 
         return (symbol,)
 
     @staticmethod
-    def transOpers(symbol):
+    def transOpers(symbol: str) -> Any:
         if iskeyword(symbol):
             symbol = "pysmi_" + symbol
 
         return symbol.replace("-", "_")
 
-    def prepData(self, pdata, classmode=False):
+    def prepData(self, pdata: Any, classmode: bool = False) -> list[Any]:
         data = []
 
         for el in pdata:
@@ -204,7 +204,7 @@ for _%(name)s_obj in [%(objects)s]:
 
         return data
 
-    def genImports(self, imports):
+    def genImports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
         outStr = ""
 
         # conversion to SNMPv2
@@ -253,7 +253,7 @@ for _%(name)s_obj in [%(objects)s]:
 
     def genExports(
         self,
-    ):
+    ) -> str:
         exports = list(self._exports)
         if not exports:
             return ""
@@ -269,13 +269,13 @@ for _%(name)s_obj in [%(objects)s]:
         return outStr
 
     # noinspection PyMethodMayBeStatic
-    def genLabel(self, symbol, classmode=False):
+    def genLabel(self, symbol: str, classmode: bool = False) -> str:
         if "-" in symbol or iskeyword(symbol):
             return (classmode and 'label = "' + symbol + '"\n') or '.setLabel("' + symbol + '")'
 
         return ""
 
-    def addToExports(self, symbol, moduleIdentity=0):
+    def addToExports(self, symbol: str, moduleIdentity: bool = False) -> None:
         if moduleIdentity:
             self._exports.add(f"PYSNMP_MODULE_ID={symbol}")
 
@@ -283,7 +283,7 @@ for _%(name)s_obj in [%(objects)s]:
         self._seenSyms.add(symbol)
 
     # noinspection PyUnusedLocal
-    def regSym(self, symbol, outStr, oidStr=None, moduleIdentity=False):
+    def regSym(self, symbol: str, outStr: str, oidStr: str = "", moduleIdentity: bool = False) -> None:
         if symbol in self._seenSyms and symbol not in self._importMap:
             raise error.PySmiSemanticError(f"Duplicate symbol found: {symbol}")
 
@@ -296,7 +296,7 @@ for _%(name)s_obj in [%(objects)s]:
             # TODO: turning literal tuple into a string - hackerish
             self._moduleIdentityOid = ".".join(oidStr.split(", "))[1:-1]
 
-    def genNumericOid(self, oid):
+    def genNumericOid(self, oid: tuple[Any, ...]) -> tuple[Any, ...]:
         numericOid: tuple[Any, ...] = ()
 
         for part in oid:
@@ -321,7 +321,7 @@ for _%(name)s_obj in [%(objects)s]:
 
         return numericOid
 
-    def getBaseType(self, symName, module):
+    def getBaseType(self, symName: str, module: str) -> tuple[Any, ...]:
         if module not in self.symbolTable:
             raise error.PySmiSemanticError(f'no module "{module}" in symbolTable')
 
@@ -350,7 +350,7 @@ for _%(name)s_obj in [%(objects)s]:
     # Clause generation functions
 
     # noinspection PyUnusedLocal
-    def genAgentCapabilities(self, data, classmode=False):
+    def genAgentCapabilities(self, data: Any, classmode: bool = False) -> Any:
         name, productRelease, status, description, reference, oid = data
 
         label = self.genLabel(name)
@@ -379,7 +379,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def genModuleIdentity(self, data, classmode=False):
+    def genModuleIdentity(self, data: Any, classmode: bool = False) -> str:
         name, lastUpdated, organization, contactInfo, description, revisionsAndDescrs, oid = data
 
         label = self.genLabel(name)
@@ -420,7 +420,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def genModuleCompliance(self, data, classmode=False):
+    def genModuleCompliance(self, data: Any, classmode: bool = False) -> str:
         name, status, description, reference, compliances, oid = data
 
         label = self.genLabel(name)
@@ -444,7 +444,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def genNotificationGroup(self, data, classmode=False):
+    def genNotificationGroup(self, data: Any, classmode: bool = False) -> str:
         name, objects, status, description, reference, oid = data
 
         label = self.genLabel(name)
@@ -489,7 +489,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def genNotificationType(self, data, classmode=False):
+    def genNotificationType(self, data: Any, classmode: bool = False) -> str:
         name, objects, status, description, reference, oid = data
 
         label = self.genLabel(name)
@@ -534,7 +534,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def genObjectGroup(self, data, classmode=False):
+    def genObjectGroup(self, data: Any, classmode: bool = False) -> str:
         name, objects, status, description, reference, oid = data
 
         label = self.genLabel(name)
@@ -586,7 +586,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genObjectIdentity(self, data, classmode=False):
+    def genObjectIdentity(self, data: Any, classmode: bool = False) -> Any:
         name, status, description, reference, oid = data
 
         label = self.genLabel(name)
@@ -609,7 +609,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genObjectType(self, data, classmode=False):
+    def genObjectType(self, data: Any, classmode: bool = False) -> str:
         name, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
 
         label = self.genLabel(name)
@@ -664,7 +664,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genTrapType(self, data, classmode=False):
+    def genTrapType(self, data: Any, classmode: bool = False) -> Any:
         name, enterprise, objects, description, reference, value = data
 
         label = self.genLabel(name)
@@ -706,7 +706,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genTypeDeclaration(self, data, classmode=False):
+    def genTypeDeclaration(self, data: Any, classmode: bool = False) -> str:
         outStr = ""
 
         name, declaration = data
@@ -721,7 +721,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genValueDeclaration(self, data, classmode=False):
+    def genValueDeclaration(self, data: Any, classmode: bool = False) -> str:
         name, oid = data
 
         label = self.genLabel(name)
@@ -737,15 +737,15 @@ for _{name}_obj in [{objects}]:
     # Subparts generation functions
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def ftNames(self, data, classmode=False):
+    def ftNames(self, data: Any, classmode: bool = False) -> Any:
         names = data[0]
         return names
 
-    def genBitNames(self, data, classmode=False):
+    def genBitNames(self, data: Any, classmode: bool = False) -> Any:
         names = data[0]
         return names
 
-    def genBits(self, data, classmode=False):
+    def genBits(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         bits = data[0]
 
         namedval = ['("' + bit[0] + '", ' + str(bit[1]) + ")" for bit in bits]
@@ -765,7 +765,7 @@ for _{name}_obj in [{objects}]:
         return "Bits", outStr
 
     # noinspection PyUnusedLocal
-    def genCompliances(self, data, classmode=False):
+    def genCompliances(self, data: Any, classmode: bool = False) -> str:
         if not data[0]:
             return ""
 
@@ -793,7 +793,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genConceptualTable(self, data, classmode=False):
+    def genConceptualTable(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         row = data[0]
         if row[1] and row[1][-2:] == "()":
             row = row[1][:-2]
@@ -802,16 +802,16 @@ for _{name}_obj in [{objects}]:
         return "MibTable", ""
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genContactInfo(self, data, classmode=False):
+    def genContactInfo(self, data: Any, classmode: bool = False) -> str:
         text = self.textFilter("contact-info", data[0])
         return ".setContactInfo(" + dorepr(text) + ")"
 
     # noinspection PyUnusedLocal
-    def genDisplayHint(self, data, classmode=False):
+    def genDisplayHint(self, data: Any, classmode: bool = False) -> str:
         return self.indent + "displayHint = " + dorepr(data[0]) + "\n"
 
     # noinspection PyUnusedLocal
-    def genDefVal(self, data, classmode=False, objname=None):
+    def genDefVal(self, data: Any, classmode: bool = False, objname: str | None = None) -> "bool | list[Any] | str":
         if not data:
             return ""
 
@@ -888,32 +888,32 @@ for _{name}_obj in [{objects}]:
         return ".clone(" + val + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genDescription(self, data, classmode=False):
+    def genDescription(self, data: Any, classmode: bool = False) -> str:
         text = self.textFilter("description", data[0])
         return (classmode and self.indent + "description = " + dorepr(text) + "\n") or ".setDescription(" + dorepr(
             text
         ) + ")"
 
     # noinspection PyMethodMayBeStatic
-    def genReference(self, data, classmode=False):
+    def genReference(self, data: Any, classmode: bool = False) -> str:
         text = self.textFilter("reference", data[0])
         return (classmode and self.indent + "reference = " + dorepr(text) + "\n") or ".setReference(" + dorepr(
             text
         ) + ")"
 
     # noinspection PyMethodMayBeStatic
-    def genStatus(self, data, classmode=False):
+    def genStatus(self, data: Any, classmode: bool = False) -> str:
         text = data[0]
         return (classmode and self.indent + "status = " + dorepr(text) + "\n") or ".setStatus(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic
-    def genProductRelease(self, data, classmode=False):
+    def genProductRelease(self, data: Any, classmode: bool = False) -> Any:
         text = data[0]
         return (
             classmode and self.indent + "productRelease = " + dorepr(text) + "\n"
         ) or ".setProductRelease(" + dorepr(text) + ")"
 
-    def genEnumSpec(self, data, classmode=False):
+    def genEnumSpec(self, data: Any, classmode: bool = False) -> str:
         items = data[0]
         singleval = [str(item[1]) for item in items]
         outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
@@ -935,8 +935,8 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genTableIndex(self, data, classmode=False):
-        def genFakeSyms(fakeidx, idxType):
+    def genTableIndex(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+        def genFakeSyms(fakeidx: int, idxType: str) -> tuple[Any, ...]:
             fakeSymName = f"pysmiFakeCol{fakeidx}"
 
             objType = self.typeClasses.get(idxType, idxType)
@@ -970,7 +970,7 @@ for _{name}_obj in [{objects}]:
 
         return ".setIndexNames(" + ", ".join(idxStrlist) + ")", fakeStrlist, fakeSyms
 
-    def genIntegerSubType(self, data, classmode=False):
+    def genIntegerSubType(self, data: Any, classmode: bool = False) -> str:
         singleRange = len(data[0]) == 1
 
         outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
@@ -986,11 +986,11 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genMaxAccess(self, data, classmode=False):
+    def genMaxAccess(self, data: Any, classmode: bool = False) -> str:
         access = data[0].replace("-", "")
         return (access != "notaccessible" and '.setMaxAccess("' + access + '")') or ""
 
-    def genOctetStringSubType(self, data, classmode=False):
+    def genOctetStringSubType(self, data: Any, classmode: bool = False) -> str:
         singleRange = len(data[0]) == 1
 
         outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
@@ -1014,7 +1014,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def genOid(self, data, classmode=False):
+    def genOid(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         out: tuple[Any, ...] = ()
         parent = ""
         for el in data[0]:
@@ -1034,13 +1034,13 @@ for _{name}_obj in [{objects}]:
         return str(self.genNumericOid(out)), parent
 
     # noinspection PyUnusedLocal
-    def genObjects(self, data, classmode=False):
+    def genObjects(self, data: Any, classmode: bool = False) -> list[Any]:
         if data[0]:
             return [self.transOpers(obj) for obj in data[0]]  # XXX self.transOpers or not??
         return []
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genTime(self, data, classmode=False):
+    def genTime(self, data: Any, classmode: bool = False) -> list[Any]:
         times = []
         for timeStr in data:
             if len(timeStr) == 11:
@@ -1060,17 +1060,17 @@ for _{name}_obj in [{objects}]:
         return times
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genLastUpdated(self, data, classmode=False):
+    def genLastUpdated(self, data: Any, classmode: bool = False) -> str:
         text = data[0]
         return ".setLastUpdated(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genOrganization(self, data, classmode=False):
+    def genOrganization(self, data: Any, classmode: bool = False) -> str:
         text = self.textFilter("organization", data[0])
         return ".setOrganization(" + dorepr(text) + ")"
 
     # noinspection PyUnusedLocal
-    def genRevisions(self, data, classmode=False):
+    def genRevisions(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         times = self.genTime([x[0] for x in data[0]])
         times = [dorepr(x) for x in times]
 
@@ -1084,7 +1084,7 @@ for _{name}_obj in [{objects}]:
 
         return lastRevision, revisions, descriptions
 
-    def genRow(self, data, classmode=False):
+    def genRow(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         row = data[0]
         row = self.transOpers(row)
         return (
@@ -1092,12 +1092,12 @@ for _{name}_obj in [{objects}]:
         ) or self.genSimpleSyntax(data, classmode=classmode)
 
     # noinspection PyUnusedLocal
-    def genSequence(self, data, classmode=False):
+    def genSequence(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         cols = data[0]
         self._cols.update(cols)
         return "", ""
 
-    def genSimpleSyntax(self, data, classmode=False):
+    def genSimpleSyntax(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         objType = data[0]
         objType = self.typeClasses.get(objType, objType)
         objType = self.transOpers(objType)
@@ -1113,7 +1113,7 @@ for _{name}_obj in [{objects}]:
         return "MibScalar", outStr
 
     # noinspection PyUnusedLocal
-    def genTypeDeclarationRHS(self, data, classmode=False):
+    def genTypeDeclarationRHS(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
         if len(data) == 1:
             parentType, attrs = data[0]  # just syntax
 
@@ -1142,7 +1142,7 @@ for _{name}_obj in [{objects}]:
         return parentType, attrs
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def genUnits(self, data, classmode=False):
+    def genUnits(self, data: Any, classmode: bool = False) -> str:
         text = data[0]
         return ".setUnits(" + dorepr(self.textFilter("units", text)) + ")"
 
@@ -1190,7 +1190,7 @@ for _{name}_obj in [{objects}]:
         # 'a': lambda x: genXXX(x, 'CONSTRAINT')
     }
 
-    def genCode(self, ast, symbolTable, **kwargs):
+    def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
         self.genRules["text"] = kwargs.get("genTexts", False)
         self.textFilter = kwargs.get("textFilter") or (lambda symbol, text: re.sub(r"\s+", " ", text))
         self.symbolTable = symbolTable
@@ -1247,7 +1247,7 @@ for _{name}_obj in [{objects}]:
             imported=tuple(x for x in importedModules if x not in self.fakeMibs),
         ), out
 
-    def genIndex(self, processed, **kwargs):
+    def genIndex(self, processed: dict[str, Any], **kwargs: Any) -> str:
         out = "\nfrom pysnmp.proto.rfc1902 import ObjectName\n\noidToMibMap = {\n"
         count = 0
         for module, status in processed.items():
