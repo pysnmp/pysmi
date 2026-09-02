@@ -41,4 +41,4 @@ mibCompiler.add_searchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs, **dict(noDeps=True))
 
-print("Results: {}".format(", ".join([f"{x}:{results[x]}" for x in results])))
+print("Results: " + ", ".join([f"{x}:{results[x]}" for x in results]))

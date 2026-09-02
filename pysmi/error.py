@@ -71,10 +71,8 @@ class PySmiError(Exception):
         raise AttributeError(name)
 
     def __repr__(self) -> str:
-        return "{}({})".format(
-            self.__class__.__name__,
-            ", ".join([f"{k}={getattr(self, k)!r}" for k in dir(self) if k[0] != "_" and k != "args"]),
-        )
+        attrs = ", ".join([f"{k}={getattr(self, k)!r}" for k in dir(self) if k[0] != "_" and k != "args"])
+        return f"{self.__class__.__name__}({attrs})"
 
     def __str__(self) -> str:
         return self.msg

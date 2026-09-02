@@ -249,7 +249,7 @@ class Debug:
                 enabled.add(loggerName)
                 disabled.discard(loggerName)
 
-            self("debug category '{}' {}".format(name, (inverse and "disabled") or "enabled"))
+            self(f"debug category '{name}' {'disabled' if inverse else 'enabled'}")
 
         # Printer leaves the package logger at DEBUG, which is what makes the
         # messages above and any third-party call site work. Levels are what

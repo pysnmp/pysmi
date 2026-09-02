@@ -409,47 +409,37 @@ def start() -> None:
 
     else:
         if verboseFlag:
-            sys.stdout.write(
-                "{}reated/updated MIBs: {}\r\n".format(
-                    (dryrunFlag and "Would be c") or "C",
-                    ", ".join(
-                        [
-                            "{}{}".format(x, (x != processed[x].alias and f" ({processed[x].alias})") or "")
-                            for x in sorted(processed)
-                            if processed[x] == "compiled"
-                        ]
-                    ),
-                )
+            createdVerb = "Would be c" if dryrunFlag else "C"
+            createdMibs = ", ".join(
+                [
+                    f"{x}{f' ({processed[x].alias})' if x != processed[x].alias else ''}"
+                    for x in sorted(processed)
+                    if processed[x] == "compiled"
+                ]
             )
+            sys.stdout.write(f"{createdVerb}reated/updated MIBs: {createdMibs}\r\n")
+
+            borrowedVerb = "Would be " if dryrunFlag else ""
+            borrowedMibs = ", ".join(
+                [f"{x} ({processed[x].path})" for x in sorted(processed) if processed[x] == "borrowed"]
+            )
+            sys.stdout.write(f"Pre-compiled MIBs {borrowedVerb}borrowed: {borrowedMibs}\r\n")
 
             sys.stdout.write(
-                "Pre-compiled MIBs {}borrowed: {}\r\n".format(
-                    (dryrunFlag and "Would be ") or "",
-                    ", ".join([f"{x} ({processed[x].path})" for x in sorted(processed) if processed[x] == "borrowed"]),
-                )
-            )
-
-            sys.stdout.write(
-                "Up to date MIBs: {}\r\n".format(
-                    ", ".join([f"{x}" for x in sorted(processed) if processed[x] == "untouched"])
-                )
+                "Up to date MIBs: " + ", ".join(sorted(x for x in processed if processed[x] == "untouched")) + "\r\n"
             )
             sys.stderr.write(
-                "Missing source MIBs: {}\n".format(
-                    "\n ".join([f"{x}" for x in sorted(processed) if processed[x] == "missing"])
-                )
+                "Missing source MIBs: " + "\n ".join(sorted(x for x in processed if processed[x] == "missing")) + "\n"
             )
 
             sys.stderr.write(
-                "Ignored MIBs: {}\r\n".format(
-                    ", ".join([f"{x}" for x in sorted(processed) if processed[x] == "unprocessed"])
-                )
+                "Ignored MIBs: " + ", ".join(sorted(x for x in processed if processed[x] == "unprocessed")) + "\r\n"
             )
 
             sys.stderr.write(
-                "Failed MIBs: {}\n".format(
-                    "\n ".join([f"{x} ({processed[x].error})" for x in sorted(processed) if processed[x] == "failed"])
-                )
+                "Failed MIBs: "
+                + "\n ".join([f"{x} ({processed[x].error})" for x in sorted(processed) if processed[x] == "failed"])
+                + "\n"
             )
 
         exitCode = EX_OK

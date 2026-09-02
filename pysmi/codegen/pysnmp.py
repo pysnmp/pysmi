@@ -305,7 +305,8 @@ for _%(name)s_obj in [%(objects)s]:
                 outStr += ", ".join([self.trans_opers(s) for s in symbols])
                 if len(symbols) < 2:
                     outStr += ","
-                outStr += ' = mibBuilder.importSymbols("{}")\n'.format('", "'.join((module, *symbols)))
+                quotedSymbols = '", "'.join((module, *symbols))
+                outStr += f' = mibBuilder.importSymbols("{quotedSymbols}")\n'
 
         return outStr, tuple(sorted(imports))
 
@@ -1588,11 +1589,10 @@ for _{name}_obj in [{objects}]:
         times = self.gen_time([x[0] for x in data[0]])
         times = [dorepr(x) for x in times]
 
-        revisions = ".setRevisions(({},))".format(", ".join(times))
+        revisions = f".setRevisions(({', '.join(times)},))"
 
-        descriptions = ".setRevisionsDescriptions(({},))".format(
-            ", ".join([dorepr(self.textFilter("description", x[1][1])) for x in data[0]])
-        )
+        revisionDescriptions = ", ".join([dorepr(self.textFilter("description", x[1][1])) for x in data[0]])
+        descriptions = f".setRevisionsDescriptions(({revisionDescriptions},))"
 
         lastRevision = data[0][0][0]
 
