@@ -24,5 +24,5 @@ class NullCodeGen(AbstractCodeGen):
         logger.debug("%s invoked", self.__class__.__name__, extra={"codegen": self.__class__.__name__})
         return MibInfo(oid=None, name="", imported=[]), ""
 
-    def genIndex(self, mibsMap, **kwargs):
+    def genIndex(self, processed, **kwargs):
         return ""

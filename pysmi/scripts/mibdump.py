@@ -12,20 +12,24 @@
 import getopt
 import os
 import sys
+from typing import Final
 
 from pysmi import debug, error
 from pysmi.borrower import AnyFileBorrower, PyFileBorrower
+from pysmi.borrower.base import AbstractBorrower
 from pysmi.codegen import JsonCodeGen, NullCodeGen, PySnmpCodeGen
+from pysmi.codegen.base import AbstractCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import getReadersFromUrls
 from pysmi.searcher import AnyFileSearcher, PyFileSearcher, PyPackageSearcher, StubSearcher
+from pysmi.searcher.base import AbstractSearcher
 from pysmi.writer import CallbackWriter, FileWriter, PyFileWriter
 
-_JSON_EXT = ".json"
+_JSON_EXT: Final = ".json"
 
 
-def start():
+def start() -> None:
     # sysexits.h
     EX_OK = 0
     EX_USAGE = 64
@@ -35,13 +39,13 @@ def start():
 
     # Defaults
     verboseFlag = True
-    mibSources = []
+    mibSources: list[str] = []
     doFuzzyMatchingFlag = True
-    mibSearchers = []
-    mibStubs = []
-    mibBorrowers = []
+    mibSearchers: list[str] = []
+    mibStubs: list[str] = []
+    mibBorrowers: list[tuple[str, bool]] = []
     dstFormat = None
-    dstDirectory = None
+    dstDirectory: str | None = None
     cacheDirectory = ""
     nodepsFlag = False
     rebuildFlag = False
@@ -225,7 +229,7 @@ def start():
 
     if dstFormat == "pysnmp":
         if not mibSearchers:
-            mibSearchers = PySnmpCodeGen.defaultMibPackages
+            mibSearchers = list(PySnmpCodeGen.defaultMibPackages)
 
         if not mibStubs:
             mibStubs = [x for x in PySnmpCodeGen.baseMibs if x not in PySnmpCodeGen.fakeMibs]
@@ -245,19 +249,19 @@ def start():
 
         # Compiler infrastructure
 
-        borrowers = [
+        borrowers: list[AbstractBorrower] = [
             PyFileBorrower(x[1], genTexts=mibBorrowers[x[0]][1])
             for x in enumerate(getReadersFromUrls(*[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)))
         ]
 
-        searchers = [PyFileSearcher(dstDirectory)]
+        searchers: list[AbstractSearcher] = [PyFileSearcher(dstDirectory)]
 
         for mibSearcher in mibSearchers:
             searchers.append(PyPackageSearcher(mibSearcher))
 
         searchers.append(StubSearcher(*mibStubs))
 
-        codeGenerator = PySnmpCodeGen()
+        codeGenerator: AbstractCodeGen = PySnmpCodeGen()
 
         fileWriter = PyFileWriter(dstDirectory).setOptions(
             pyCompile=pyCompileFlag, pyOptimizationLevel=pyOptimizationLevel
@@ -265,7 +269,7 @@ def start():
 
     elif dstFormat == "json":
         if not mibStubs:
-            mibStubs = JsonCodeGen.baseMibs
+            mibStubs = list(JsonCodeGen.baseMibs)
 
         if not mibBorrowers:
             mibBorrowers = [
@@ -291,7 +295,7 @@ def start():
 
     elif dstFormat == "null":
         if not mibStubs:
-            mibStubs = NullCodeGen.baseMibs
+            mibStubs = list(NullCodeGen.baseMibs)
 
         if not mibBorrowers:
             mibBorrowers = [

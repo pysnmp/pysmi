@@ -9,6 +9,8 @@
 import logging
 import os
 import time
+from collections.abc import Iterable
+from typing import Any
 
 from pysmi import error
 from pysmi.compat import decode
@@ -28,7 +30,7 @@ class FileReader(AbstractReader):
     useIndexFile = True  # optional .index file mapping MIB to file name
     indexFile = ".index"
 
-    def __init__(self, path, recursive=True, ignoreErrors=True):
+    def __init__(self, path: str, recursive: bool = True, ignoreErrors: bool = True) -> None:
         """Create an instance of *FileReader* serving a directory.
 
         Args:
@@ -42,12 +44,12 @@ class FileReader(AbstractReader):
         self._recursive = recursive
         self._ignoreErrors = ignoreErrors
         self._indexLoaded = False
-        self._mibIndex = None
+        self._mibIndex: dict[str, str] | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def getSubdirs(self, path, recursive=True, ignoreErrors=True):
+    def getSubdirs(self, path: str, recursive: bool = True, ignoreErrors: bool = True) -> list[str]:
         if not recursive:
             return [path]
 
@@ -71,8 +73,8 @@ class FileReader(AbstractReader):
         return dirs
 
     @staticmethod
-    def loadIndex(indexFile):
-        mibIndex = {}
+    def loadIndex(indexFile: str) -> dict[str, str]:
+        mibIndex: dict[str, str] = {}
         if os.path.exists(indexFile):
             try:
                 with open(indexFile) as f:
@@ -89,24 +91,26 @@ class FileReader(AbstractReader):
 
         return mibIndex
 
-    def getMibVariants(self, mibname, **options):
+    def getMibVariants(self, mibname: str, **options: Any) -> Iterable[tuple[str, str]]:
         if self.useIndexFile:
             if not self._indexLoaded:
                 self._mibIndex = self.loadIndex(os.path.join(self._path, self.indexFile))
                 self._indexLoaded = True
 
-            if mibname in self._mibIndex:
+            mibIndex = self._mibIndex or {}
+
+            if mibname in mibIndex:
                 logger.debug(
                     "found %s in MIB index: %s",
                     mibname,
-                    self._mibIndex[mibname],
-                    extra={"mib": mibname, "indexed": self._mibIndex[mibname]},
+                    mibIndex[mibname],
+                    extra={"mib": mibname, "indexed": mibIndex[mibname]},
                 )
-                return [(mibname, self._mibIndex[mibname])]
+                return [(mibname, mibIndex[mibname])]
 
         return super().getMibVariants(mibname, **options)
 
-    def getData(self, mibname, **options):
+    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         logger.debug(
             "%slooking for MIB %s",
             "recursively " if self._recursive else "",

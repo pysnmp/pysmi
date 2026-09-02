@@ -12,6 +12,7 @@ import time. They are grammar, not documentation.
 
 import logging
 import os
+from typing import Any
 
 import ply.yacc as yacc
 
@@ -28,7 +29,7 @@ YACC_VERSION = [int(x) for x in yacc.__version__.split(".")]
 class SmiV2Parser(AbstractParser):
     defaultLexer = lexerFactory()
 
-    def __init__(self, startSym="mibFile", tempdir=""):
+    def __init__(self, startSym: str = "mibFile", tempdir: str = "") -> None:
         if tempdir:
             tempdir = os.path.join(tempdir, startSym)
             try:
@@ -62,11 +63,11 @@ class SmiV2Parser(AbstractParser):
                 errorlog=errorlog,
             )
 
-    def reset(self):
+    def reset(self) -> None:
         # Ply requires lexer reinitialization for (at least) resetting lineno
         self.lexer.reset()
 
-    def parse(self, data, **kwargs):
+    def parse(self, data: str, **kwargs: Any) -> list[Any]:
         logger.debug(
             'source MIB size is %d characters, first 50 characters are "%s..."',
             len(data),
@@ -136,7 +137,7 @@ class SmiV2Parser(AbstractParser):
         | empty"""
         # libsmi: TODO: ``IMPORTS ;'' allowed? refer ASN.1!
         if p[1]:
-            importDict = {}
+            importDict: dict[Any, Any] = {}
             for imp in p[1]:  # don't do just dict() because moduleNames may be repeated
                 fromModule, symbols = imp
                 if fromModule in importDict:
@@ -1456,7 +1457,7 @@ relaxedGrammar = {
 }
 
 
-def parserFactory(**grammarOptions):
+def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
     """Factory function producing custom specializations of base *SmiV2Parser*
     class.
 
@@ -1486,7 +1487,7 @@ def parserFactory(**grammarOptions):
     >>> SmiV1Parser = smi.parserFactory(supportSmiV1Keywords=True, supportIndex=True)
 
     """
-    classAttr = {}
+    classAttr: dict[str, Any] = {}
 
     for option in grammarOptions:
         if grammarOptions[option]:

@@ -8,6 +8,8 @@
 
 import logging
 import time
+from collections.abc import Callable
+from typing import Any
 
 from pysmi import error
 from pysmi.mibinfo import MibInfo
@@ -23,7 +25,7 @@ class CallbackReader(AbstractReader):
     by name and return their contents to caller.
     """
 
-    def __init__(self, cbFun, cbCtx=None):
+    def __init__(self, cbFun: Callable[[str, Any], str], cbCtx: Any = None) -> None:
         """Create an instance of *CallbackReader* bound to specific URL.
 
         Args:
@@ -36,10 +38,10 @@ class CallbackReader(AbstractReader):
         self._cbFun = cbFun
         self._cbCtx = cbCtx
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
-    def getData(self, mibname, **options):
+    def getData(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         logger.debug(
             "calling user callback %s for MIB %s",
             self._cbFun,

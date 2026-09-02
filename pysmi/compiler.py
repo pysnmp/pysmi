@@ -17,17 +17,25 @@ import logging
 import os
 import sys
 import time
+from collections.abc import Sequence
 from pwd import getpwuid
+from typing import Any, Final
 
 from pysmi import __name__ as packageName
 from pysmi import __version__ as packageVersion
 from pysmi import error
+from pysmi.borrower.base import AbstractBorrower
+from pysmi.codegen.base import AbstractCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.mibinfo import MibInfo
+from pysmi.parser.base import AbstractParser
+from pysmi.reader.base import AbstractReader
+from pysmi.searcher.base import AbstractSearcher
+from pysmi.writer.base import AbstractWriter
 
 logger = logging.getLogger(__name__)
 
-_AT_MIB_SUFFIX = " at MIB %s"
+_AT_MIB_SUFFIX: Final = " at MIB %s"
 
 
 class MibStatus(str):
@@ -46,19 +54,44 @@ class MibStatus(str):
     * *borrowed* - MIB transformation failed but pre-transformed version was used
     """
 
-    def setOptions(self, **kwargs):
+    # Set by setOptions() when the compiler records an outcome, so which of
+    # these exist depends on the status. Reading one that was never set raises
+    # AttributeError.
+
+    #: URL the MIB was read from.
+    path: str
+    #: File the MIB was read from.
+    file: str
+    #: Name the MIB was found under, when it differs from its module name.
+    alias: str
+    #: MODULE-IDENTITY OID.
+    oid: str
+    #: All OIDs defined in the module.
+    oids: tuple[str, ...]
+    #: MODULE-IDENTITY OID.
+    identity: str
+    #: MIB revision.
+    revision: str
+    #: Enterprise OID.
+    enterprise: tuple[str, ...]
+    #: MODULE-COMPLIANCE OIDs.
+    compliance: tuple[str, ...]
+    #: Why the transformation failed.
+    error: error.PySmiError
+
+    def setOptions(self, **kwargs: Any) -> "MibStatus":
         n = self.__class__(self)
         for k in kwargs:
             setattr(n, k, kwargs[k])
         return n
 
 
-statusCompiled = MibStatus("compiled")
-statusUntouched = MibStatus("untouched")
-statusFailed = MibStatus("failed")
-statusUnprocessed = MibStatus("unprocessed")
-statusMissing = MibStatus("missing")
-statusBorrowed = MibStatus("borrowed")
+statusCompiled: Final = MibStatus("compiled")
+statusUntouched: Final = MibStatus("untouched")
+statusFailed: Final = MibStatus("failed")
+statusUnprocessed: Final = MibStatus("unprocessed")
+statusMissing: Final = MibStatus("missing")
+statusBorrowed: Final = MibStatus("borrowed")
 
 
 class MibCompiler:
@@ -85,7 +118,7 @@ class MibCompiler:
 
     indexFile = "index"
 
-    def __init__(self, parser, codegen, writer):
+    def __init__(self, parser: "AbstractParser", codegen: "AbstractCodeGen", writer: "AbstractWriter") -> None:
         """Creates an instance of *MibCompiler* class.
 
         Args:
@@ -97,11 +130,11 @@ class MibCompiler:
         self._codegen = codegen
         self._symbolgen = SymtableCodeGen()
         self._writer = writer
-        self._sources = []
-        self._searchers = []
-        self._borrowers = []
+        self._sources: list[AbstractReader] = []
+        self._searchers: list[AbstractSearcher] = []
+        self._borrowers: list[AbstractBorrower] = []
 
-    def addSources(self, *sources):
+    def addSources(self, *sources: "AbstractReader") -> "MibCompiler":
         """Add more ASN.1 MIB source repositories.
 
         MibCompiler.compile will invoke each of configured source objects
@@ -125,7 +158,7 @@ class MibCompiler:
 
         return self
 
-    def addSearchers(self, *searchers):
+    def addSearchers(self, *searchers: "AbstractSearcher") -> "MibCompiler":
         """Add more transformed MIBs repositories.
 
         MibCompiler.compile will invoke each of configured searcher objects
@@ -149,7 +182,7 @@ class MibCompiler:
 
         return self
 
-    def addBorrowers(self, *borrowers):
+    def addBorrowers(self, *borrowers: "AbstractBorrower") -> "MibCompiler":
         """Add more transformed MIBs repositories to borrow MIBs from.
 
         Whenever MibCompiler.compile encounters MIB module which neither of
@@ -175,7 +208,10 @@ class MibCompiler:
 
         return self
 
-    def _get_system_info(self):
+    def _get_system_info(self) -> tuple[Sequence[str], Sequence[Any]]:
+        platform_info: Sequence[str]
+        user_info: Sequence[Any]
+
         try:
             platform_info = os.uname()
         except AttributeError:
@@ -189,7 +225,7 @@ class MibCompiler:
 
         return platform_info, user_info
 
-    def compile(self, *mibnames, **options):
+    def compile(self, *mibnames: str, **options: Any) -> dict[str, MibStatus]:
         """Transform requested and possibly referred MIBs.
 
         The *compile* method should be invoked when *MibCompiler* object
@@ -217,14 +253,14 @@ class MibCompiler:
             class instances (values)
 
         """
-        processed = {}
-        parsedMibs = {}
-        failedMibs = {}
-        borrowedMibs = {}
-        builtMibs = {}
-        symbolTableMap = {}
+        processed: dict[str, MibStatus] = {}
+        parsedMibs: dict[str, Any] = {}
+        failedMibs: dict[str, Any] = {}
+        borrowedMibs: dict[str, Any] = {}
+        builtMibs: dict[str, Any] = {}
+        symbolTableMap: dict[str, Any] = {}
         mibsToParse = [x for x in mibnames]
-        canonicalMibNames = {}
+        canonicalMibNames: dict[str, Any] = {}
 
         while mibsToParse:
             mibname = mibsToParse.pop(0)
@@ -338,7 +374,7 @@ class MibCompiler:
 
             for searcher in self._searchers:
                 try:
-                    searcher.fileExists(mibname, fileInfo.mtime, rebuild=options.get("rebuild"))
+                    searcher.fileExists(mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")))
 
                 except error.PySmiFileNotFoundError:
                     logger.debug(
@@ -503,7 +539,7 @@ class MibCompiler:
 
             for searcher in self._searchers:
                 try:
-                    searcher.fileExists(mibname, fileInfo.mtime, rebuild=options.get("rebuild"))
+                    searcher.fileExists(mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")))
 
                 except error.PySmiFileNotFoundError:
                     logger.debug(
@@ -590,7 +626,7 @@ class MibCompiler:
 
             try:
                 if options.get("writeMibs", True):
-                    self._writer.putData(mibname, mibData, dryRun=options.get("dryRun"))
+                    self._writer.putData(mibname, mibData, dryRun=bool(options.get("dryRun")))
 
                 logger.debug(
                     "%s stored by %s", mibname, self._writer, extra={"mib": mibname, "writer": str(self._writer)}
@@ -635,7 +671,7 @@ class MibCompiler:
 
         return processed
 
-    def buildIndex(self, processedMibs, **options):
+    def buildIndex(self, processedMibs: dict[str, MibStatus], **options: Any) -> None:
         platform_info, user_info = self._get_system_info()
 
         comments = [
@@ -650,7 +686,7 @@ class MibCompiler:
                 self._codegen.genIndex(
                     processedMibs, comments=comments, old_index_data=self._writer.getData(self.indexFile)
                 ),
-                dryRun=options.get("dryRun"),
+                dryRun=bool(options.get("dryRun")),
             )
         except error.PySmiError as exc:
             exc.msg += f" at MIB index {self.indexFile}"

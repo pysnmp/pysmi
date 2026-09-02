@@ -6,17 +6,19 @@
 #
 """Building readers from source URLs."""
 
+from typing import Any
 from urllib import parse as urlparse
 from urllib.request import url2pathname
 
 from pysmi import error
+from pysmi.reader.base import AbstractReader
 from pysmi.reader.httpclient import HttpReader
 from pysmi.reader.localfile import FileReader
 from pysmi.reader.zipreader import ZipReader
 
 
-def getReadersFromUrls(*sourceUrls, **options):
-    readers = []
+def getReadersFromUrls(*sourceUrls: str, **options: Any) -> list[AbstractReader]:
+    readers: list[AbstractReader] = []
     for sourceUrl in sourceUrls:
         mibSource = urlparse.urlparse(sourceUrl)
 

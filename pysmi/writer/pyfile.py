@@ -12,6 +12,7 @@ import logging
 import os
 import py_compile
 import tempfile
+from typing import Final
 
 from pysmi import error
 from pysmi.compat import decode, encode
@@ -19,7 +20,7 @@ from pysmi.writer.base import AbstractWriter
 
 logger = logging.getLogger(__name__)
 
-SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
+SOURCE_SUFFIXES: Final = importlib.machinery.SOURCE_SUFFIXES
 
 
 class PyFileWriter(AbstractWriter):
@@ -32,7 +33,7 @@ class PyFileWriter(AbstractWriter):
     pyCompile = True
     pyOptimizationLevel = -1
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         """Creates an instance of *PyFileWriter* class.
 
         Args:
@@ -40,10 +41,10 @@ class PyFileWriter(AbstractWriter):
         """
         self._path = decode(os.path.normpath(path))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def putData(self, mibname, data, comments=(), dryRun=False):
+    def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
         if dryRun:
             logger.debug("dry run mode", extra={"mib": mibname})
             return
@@ -96,5 +97,5 @@ class PyFileWriter(AbstractWriter):
 
         logger.debug("%s stored", mibname, extra={"mib": mibname})
 
-    def getData(self, filename):
+    def getData(self, filename: str) -> str:
         return ""

@@ -12,6 +12,7 @@ import logging
 import os
 import struct
 import time
+from typing import Any, Final, Protocol, cast
 
 from pysmi import error
 from pysmi.compat import decode
@@ -20,9 +21,23 @@ from pysmi.searcher.pyfile import PyFileSearcher
 
 logger = logging.getLogger(__name__)
 
-PY_MAGIC_NUMBER = importlib.util.MAGIC_NUMBER
-SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
-BYTECODE_SUFFIXES = importlib.machinery.BYTECODE_SUFFIXES
+
+class _EggLoader(Protocol):
+    """The slice of the zipimporter interface this searcher uses.
+
+    ``_files`` is private to zipimport, but it is how MIBs packaged in an egg
+    are found; the loader is only used after ``hasattr(loader, "_files")``
+    confirms it is really a zipimporter.
+    """
+
+    _files: dict[str, tuple[Any, ...]]
+
+    def get_data(self, pathname: str) -> bytes: ...
+
+
+PY_MAGIC_NUMBER: Final = importlib.util.MAGIC_NUMBER
+SOURCE_SUFFIXES: Final = importlib.machinery.SOURCE_SUFFIXES
+BYTECODE_SUFFIXES: Final = importlib.machinery.BYTECODE_SUFFIXES
 
 
 class PyPackageSearcher(AbstractSearcher):
@@ -32,7 +47,7 @@ class PyPackageSearcher(AbstractSearcher):
     Python package must be importable.
     """
 
-    def __init__(self, package):
+    def __init__(self, package: str) -> None:
         """Create an instance of *PyPackageSearcher* bound to specific Python
         package.
 
@@ -41,13 +56,13 @@ class PyPackageSearcher(AbstractSearcher):
                            modules at.
         """
         self._package = package
-        self.__loader = None
+        self.__loader: _EggLoader | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._package}"}}'
 
     @staticmethod
-    def _parseDosTime(dosdate, dostime):
+    def _parseDosTime(dosdate: int, dostime: int) -> float:
         t = (
             ((dosdate >> 9) & 0x7F) + 1980,  # year
             ((dosdate >> 5) & 0x0F),  # month
@@ -61,33 +76,39 @@ class PyPackageSearcher(AbstractSearcher):
         )  # dst
         return time.mktime(t)
 
-    def fileExists(self, mibname, mtime, rebuild=False):
+    def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
             return
 
         mibname = decode(mibname)
+        loader: _EggLoader | None = None
 
         try:
             p = __import__(self._package, globals(), locals(), ["__init__"])
 
+            # A namespace package has a __file__ attribute set to None, so ask
+            # for the value rather than for the attribute.
+            packageFile = getattr(p, "__file__", None)
+
             if hasattr(p, "__loader__") and hasattr(p.__loader__, "_files"):
-                self.__loader = p.__loader__
+                loader = self.__loader = cast("_EggLoader", p.__loader__)
                 self._package = self._package.replace(".", os.sep)
+                packageDir = os.path.split(packageFile)[0] if packageFile else ""
                 logger.debug(
                     "%s is an importable egg at %s",
                     self._package,
-                    os.path.split(p.__file__)[0],
-                    extra={"mib": mibname, "package": self._package, "path": os.path.split(p.__file__)[0]},
+                    packageDir,
+                    extra={"mib": mibname, "package": self._package, "path": packageDir},
                 )
 
-            elif hasattr(p, "__file__"):
+            elif packageFile is not None:
                 logger.debug(
                     "%s is not an egg, trying it as a package directory",
                     self._package,
                     extra={"mib": mibname, "package": self._package},
                 )
-                return PyFileSearcher(os.path.split(p.__file__)[0]).fileExists(mibname, mtime, rebuild=rebuild)
+                return PyFileSearcher(os.path.split(packageFile)[0]).fileExists(mibname, mtime, rebuild=rebuild)
 
             else:
                 raise error.PySmiFileNotFoundError(f"{self._package} is neither importable nor a file", searcher=self)
@@ -97,16 +118,19 @@ class PyPackageSearcher(AbstractSearcher):
                 f"{self._package} is not importable, trying as a path", searcher=self
             ) from exc
 
+        if loader is None:
+            raise error.PySmiFileNotFoundError(f"{self._package} is not an egg", searcher=self)
+
         for pySfx in BYTECODE_SUFFIXES:
             f = os.path.join(self._package, mibname.upper()) + pySfx
 
-            if f not in self.__loader._files:
+            if f not in loader._files:
                 logger.debug(
                     "%s is not in %s", f, self._package, extra={"mib": mibname, "path": f, "package": self._package}
                 )
                 continue
 
-            pyData = self.__loader.get_data(f)
+            pyData = loader.get_data(f)
             if pyData[:4] == PY_MAGIC_NUMBER:
                 pyData = pyData[4:]
                 pyTime = struct.unpack("<L", pyData[:4])[0]
@@ -128,13 +152,13 @@ class PyPackageSearcher(AbstractSearcher):
         for pySfx in SOURCE_SUFFIXES:
             f = os.path.join(self._package, mibname.upper()) + pySfx
 
-            if f not in self.__loader._files:
+            if f not in loader._files:
                 logger.debug(
                     "%s is not in %s", f, self._package, extra={"mib": mibname, "path": f, "package": self._package}
                 )
                 continue
 
-            pyTime = self._parseDosTime(self.__loader._files[f][6], self.__loader._files[f][5])
+            pyTime = self._parseDosTime(loader._files[f][6], loader._files[f][5])
 
             logger.debug(
                 "found %s, mtime %s",

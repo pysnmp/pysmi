@@ -7,6 +7,8 @@
 """Passing transformed modules to a user-supplied callable."""
 
 import logging
+from collections.abc import Callable
+from typing import Any
 
 from pysmi import error
 from pysmi.writer.base import AbstractWriter
@@ -24,7 +26,7 @@ class CallbackWriter(AbstractWriter):
 
     """
 
-    def __init__(self, cbFun, cbCtx=None):
+    def __init__(self, cbFun: Callable[[str, str, Any], Any], cbCtx: Any = None) -> None:
         """Creates an instance of *CallbackWriter* class.
 
         Args:
@@ -35,10 +37,10 @@ class CallbackWriter(AbstractWriter):
         self._cbFun = cbFun
         self._cbCtx = cbCtx
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
-    def putData(self, mibname, data, comments=(), dryRun=False):
+    def putData(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
         if dryRun:
             logger.debug("dry run mode", extra={"mib": mibname})
             return
@@ -55,5 +57,5 @@ class CallbackWriter(AbstractWriter):
 
         logger.debug("user callback for %s succeeded", mibname, extra={"mib": mibname})
 
-    def getData(self, filename):
+    def getData(self, filename: str) -> str:
         return ""

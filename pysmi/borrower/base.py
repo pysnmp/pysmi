@@ -7,7 +7,11 @@
 """Interface shared by the borrowers."""
 
 import logging
-from typing import ClassVar
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pysmi.mibinfo import MibInfo
+    from pysmi.reader.base import AbstractReader
 
 from pysmi import error
 
@@ -15,10 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractBorrower:
-    genTexts = False
-    exts: ClassVar[list[str]] = []
+    genTexts: bool = False
+    exts: list[str] = []  # noqa: RUF012
 
-    def __init__(self, reader, genTexts=False):
+    def __init__(self, reader: "AbstractReader", genTexts: bool = False) -> None:
         """Creates an instance of *Borrower* class.
 
         Args:
@@ -33,10 +37,10 @@ class AbstractBorrower:
 
         self._reader = reader
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}{{{self._reader}, genTexts={self.genTexts}, exts={self.exts}}}"
 
-    def setOptions(self, **kwargs):
+    def setOptions(self, **kwargs: Any) -> "AbstractBorrower":
         self._reader.setOptions(**kwargs)
 
         for k in kwargs:
@@ -44,7 +48,7 @@ class AbstractBorrower:
 
         return self
 
-    def getData(self, mibname, **options):
+    def getData(self, mibname: str, **options: Any) -> tuple["MibInfo", str]:
         if bool(options.get("genTexts")) != self.genTexts:
             logger.debug(
                 "skipping incompatible borrower %s for file %s",

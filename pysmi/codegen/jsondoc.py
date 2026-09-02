@@ -11,6 +11,7 @@ import logging
 import re
 from collections import OrderedDict
 from time import strftime, strptime
+from typing import Any
 
 from pysmi import error
 from pysmi.codegen.base import AbstractCodeGen
@@ -124,7 +125,7 @@ class JsonCodeGen(AbstractCodeGen):
             else:
                 imports[module] = self.constImports[module]
 
-        outDict = OrderedDict()
+        outDict: OrderedDict[str, Any] = OrderedDict()
         outDict["class"] = "imports"
         for module in sorted(imports):
             symbols = []
@@ -171,7 +172,7 @@ class JsonCodeGen(AbstractCodeGen):
                 self._complianceOids.append(outDict["oid"])
 
     def genNumericOid(self, oid):
-        numericOid = ()
+        numericOid: tuple[Any, ...] = ()
 
         for part in oid:
             if isinstance(part, tuple):
@@ -562,7 +563,7 @@ class JsonCodeGen(AbstractCodeGen):
     def genBits(self, data):
         bits = data[0]
 
-        outDict = OrderedDict()
+        outDict: OrderedDict[str, Any] = OrderedDict()
         outDict["type"] = "Bits"
         outDict["class"] = "type"
         outDict["bits"] = OrderedDict()
@@ -608,7 +609,7 @@ class JsonCodeGen(AbstractCodeGen):
         if not objname:
             return data
 
-        outDict = OrderedDict()
+        outDict: OrderedDict[str, Any] = OrderedDict()
 
         defval = data[0]
         defvalType = self.getBaseType(objname, self.moduleName[0])
@@ -760,7 +761,7 @@ class JsonCodeGen(AbstractCodeGen):
 
     # noinspection PyUnusedLocal
     def genOid(self, data):
-        out = ()
+        out: tuple[Any, ...] = ()
         parent = ""
         for el in data[0]:
             if isinstance(el, str):
@@ -858,7 +859,7 @@ class JsonCodeGen(AbstractCodeGen):
         if len(data) == 1:
             parentType, attrs = data[0]
 
-            outDict = OrderedDict()
+            outDict: OrderedDict[str, Any] = OrderedDict()
             if not attrs:
                 return outDict
             # just syntax
@@ -990,7 +991,7 @@ class JsonCodeGen(AbstractCodeGen):
         ), json.dumps(outDict, indent=2)
 
     def genIndex(self, processed, **kwargs):
-        outDict = {
+        outDict: dict[str, Any] = {
             "meta": {},
             "identity": {},
             "enterprise": {},
@@ -1006,7 +1007,7 @@ class JsonCodeGen(AbstractCodeGen):
 
         def order(top):
             if isinstance(top, dict):
-                new_top = OrderedDict()
+                new_top: Any = OrderedDict()
                 try:
                     # first try to sort keys as OIDs
                     for k in sorted(top, key=lambda x: [int(y) for y in x.split(".")]):
@@ -1059,7 +1060,7 @@ class JsonCodeGen(AbstractCodeGen):
                 modData[object_oid].append(module)
 
             if modData:
-                unique_prefixes = {}
+                unique_prefixes: dict[str, Any] = {}
                 for oid in sorted(modData, key=lambda x: x.count(".")):
                     for oid_prefix, modules in unique_prefixes.items():
                         if oid.startswith(oid_prefix) and set(modules).issuperset(modData[oid]):

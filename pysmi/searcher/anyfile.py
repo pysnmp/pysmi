@@ -9,7 +9,6 @@
 import logging
 import os
 import time
-from typing import ClassVar
 
 from pysmi import error
 from pysmi.compat import decode
@@ -21,9 +20,9 @@ logger = logging.getLogger(__name__)
 class AnyFileSearcher(AbstractSearcher):
     """Figures out if given file exists at given location."""
 
-    exts: ClassVar[list[str]] = []
+    exts: list[str] = []  # noqa: RUF012
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         """Create an instance of *AnyFileSearcher* bound to specific directory.
 
         Args:
@@ -31,10 +30,10 @@ class AnyFileSearcher(AbstractSearcher):
         """
         self._path = os.path.normpath(decode(path))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def fileExists(self, mibname, mtime, rebuild=False):
+    def fileExists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
             return

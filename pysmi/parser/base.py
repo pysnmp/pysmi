@@ -6,10 +6,12 @@
 #
 """Interface shared by the parsers."""
 
+from typing import Any
+
 
 class AbstractParser:
-    def reset(self):
+    def reset(self) -> None:
         raise NotImplementedError()
 
-    def parse(self, data, **kwargs):
+    def parse(self, data: str, **kwargs: Any) -> list[Any]:
         raise NotImplementedError()
