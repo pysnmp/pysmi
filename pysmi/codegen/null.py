@@ -7,6 +7,7 @@
 """A code generator that renders nothing."""
 
 import logging
+from typing import Any
 
 from pysmi.codegen.base import AbstractCodeGen
 from pysmi.mibinfo import MibInfo
@@ -20,9 +21,9 @@ class NullCodeGen(AbstractCodeGen):
     Could be used for disabling code generation at *MibCompiler*.
     """
 
-    def genCode(self, ast, symbolTable, **kwargs):
+    def genCode(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
         logger.debug("%s invoked", self.__class__.__name__, extra={"codegen": self.__class__.__name__})
         return MibInfo(oid=None, name="", imported=[]), ""
 
-    def genIndex(self, processed, **kwargs):
+    def genIndex(self, processed: dict[str, Any], **kwargs: Any) -> str:
         return ""
