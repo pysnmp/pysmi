@@ -5,11 +5,13 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 
+from typing import Any
+
 #
 # Preconfigured sets of parser options.
 # Individual options could be used in certain combinations.
 #
-smiV2 = {}
+smiV2: dict[str, Any] = {}
 
 smiV1 = smiV2.copy()
 smiV1.update(supportSmiV1Keywords=True, supportIndex=True)

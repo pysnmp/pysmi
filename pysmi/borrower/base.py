@@ -4,12 +4,14 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+from typing import ClassVar
+
 from pysmi import debug, error
 
 
 class AbstractBorrower:
     genTexts = False
-    exts = ""
+    exts: ClassVar[list[str]] = []
 
     def __init__(self, reader, genTexts=False):
         """Creates an instance of *Borrower* class.

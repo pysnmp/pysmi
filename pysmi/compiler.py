@@ -271,12 +271,12 @@ class MibCompiler:
                     processed[mibname] = statusFailed.setOptions(error=exc)
 
             else:
-                exc = error.PySmiError(f"MIB source {mibname} not found")
-                exc.mibname = mibname
+                notFound = error.PySmiError(f"MIB source {mibname} not found")
+                notFound.mibname = mibname
                 debug.logger & debug.flagCompiler and debug.logger(f"no {mibname} found everywhere")
 
                 if mibname not in failedMibs:
-                    failedMibs[mibname] = exc
+                    failedMibs[mibname] = notFound
 
                 if mibname not in processed:
                     processed[mibname] = statusMissing
