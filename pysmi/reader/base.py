@@ -5,13 +5,14 @@
 # License: http://snmplabs.com/pysmi/license.html
 #
 import os
+from typing import ClassVar
 
 
 class AbstractReader:
     maxMibSize = 10000000  # MIBs can't be that large
     fuzzyMatching = True  # try different file names while searching for MIB
     originalMatching = uppercaseMatching = lowcaseMatching = True
-    exts = ["", os.path.extsep + "txt", os.path.extsep + "mib", os.path.extsep + "my"]
+    exts: ClassVar[list[str]] = ["", os.path.extsep + "txt", os.path.extsep + "mib", os.path.extsep + "my"]
     exts.extend([x.upper() for x in exts if x])
 
     def setOptions(self, **kwargs):

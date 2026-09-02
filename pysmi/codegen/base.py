@@ -4,6 +4,8 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+from typing import ClassVar
+
 from pysmi import error
 
 _RFC1155_RFC1065_KEY = "RFC1155-SMI/RFC1065-SMI"
@@ -24,7 +26,7 @@ class AbstractCodeGen:
     # - or carry conflicting OIDs (so that all IMPORT's of them will be rewritten)
     # - or have manual fixes
     # - or import base ASN.1 types from implementation-specific MIBs
-    baseMibs = (
+    baseMibs: ClassVar[tuple[str, ...]] = (
         "RFC1065-SMI",
         "RFC1155-SMI",
         "RFC1158-MIB",
