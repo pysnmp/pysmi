@@ -631,8 +631,9 @@ class SymtableCodeGen(AbstractCodeGen):
         type, so the base type is not yet known here and a default cannot be
         rendered: the same hexadecimal literal is an octet string for one type
         and a number for another. The code generators resolve it themselves, in
-        :py:meth:`PySnmpCodeGen.gen_def_val` and
-        :py:meth:`JsonCodeGen.gen_def_val`, once this table is complete.
+        :py:meth:`pysmi.codegen.pysnmp.PySnmpCodeGen.gen_def_val` and
+        :py:meth:`pysmi.codegen.jsondoc.JsonCodeGen.gen_def_val`, once this
+        table is complete.
 
         Args:
             data: converted clause values
