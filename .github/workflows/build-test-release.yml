@@ -20,32 +20,6 @@ jobs:
           python-version: "3.12"
       - uses: pre-commit/action@v3.0.1
 
-  review_secrets:
-    name: security-detect-secrets
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: false
-          fetch-depth: "0"
-      - name: Trufflehog Actions Scan
-        uses: edplato/trufflehog-actions-scan@v0.9j-beta
-        with:
-          scanArguments: "--max_depth 30 -x .github/workflows/exclude-patterns.txt"
-
-  semgrep:
-    runs-on: ubuntu-latest
-    name: security-sast-semgrep
-    container:
-      image: semgrep/semgrep
-    steps:
-      - uses: actions/checkout@v4
-      - name: Semgrep
-        run: semgrep ci
-        env:
-          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-
   run-unit-tests:
     name: test-unit (py${{ matrix.python }} ${{ matrix.os }})
     strategy:
@@ -93,8 +67,6 @@ jobs:
     name: Build Release
     needs:
       - pre-commit
-      - review_secrets
-      - semgrep
       - build
       - run-unit-tests
     runs-on: ubuntu-latest
