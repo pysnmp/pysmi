@@ -41,21 +41,26 @@ def getReadersFromUrls(*sourceUrls: str, **options: Any) -> list[AbstractReader]
     readers: list[AbstractReader] = []
     for sourceUrl in sourceUrls:
         mibSource = urlparse.urlparse(sourceUrl)
+        scheme = mibSource.scheme
 
-        if mibSource.scheme in ("", "file", "zip"):
-            scheme = mibSource.scheme
-            if scheme != "file" and (mibSource.path.endswith(".zip") or mibSource.path.endswith(".ZIP")):
-                scheme = "zip"
+        # urlparse reads the drive letter of a Windows path as a one-character
+        # scheme, so "C:\mibs" arrives here as scheme "c". No URL scheme is a
+        # single letter, so such a source is a local path and is taken as it
+        # stands: putting it through url2pathname would eat any percent sign.
+        if len(scheme) == 1 and scheme.isalpha():
+            scheme = ""
+            localPath = sourceUrl
+        else:
+            localPath = url2pathname(mibSource.path)
+
+        if scheme in ("", "file", "zip"):
+            if scheme != "file" and (localPath.endswith(".zip") or localPath.endswith(".ZIP")):
+                readers.append(ZipReader(localPath).set_options(**options))
 
             else:
-                scheme = "file"
+                readers.append(FileReader(localPath).set_options(**options))
 
-            if scheme == "file":
-                readers.append(FileReader(url2pathname(mibSource.path)).set_options(**options))
-            else:
-                readers.append(ZipReader(url2pathname(mibSource.path)).set_options(**options))
-
-        elif mibSource.scheme in ("http", "https"):
+        elif scheme in ("http", "https"):
             readers.append(HttpReader(sourceUrl).set_options(**options))
 
         else:
