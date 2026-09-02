@@ -11,7 +11,7 @@ import logging
 import re
 from collections import OrderedDict
 from time import strftime, strptime
-from typing import Any
+from typing import Any, cast
 
 from pysmi import error
 from pysmi.codegen.base import AbstractCodeGen
@@ -778,7 +778,7 @@ class JsonCodeGen(AbstractCodeGen):
         names = data[0]
         return names
 
-    def genBits(self, data: Any) -> tuple[Any, ...]:
+    def genBits(self, data: Any) -> tuple[str, OrderedDict[str, Any]]:
         """Render a BITS clause.
 
         Args:
@@ -862,7 +862,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The display hint.
         """
-        return data[0]
+        return cast(str, data[0])
 
     # noinspection PyUnusedLocal
     def genDefVal(self, data: Any, objname: str | None = None) -> "dict[str, Any] | list[Any]":
@@ -889,7 +889,7 @@ class JsonCodeGen(AbstractCodeGen):
         if not data:
             return {}
         if not objname:
-            return data
+            return cast("dict[str, Any] | list[Any]", data)
 
         outDict: OrderedDict[str, Any] = OrderedDict()
 
@@ -914,7 +914,7 @@ class JsonCodeGen(AbstractCodeGen):
                 outDict.update(value=hexval, format="hex")
 
         elif defval[0] == defval[-1] and defval[0] == '"':  # quoted string
-            if defval[1:-1] == "" and defvalType != "OctetString":  # common bug
+            if defval[1:-1] == "" and defvalType[0][0] != "OctetString":  # common bug
                 # a warning should be here
                 return {}  # we will set no default value
             outDict.update(value=defval[1:-1], format="string")
@@ -998,7 +998,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The status as written.
         """
-        return data[0]
+        return cast(str, data[0])
 
     def genProductRelease(self, data: Any) -> Any:
         """Render a PRODUCT-RELEASE clause.
@@ -1105,7 +1105,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The access level as written.
         """
-        return data[0]
+        return cast(str, data[0])
 
     def genOctetStringSubType(self, data: Any) -> dict[str, Any]:
         """Render an octet string size restriction.
@@ -1217,7 +1217,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The timestamp as a formatted date.
         """
-        return data[0]
+        return cast(str, data[0])
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def genOrganization(self, data: Any) -> str:

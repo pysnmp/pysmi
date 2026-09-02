@@ -16,7 +16,7 @@ symbols across modules.
 import logging
 from collections.abc import Sequence
 from keyword import iskeyword
-from typing import Any
+from typing import Any, cast
 
 from pysmi import error
 from pysmi.codegen.base import AbstractCodeGen, dorepr
@@ -549,7 +549,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return names
 
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
-    def genBits(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def genBits(self, data: Any, classmode: bool = False) -> tuple[tuple[str, str], list[Any]]:
         """Return the syntax of a BITS clause.
 
         Args:
@@ -610,7 +610,7 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal
-    def genDefVal(self, data: Any, classmode: bool = False) -> str:  # XXX should be fixed, see pysnmp.py
+    def genDefVal(self, data: Any, classmode: bool = False) -> str | list[Any]:  # XXX should be fixed, see pysnmp.py
         """Render a DEFVAL as the Python source for that value.
 
         Numbers, hexadecimal and binary strings, quoted strings, bit lists and
@@ -624,7 +624,7 @@ class SymtableCodeGen(AbstractCodeGen):
             Python source for the default value.
         """
         defval = data[0]
-        val: Any
+        val: str | list[Any]
 
         if isinstance(defval, int):  # number
             val = str(defval)
@@ -819,7 +819,7 @@ class SymtableCodeGen(AbstractCodeGen):
         Returns:
             The timestamp as written.
         """
-        return data[0]
+        return cast(str, data[0])
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genOrganization(self, data: Any, classmode: bool = False) -> str:
@@ -832,7 +832,7 @@ class SymtableCodeGen(AbstractCodeGen):
         Returns:
             The organization as written.
         """
-        return data[0]
+        return cast(str, data[0])
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def genRevisions(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:

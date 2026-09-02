@@ -12,7 +12,7 @@ import time. They are grammar, not documentation.
 
 import logging
 import os
-from typing import Any
+from typing import Any, cast
 
 import ply.yacc as yacc
 
@@ -104,7 +104,7 @@ class SmiV2Parser(AbstractParser):
         self.reset()
 
         if ast and ast[0] == "mibFile" and ast[1]:  # mibfile is not empty
-            return ast[1]
+            return cast("list[Any]", ast[1])
         else:
             return []
 
