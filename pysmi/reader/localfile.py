@@ -47,9 +47,74 @@ class FileReader(AbstractReader):
         self._ignoreErrors = ignoreErrors
         self._indexLoaded = False
         self._mibIndex: dict[str, str] | None = None
+        # One entry per directory visited: its subdirectories, and its regular
+        # files keyed by normcase(name) -> actual name. Built once per
+        # directory and kept for the reader's lifetime, since get_data() would
+        # otherwise re-list the whole tree on every single MIB lookup.
+        self._dirCache: dict[str, tuple[list[str], dict[str, str]]] = {}
 
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
+
+    def _list_dir(self, path: str, ignoreErrors: bool = True) -> tuple[list[str], dict[str, str]]:
+        """List *path* once, caching the result for the reader's lifetime.
+
+        A single :py:func:`os.scandir` pass gives both the subdirectories and
+        the regular files, and each entry's type comes from the scan itself
+        rather than a separate :py:func:`os.stat` per name.
+
+        Args:
+            path (str): directory to list
+
+        Keyword Args:
+            ignoreErrors: return an empty listing instead of raising when the
+                directory cannot be read
+
+        Returns:
+            The subdirectory names, and the regular file names keyed by
+            :py:func:`os.path.normcase` of the name, so a candidate can be
+            looked up without touching the filesystem again.
+
+            :py:func:`os.path.normcase` matches how the platform's own
+            filesystem folds names on Windows (case-insensitive) and Linux
+            (case-sensitive). On macOS it does not: the default filesystem
+            folds case but ``normcase`` does not, so a file whose case
+            differs from every name :py:meth:`~AbstractReader.get_mib_variants`
+            generates -- the exact name, all upper, all lower, and the
+            ``-mib`` fuzzy forms -- goes unmatched there, where it would
+            previously have been found by chance. Reader options already name
+            the cases pysmi looks for; this stops relying on the filesystem to
+            supply others.
+
+        Raises:
+            PySmiError: the directory could not be listed and ``ignoreErrors``
+                is not set.
+        """
+        if path in self._dirCache:
+            return self._dirCache[path]
+
+        subdirs: list[str] = []
+        files: dict[str, str] = {}
+
+        try:
+            with os.scandir(path) as it:
+                for entry in it:
+                    try:
+                        if entry.is_dir():
+                            subdirs.append(entry.name)
+                        elif entry.is_file():
+                            files[os.path.normcase(entry.name)] = entry.name
+                    except OSError:
+                        # A symlink stat failing here is the entry's problem,
+                        # not the directory's; skip it either way.
+                        continue
+
+        except OSError as exc:
+            if not ignoreErrors:
+                raise error.PySmiError(f"directory {path} access error: {exc}") from exc
+
+        self._dirCache[path] = (subdirs, files)
+        return subdirs, files
 
     def get_subdirs(self, path: str, recursive: bool = True, ignoreErrors: bool = True) -> list[str]:
         """List *path* and every directory beneath it.
@@ -74,20 +139,10 @@ class FileReader(AbstractReader):
 
         dirs = [path]
 
-        try:
-            subdirs = os.listdir(path)
-
-        except OSError as exc:
-            if ignoreErrors:
-                return dirs
-
-            else:
-                raise error.PySmiError(f"directory {path} access error: {exc}") from exc
+        subdirs, _files = self._list_dir(path, ignoreErrors)
 
         for d in subdirs:
-            d = os.path.join(decode(path), decode(d))
-            if os.path.isdir(d):
-                dirs.extend(self.get_subdirs(d, recursive))
+            dirs.extend(self.get_subdirs(os.path.join(decode(path), decode(d)), recursive))
 
         return dirs
 
@@ -167,12 +222,16 @@ class FileReader(AbstractReader):
         )
 
         for path in self.get_subdirs(self._path, self._recursive, self._ignoreErrors):
+            _subdirs, files = self._list_dir(path, self._ignoreErrors)
+
             for mibalias, mibfile in self.get_mib_variants(mibname, **options):
-                f = os.path.join(decode(path), decode(mibfile))
+                actualName = files.get(os.path.normcase(mibfile))
 
-                logger.debug("trying MIB %s", f, extra={"mib": mibname, "path": f})
+                if actualName is not None:
+                    f = os.path.join(decode(path), decode(actualName))
 
-                if os.path.exists(f) and os.path.isfile(f):
+                    logger.debug("trying MIB %s", f, extra={"mib": mibname, "path": f})
+
                     try:
                         mtime = os.stat(f).st_mtime
 
@@ -189,7 +248,7 @@ class FileReader(AbstractReader):
                         if len(mibData) == self.maxMibSize:
                             raise OSError(f"MIB {f} too large")
 
-                        return MibInfo(path=f"file://{f}", file=mibfile, name=mibalias, mtime=mtime), decode(mibData)
+                        return MibInfo(path=f"file://{f}", file=actualName, name=mibalias, mtime=mtime), decode(mibData)
 
                     except OSError as exc:
                         logger.debug(
