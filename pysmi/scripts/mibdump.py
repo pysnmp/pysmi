@@ -54,6 +54,7 @@ def start() -> None:
     cacheDirectory = ""
     nodepsFlag = False
     rebuildFlag = False
+    pruneFlag = False
     dryrunFlag = False
     genMibTextsFlag = False
     keepTextsLayout = False
@@ -82,6 +83,7 @@ def start() -> None:
         [--ignore-errors]
         [--build-index]
         [--rebuild]
+        [--prune]
         [--dry-run]
         [--no-mib-writes]
         [--generate-mib-texts]
@@ -92,7 +94,11 @@ def start() -> None:
                 Use @mib@ placeholder token in URI to refer directly to
                 the required MIB module when source does not support
                 directory listing (e.g. HTTP).
-        FORMAT   - pysnmp, json, null""".format(os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES)))
+        FORMAT   - pysnmp, json, null
+        --prune  - remove previously stored output whose source MIB no
+                longer exists in any configured source. Runs without
+                MIB-NAME arguments; deletes unless combined with
+                --dry-run.""".format(os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES)))
 
     try:
         opts, inputMibs = getopt.getopt(
@@ -116,6 +122,7 @@ def start() -> None:
                 "ignore-errors",
                 "build-index",
                 "rebuild",
+                "prune",
                 "dry-run",
                 "no-mib-writes",
                 "generate-mib-texts",
@@ -202,6 +209,9 @@ def start() -> None:
         if opt[0] == "--rebuild":
             rebuildFlag = True
 
+        if opt[0] == "--prune":
+            pruneFlag = True
+
         if opt[0] == "--dry-run":
             dryrunFlag = True
 
@@ -225,7 +235,7 @@ def start() -> None:
 
         inputMibs = [os.path.basename(os.path.splitext(x)[0]) for x in inputMibs]
 
-    if not inputMibs:
+    if not inputMibs and not pruneFlag:
         sys.stderr.write(f"ERROR: MIB modules names not specified\r\n{helpMessage}\r\n")
         sys.exit(EX_USAGE)
 
@@ -340,6 +350,7 @@ def start() -> None:
     Parser grammar cache directory: {}
     Also compile all relevant MIBs: {}
     Rebuild MIBs regardless of age: {}
+    Prune stored MIBs with no remaining source: {}
     Dry run mode: {}
     Create/update MIBs: {}
     Byte-compile Python modules: {} (optimization level {})
@@ -359,6 +370,7 @@ def start() -> None:
                 cacheDirectory or "not used",
                 (nodepsFlag and "no") or "yes",
                 (rebuildFlag and "yes") or "no",
+                (pruneFlag and "yes") or "no",
                 (dryrunFlag and "yes") or "no",
                 (writeMibsFlag and "yes") or "no",
                 (dstFormat == "pysnmp" and pyCompileFlag and "yes") or "no",
@@ -374,6 +386,8 @@ def start() -> None:
     # Initialize compiler infrastructure
 
     mibCompiler = MibCompiler(SmiV1CompatParser(tempdir=cacheDirectory), codeGenerator, fileWriter)
+
+    pruned = {}
 
     try:
         mibCompiler.add_sources(*getReadersFromUrls(*mibSources, **dict(fuzzyMatching=doFuzzyMatchingFlag)))
@@ -402,6 +416,9 @@ def start() -> None:
 
         if buildIndexFlag:
             mibCompiler.build_index(safe, dryRun=dryrunFlag, ignoreErrors=True)
+
+        if pruneFlag:
+            pruned = mibCompiler.prune(dryRun=dryrunFlag, ignoreErrors=ignoreErrorsFlag)
 
     except error.PySmiError as exc:
         sys.stderr.write(f"ERROR: {exc}\r\n")
@@ -442,12 +459,25 @@ def start() -> None:
                 + "\n"
             )
 
+            if pruneFlag:
+                prunedVerb = "Would be " if dryrunFlag else ""
+                sys.stdout.write(
+                    f"MIBs {prunedVerb}pruned: "
+                    + ", ".join(sorted(x for x in pruned if pruned[x] == "pruned"))
+                    + "\r\n"
+                )
+                sys.stderr.write(
+                    "Failed to prune: "
+                    + "\n ".join([f"{x} ({pruned[x].error})" for x in sorted(pruned) if pruned[x] == "failed"])
+                    + "\n"
+                )
+
         exitCode = EX_OK
 
         if any(x for x in processed.values() if x == "missing"):
             exitCode = EX_MIB_MISSING
 
-        if any(x for x in processed.values() if x == "failed"):
+        if any(x for x in processed.values() if x == "failed") or any(x for x in pruned.values() if x == "failed"):
             exitCode = EX_MIB_FAILED
 
         sys.exit(exitCode)

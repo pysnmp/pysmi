@@ -7,8 +7,41 @@
 """Metadata describing a single MIB module."""
 
 import hashlib
+import json
+import re
 from datetime import datetime
 from typing import Any, Optional
+
+_PRODUCER_RE = re.compile(r"Produced by (?P<name>\S+?)-(?P<version>\S+)")
+
+
+def producer_of(text: str) -> tuple[str, str] | None:
+    """Read back the "Produced by <package>-<version>" marker *compiler*
+    records in every module it stores.
+
+    Checked directly against a "#"-commented Python source, and against the
+    ``meta.comments`` array of a JSON document -- the two shapes the marker
+    is recorded in today. A file carrying neither, or naming some other
+    package, was not produced by this tool, or predates this marker being
+    read back; either way there is nothing to compare.
+
+    Args:
+        text: the stored MIB module, as written by a writer.
+
+    Returns:
+        The recorded package name and version, or ``None``.
+    """
+    try:
+        doc = json.loads(text)
+    except (TypeError, ValueError):
+        doc = None
+
+    if isinstance(doc, dict):
+        comments = doc.get("meta", {}).get("comments") or []
+        text = "\n".join(comments)
+
+    match = _PRODUCER_RE.search(text)
+    return (match["name"], match["version"]) if match else None
 
 
 def source_digest(source: str) -> str:
