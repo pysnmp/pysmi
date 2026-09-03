@@ -16,32 +16,10 @@ document directly, rather than through a consumer's object model. See
 pysnmp/pysmi#96 and #99.
 """
 
-import json
 import sys
 import unittest
 
-from pysnmp.smi.builder import MibBuilder
-
-from pysmi.codegen import JsonCodeGen, PySnmpCodeGen
-from pysmi.codegen.symtable import SymtableCodeGen
-from pysmi.parser.smi import parserFactory
-
-
-def render(mib, genTexts=True):
-    """Compile *mib* through both backends, returning the JSON dict and pysnmp scope."""
-    ast = parserFactory()().parse(mib)[0]
-    mibInfo, symtable = SymtableCodeGen().gen_code(ast, {}, genTexts=genTexts)
-
-    _, doc = JsonCodeGen().gen_code(ast, {mibInfo.name: symtable}, genTexts=genTexts)
-
-    _, pycode = PySnmpCodeGen().gen_code(ast, {mibInfo.name: symtable}, genTexts=genTexts)
-    mibBuilder = MibBuilder()
-    mibBuilder.loadTexts = genTexts
-    ctx = {"mibBuilder": mibBuilder}
-    exec(compile(pycode, "test", "exec"), ctx, ctx)
-
-    return json.loads(doc), ctx
-
+from tests.harness import render
 
 NOTIFICATION_MIB = """
 TEST-MIB DEFINITIONS ::= BEGIN
