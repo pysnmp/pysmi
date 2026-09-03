@@ -1,0 +1,24 @@
+-- Minimal reproducer for a workaround in the code generators.
+--
+-- Seen in vendor MIBs; A3COM-HUAWEI-LswINF-MIB is the module named in the source comment.
+--
+-- The module uses Counter64 without naming it in IMPORTS. That is invalid per
+-- RFC 2578 Section 3.2, but the generators carry Counter64 in their constImports
+-- set so the module still compiles. Deleting it from constImports breaks this
+-- module -- which is the point of keeping the reproducer.
+
+UNIMPORTED-COUNTER64-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE
+        FROM SNMPv2-SMI;
+
+brokenObject OBJECT-TYPE
+    SYNTAX      Counter64
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "An object whose syntax is never imported."
+    ::= { 1 3 1 }
+
+END
