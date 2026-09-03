@@ -41,6 +41,83 @@ testModule MODULE-IDENTITY
 END
 """
 
+#: A module carrying one of each construct, to read the emitted line for each.
+CONSTRUCTS_MIB = """
+TEST-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    OBJECT-TYPE, MODULE-IDENTITY, OBJECT-IDENTITY, NOTIFICATION-TYPE,
+    Integer32
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION
+        FROM SNMPv2-TC;
+
+testModule MODULE-IDENTITY
+    LAST-UPDATED "202401010000Z"
+    ORGANIZATION "Org."
+    CONTACT-INFO "C."
+    DESCRIPTION  "M."
+    ::= { 1 3 0 }
+
+TestTC ::= TEXTUAL-CONVENTION
+    DISPLAY-HINT "255a"
+    STATUS       current
+    DESCRIPTION  "tc"
+    SYNTAX       OCTET STRING (SIZE (0..255))
+
+testIdentity OBJECT-IDENTITY
+    STATUS      current
+    DESCRIPTION "oi"
+    ::= { testModule 9 }
+
+testScalar OBJECT-TYPE
+    SYNTAX      Integer32 (0..7)
+    UNITS       "widgets"
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "s"
+    DEFVAL      { 3 }
+    ::= { testModule 2 }
+
+testTable OBJECT-TYPE
+    SYNTAX      SEQUENCE OF TestEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "t"
+    ::= { testModule 1 }
+
+testEntry OBJECT-TYPE
+    SYNTAX      TestEntry
+    MAX-ACCESS  not-accessible
+    STATUS      current
+    DESCRIPTION "e"
+    INDEX       { IMPLIED testIndex }
+    ::= { testTable 1 }
+
+TestEntry ::= SEQUENCE { testIndex Integer32, testNotify Integer32 }
+
+testIndex OBJECT-TYPE
+    SYNTAX      Integer32 (1..100)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "i"
+    ::= { testEntry 1 }
+
+testNotify OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  accessible-for-notify
+    STATUS      deprecated
+    DESCRIPTION "n"
+    ::= { testEntry 2 }
+
+testNotification NOTIFICATION-TYPE
+    OBJECTS     { testScalar }
+    STATUS      current
+    DESCRIPTION "nt"
+    ::= { testModule 3 }
+
+END
+"""
+
 #: The line pysmi puts in front of a setter whose value pysnmp keeps only when
 #: it has been asked to load texts.
 GUARD = "if mibBuilder.loadTexts:"
@@ -118,6 +195,90 @@ class ConformanceReferenceTestCase(unittest.TestCase):
         for name in WITH_SET_REFERENCE:
             with self.subTest(symbol=name):
                 self.assertEqual(self.pycode.count(f"{name}.setReference("), 1)
+
+
+class ConstructTestCase(unittest.TestCase):
+    """What each construct is emitted as.
+
+    The runtime assertions elsewhere can only see what pysnmp made of a line.
+    These read the line. See pysnmp/pysmi#99.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pycode = render_source(CONSTRUCTS_MIB)
+        cls.lines = {
+            line.split(" = ", 1)[0]: line for line in cls.pycode.splitlines() if " = " in line and "import" not in line
+        }
+
+    def line(self, symbol):
+        self.assertIn(symbol, self.lines, f"{symbol} was not emitted")
+        return self.lines[symbol]
+
+    def testEachConstructPicksItsNodeClass(self):
+        for symbol, cls in (
+            ("testModule", "ModuleIdentity"),
+            ("testIdentity", "ObjectIdentity"),
+            ("testScalar", "MibScalar"),
+            ("testTable", "MibTable"),
+            ("testEntry", "MibTableRow"),
+            ("testIndex", "MibTableColumn"),
+            ("testNotification", "NotificationType"),
+        ):
+            with self.subTest(symbol=symbol):
+                self.assertIn(f"= {cls}((", self.line(symbol))
+
+    def testAnOidIsEmittedAsATupleOfIntegers(self):
+        self.assertIn("MibTableColumn((1, 3, 0, 1, 1, 1), ", self.line("testIndex"))
+
+    def testMaxAccessIsEmittedWithoutItsHyphens(self):
+        # pysnmp does not normalise this: the value it hands back is the one
+        # written here. A runtime assertion on getMaxAccess() cannot tell which
+        # side dropped the hyphens, so it goes unread.
+        for symbol, access in (
+            ("testScalar", "readwrite"),
+            ("testIndex", "readcreate"),
+            ("testNotify", "accessiblefornotify"),
+        ):
+            with self.subTest(symbol=symbol):
+                self.assertIn(f'.setMaxAccess("{access}")', self.line(symbol))
+
+    def testStructuralSettersAreNotGuarded(self):
+        # These say what an object is, not what it is for, so a module loaded
+        # without texts still needs them.
+        for symbol, setter in (
+            ("testScalar", ".setUnits("),
+            ("testScalar", ".setMaxAccess("),
+            ("testEntry", ".setIndexNames("),
+            ("testNotification", ".setObjects("),
+        ):
+            with self.subTest(symbol=symbol, setter=setter):
+                line = self.line(symbol)
+                self.assertIn(setter, line)
+                self.assertFalse(line.startswith(GUARD))
+
+    def testAConstraintIsAppliedBeforeADefault(self):
+        # .clone() carries the DEFVAL and has to be applied to the subtyped
+        # syntax, not the other way round.
+        self.assertIn(
+            "Integer32().subtype(subtypeSpec=ValueRangeConstraint(0, 7)).clone(3)",
+            self.line("testScalar"),
+        )
+
+    def testAnImpliedIndexIsFlaggedInTheIndexNames(self):
+        self.assertIn('.setIndexNames((1, "TEST-MIB", "testIndex"))', self.line("testEntry"))
+
+    def testATextualConventionIsAClassAheadOfItsBaseType(self):
+        # TextualConvention has to come first, or its display hint loses to the
+        # base type's rendering.
+        self.assertIn("class TestTC(TextualConvention, OctetString):", self.pycode)
+        self.assertIn("subtypeSpec = OctetString.subtypeSpec + ValueSizeConstraint(0, 255)", self.pycode)
+
+    def testEverySymbolDefinedIsAlsoExported(self):
+        exported = self.pycode.rsplit("exportSymbols(", 1)[1]
+        for symbol in ("TestTC", "testEntry", "testIdentity", "testIndex", "testNotification", "testScalar"):
+            with self.subTest(symbol=symbol):
+                self.assertIn(f"{symbol}=", exported)
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

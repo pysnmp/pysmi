@@ -9,7 +9,6 @@
 import logging
 import re
 from keyword import iskeyword
-from time import strftime, strptime
 from typing import Any, cast
 
 from pysmi import error
@@ -29,6 +28,7 @@ from pysmi.codegen.base import (
     SymbolsClause,
     TextClause,
     dorepr,
+    format_ext_utc_time,
     trap_type_oid,
 )
 from pysmi.mibinfo import MibInfo
@@ -859,7 +859,7 @@ for _{name}_obj in [{objects}]:
         Returns:
             Source for the object and its texts.
         """
-        name, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
+        name, syntax, units, maxaccess, status, description, reference, augmentation, index, defval, oid = data
 
         label = self.gen_label(name)
         name = self.trans_opers(name)
@@ -884,17 +884,17 @@ for _{name}_obj in [{objects}]:
 
         outStr += self._reference_line(name, reference)
 
-        if augmention:
-            augmention = self.trans_opers(augmention)
+        if augmentation:
+            augmentation = self.trans_opers(augmentation)
             outStr += (
-                augmention
+                augmentation
                 + '.registerAugmentions(("'
                 + self._importMap.get(name, self.moduleName[0])
                 + '", "'
                 + name
                 + '"))\n'
             )
-            outStr += name + ".setIndexNames(*" + augmention + ".getIndexNames())\n"
+            outStr += name + ".setIndexNames(*" + augmentation + ".getIndexNames())\n"
 
         if status:
             outStr += self.ifTextStr + name + status + "\n"
@@ -1571,34 +1571,13 @@ for _{name}_obj in [{objects}]:
     def gen_time(self, data: TextClause, classmode: bool = False) -> list[Any]:
         """Render MIB timestamps as readable dates.
 
-        Two-digit SMIv1 years are read as nineteen-hundreds. A timestamp that
-        cannot be parsed at all is replaced with the epoch rather than rejected,
-        because malformed dates are common and never affect the semantics of a
-        module.
-
         Args:
             data: timestamps as written in the MIB
 
         Returns:
             One formatted date per timestamp.
         """
-        times = []
-        for timeStr in data:
-            if len(timeStr) == 11:
-                timeStr = "19" + timeStr
-            # XXX raise in strict mode
-            # elif lenTimeStr != 13:
-            #  raise error.PySmiSemanticError("Invalid date %s" % t)
-            try:
-                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
-
-            except ValueError:
-                # XXX raise in strict mode
-                # raise error.PySmiSemanticError("Invalid date %s: %s" % (t, sys.exc_info()[1]))
-                timeStr = "197001010000Z"  # dummy date for dates with typos
-                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
-
-        return times
+        return [format_ext_utc_time(timeStr, self.moduleName[0]) for timeStr in data]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def gen_last_updated(self, data: TextClause, classmode: bool = False) -> str:
@@ -1611,8 +1590,7 @@ for _{name}_obj in [{objects}]:
         Returns:
             A ``setLastUpdated()`` call.
         """
-        text = data[0]
-        return ".setLastUpdated(" + dorepr(text) + ")"
+        return ".setLastUpdated(" + dorepr(format_ext_utc_time(data[0], self.moduleName[0])) + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def gen_organization(self, data: TextClause, classmode: bool = False) -> str:

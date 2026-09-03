@@ -177,10 +177,16 @@ class SupportIndexTestCase(unittest.TestCase):
 
     def testItsProductionsNeedTheSmiV1OnesToBuild(self):
         # SupportIndex.p_typeSMIv1 refers to productions that only
-        # supportSmiV1Keywords contributes, so the grammar will not build.
-        with self.assertRaises(Exception) as caught:
+        # supportSmiV1Keywords contributes. The dependency is refused before the
+        # grammar is assembled, so the caller is told which option is missing
+        # instead of that the parser could not be built.
+        with self.assertRaises(error.PySmiError) as caught:
             parse(BARE_TYPE_IN_INDEX, supportIndex=True)
-        self.assertIn("Unable to build parser", str(caught.exception))
+
+        message = str(caught.exception)
+        self.assertIn("supportIndex", message)
+        self.assertIn("supportSmiV1Keywords", message)
+        self.assertNotIn("Unable to build parser", message)
 
 
 class DialectTestCase(unittest.TestCase):

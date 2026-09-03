@@ -451,7 +451,7 @@ class SymtableCodeGen(AbstractCodeGen):
             data: converted clause values
             classmode: unused; the clause never appears in a type declaration
         """
-        origName, syntax, _units, _maxaccess, _status, _description, _reference, augmention, index, defval, oid = data
+        origName, syntax, _units, _maxaccess, _status, _description, _reference, augmentation, index, defval, oid = data
 
         pysmiName = self.trans_opers(origName)
 
@@ -464,8 +464,8 @@ class SymtableCodeGen(AbstractCodeGen):
 
         parents = [syntax[0][0]]
 
-        if augmention:
-            parents.append(self.trans_opers(augmention))
+        if augmentation:
+            parents.append(self.trans_opers(augmentation))
 
         if defval:  # XXX
             symProps["defval"] = defval

@@ -14,6 +14,7 @@ error, because rejecting it would break real MIBs.
 See pysnmp/pysmi#94.
 """
 
+import logging
 import sys
 import unittest
 
@@ -90,20 +91,52 @@ class MalformedDateTestCase(unittest.TestCase):
 
 
 class LastUpdatedTestCase(unittest.TestCase):
-    """LAST-UPDATED is passed through as written, unlike REVISION."""
+    """LAST-UPDATED is rendered the same way REVISION is.
 
-    def testThirteenCharacterFormIsNotReformatted(self):
+    RFC 2578 section 2 gives both clauses the same type, so both are read the
+    same way and written in one format. See pysnmp/pysmi#117.
+    """
+
+    def testThirteenCharacterFormIsReformatted(self):
         doc, ctx = module(lastUpdated="202401011200Z")
-        self.assertEqual(doc["lastupdated"], "202401011200Z")
-        self.assertEqual(ctx.getLastUpdated(), "202401011200Z")
+        self.assertEqual(doc["lastupdated"], "2024-01-01 12:00")
+        self.assertEqual(ctx.getLastUpdated(), "2024-01-01 12:00")
 
-    def testElevenCharacterFormIsNotExpanded(self):
+    def testElevenCharacterFormExpandsToTheNineteenHundreds(self):
         doc, _ = module(lastUpdated="9912312359Z")
-        self.assertEqual(doc["lastupdated"], "9912312359Z")
+        self.assertEqual(doc["lastupdated"], "1999-12-31 23:59")
 
-    def testAnUnreadableDateIsNotReplaced(self):
+    def testAnUnreadableDateBecomesTheEpoch(self):
         doc, _ = module(lastUpdated="nonsense")
-        self.assertEqual(doc["lastupdated"], "nonsense")
+        self.assertEqual(doc["lastupdated"], "1970-01-01 00:00")
+
+    def testItAgreesWithARevisionCarryingTheSameValue(self):
+        doc, _ = module(lastUpdated="202401011200Z", revisions=[("202401011200Z", "same instant")])
+        self.assertEqual(doc["lastupdated"], doc["revisions"][0]["revision"])
+
+
+class MalformedDateIsReportedTestCase(unittest.TestCase):
+    """An epoch substitution is logged, so it is not silent. See #114."""
+
+    def testTheSubstitutionIsLogged(self):
+        with self.assertLogs("pysmi.codegen", level="WARNING") as caught:
+            module(revisions=[("202302301200Z", "february the thirtieth")])
+
+        self.assertTrue(any("202302301200Z" in line for line in caught.output), caught.output)
+
+    def testLastUpdatedIsReportedToo(self):
+        with self.assertLogs("pysmi.codegen", level="WARNING") as caught:
+            module(lastUpdated="nonsense")
+
+        self.assertTrue(any("nonsense" in line for line in caught.output), caught.output)
+
+    def testAReadableDateSaysNothing(self):
+        logger = logging.getLogger("pysmi.codegen")
+        with self.assertLogs(logger, level="WARNING") as caught:
+            logger.warning("nothing to report")
+            module(lastUpdated="202401011200Z", revisions=[("202401011200Z", "fine")])
+
+        self.assertEqual(caught.output, ["WARNING:pysmi.codegen:nothing to report"])
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

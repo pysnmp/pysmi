@@ -134,7 +134,7 @@ class CorpusSurfaceTestCase(unittest.TestCase):
 
     def testAugmentsNamesTheRowItExtends(self):
         self.assertEqual(
-            self.docs["IF-MIB"]["ifXEntry"]["augmention"],
+            self.docs["IF-MIB"]["ifXEntry"]["augmentation"],
             {"name": "ifXEntry", "module": "IF-MIB", "object": "ifEntry"},
         )
 

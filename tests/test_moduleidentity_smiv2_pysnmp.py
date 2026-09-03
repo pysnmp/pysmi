@@ -53,7 +53,7 @@ class ModuleIdentityTestCase(unittest.TestCase):
         self.assertEqual(self.ctx["testModule"].getName(), (1, 3), "bad name")
 
     def testModuleIdentityLastUpdated(self):
-        self.assertEqual(self.ctx["testModule"].getLastUpdated(), "200001100000Z", "bad LAST-UPDATED")
+        self.assertEqual(self.ctx["testModule"].getLastUpdated(), "2000-01-10 00:00", "bad LAST-UPDATED")
 
     def testModuleIdentityOrganization(self):
         self.assertEqual(self.ctx["testModule"].getOrganization(), "AgentX Working Group", "bad ORGANIZATION")
