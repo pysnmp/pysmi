@@ -14,10 +14,14 @@
 # limitations under the License.
 #
 {
+  # semantic-release cuts a prerelease only from a prerelease branch, so the rc
+  # needs a branch of its own. next is where work integrates and every push
+  # cuts an rc; merging next into main cuts the GA. main has to stay a release
+  # branch — it is the only one, since the maintenance glob matches nothing yet.
   branches: [
     "+([0-9])?(.{+([0-9]),x}).x",
     "main",
-    { name: "develop", prerelease: "beta", channel: "beta"
+    { name: "next", prerelease: "rc"
     },
   ],
   plugins: [
