@@ -162,6 +162,7 @@ class MaxAccessTestCase(unittest.TestCase):
     #: getMaxAccess() cannot say which side dropped the hyphens. Reading the
     #: emitted line can. See pysnmp/pysmi#99.
     VALUES = (
+        ("testNotAccessible", "not-accessible", "notaccessible"),
         ("testForNotify", "accessible-for-notify", "accessiblefornotify"),
         ("testReadOnly", "read-only", "readonly"),
         ("testReadWrite", "read-write", "readwrite"),
@@ -178,14 +179,10 @@ class MaxAccessTestCase(unittest.TestCase):
             with self.subTest(symbol=symbol):
                 self.assertEqual(self.doc[symbol]["maxaccess"], spelling)
 
-        self.assertEqual(self.doc["testNotAccessible"]["maxaccess"], "not-accessible")
-
-    @unittest.expectedFailure
     def testNotAccessibleIsEmittedRatherThanLeftToTheClassDefault(self):
         # pysnmp defaults MibScalar and MibTableColumn to "readonly", so
         # omitting the call does not make the object inaccessible -- it makes it
-        # readable. RFC 2578 section 7.7 recommends not-accessible for INDEX
-        # columns, so this is the common case. See pysnmp/pysmi#128.
+        # readable. See pysnmp/pysmi#128.
         self.assertIn('.setMaxAccess("notaccessible")', self.lines["testNotAccessible"])
 
     def testTheEmittedSourceDropsTheHyphens(self):

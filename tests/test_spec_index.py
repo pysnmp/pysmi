@@ -370,12 +370,30 @@ class ForeignIndexTestCase(unittest.TestCase):
 
     def testTheForeignColumnIsNamedWithItsOwnModule(self):
         self.assertIn(
-            'augEntry = MibTableRow((1, 3, 2, 1), ).setIndexNames((0, "TEST-MIB", "baseIndex"))',
+            'augEntry = MibTableRow((1, 3, 2, 1), ).setMaxAccess("notaccessible")'
+            '.setIndexNames((0, "TEST-MIB", "baseIndex"))',
             self.source,
         )
 
     def testTheForeignIndexEncodesAsItsOwnSyntaxSays(self):
         self.assertEqual(encode_instance(self.doc, "augEntry", [5]), (5,))
+
+
+class IndexAccessTestCase(unittest.TestCase):
+    """Section 7.7 recommends not-accessible for the columns it indexes on."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.source = render_source(MULTI_MIB % "")
+
+    def testEveryNotAccessibleMemberOfTheTableSaysSo(self):
+        # A table declares four not-accessible objects and pysnmp defaults two
+        # of the classes behind them to "readonly", so the access has to be
+        # written out rather than left to the class. See pysnmp/pysmi#128.
+        for symbol in ("testTable", "testEntry", "testInt", "testStr"):
+            with self.subTest(symbol=symbol):
+                line = next(text for text in self.source.splitlines() if text.startswith(f"{symbol} = "))
+                self.assertIn('.setMaxAccess("notaccessible")', line)
 
 
 class EncodingModelTestCase(unittest.TestCase):
