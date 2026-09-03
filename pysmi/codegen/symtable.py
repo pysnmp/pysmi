@@ -796,15 +796,6 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_time(self, data: TextClause, classmode: bool = False) -> str:
-        """Ignore a timestamp.
-
-        Returns:
-            An empty string.
-        """
-        return ""
-
-    # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def gen_last_updated(self, data: TextClause, classmode: bool = False) -> str:
         """Return the LAST-UPDATED timestamp.
 
