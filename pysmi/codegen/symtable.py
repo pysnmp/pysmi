@@ -32,6 +32,7 @@ from pysmi.codegen.base import (
     SequenceClause,
     SymbolsClause,
     TextClause,
+    trap_type_oid,
 )
 from pysmi.mibinfo import MibInfo
 
@@ -489,9 +490,9 @@ class SymtableCodeGen(AbstractCodeGen):
     def gen_trap_type(self, data: Any, classmode: bool = False) -> None:
         """Record a TRAP-TYPE clause as a notification.
 
-        SMIv1 traps have no OID of their own; theirs is built from the
-        enterprise OID, a zero, and the trap number, which is how SMIv2 names
-        the same notification.
+        SMIv1 traps have no OID of their own; theirs is derived from the
+        ENTERPRISE clause and the trap number, which is how SMIv2 names the
+        same notification. See ``trap_type_oid``.
 
         Args:
             data: converted clause values
@@ -501,7 +502,11 @@ class SymtableCodeGen(AbstractCodeGen):
 
         pysmiName = self.trans_opers(origName)
 
-        symProps = {"type": "NotificationType", "oid": (*enterprise, 0, value), "origName": origName}
+        symProps = {
+            "type": "NotificationType",
+            "oid": trap_type_oid(enterprise, value),
+            "origName": origName,
+        }
 
         self.reg_sym(pysmiName, symProps)
 

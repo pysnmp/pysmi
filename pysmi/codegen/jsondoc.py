@@ -28,6 +28,7 @@ from pysmi.codegen.base import (
     SequenceClause,
     SymbolsClause,
     TextClause,
+    trap_type_oid,
 )
 from pysmi.mibinfo import MibInfo
 
@@ -701,9 +702,9 @@ class JsonCodeGen(AbstractCodeGen):
     def gen_trap_type(self, data: Any) -> Any:
         """Render a TRAP-TYPE clause as a notification.
 
-        SMIv1 traps have no OID of their own; theirs is built from the
-        enterprise OID, a zero, and the trap number, which is how SMIv2 names
-        the same notification.
+        SMIv1 traps have no OID of their own; theirs is derived from the
+        ENTERPRISE clause and the trap number, which is how SMIv2 names the
+        same notification. See ``trap_type_oid``.
 
         Args:
             data: converted clause values
@@ -717,10 +718,11 @@ class JsonCodeGen(AbstractCodeGen):
         name = self.trans_opers(name)
 
         enterpriseStr, parentOid = enterprise
+        enterpriseOid = tuple(int(subId) for subId in enterpriseStr.split("."))
 
         outDict = OrderedDict()
         outDict["name"] = name
-        outDict["oid"] = enterpriseStr + ".0." + str(value)
+        outDict["oid"] = ".".join(str(subId) for subId in trap_type_oid(enterpriseOid, value))
         outDict["class"] = "notificationtype"
 
         if variables:

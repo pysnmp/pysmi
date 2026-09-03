@@ -215,23 +215,50 @@ IMPORTS
         FROM RFC-1215;
 
 snmp OBJECT IDENTIFIER ::= { 1 3 6 1 2 1 11 }
+acme OBJECT IDENTIFIER ::= { 1 3 6 1 4 1 9 }
 
 testTrap TRAP-TYPE
-    ENTERPRISE  snmp
-    DESCRIPTION "A trap whose enterprise is snmp."
-    ::= 6
+    ENTERPRISE  %s
+    DESCRIPTION "A trap to give an OID to."
+    ::= %d
 
 END
 """
 
+#: The six generic traps of RFC 3584 section 3.1, and the snmpTraps OID each
+#: is mapped to. They are numbered from one, where the traps are from zero.
+GENERIC_TRAP_OIDS = (
+    (0, "1.3.6.1.6.3.1.1.5.1"),  # coldStart
+    (1, "1.3.6.1.6.3.1.1.5.2"),  # warmStart
+    (2, "1.3.6.1.6.3.1.1.5.3"),  # linkDown
+    (3, "1.3.6.1.6.3.1.1.5.4"),  # linkUp
+    (4, "1.3.6.1.6.3.1.1.5.5"),  # authenticationFailure
+    (5, "1.3.6.1.6.3.1.1.5.6"),  # egpNeighborLoss
+)
+
 
 class GenericTrapTestCase(unittest.TestCase):
-    """The enterprise is not special-cased. See pysnmp/pysmi#105."""
+    """RFC 3584 section 2.1.2 (5): an ENTERPRISE of snmp goes to snmpTraps."""
 
-    def testSnmpEnterpriseGetsTheSameZeroInsertion(self):
-        doc, ctx = render(GENERIC_TRAP_MIB)
-        self.assertEqual(doc["testTrap"]["oid"], "1.3.6.1.2.1.11.0.6")
-        self.assertEqual(tuple(ctx["testTrap"].getName()), (1, 3, 6, 1, 2, 1, 11, 0, 6))
+    def assertTrapOid(self, enterprise, value, oid):
+        doc, ctx = render(GENERIC_TRAP_MIB % (enterprise, value))
+        self.assertEqual(doc["testTrap"]["oid"], oid)
+        self.assertEqual(tuple(ctx["testTrap"].getName()), tuple(int(subId) for subId in oid.split(".")))
+
+    def testEachGenericTrapTakesItsSnmpTrapsOid(self):
+        for value, oid in GENERIC_TRAP_OIDS:
+            with self.subTest(trap=value):
+                self.assertTrapOid("snmp", value, oid)
+
+    def testAnyOtherEnterpriseKeepsTheZeroInsertion(self):
+        self.assertTrapOid("acme", 3, "1.3.6.1.4.1.9.0.3")
+
+    def testSnmpPastTheSixthTrapKeepsTheZeroInsertion(self):
+        # RFC 1215 section 2.1.5 says the snmp convention "is not intended to
+        # provide a means to define additional standard SNMP traps", so a
+        # seventh has no snmpTraps OID waiting for it. Rather than reject the
+        # module or invent one, it keeps the form it already had.
+        self.assertTrapOid("snmp", 6, "1.3.6.1.2.1.11.0.6")
 
 
 class WithoutTextsTestCase(unittest.TestCase):
