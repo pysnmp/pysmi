@@ -14,9 +14,12 @@ import struct
 import time
 from typing import Final
 
+from pysmi import __name__ as packageName
+from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
+from pysmi.mibinfo import producer_of
 from pysmi.searcher.base import AbstractSearcher
 
 logger = logging.getLogger(__name__)
@@ -47,6 +50,12 @@ class PyFileSearcher(AbstractSearcher):
 
         The timestamp is read out of the bytecode header rather than from the
         filesystem, so touching the file does not make it look current.
+
+        A source module that is otherwise fresh is also checked against the
+        "Produced by" marker this package's own writer leaves behind: a MIB
+        compiled by a since-fixed pysmi is stale even though its source
+        never changed. Bytecode-only reuse, with no ``.py`` beside it, has
+        no marker to read and cannot make this check.
         """
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
@@ -107,7 +116,29 @@ class PyFileSearcher(AbstractSearcher):
                 extra={"mib": mibname, "path": f, "mtime": pyTime},
             )
 
-            if pyTime >= mtime:
-                raise error.PySmiFileNotModifiedError()
+            if pyTime < mtime:
+                continue
+
+            try:
+                with open(f, "rb") as fp:
+                    sourceText = decode(fp.read())
+
+            except (OSError, UnicodeDecodeError) as exc:
+                raise error.PySmiSearcherError(f"failure opening compiled file {f}: {exc}", searcher=self) from exc
+
+            producer = producer_of(sourceText)
+
+            if producer is not None and producer != (packageName, packageVersion):
+                logger.debug(
+                    "%s was produced by %s-%s, this is %s-%s, will rebuild",
+                    f,
+                    *producer,
+                    packageName,
+                    packageVersion,
+                    extra={"mib": mibname, "path": f, "producer": producer},
+                )
+                continue
+
+            raise error.PySmiFileNotModifiedError()
 
         raise error.PySmiFileNotFoundError(f"no compiled file {mibname} found", searcher=self)

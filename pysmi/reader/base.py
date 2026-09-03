@@ -103,3 +103,16 @@ class AbstractReader:
             PySmiReaderFileNotModifiedError: the source is older than requested.
         """
         raise NotImplementedError()
+
+    def clear_cache(self) -> None:
+        """Discard anything this reader has cached about what exists where.
+
+        A no-op by default. :py:class:`~pysmi.reader.localfile.FileReader`
+        remembers each directory it lists for its own lifetime, so a MIB
+        deleted after that listing was taken stays invisible to it until
+        this is called -- which is exactly wrong for
+        :py:meth:`~pysmi.compiler.MibCompiler.prune`, whose one job is to
+        notice a MIB is gone. *prune* calls this on every source before
+        checking what still exists, so a reader already warmed up by an
+        earlier *compile* in the same run does not mask a removal.
+        """

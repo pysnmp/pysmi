@@ -104,6 +104,22 @@ class FileReaderCachingTestCase(unittest.TestCase):
         info, _data = other.get_data("ROOT-MIB")
         self.assertEqual(info.name, "ROOT-MIB")
 
+    def testClearCacheForgetsWhatWasListed(self):
+        # A MIB removed after the first lookup stays invisible until the
+        # cache is cleared -- exactly what MibCompiler.prune relies on to
+        # see the current filesystem rather than a stale listing left behind
+        # by an earlier compile in the same run. See pysnmp/pysmi#61.
+        self.reader.get_data("NESTED-MIB")
+        os.unlink(os.path.join(self.root, "sub", "nested", "NESTED-MIB.txt"))
+
+        with self.assertRaises(error.PySmiReaderFileNotModifiedError):
+            self.reader.get_data("NESTED-MIB")
+
+        self.reader.clear_cache()
+
+        with self.assertRaises(error.PySmiReaderFileNotFoundError):
+            self.reader.get_data("NESTED-MIB")
+
 
 class FileReaderMissingRootTestCase(unittest.TestCase):
     """The cache must not paper over a root directory that cannot be read."""

@@ -96,6 +96,7 @@ statusFailed: Final = MibStatus("failed")
 statusUnprocessed: Final = MibStatus("unprocessed")
 statusMissing: Final = MibStatus("missing")
 statusBorrowed: Final = MibStatus("borrowed")
+statusPruned: Final = MibStatus("pruned")
 
 
 @deprecated_camel_case
@@ -699,3 +700,112 @@ class MibCompiler:
                 return
 
             raise exc
+
+    def prune(self, **options: Any) -> dict[str, MibStatus]:
+        """Remove previously stored output whose source MIB no longer exists.
+
+        *compile* only ever acts on the MIBs it is asked for, so output for a
+        module that has since been removed from every configured source
+        lingers in the destination forever. *prune* closes that gap: it asks
+        the writer what it currently holds (:py:meth:`~pysmi.writer.base.AbstractWriter.list_data`,
+        which reports nothing for a writer that cannot enumerate its own
+        output, e.g. :py:class:`~pysmi.writer.callback.CallbackWriter`), and
+        for each name tries every configured source in turn. A name none of
+        them have any more is removed.
+
+        Only output carrying this package's own "Produced by" marker is ever
+        considered -- a file the writer holds that this tool did not
+        generate is left alone, whatever else is true of it.
+
+        Every source has :py:meth:`~pysmi.reader.base.AbstractReader.clear_cache`
+        called on it first, so a reader already warmed up by an earlier
+        *compile* in this same run reports what exists right now rather than
+        what existed when it was first asked.
+
+        Keyword Args:
+            dryRun: report what would be removed without removing anything
+            ignoreErrors: keep going after a source or writer error instead
+                of raising
+
+        Returns:
+            A dictionary of MIB module names the writer held (keys) and
+            *MibStatus* instances (values) -- *pruned* if removed, *untouched*
+            if a source still has it, *failed* if removal itself failed.
+
+        Raises:
+            PySmiError: a source or the writer failed, unless ``ignoreErrors``
+                is set.
+        """
+        processed: dict[str, MibStatus] = {}
+
+        for source in self._sources:
+            source.clear_cache()
+
+        for mibname in self._writer.list_data():
+            if mibname in processed:
+                continue
+
+            stillSourced = False
+
+            for source in self._sources:
+                try:
+                    source.get_data(mibname)
+                    stillSourced = True
+                    break
+
+                except error.PySmiReaderFileNotFoundError:
+                    continue
+
+                except error.PySmiError as exc:
+                    logger.debug(
+                        "error %s from %s while checking %s, leaving it alone",
+                        exc,
+                        source,
+                        mibname,
+                        extra={"mib": mibname, "source": str(source), "error": str(exc)},
+                    )
+
+                    if not options.get("ignoreErrors"):
+                        exc.mibname = mibname
+                        raise
+
+                    # An error checking a source is not proof the MIB is
+                    # gone, so it is kept rather than risk deleting output
+                    # whose source merely could not be read this run.
+                    stillSourced = True
+                    break
+
+            if stillSourced:
+                logger.debug("%s still has a source, keeping it", mibname, extra={"mib": mibname})
+                processed[mibname] = statusUntouched
+                continue
+
+            logger.debug("%s has no source left, pruning", mibname, extra={"mib": mibname})
+
+            try:
+                self._writer.del_data(mibname, dryRun=bool(options.get("dryRun")))
+                processed[mibname] = statusPruned
+
+            except error.PySmiError as exc:
+                exc.mibname = mibname
+
+                logger.debug(
+                    "error %s from %s while pruning %s",
+                    exc,
+                    self._writer,
+                    mibname,
+                    extra={"mib": mibname, "writer": str(self._writer), "error": str(exc)},
+                )
+
+                if not options.get("ignoreErrors"):
+                    raise
+
+                processed[mibname] = statusFailed.set_options(error=exc)
+
+        logger.debug(
+            "MIBs pruned: %s",
+            ", ".join(x for x in processed if processed[x] == "pruned") or "<none>",
+            extra={"pruned": [x for x in processed if processed[x] == "pruned"]},
+        )
+
+        return processed

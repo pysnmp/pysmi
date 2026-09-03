@@ -56,6 +56,15 @@ class FileReader(AbstractReader):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
+    def clear_cache(self) -> None:
+        """Forget every directory listing cached so far.
+
+        The next lookup re-lists the tree from scratch, seeing whatever is
+        on disk right now rather than what was there when each directory was
+        first visited.
+        """
+        self._dirCache.clear()
+
     def _list_dir(self, path: str, ignoreErrors: bool = True) -> tuple[list[str], dict[str, str]]:
         """List *path* once, caching the result for the reader's lifetime.
 
