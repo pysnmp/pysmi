@@ -9,6 +9,7 @@
 from pysmi.reader.callback import CallbackReader
 from pysmi.reader.httpclient import HttpReader
 from pysmi.reader.localfile import FileReader
+from pysmi.reader.package import PackageReader
 from pysmi.reader.url import getReadersFromUrls
 from pysmi.reader.zipreader import ZipReader
 
@@ -16,6 +17,7 @@ __all__ = [
     "CallbackReader",
     "FileReader",
     "HttpReader",
+    "PackageReader",
     "ZipReader",
     "getReadersFromUrls",
 ]

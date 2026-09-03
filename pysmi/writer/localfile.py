@@ -87,7 +87,7 @@ class FileWriter(AbstractWriter):
             fd, tfile = tempfile.mkstemp(dir=self._path)
             os.write(fd, encode(data))
             os.close(fd)
-            os.rename(tfile, filename)
+            os.replace(tfile, filename)
 
         except (OSError, UnicodeEncodeError) as exc:
             if tfile:

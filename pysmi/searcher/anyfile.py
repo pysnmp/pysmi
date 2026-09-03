@@ -15,7 +15,7 @@ from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
-from pysmi.mibinfo import producer_of
+from pysmi.mibinfo import digest_of, producer_of
 from pysmi.searcher.base import AbstractSearcher
 
 logger = logging.getLogger(__name__)
@@ -38,14 +38,18 @@ class AnyFileSearcher(AbstractSearcher):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
         """Compare a stored file's modification time against the MIB source.
 
         A file that is otherwise fresh is also checked against the
-        "Produced by" marker this package's own writer leaves behind --
-        read as a "#"-commented line, or from a JSON document's
-        ``meta.comments`` -- so a MIB compiled by a since-fixed pysmi is
-        stale even though its source never changed.
+        "Produced by" marker, and the "Source digest" of the ASN.1 it was
+        compiled from, this package's own writer leaves behind -- read as
+        a "#"-commented line, or from a JSON document's ``meta.comments``.
+        So a MIB compiled by a since-fixed pysmi is stale even though its
+        source never changed, and a compiled file left behind by one
+        source is stale once a *different* source -- one that happens to
+        carry an equal or older modification time -- is the one on offer
+        now.
         """
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
@@ -93,6 +97,18 @@ class AnyFileSearcher(AbstractSearcher):
                     packageName,
                     packageVersion,
                     extra={"mib": mibname, "path": f, "producer": producer},
+                )
+                continue
+
+            storedDigest = digest_of(text)
+
+            if digest is not None and storedDigest is not None and storedDigest != digest:
+                logger.debug(
+                    "%s was produced from %s, this is %s, will rebuild",
+                    f,
+                    storedDigest,
+                    digest,
+                    extra={"mib": mibname, "path": f, "storedDigest": storedDigest, "digest": digest},
                 )
                 continue
 

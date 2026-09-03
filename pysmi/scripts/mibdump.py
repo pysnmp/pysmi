@@ -55,6 +55,7 @@ def start() -> None:
     nodepsFlag = False
     rebuildFlag = False
     pruneFlag = False
+    bundledMibsFlag = True
     dryrunFlag = False
     genMibTextsFlag = False
     keepTextsLayout = False
@@ -78,6 +79,7 @@ def start() -> None:
         [--cache-directory=<DIRECTORY>]
         [--disable-fuzzy-source]
         [--no-dependencies]
+        [--no-bundled-mibs]
         [--no-python-compile]
         [--python-optimization-level]
         [--ignore-errors]
@@ -98,7 +100,15 @@ def start() -> None:
         --prune  - remove previously stored output whose source MIB no
                 longer exists in any configured source. Runs without
                 MIB-NAME arguments; deletes unless combined with
-                --dry-run.""".format(os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES)))
+                --dry-run.
+        --no-bundled-mibs - do not fall back to pysmi's own bundled copy
+                of the RFC-frozen base MIBs (SNMPv2-SMI and similar) when
+                none of --mib-source has them. Without this, a compile
+                that would once have failed on a missing base MIB now
+                silently succeeds from the bundled copy; pass this to make
+                a misconfigured --mib-source fail loudly instead.""".format(
+        os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES))
+    )
 
     try:
         opts, inputMibs = getopt.getopt(
@@ -117,6 +127,7 @@ def start() -> None:
                 "destination-directory=",
                 "cache-directory=",
                 "no-dependencies",
+                "no-bundled-mibs",
                 "no-python-compile",
                 "python-optimization-level=",
                 "ignore-errors",
@@ -188,6 +199,9 @@ def start() -> None:
 
         if opt[0] == "--no-dependencies":
             nodepsFlag = True
+
+        if opt[0] == "--no-bundled-mibs":
+            bundledMibsFlag = False
 
         if opt[0] == "--no-python-compile":
             pyCompileFlag = False
@@ -349,6 +363,7 @@ def start() -> None:
     Destination format: {}
     Parser grammar cache directory: {}
     Also compile all relevant MIBs: {}
+    Use pysmi's bundled base MIBs as a fallback source: {}
     Rebuild MIBs regardless of age: {}
     Prune stored MIBs with no remaining source: {}
     Dry run mode: {}
@@ -369,6 +384,7 @@ def start() -> None:
                 dstFormat,
                 cacheDirectory or "not used",
                 (nodepsFlag and "no") or "yes",
+                (bundledMibsFlag and "yes") or "no",
                 (rebuildFlag and "yes") or "no",
                 (pruneFlag and "yes") or "no",
                 (dryrunFlag and "yes") or "no",
@@ -385,7 +401,9 @@ def start() -> None:
 
     # Initialize compiler infrastructure
 
-    mibCompiler = MibCompiler(SmiV1CompatParser(tempdir=cacheDirectory), codeGenerator, fileWriter)
+    mibCompiler = MibCompiler(
+        SmiV1CompatParser(tempdir=cacheDirectory), codeGenerator, fileWriter, useBundledMibs=bundledMibsFlag
+    )
 
     pruned = {}
 

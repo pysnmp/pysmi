@@ -89,6 +89,7 @@ possible changes to MIB file name.
    /pysmi/reader/zipreader/zipreader
    /pysmi/reader/httpclient/httpreader
    /pysmi/reader/callback/callbackreader
+   /pysmi/reader/package/packagereader
 
 Conditional compilation
 -----------------------

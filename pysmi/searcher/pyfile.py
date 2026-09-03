@@ -19,7 +19,7 @@ from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
-from pysmi.mibinfo import producer_of
+from pysmi.mibinfo import digest_of, producer_of
 from pysmi.searcher.base import AbstractSearcher
 
 logger = logging.getLogger(__name__)
@@ -45,17 +45,22 @@ class PyFileSearcher(AbstractSearcher):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
         """Compare a compiled Python module's timestamp against the MIB source.
 
         The timestamp is read out of the bytecode header rather than from the
         filesystem, so touching the file does not make it look current.
 
         A source module that is otherwise fresh is also checked against the
-        "Produced by" marker this package's own writer leaves behind: a MIB
+        "Produced by" marker, and the "Source digest" of the ASN.1 it was
+        compiled from, that this package's own writer leaves behind: a MIB
         compiled by a since-fixed pysmi is stale even though its source
-        never changed. Bytecode-only reuse, with no ``.py`` beside it, has
-        no marker to read and cannot make this check.
+        never changed, and a compiled file left behind by one source is
+        stale once a *different* source -- one that happens to carry an
+        equal or older modification time, such as a primary source
+        following a fallback compile -- is the one on offer now.
+        Bytecode-only reuse, with no ``.py`` beside it, has neither marker
+        to read and cannot make either check.
         """
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
@@ -136,6 +141,18 @@ class PyFileSearcher(AbstractSearcher):
                     packageName,
                     packageVersion,
                     extra={"mib": mibname, "path": f, "producer": producer},
+                )
+                continue
+
+            storedDigest = digest_of(sourceText)
+
+            if digest is not None and storedDigest is not None and storedDigest != digest:
+                logger.debug(
+                    "%s was produced from %s, this is %s, will rebuild",
+                    f,
+                    storedDigest,
+                    digest,
+                    extra={"mib": mibname, "path": f, "storedDigest": storedDigest, "digest": digest},
                 )
                 continue
 
