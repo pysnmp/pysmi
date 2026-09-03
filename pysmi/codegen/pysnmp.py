@@ -144,6 +144,12 @@ class PySnmpCodeGen(AbstractCodeGen):
     indent = " " * 4
     fakeidx = 1000  # starting index for fake symbols
 
+    # pysnmp SMI classes that do not implement setReference(). RFC 2580 allows
+    # REFERENCE on the conformance macros these back, but emitting the call
+    # yields a module that raises AttributeError when loaded with
+    # loadTexts=True. The text is still carried by the JSON codegen.
+    _NO_SET_REFERENCE = frozenset(("ModuleCompliance", "NotificationGroup", "ObjectGroup"))
+
     # Template for version-guarded status assignment (duplicated across many
     # codegen methods; extracted to satisfy SonarQube S1192).
     _STATUS_VERSION_TEMPLATE = """\
@@ -488,6 +494,26 @@ for _%(name)s_obj in [%(objects)s]:
 
             return baseSymType, symSubtype
 
+    def _reference_line(self, name: str, reference: str, pysnmpClass: str | None = None) -> str:
+        """Render the guarded ``setReference()`` assignment for a symbol.
+
+        Args:
+            name: translated symbol name
+            reference: rendered REFERENCE clause, empty when absent
+            pysnmpClass: pysnmp class backing the symbol; ``None`` when every
+                class the clause can produce implements ``setReference()``
+
+        Returns:
+            The assignment line, or an empty string when nothing is emitted.
+        """
+        if not (self.genRules["text"] and reference):
+            return ""
+
+        if pysnmpClass in self._NO_SET_REFERENCE:
+            return ""
+
+        return self.ifTextStr + name + reference + "\n"
+
     # Clause generation functions
 
     # noinspection PyUnusedLocal
@@ -521,8 +547,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += name + reference + "\n"
+        outStr += self._reference_line(name, reference, "AgentCapabilities")
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -607,8 +632,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "ModuleCompliance")
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -664,8 +688,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += name + reference + "\n"
+        outStr += self._reference_line(name, reference, "NotificationGroup")
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -718,8 +741,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "NotificationType")
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -779,8 +801,7 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "ObjectGroup")
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -811,8 +832,7 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "ObjectIdentity")
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -859,8 +879,7 @@ for _{name}_obj in [{objects}]:
         outStr += indexStr or ""
         outStr += "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference)
 
         if augmention:
             augmention = self.trans_opers(augmention)
@@ -937,8 +956,7 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "NotificationType")
 
         self.reg_sym(name, outStr, enterpriseStr)
 

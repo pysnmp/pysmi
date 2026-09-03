@@ -58,12 +58,8 @@ class ObjectTypeBasicTestCase(unittest.TestCase):
     def testObjectTypeStatus(self):
         self.assertEqual(self.ctx["testObjectType"].getStatus(), "current", "bad STATUS")
 
-    # TODO:revisit
-    #    def testObjectTypeReference(self):
-    #        self.assertEqual(
-    #            self.ctx['testObjectType'].getReference(), b'ABC',
-    #            'bad REFERENCE'
-    #        )
+    def testObjectTypeReference(self):
+        self.assertEqual(self.ctx["testObjectType"].getReference(), "ABC", "bad REFERENCE")
 
     def testObjectTypeMaxAccess(self):
         self.assertEqual(self.ctx["testObjectType"].getMaxAccess(), "accessiblefornotify", "bad MAX-ACCESS")
