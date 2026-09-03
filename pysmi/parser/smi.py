@@ -1068,9 +1068,13 @@ class SmiV2Parser(AbstractParser):
         )  # MandatoryPart + CompliancePart
 
     def p_ComplianceModuleName(self, p: YaccProduction) -> None:
-        """ComplianceModuleName : UPPERCASE_IDENTIFIER
+        """ComplianceModuleName : UPPERCASE_IDENTIFIER '{' objectIdentifier '}'
+        | UPPERCASE_IDENTIFIER
         | empty"""
-        # XXX                   | UPPERCASE_IDENTIFIER objectIdentifier
+        # RFC 2580 section 5.4 names the module "by its module name, and
+        # optionally, by its associated OBJECT IDENTIFIER as well". The name
+        # is what identifies the module here, so the OID is accepted and
+        # discarded rather than carried into the AST.
         p[0] = p[1]
 
     def p_MandatoryPart(self, p: YaccProduction) -> None:
