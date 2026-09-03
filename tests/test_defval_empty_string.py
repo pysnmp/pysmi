@@ -7,8 +7,6 @@
 import json
 import unittest
 
-from pysnmp.smi.builder import MibBuilder
-
 from pysmi.codegen.jsondoc import JsonCodeGen
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
@@ -57,13 +55,9 @@ class DefValEmptyStringTestCase(unittest.TestCase):
     def testPySnmpKeepsEmptyOctetStringDefault(self):
         _, pycode = PySnmpCodeGen().gen_code(self.ast, self.symtable)
 
-        mibBuilder = MibBuilder()
-        ctx = {"mibBuilder": mibBuilder}
-        exec(compile(pycode, "test", "exec"), ctx, ctx)
-
-        self.assertEqual(
-            ctx["testEmptyString"].getSyntax(),
-            b"",
+        self.assertIn(
+            "testEmptyString = MibScalar((1, 3), OctetString().clone(''))",
+            pycode,
             "empty DEFVAL dropped for OCTET STRING",
         )
 

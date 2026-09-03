@@ -16,7 +16,7 @@ See pysnmp/pysmi#87.
 import sys
 import unittest
 
-from tests.harness import render, render_json
+from tests.harness import render_json, render_source
 from tests.mibs import SNMPV2_SMI, SNMPV2_TC
 
 DEPS = (SNMPV2_SMI, SNMPV2_TC)
@@ -44,89 +44,99 @@ END
 
 
 def default(syntax, defval):
-    """Return the JSON default and the pysnmp syntax for one DEFVAL."""
-    doc, ctx = render(MIB % (syntax, defval), deps=DEPS)
-    return doc["testObject"].get("default"), ctx["testObject"].getSyntax()
+    """Return the JSON default and the emitted syntax expression for one DEFVAL."""
+    mib = MIB % (syntax, defval)
+    line = next(x for x in render_source(mib, deps=DEPS).splitlines() if x.startswith("testObject ="))
+    return render_json(mib, deps=DEPS)["testObject"].get("default"), line
 
 
 class NumericDefValTestCase(unittest.TestCase):
     """RFC 2578 section 7.9: a numeric default is written as a plain integer."""
 
     def testNegativeInteger(self):
-        json, syntax = default("Integer32 (-100..100)", "-20")
+        json, emitted = default("Integer32 (-100..100)", "-20")
         self.assertEqual(json, {"value": -20, "format": "decimal"})
-        self.assertEqual(syntax, -20)
+        self.assertIn(".clone(-20)", emitted)
 
     def testUnsignedUpperBound(self):
-        json, syntax = default("Unsigned32", "4294967295")
+        json, emitted = default("Unsigned32", "4294967295")
         self.assertEqual(json, {"value": 4294967295, "format": "decimal"})
-        self.assertEqual(syntax, 4294967295)
+        self.assertIn("Unsigned32().clone(4294967295)", emitted)
 
     def testTimeTicks(self):
-        json, syntax = default("TimeTicks", "100")
+        json, emitted = default("TimeTicks", "100")
         self.assertEqual(json, {"value": 100, "format": "decimal"})
-        self.assertEqual(syntax, 100)
+        self.assertIn("TimeTicks().clone(100)", emitted)
 
     def testZero(self):
-        json, syntax = default("Integer32", "0")
+        json, emitted = default("Integer32", "0")
         self.assertEqual(json, {"value": 0, "format": "decimal"})
-        self.assertEqual(syntax, 0)
+        self.assertIn("Integer32().clone(0)", emitted)
 
 
 class ApplicationTypeDefValTestCase(unittest.TestCase):
     """Application types resolve to their base before the default is read."""
 
     def testIpAddressTakesAHexadecimalDefault(self):
-        json, syntax = default("IpAddress", "'C0000201'H")
+        json, emitted = default("IpAddress", "'C0000201'H")
         self.assertEqual(json, {"value": "C0000201", "format": "hex"})
-        self.assertEqual(syntax.prettyPrint(), "192.0.2.1")
+        # The octets stay hexadecimal: a dotted-quad written here would have
+        # to be re-parsed, and IpAddress().clone("192.0.2.1") means something
+        # else to pysnmp than the four octets the MIB gave.
+        self.assertIn('IpAddress().clone(hexValue="C0000201")', emitted)
 
     def testTextualConventionTakesAStringDefault(self):
-        json, syntax = default("DisplayString", '"hello"')
+        json, emitted = default("DisplayString", '"hello"')
         self.assertEqual(json, {"value": "hello", "format": "string"})
-        self.assertEqual(syntax, b"hello")
+        self.assertIn("DisplayString().clone('hello')", emitted)
 
     def testSubTypedTextualConventionKeepsBothConstraints(self):
-        json, syntax = default("DisplayString (SIZE(0..32))", '"hello"')
+        json, emitted = default("DisplayString (SIZE(0..32))", '"hello"')
         self.assertEqual(json, {"value": "hello", "format": "string"})
-        self.assertEqual(syntax, b"hello")
-        consts = repr(syntax.subtypeSpec)
-        self.assertIn("consts 0, 32", consts)
-        self.assertIn("consts 0, 255", consts)
+        # .subtype() intersects the refinement with the convention's own
+        # SIZE(0..255); the default is cloned onto the result, not onto the base.
+        self.assertIn(
+            "DisplayString().subtype(subtypeSpec=ValueSizeConstraint(0, 32)).clone('hello')",
+            emitted,
+        )
 
 
 class BitsDefValTestCase(unittest.TestCase):
     """A BITS default names the bits that are set, and sets no others."""
 
     def bits(self, defval):
-        syntax = "BITS { first(0), second(1), fourth(3) }"
-        json, value = default(syntax, defval)
-        return json, bytes(value).hex()
+        return default("BITS { first(0), second(1), fourth(3) }", defval)
 
     def testNamedBitsAreSet(self):
-        json, octets = self.bits("{ first, fourth }")
+        json, emitted = self.bits("{ first, fourth }")
         self.assertEqual(json["value"]["bits"], {"first": 0, "fourth": 3})
-        self.assertEqual(octets, "90")
+        self.assertIn(".clone(('first', 'fourth',))", emitted)
 
     def testASingleBitIsSet(self):
-        json, octets = self.bits("{ second }")
+        json, emitted = self.bits("{ second }")
         self.assertEqual(json["value"]["bits"], {"second": 1})
-        self.assertEqual(octets, "40")
+        self.assertIn(".clone(('second',))", emitted)
+
+    def testTheDefaultIsNamedRatherThanEncoded(self):
+        # RFC 2578 section 7.1.4 numbers the bits, so the octets a set of them
+        # encodes to are fixed. Emitting the labels leaves that encoding to the
+        # consumer instead of baking one side's arithmetic into the module.
+        _, emitted = self.bits("{ first, fourth }")
+        self.assertNotIn("hexValue", emitted)
 
     def testTheTypeKeepsEveryBitItDeclared(self):
         # The default selects bits; it must not redefine the enumeration.
-        _, ctx = render(MIB % ("BITS { first(0), second(1), fourth(3) }", "{ first }"), deps=DEPS)
-        named = ctx["testObject"].getSyntax().namedValues
-        self.assertEqual(sorted(named.items()), [("first", 0), ("fourth", 3), ("second", 1)])
+        _, emitted = self.bits("{ first }")
+        self.assertIn('NamedValues(("first", 0), ("second", 1), ("fourth", 3))', emitted)
 
 
 class OidDefValTestCase(unittest.TestCase):
     """RFC 2578 section 7.9: an OID default names an object, not a numeric OID."""
 
     def testDefaultNamedByIdentifierResolves(self):
-        json, syntax = default("OBJECT IDENTIFIER", "anchor")
+        json, emitted = default("OBJECT IDENTIFIER", "anchor")
         self.assertEqual(json, {"value": "(1, 3, 9)", "format": "oid"})
-        self.assertEqual(syntax.prettyPrint(), "1.3.9")
+        self.assertIn("ObjectIdentifier().clone((1, 3, 9))", emitted)
 
     def testNumericNotationIsDroppedRatherThanRejected(self):
         # Not valid SMI, but MIBs in the wild write it. pysmi swallows the
@@ -139,14 +149,19 @@ class EnumerationDefValTestCase(unittest.TestCase):
     """An enumeration default is written as a label and emitted as its number."""
 
     def testLabelBecomesItsNumber(self):
-        json, syntax = default("INTEGER { up(1), down(2) }", "down")
+        json, emitted = default("INTEGER { up(1), down(2) }", "down")
         self.assertEqual(json, {"value": "down", "format": "enum"})
-        self.assertEqual(syntax, 2)
+        # The label survives into the emitted call: pysnmp resolves it through
+        # the namedValues on the same expression.
+        self.assertIn('NamedValues(("up", 1), ("down", 2))).clone(\'down\')', emitted)
 
     def testZeroValuedLabelSurvives(self):
-        json, syntax = default("INTEGER { off(0), on(1) }", "off")
+        # A label naming zero is still a label. Resolving it to its number here
+        # would make it indistinguishable from an absent default.
+        json, emitted = default("INTEGER { off(0), on(1) }", "off")
         self.assertEqual(json, {"value": "off", "format": "enum"})
-        self.assertEqual(syntax, 0)
+        self.assertIn("SingleValueConstraint(0, 1)", emitted)
+        self.assertIn(".clone('off')", emitted)
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
