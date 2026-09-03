@@ -60,11 +60,20 @@ DefValClause: TypeAlias = list[str] | list[int] | list[list[str]]
 #: entries are ``data[0]``.
 RevisionsClause: TypeAlias = list[list[tuple[str, tuple[str, str]]]]
 
+#: A GROUP or OBJECT sub-clause of a MODULE-COMPLIANCE, tagged by which it is.
+#: A GROUP carries ``(tag, name, description)``. An OBJECT carries
+#: ``(tag, name, syntax, writeSyntax, minAccess, description)``, where the
+#: three refinements are ``None`` when the sub-clause leaves them out and are
+#: unconverted parse subtrees otherwise.
+ComplianceRefinement: TypeAlias = tuple[Any, ...]
+
 #: The MODULE clauses of a MODULE-COMPLIANCE. Each entry is
-#: ``(module, groups)``; ``module`` is ``None`` where the clause leaves the
-#: module name out, meaning the one being defined. ``groups`` holds the names
-#: from MANDATORY-GROUPS and GROUP; an OBJECT clause contributes nothing.
-ComplianceClause: TypeAlias = list[list[tuple[str | None, list[str]]]]
+#: ``(module, groups, (mandatoryGroups, refinements))``; ``module`` is ``None``
+#: where the clause leaves the module name out, meaning the one being defined.
+#: ``groups`` holds the names from MANDATORY-GROUPS and GROUP, which is what a
+#: compliance requires. The third element carries the detail those names lose:
+#: which of them were mandatory, and the GROUP and OBJECT sub-clauses in full.
+ComplianceClause: TypeAlias = list[list[tuple[str | None, list[str], tuple[list[str], list[ComplianceRefinement]]]]]
 
 #: A bound in a range or size constraint. The lexer turns a decimal into an
 #: int; a hex or binary literal reaches the generator as the literal text.

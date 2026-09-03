@@ -1060,12 +1060,22 @@ class SmiV2Parser(AbstractParser):
 
     def p_ComplianceModule(self, p: YaccProduction) -> None:
         """ComplianceModule : MODULE ComplianceModuleName MandatoryPart CompliancePart"""
-        objects = (p[3] and p[3][1]) or []
-        objects += (p[4] and p[4][1]) or []
+        mandatory = (p[3] and p[3][1]) or []
+        refinements = (p[4] and p[4][1]) or []
+
+        # The second element stays the flat list of group names it has always
+        # been, so that what a compliance requires does not move. The GROUP and
+        # OBJECT sub-clauses carry more than a name -- the condition a group
+        # applies under, and the refinement an object is held to -- and that
+        # detail rides alongside rather than in place of it.
+        objects = list(mandatory)
+        objects += [r[1] for r in refinements if r[0] == "ComplianceGroup"]
+
         p[0] = (
             p[2],  # ModuleName
-            objects,
-        )  # MandatoryPart + CompliancePart
+            objects,  # MandatoryPart + the GROUP names of CompliancePart
+            (list(mandatory), refinements),
+        )
 
     def p_ComplianceModuleName(self, p: YaccProduction) -> None:
         """ComplianceModuleName : UPPERCASE_IDENTIFIER '{' objectIdentifier '}'
@@ -1119,18 +1129,17 @@ class SmiV2Parser(AbstractParser):
 
     def p_ComplianceGroup(self, p: YaccProduction) -> None:
         """ComplianceGroup : GROUP objectIdentifier DESCRIPTION Text"""
-        p[0] = p[2][1][0]  # objectIdentifier
-        #        p[1], # GROUP
-        #        (p[3], p[4])) # description
+        # RFC 2580 section 5.4.2 makes the DESCRIPTION mandatory here because
+        # it states the condition under which the group applies. Keeping only
+        # the name threw that condition away.
+        p[0] = ("ComplianceGroup", p[2][1][0], p[4])
 
     def p_ComplianceObject(self, p: YaccProduction) -> None:
         """ComplianceObject : OBJECT ObjectName SyntaxPart WriteSyntaxPart AccessPart DESCRIPTION Text"""
-        # p[0] = (p[1], # object
-        #        p[2], # name
-        #        p[3], # syntax
-        #        p[4], # write syntax
-        #        p[5], # access
-        #        (p[6], p[7])) # description
+        # RFC 2580 section 5.4.3: an OBJECT sub-clause refines what an
+        # implementation must support for one object -- a narrower SYNTAX, a
+        # narrower WRITE-SYNTAX, or a weaker MIN-ACCESS.
+        p[0] = ("ComplianceObject", p[2], p[3], p[4], p[5], p[7])
 
     def p_SyntaxPart(self, p: YaccProduction) -> None:
         """SyntaxPart : SYNTAX Syntax
