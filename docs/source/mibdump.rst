@@ -352,11 +352,38 @@ MIB modules would emit something like this:
       }
    }
 
-With this example, *compliance* and *identity* keys point to
-*MODULE-COMPLIANCE* and *MODULE-IDENTITY* MIB objects, *oids*
-list top-level OIDs branches defined in MIB modules. Full index
-build over thousands of MIBs could be seen
+Each section maps an OID onto the modules that define it, and answers a
+different question:
+
+*identity*
+   the *MODULE-IDENTITY*, which is what a module calls itself.
+
+*enterprise*
+   the module's enterprise branch, for those that have one.
+
+*compliance*
+   the *MODULE-COMPLIANCE* statements an implementation may be held to.
+
+*notification*
+   the *NOTIFICATION-TYPE* and *TRAP-TYPE* objects a module may emit. An
+   SMIv1 *TRAP-TYPE* is listed under the OID it converts to, so a trap
+   received on the wire can be looked up whichever SMI version declared it.
+
+*oids*
+   the top-level branches a module defines, collapsed to the shortest
+   prefix that still answers a lookup unambiguously.
+
+A *meta* section records the schema version the index is written to, so a
+consumer can tell one shape of index from another.
+
+The index is incremental: each run merges the modules it compiled into
+whatever index is already in the destination directory, rather than
+replacing it. A collection may therefore be built up over many runs. Full
+index build over thousands of MIBs could be seen
 `here <http://pysnmp.github.io/json/index.json>`_.
+
+To build an index from your own code rather than from *mibdump*, see
+:doc:`/examples/build-json-index`.
 
 Minor speedups
 --------------

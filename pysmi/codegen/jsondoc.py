@@ -88,10 +88,10 @@ class JsonCodeGen(AbstractCodeGen):
     #: The schema versions this generator can emit. A consumer that has to
     #: keep working across pysmi releases asks for the one it understands and
     #: is told, rather than left to infer the shape from the document.
-    SCHEMA_VERSIONS = (1,)
+    SCHEMA_VERSIONS: tuple[int, ...] = (1,)
 
-    #: The schema emitted when none is asked for: always the newest.
-    SCHEMA_VERSION = SCHEMA_VERSIONS[-1]
+    #: The schema emitted when none is asked for -- always the newest.
+    SCHEMA_VERSION: int = SCHEMA_VERSIONS[-1]
 
     @classmethod
     def _schema_version(cls, kwargs: dict[str, Any]) -> int:
