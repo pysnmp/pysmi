@@ -94,6 +94,7 @@ class JsonCodeGen(AbstractCodeGen):
         self._enterpriseOid: str | None = None
         self._oids: set[str] = set()
         self._complianceOids: list[str] = []
+        self._notificationOids: list[str] = []
         self.moduleName: list[str] = ["DUMMY"]
         self.genRules: dict[str, Any] = {"text": True}
         self.symbolTable: dict[str, Any] = {}
@@ -263,6 +264,11 @@ class JsonCodeGen(AbstractCodeGen):
 
             if moduleCompliance:
                 self._complianceOids.append(outDict["oid"])
+
+            # Both NOTIFICATION-TYPE and a converted TRAP-TYPE land here, which
+            # is what makes a trap findable by OID rather than only by name.
+            if outDict.get("class") == "notificationtype":
+                self._notificationOids.append(outDict["oid"])
 
     def gen_numeric_oid(self, oid: tuple[Any, ...]) -> tuple[Any, ...]:
         """Resolve an OID to numbers, following names into other modules.
@@ -1564,6 +1570,7 @@ class JsonCodeGen(AbstractCodeGen):
         self._enterpriseOid = None
         self._oids = set()
         self._complianceOids = []
+        self._notificationOids = []
         self.moduleName[0], moduleOid, imports, declarations = ast
 
         outDict, importedModules = self.gen_imports((imports and imports) or {})
@@ -1605,6 +1612,7 @@ class JsonCodeGen(AbstractCodeGen):
             oids=self._oids,
             enterprise=self._enterpriseOid,
             compliance=self._complianceOids,
+            notification=self._notificationOids,
             imported=tuple(x for x in importedModules if x not in self.fakeMibs),
         ), json.dumps(outDict, indent=2)
 
@@ -1633,6 +1641,7 @@ class JsonCodeGen(AbstractCodeGen):
             "identity": {},
             "enterprise": {},
             "compliance": {},
+            "notification": {},
             "oids": {},
         }
         if kwargs.get("old_index_data"):
@@ -1699,6 +1708,13 @@ class JsonCodeGen(AbstractCodeGen):
                 if compliance_oid not in modData:
                     modData[compliance_oid] = []
                 modData[compliance_oid].append(module)
+
+            modData = outDict["notification"]
+            notification_oids = getattr(status, "notification", ())
+            for notification_oid in notification_oids:
+                if notification_oid not in modData:
+                    modData[notification_oid] = []
+                modData[notification_oid].append(module)
 
             modData = outDict["oids"]
             objects_oids = getattr(status, "oids", ())

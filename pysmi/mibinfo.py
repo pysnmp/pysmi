@@ -69,6 +69,9 @@ class MibInfo:
     #: MODULE-COMPLIANCE OIDs
     compliance: tuple[str, ...] = ()
 
+    #: NOTIFICATION-TYPE OIDs, including converted TRAP-TYPEs
+    notification: tuple[str, ...] = ()
+
     #: imported MIB names
     imported: tuple[str, ...] = ()
 
