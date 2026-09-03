@@ -217,7 +217,9 @@ def start() -> None:
 
     mibsSeen = mibsCopied = mibsFailed = 0
 
-    mibsRevisions: dict[str, datetime] = {}
+    # None means the destination has no such module yet, which is not the same
+    # as holding one dated the epoch: an absent destination is always copied into.
+    mibsRevisions: dict[str, datetime | None] = {}
 
     for srcDirectory in inputMibs:
         if verboseFlag:
@@ -269,11 +271,11 @@ def start() -> None:
                                 f'destination directory "{dstDirectory}": {ex}\r\n'
                             )
 
-                        dstMibRevision = datetime.fromtimestamp(0)
+                        dstMibRevision = None
 
                     mibsRevisions[mibName] = dstMibRevision
 
-                if dstMibRevision >= srcMibRevision:
+                if dstMibRevision is not None and dstMibRevision >= srcMibRevision:
                     if verboseFlag:
                         sys.stderr.write(
                             f'Destination MIB "{os.path.join(dstDirectory, mibName)}" has the same or newer revision as the '
@@ -283,8 +285,6 @@ def start() -> None:
                         sys.stderr.write(f"NOT COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
 
                     continue
-
-                mibsRevisions[mibName] = srcMibRevision
 
                 if verboseFlag:
                     sys.stderr.write(
@@ -306,6 +306,10 @@ def start() -> None:
                     mibsFailed += 1
 
                 else:
+                    # Only a copy that landed changes what the destination holds; a
+                    # failed one must not stop a later file defining the same module.
+                    mibsRevisions[mibName] = srcMibRevision
+
                     if not quietFlag:
                         sys.stderr.write(f"COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
 

@@ -13,11 +13,14 @@ has to be the one compared against.
 """
 
 import io
+import os
+import shutil
 import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 from pysmi.scripts import mibcopy
 
@@ -42,6 +45,12 @@ END
 
 FIRST = module("FIRST-MIB", 99990, "202601010000Z")
 SECOND = module("SECOND-MIB", 99991, "202601020000Z")
+
+# SMIv1 MIBs commonly carry no MODULE-IDENTITY, so there is no revision to
+# compare against; such a MIB still has to reach an empty destination.
+NOREV = """NOREV-MIB DEFINITIONS ::= BEGIN
+END
+"""
 
 
 def runMibcopy(*args):
@@ -165,15 +174,17 @@ class MibCopyMultiModuleTestCase(unittest.TestCase):
         """A destination that cannot be written is a failure, not a silent skip."""
         (self.src / "BOTH.mib").write_text(FIRST + "\n" + SECOND)
 
-        # A file where a directory has to be: the copy raises NotADirectoryError
-        # on every platform, without needing permissions the runner may ignore.
-        blocked = self.dst / "SECOND-MIB"
-        blocked.write_text("")
-        blocked.chmod(0o444)
-        # Windows will not remove a read-only file, so put it back for teardown.
-        self.addCleanup(blocked.chmod, 0o644)
+        # Refusing the write outright, rather than through file permissions a
+        # privileged runner is free to ignore.
+        realCopy = shutil.copy
 
-        code, output = self.copy()
+        def failSecond(src, dst):
+            if os.path.basename(dst) == "SECOND-MIB":
+                raise OSError("refused")
+            return realCopy(src, dst)
+
+        with mock.patch.object(mibcopy.shutil, "copy", failSecond):
+            code, output = self.copy()
 
         self.assertEqual(0, code)
         self.assertIn("FAILED", output)
@@ -205,6 +216,57 @@ class MibCopyMultiModuleTestCase(unittest.TestCase):
         self.assertIn("FIRST-MIB", output)
         self.assertIn("SECOND-MIB", output)
         self.assertIn("Copying", output)
+
+    def testFailedCopyDoesNotSuppressALaterFileOfTheSameModule(self):
+        """A copy that did not land leaves the module still to be copied.
+
+        Recording the source revision before the write would mark the module as
+        placed, so a second file defining it would be skipped as up to date and
+        the destination would stay empty.
+        """
+        (self.src / "ONE.mib").write_text(FIRST)
+        (self.src / "TWO.mib").write_text(FIRST)
+
+        realCopy = shutil.copy
+        attempts = []
+
+        def failFirst(src, dst):
+            attempts.append(src)
+            if len(attempts) == 1:
+                raise OSError("refused")
+            return realCopy(src, dst)
+
+        with mock.patch.object(mibcopy.shutil, "copy", failFirst):
+            _, output = self.copy()
+
+        self.assertIn("failed: 1", output)
+        self.assertIn("copied: 1", output)
+        self.assertTrue((self.dst / "FIRST-MIB").is_file())
+
+    def testMibWithoutARevisionReachesAnEmptyDestination(self):
+        """A MIB with no revision date is copied rather than judged up to date.
+
+        Both an absent destination and an undatable module fall back to the same
+        value, so comparing them equal reads as "already current" and the MIB is
+        never copied at all.
+        """
+        (self.src / "NOREV.mib").write_text(NOREV)
+
+        code, output = self.copy()
+
+        self.assertEqual(0, code)
+        self.assertTrue((self.dst / "NOREV-MIB").is_file(), "a MIB without a revision was never copied")
+        self.assertIn("copied: 1", output)
+
+    def testMibWithoutARevisionIsNotCopiedTwice(self):
+        """Having copied it once, the run is still idempotent."""
+        (self.src / "NOREV.mib").write_text(NOREV)
+
+        self.copy()
+        _, output = self.copy()
+
+        self.assertIn("copied: 0", output)
+        self.assertIn("NOT COPIED", output)
 
     def testUnparsableFileIsReportedAndSkipped(self):
         """A file that holds no MIB fails on its own, without stopping the run."""
