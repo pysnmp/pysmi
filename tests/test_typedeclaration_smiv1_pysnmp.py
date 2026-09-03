@@ -102,7 +102,6 @@ for s, k in typesMap:
         decor(TypeDeclarationTestCase.protoTestClass, s, k),
     )
 
-# XXX constraints flavor not checked
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
 
