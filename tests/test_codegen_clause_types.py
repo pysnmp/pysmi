@@ -16,6 +16,7 @@ These tests compile a MIB that exercises the annotated clauses and check every
 value actually handed to a handler against the alias that handler declares.
 """
 
+import collections.abc
 import functools
 import operator
 import types
@@ -29,11 +30,11 @@ from pysmi.parser.smi import parserFactory
 MIB = """
 TYPES-TEST-MIB DEFINITIONS ::= BEGIN
 IMPORTS
-    MODULE-IDENTITY, OBJECT-TYPE, Integer32, Unsigned32
+    MODULE-IDENTITY, OBJECT-TYPE, OBJECT-IDENTITY, NOTIFICATION-TYPE, Integer32, Unsigned32
         FROM SNMPv2-SMI
     TEXTUAL-CONVENTION, DisplayString
         FROM SNMPv2-TC
-    OBJECT-GROUP, AGENT-CAPABILITIES, MODULE-COMPLIANCE
+    OBJECT-GROUP, NOTIFICATION-GROUP, AGENT-CAPABILITIES, MODULE-COMPLIANCE
         FROM SNMPv2-CONF;
 
 testMib MODULE-IDENTITY
@@ -153,6 +154,46 @@ testGroup OBJECT-GROUP
     DESCRIPTION "A group, for OBJECTS."
     ::= { testMib 5 }
 
+testIdentity OBJECT-IDENTITY
+    STATUS      current
+    DESCRIPTION "An identity, for objectIdentityClause."
+    ::= { testMib 10 }
+
+testNotify NOTIFICATION-TYPE
+    OBJECTS     { testScalar }
+    STATUS      current
+    DESCRIPTION "A notification, for notificationTypeClause."
+    ::= { testMib 11 }
+
+testNotifyGroup NOTIFICATION-GROUP
+    NOTIFICATIONS { testNotify }
+    STATUS        current
+    DESCRIPTION   "A notification group, for notificationGroupClause."
+    ::= { testMib 12 }
+
+testValue OBJECT IDENTIFIER ::= { testMib 13 }
+
+END
+"""
+
+
+#: TRAP-TYPE is SMIv1, so it needs a module of its own rather than a clause
+#: added to the SMIv2 one above.
+V1_MIB = """
+TYPES-TEST-V1-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    TRAP-TYPE
+        FROM RFC-1215;
+
+-- Numeric, like the OIDs above: each module is compiled against a fresh
+-- symbol table, so a name from another module has nothing to resolve against.
+testV1 OBJECT IDENTIFIER ::= { 1 3 6 1 4 1 99996 }
+
+testV1Trap TRAP-TYPE
+    ENTERPRISE  testV1
+    DESCRIPTION "A v1 trap, for trapTypeClause."
+    ::= 3
+
 END
 """
 
@@ -175,7 +216,7 @@ def withoutNone(hint):
 
 
 def conforms(value, hint):
-    """Check *value* against a typing hint built from list, tuple and scalars."""
+    """Check *value* against a typing hint built from Sequence, list, tuple and scalars."""
     origin = typing.get_origin(hint)
 
     if origin is None:
@@ -188,6 +229,15 @@ def conforms(value, hint):
 
     if origin is list:
         if not isinstance(value, list):
+            return False
+        (item,) = typing.get_args(hint)
+        return all(conforms(v, item) for v in value)
+
+    if origin is collections.abc.Sequence:
+        # What prep_data hands a handler. A str is a Sequence[str] as far as
+        # typing is concerned, but never what a clause carries, so reject it
+        # rather than let a bare string satisfy Sequence[str].
+        if not isinstance(value, (list, tuple)):
             return False
         (item,) = typing.get_args(hint)
         return all(conforms(v, item) for v in value)
@@ -253,10 +303,11 @@ def compileWatching(backend, seen, violations):
     backend.handlersTable = {tag: getattr(backend, fn.__name__) for tag, fn in originalTable.items()}
 
     try:
-        ast = parserFactory()().parse(MIB)[0]
-        mibInfo, symtable = SymtableCodeGen().gen_code(ast, {}, genTexts=True)
-        if backend is not SymtableCodeGen:
-            backend().gen_code(ast, {mibInfo.name: symtable}, genTexts=True)
+        for source in (MIB, V1_MIB):
+            ast = parserFactory()().parse(source)[0]
+            mibInfo, symtable = SymtableCodeGen().gen_code(ast, {}, genTexts=True)
+            if backend is not SymtableCodeGen:
+                backend().gen_code(ast, {mibInfo.name: symtable}, genTexts=True)
     finally:
         backend.handlersTable = originalTable
         for name, fn in original.items():
@@ -352,6 +403,16 @@ class ClauseTypeTestCase(unittest.TestCase):
         self.assertFalse(conforms([[("up", "1")]], NamedNumbersClause))
         self.assertTrue(conforms([[(0, "testIndex")]], IndexClause))
         self.assertFalse(conforms([[("testIndex", 0)]], IndexClause))
+
+        # prep_data hands a handler a tuple, so the clause aliases have to
+        # accept one -- a list stays acceptable for anyone calling a handler
+        # directly. See https://github.com/pysnmp/pysmi/issues/47.
+        self.assertTrue(conforms(("a text",), TextClause))
+        self.assertTrue(conforms((7,), DefValClause))
+        self.assertTrue(conforms(([["mib-2", 1]]), OidClause))
+        self.assertTrue(conforms(([[(0, "testIndex")]]), IndexClause))
+        # A bare string is a Sequence[str] to typing, but never a clause.
+        self.assertFalse(conforms("a text", TextClause))
 
 
 suite = unittest.TestLoader().loadTestsFromModule(__import__(__name__))

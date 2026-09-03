@@ -16,23 +16,34 @@ symbols across modules.
 import logging
 from collections.abc import Sequence
 from keyword import iskeyword
-from typing import Any
+from typing import Any, ClassVar
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
+    AgentCapabilitiesClause,
     CapabilitiesClause,
     ComplianceClause,
     DefValClause,
     IndexClause,
+    ModuleComplianceClause,
+    ModuleIdentityClause,
     NamedNumbersClause,
+    NotificationGroupClause,
+    NotificationTypeClause,
+    ObjectGroupClause,
+    ObjectIdentityClause,
+    ObjectTypeClause,
     OidClause,
     RangesClause,
     RevisionsClause,
     SequenceClause,
     SymbolsClause,
     TextClause,
+    TrapTypeClause,
+    TypeDeclarationClause,
+    ValueDeclarationClause,
     trap_type_oid,
 )
 from pysmi.mibinfo import MibInfo
@@ -171,7 +182,7 @@ class SymtableCodeGen(AbstractCodeGen):
 
         return symbol.replace("-", "_")
 
-    def prep_data(self, pdata: Any, classmode: bool = False) -> list[Any]:
+    def prep_data(self, pdata: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Convert a parse subtree into the values a clause handler expects.
 
         Each element that is a tagged tuple is dispatched through
@@ -184,9 +195,11 @@ class SymtableCodeGen(AbstractCodeGen):
             classmode: the subtree sits inside a type declaration
 
         Returns:
-            One converted value per element of the subtree.
+            One converted value per element of the subtree. A tuple rather
+            than a list so a handler can name the exact shape it expects;
+            see https://github.com/pysnmp/pysmi/issues/47.
         """
-        data = []
+        data: list[Any] = []
         for el in pdata:
             if not isinstance(el, tuple):
                 data.append(el)
@@ -199,7 +212,7 @@ class SymtableCodeGen(AbstractCodeGen):
                     self.handlersTable[el[0]](self, self.prep_data(el[1:], classmode=classmode), classmode=classmode)
                 )
 
-        return data
+        return tuple(data)
 
     def gen_imports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
         # convertion to SNMPv2
@@ -325,7 +338,7 @@ class SymtableCodeGen(AbstractCodeGen):
         # Clause handlers
 
     # noinspection PyUnusedLocal
-    def gen_agent_capabilities(self, data: Any, classmode: bool = False) -> None:
+    def gen_agent_capabilities(self, data: AgentCapabilitiesClause, classmode: bool = False) -> None:
         """Record an AGENT-CAPABILITIES clause.
 
         Args:
@@ -341,7 +354,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_module_identity(self, data: Any, classmode: bool = False) -> None:
+    def gen_module_identity(self, data: ModuleIdentityClause, classmode: bool = False) -> None:
         """Record a MODULE-IDENTITY clause and note the module's latest revision.
 
         Args:
@@ -360,7 +373,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_module_compliance(self, data: Any, classmode: bool = False) -> None:
+    def gen_module_compliance(self, data: ModuleComplianceClause, classmode: bool = False) -> None:
         """Record a MODULE-COMPLIANCE clause.
 
         Args:
@@ -376,7 +389,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_notification_group(self, data: Any, classmode: bool = False) -> None:
+    def gen_notification_group(self, data: NotificationGroupClause, classmode: bool = False) -> None:
         """Record a NOTIFICATION-GROUP clause.
 
         Args:
@@ -392,7 +405,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_notification_type(self, data: Any, classmode: bool = False) -> None:
+    def gen_notification_type(self, data: NotificationTypeClause, classmode: bool = False) -> None:
         """Record a NOTIFICATION-TYPE clause.
 
         Args:
@@ -408,7 +421,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_object_group(self, data: Any, classmode: bool = False) -> None:
+    def gen_object_group(self, data: ObjectGroupClause, classmode: bool = False) -> None:
         """Record an OBJECT-GROUP clause.
 
         Args:
@@ -424,7 +437,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_object_identity(self, data: Any, classmode: bool = False) -> None:
+    def gen_object_identity(self, data: ObjectIdentityClause, classmode: bool = False) -> None:
         """Record an OBJECT-IDENTITY clause.
 
         Args:
@@ -440,7 +453,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_object_type(self, data: Any, classmode: bool = False) -> None:
+    def gen_object_type(self, data: ObjectTypeClause, classmode: bool = False) -> None:
         """Record an OBJECT-TYPE clause and the symbols it depends on.
 
         The object's syntax names its parent type, and AUGMENTS names another
@@ -488,7 +501,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps, parents)
 
     # noinspection PyUnusedLocal
-    def gen_trap_type(self, data: Any, classmode: bool = False) -> None:
+    def gen_trap_type(self, data: TrapTypeClause, classmode: bool = False) -> None:
         """Record a TRAP-TYPE clause as a notification.
 
         SMIv1 traps have no OID of their own; theirs is derived from the
@@ -512,7 +525,7 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_type_declaration(self, data: Any, classmode: bool = False) -> None:
+    def gen_type_declaration(self, data: TypeDeclarationClause, classmode: bool = False) -> None:
         """Record a type declaration and the type it derives from.
 
         A declaration with no parent type is a SEQUENCE, which defines no symbol
@@ -538,7 +551,7 @@ class SymtableCodeGen(AbstractCodeGen):
                 self.reg_sym(pysmiName, symProps, [declaration[0][0]])
 
     # noinspection PyUnusedLocal
-    def gen_value_declaration(self, data: Any, classmode: bool = False) -> None:
+    def gen_value_declaration(self, data: ValueDeclarationClause, classmode: bool = False) -> None:
         """Record a plain OID assignment.
 
         Args:
@@ -948,7 +961,9 @@ class SymtableCodeGen(AbstractCodeGen):
         """
         return ""
 
-    handlersTable = {
+    #: Grammar tag -> clause handler. Each handler declares its own clause
+    #: shape, so the table cannot name one signature for all of them.
+    handlersTable: ClassVar[dict[str, Any]] = {
         "agentCapabilitiesClause": gen_agent_capabilities,
         "moduleIdentityClause": gen_module_identity,
         "moduleComplianceClause": gen_module_compliance,

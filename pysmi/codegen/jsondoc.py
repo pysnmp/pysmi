@@ -10,25 +10,36 @@ import json
 import logging
 import re
 from collections import OrderedDict
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
+    AgentCapabilitiesClause,
     CapabilitiesClause,
     CapabilitiesVariation,
     ComplianceClause,
     ComplianceRefinement,
     DefValClause,
     IndexClause,
+    ModuleComplianceClause,
+    ModuleIdentityClause,
     NamedNumbersClause,
+    NotificationGroupClause,
+    NotificationTypeClause,
+    ObjectGroupClause,
+    ObjectIdentityClause,
+    ObjectTypeClause,
     OidClause,
     RangesClause,
     RevisionsClause,
     SequenceClause,
     SymbolsClause,
     TextClause,
+    TrapTypeClause,
+    TypeDeclarationClause,
+    ValueDeclarationClause,
     format_ext_utc_time,
     trap_type_oid,
 )
@@ -149,7 +160,7 @@ class JsonCodeGen(AbstractCodeGen):
         """
         return symbol.replace("-", "_")
 
-    def prep_data(self, pdata: Any) -> list[Any]:
+    def prep_data(self, pdata: Any) -> tuple[Any, ...]:
         """Convert a parse subtree into the values a clause handler expects.
 
         Each element that is a tagged tuple is dispatched through
@@ -161,9 +172,11 @@ class JsonCodeGen(AbstractCodeGen):
             pdata: parse subtree
 
         Returns:
-            One converted value per element of the subtree.
+            One converted value per element of the subtree. A tuple rather
+            than a list so a handler can name the exact shape it expects;
+            see https://github.com/pysnmp/pysmi/issues/47.
         """
-        data = []
+        data: list[Any] = []
         for el in pdata:
             if not isinstance(el, tuple):
                 data.append(el)
@@ -171,7 +184,7 @@ class JsonCodeGen(AbstractCodeGen):
                 data.append(el[0])
             else:
                 data.append(self.handlersTable[el[0]](self, self.prep_data(el[1:])))
-        return data
+        return tuple(data)
 
     def gen_imports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
         # convertion to SNMPv2
@@ -387,7 +400,7 @@ class JsonCodeGen(AbstractCodeGen):
     # Clause generation functions
 
     # noinspection PyUnusedLocal
-    def gen_agent_capabilities(self, data: Any) -> Any:
+    def gen_agent_capabilities(self, data: AgentCapabilitiesClause) -> Any:
         """Render an AGENT-CAPABILITIES clause.
 
         Args:
@@ -428,7 +441,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_module_identity(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_module_identity(self, data: ModuleIdentityClause) -> "OrderedDict[str, Any]":
         """Render a MODULE-IDENTITY clause.
 
         Args:
@@ -469,7 +482,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_module_compliance(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_module_compliance(self, data: ModuleComplianceClause) -> "OrderedDict[str, Any]":
         """Render a MODULE-COMPLIANCE clause.
 
         Args:
@@ -512,7 +525,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_notification_group(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_notification_group(self, data: NotificationGroupClause) -> "OrderedDict[str, Any]":
         """Render a NOTIFICATION-GROUP clause.
 
         Args:
@@ -552,7 +565,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_notification_type(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_notification_type(self, data: NotificationTypeClause) -> "OrderedDict[str, Any]":
         """Render a NOTIFICATION-TYPE clause.
 
         Args:
@@ -592,7 +605,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_object_group(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_object_group(self, data: ObjectGroupClause) -> "OrderedDict[str, Any]":
         """Render an OBJECT-GROUP clause.
 
         Args:
@@ -629,7 +642,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_object_identity(self, data: Any) -> Any:
+    def gen_object_identity(self, data: ObjectIdentityClause) -> Any:
         """Render an OBJECT-IDENTITY clause.
 
         Args:
@@ -664,7 +677,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_object_type(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_object_type(self, data: ObjectTypeClause) -> "OrderedDict[str, Any]":
         """Render an OBJECT-TYPE clause.
 
         What kind of node it is depends on what the object turned out to be: a
@@ -743,7 +756,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_trap_type(self, data: Any) -> Any:
+    def gen_trap_type(self, data: TrapTypeClause) -> Any:
         """Render a TRAP-TYPE clause as a notification.
 
         SMIv1 traps have no OID of their own; theirs is derived from the
@@ -786,7 +799,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_type_declaration(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_type_declaration(self, data: TypeDeclarationClause) -> "OrderedDict[str, Any]":
         """Render a type declaration.
 
         Args:
@@ -811,7 +824,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_value_declaration(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_value_declaration(self, data: ValueDeclarationClause) -> "OrderedDict[str, Any]":
         """Render a plain OID assignment.
 
         Args:
@@ -1612,7 +1625,9 @@ class JsonCodeGen(AbstractCodeGen):
         text = data[0]
         return self.textFilter("units", text)
 
-    handlersTable = {
+    #: Grammar tag -> clause handler. Each handler declares its own clause
+    #: shape, so the table cannot name one signature for all of them.
+    handlersTable: ClassVar[dict[str, Any]] = {
         "agentCapabilitiesClause": gen_agent_capabilities,
         "moduleIdentityClause": gen_module_identity,
         "moduleComplianceClause": gen_module_compliance,
