@@ -848,7 +848,10 @@ class SmiV2Parser(AbstractParser):
     def p_DefValPart(self, p: YaccProduction) -> None:
         """DefValPart : DEFVAL '{' Value '}'
         | empty"""
-        if p[1] and p[3]:
+        # A zero is a value like any other, so test for one having been parsed
+        # rather than for its truth. Productions that deliberately swallow a
+        # default they cannot represent leave None here and still drop out.
+        if p[1] and p[3] is not None:
             p[0] = (p[1], p[3])
 
     def p_Value(self, p: YaccProduction) -> None:
