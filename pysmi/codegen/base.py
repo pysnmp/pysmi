@@ -79,6 +79,18 @@ ComplianceRefinement: TypeAlias = tuple[Any, ...]
 #: which of them were mandatory, and the GROUP and OBJECT sub-clauses in full.
 ComplianceClause: TypeAlias = list[list[tuple[str | None, list[str], tuple[list[str], list[ComplianceRefinement]]]]]
 
+#: A VARIATION sub-clause of an AGENT-CAPABILITIES SUPPORTS clause, as
+#: ``(name, syntax, writeSyntax, access, creationRequires, defVal,
+#: description)``. Everything but the name and the description is ``None``
+#: when the sub-clause leaves it out; the syntaxes are unconverted parse
+#: subtrees, as in a compliance refinement.
+CapabilitiesVariation: TypeAlias = tuple[Any, ...]
+
+#: The SUPPORTS clauses of an AGENT-CAPABILITIES. Each entry is
+#: ``(module, groups, variations)``: the module named by SUPPORTS, the group
+#: names its INCLUDES lists, and the VARIATION sub-clauses that qualify them.
+CapabilitiesClause: TypeAlias = list[list[tuple[str, list[str], list[CapabilitiesVariation]]]]
+
 #: A bound in a range or size constraint. The lexer turns a decimal into an
 #: int; a hex or binary literal reaches the generator as the literal text.
 Bound: TypeAlias = int | str

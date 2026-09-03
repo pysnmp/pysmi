@@ -94,8 +94,8 @@ class JsonIndexTestCase(unittest.TestCase):
         out = self.index({}, comments=["Produced by pysmi"])
         self.assertEqual(out["meta"]["comments"], ["Produced by pysmi"])
 
-    def testMetaIsEmptyWithoutComments(self):
-        self.assertEqual(self.index({})["meta"], {})
+    def testMetaCarriesOnlyTheSchemaWithoutComments(self):
+        self.assertEqual(self.index({})["meta"], {"schema": JsonCodeGen.SCHEMA_VERSION})
 
 
 class JsonIndexOidsTestCase(unittest.TestCase):
