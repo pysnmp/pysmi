@@ -15,6 +15,8 @@ from typing import Any, cast
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
+    GENERIC_TRAPS,
+    SNMP_ENTERPRISE,
     AbstractCodeGen,
     ComplianceClause,
     DefValClause,
@@ -27,6 +29,7 @@ from pysmi.codegen.base import (
     SymbolsClause,
     TextClause,
     dorepr,
+    trap_type_oid,
 )
 from pysmi.mibinfo import MibInfo
 
@@ -912,9 +915,9 @@ for _{name}_obj in [{objects}]:
     def gen_trap_type(self, data: Any, classmode: bool = False) -> Any:
         """Render a TRAP-TYPE clause as a ``NotificationType`` object.
 
-        SMIv1 traps have no OID of their own; theirs is built from the
-        enterprise OID, a zero, and the trap number, which is how SMIv2 names
-        the same notification.
+        SMIv1 traps have no OID of their own; theirs is derived from the
+        ENTERPRISE clause and the trap number, which is how SMIv2 names the
+        same notification. See :py:func:`~pysmi.codegen.base.trap_type_oid`.
 
         Args:
             data: rendered clause values
@@ -930,7 +933,14 @@ for _{name}_obj in [{objects}]:
 
         enterpriseStr, _parentOid = enterprise
 
-        outStr = name + " = NotificationType(" + enterpriseStr + " + (0," + str(value) + "))" + label
+        if enterpriseStr == str(SNMP_ENTERPRISE) and value in GENERIC_TRAPS:
+            oidStr = str(trap_type_oid(SNMP_ENTERPRISE, value))
+        else:
+            # The enterprise is rendered as its own tuple so that the sum reads
+            # the way the clause does: this enterprise, this trap number.
+            oidStr = enterpriseStr + " + (0," + str(value) + ")"
+
+        outStr = name + " = NotificationType(" + oidStr + ")" + label
 
         if objects:
             objects = [

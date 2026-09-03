@@ -79,6 +79,47 @@ ComplianceClause: TypeAlias = list[list[tuple[str | None, list[str], tuple[list[
 #: int; a hex or binary literal reaches the generator as the literal text.
 Bound: TypeAlias = int | str
 
+#: RFC 3418's ``snmp`` group, ``{ mib-2 11 }``. RFC 1215 section 2.1.5 gives a
+#: TRAP-TYPE naming this enterprise a different meaning: its value goes in the
+#: generic-trap field rather than the enterprise-specific one.
+SNMP_ENTERPRISE: tuple[int, ...] = (1, 3, 6, 1, 2, 1, 11)
+
+#: RFC 3418's ``snmpTraps``, under which the six generic traps are numbered
+#: from one.
+SNMP_TRAPS: tuple[int, ...] = (1, 3, 6, 1, 6, 3, 1, 1, 5)
+
+#: The generic traps RFC 3584 section 3.1 gives a mapping for: coldStart(0)
+#: through egpNeighborLoss(5).
+GENERIC_TRAPS = range(6)
+
+
+def trap_type_oid(enterprise: tuple[int, ...], value: int) -> tuple[int, ...]:
+    """Give an SMIv1 trap the OID its SMIv2 notification is known by.
+
+    RFC 3584 section 2.1.2 (5) builds that OID from the ENTERPRISE clause, a
+    zero, and the trap number -- except where the ENTERPRISE is ``snmp``. Those
+    are the six generic traps, and section 3.1 maps them onto ``snmpTraps``,
+    numbered from one rather than from zero.
+
+    A trap that names ``snmp`` but numbers itself past those six is described
+    by neither RFC; RFC 1215 section 2.1.5 says the convention "is not intended
+    to provide a means to define additional standard SNMP traps". Rather than
+    reject it or invent an OID under ``snmpTraps`` that names nothing, it keeps
+    the enterprise-specific form it would have had.
+
+    Args:
+        enterprise: the ENTERPRISE clause as sub-identifiers
+        value: the value of the TRAP-TYPE invocation
+
+    Returns:
+        The notification's OID as sub-identifiers.
+    """
+    if tuple(enterprise) == SNMP_ENTERPRISE and value in GENERIC_TRAPS:
+        return (*SNMP_TRAPS, value + 1)
+
+    return (*enterprise, 0, value)
+
+
 #: A range or SIZE constraint. Each entry is ``(low, high)``, or ``(value,)``
 #: where a single value is permitted rather than a span. The entries are
 #: ``data[0]``. Ranges and sizes share the grammar's ``ranges`` production, so
