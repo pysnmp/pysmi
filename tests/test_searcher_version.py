@@ -8,6 +8,14 @@
 its mtime says otherwise -- compile only ever consults the source's mtime,
 so a pysmi bugfix landing with no change to the MIB text would otherwise
 never take effect on output already on disk. See pysnmp/pysmi#63.
+
+A compiled module is likewise stale once a *different* MIB source is on
+offer, even one that satisfies the mtime check: a MIB compiled once from
+the bundled fallback (pysnmp/pysmi#113), then later given a primary
+source of its own, would otherwise keep the fallback's output forever if
+the primary source's mtime happens to be no newer -- the primary source
+is read from disk, but its mtime, not its content, is what decides
+reuse. See pysnmp/pysmi#123 (review discussion).
 """
 
 import json
@@ -90,6 +98,45 @@ class PyFileSearcherVersionTestCase(unittest.TestCase):
         with self.assertRaises(error.PySmiFileNotFoundError):
             searcher.file_exists("IF-MIB", time.time() + 1000)
 
+    def testMatchingDigestIsReportedAsUnmodified(self):
+        self._write(f"# Source digest sha256:abc\n# Produced by {packageName}-{packageVersion}\n")
+
+        searcher = PyFileSearcher(self.dst)
+        with self.assertRaises(error.PySmiFileNotModifiedError):
+            searcher.file_exists("IF-MIB", time.time() - 100, digest="sha256:abc")
+
+    def testADifferentSourceForcesARebuildDespiteAFreshMtime(self):
+        # The bug this guards against: a MIB compiled once from a fallback
+        # source, then given a primary source of its own whose mtime is no
+        # newer than the fallback compile's -- easily true, since the
+        # fallback's timestamp is "whenever it was last compiled" and a
+        # primary source's is whatever a checkout or a vendor left it at.
+        # Without a digest check, only the mtime is compared, and the new
+        # source is silently ignored forever.
+        self._write(f"# Source digest sha256:abc\n# Produced by {packageName}-{packageVersion}\n")
+
+        searcher = PyFileSearcher(self.dst)
+        with self.assertRaises(error.PySmiFileNotFoundError):
+            searcher.file_exists("IF-MIB", time.time() - 100, digest="sha256:different")
+
+    def testNoDigestPassedSkipsTheCheck(self):
+        # A caller with nothing to compare against -- the borrowed-MIB path
+        # in the compiler, which never sets a digest -- gets the old,
+        # mtime-only behaviour, not a forced rebuild.
+        self._write(f"# Source digest sha256:abc\n# Produced by {packageName}-{packageVersion}\n")
+
+        searcher = PyFileSearcher(self.dst)
+        with self.assertRaises(error.PySmiFileNotModifiedError):
+            searcher.file_exists("IF-MIB", time.time() - 100)
+
+    def testNoStoredDigestIsNotTreatedAsAMismatch(self):
+        # A file predating this marker, same leniency as the version check.
+        self._write(f"# Produced by {packageName}-{packageVersion}\n")
+
+        searcher = PyFileSearcher(self.dst)
+        with self.assertRaises(error.PySmiFileNotModifiedError):
+            searcher.file_exists("IF-MIB", time.time() - 100, digest="sha256:abc")
+
 
 class AnyFileSearcherVersionTestCase(unittest.TestCase):
     """The JSON-carrying searcher gets the same treatment, reading the
@@ -103,8 +150,10 @@ class AnyFileSearcherVersionTestCase(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def _write(self, producer):
+    def _write(self, producer, digest=None):
         comments = [f"Produced by {producer}"] if producer else []
+        if digest:
+            comments.insert(0, f"Source digest {digest}")
         with open(self.jsonfile, "w") as fp:
             json.dump({"meta": {"comments": comments}}, fp)
         touch_newer_than(self.jsonfile, time.time())
@@ -122,6 +171,20 @@ class AnyFileSearcherVersionTestCase(unittest.TestCase):
         searcher = AnyFileSearcher(self.dst).set_options(exts=[".json"])
         with self.assertRaises(error.PySmiFileNotFoundError):
             searcher.file_exists("IF-MIB", time.time() - 100)
+
+    def testADifferentSourceForcesARebuildDespiteAFreshMtime(self):
+        self._write(f"{packageName}-{packageVersion}", digest="sha256:abc")
+
+        searcher = AnyFileSearcher(self.dst).set_options(exts=[".json"])
+        with self.assertRaises(error.PySmiFileNotFoundError):
+            searcher.file_exists("IF-MIB", time.time() - 100, digest="sha256:different")
+
+    def testMatchingDigestIsReportedAsUnmodified(self):
+        self._write(f"{packageName}-{packageVersion}", digest="sha256:abc")
+
+        searcher = AnyFileSearcher(self.dst).set_options(exts=[".json"])
+        with self.assertRaises(error.PySmiFileNotModifiedError):
+            searcher.file_exists("IF-MIB", time.time() - 100, digest="sha256:abc")
 
 
 if __name__ == "__main__":

@@ -422,7 +422,9 @@ class MibCompiler:
 
             for searcher in self._searchers:
                 try:
-                    searcher.file_exists(mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")))
+                    searcher.file_exists(
+                        mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")), digest=fileInfo.digest
+                    )
 
                 except error.PySmiFileNotFoundError:
                     logger.debug(

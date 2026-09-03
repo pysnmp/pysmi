@@ -28,6 +28,7 @@ is unreachable and this one gets used instead.
 
 import pathlib
 import sys
+import tempfile
 import urllib.request
 
 UPSTREAM = "https://pysnmp.github.io/mibs/asn1/{}"
@@ -84,25 +85,49 @@ def check() -> int:
 def update() -> int:
     """Refresh every bundled file from upstream, then compile-verify the set.
 
+    Every fetch and the verify compile happen against a staging directory
+    first; DEST is only touched once every file has been fetched and the
+    whole staged set compiles clean, so a network failure partway through,
+    or an upstream MIB that no longer compiles, leaves the existing bundle
+    exactly as it was rather than a mix of old and new files.
+
     Returns:
         The process exit code: 0 on success, 1 if the refreshed set fails to
         compile.
     """
     DEST.mkdir(parents=True, exist_ok=True)
 
-    for mibname in BUNDLED:
-        data = fetch(mibname)
-        (DEST / mibname).write_bytes(data)
-        sys.stdout.write(f"{mibname}: {len(data)} bytes\n")
+    # Staged on DEST's own filesystem, so committing a file is an atomic
+    # rename rather than a copy that could itself be interrupted.
+    with tempfile.TemporaryDirectory(dir=DEST.parent) as staging:
+        stagingDir = pathlib.Path(staging)
 
-    return verify()
+        for mibname in BUNDLED:
+            data = fetch(mibname)
+            (stagingDir / mibname).write_bytes(data)
+            sys.stdout.write(f"{mibname}: {len(data)} bytes\n")
+
+        if verify(stagingDir) != 0:
+            sys.stderr.write("Staged bundle failed to verify; leaving the existing bundle untouched.\n")
+            return 1
+
+        for mibname in BUNDLED:
+            (stagingDir / mibname).replace(DEST / mibname)
+
+    return 0
 
 
-def verify() -> int:
-    """Compile every bundled MIB against the bundle itself, nothing else.
+def verify(source: pathlib.Path | None = None) -> int:
+    """Compile every bundled MIB against a directory containing the bundle,
+    nothing else.
 
     A MIB that cannot compile standalone against its bundled siblings would
     make the fallback source useless for exactly the case it exists for.
+
+    Args:
+        source: directory holding one file per name in BUNDLED. Defaults to
+            the bundle already on disk; *update* passes a staging directory
+            to verify a refreshed set before committing it.
 
     Returns:
         The process exit code: 0 if everything compiles, 1 otherwise.
@@ -114,7 +139,7 @@ def verify() -> int:
     from pysmi.writer import CallbackWriter
 
     compiler = MibCompiler(SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None))
-    compiler.add_sources(FileReader(str(DEST)))
+    compiler.add_sources(FileReader(str(source if source is not None else DEST)))
     processed = compiler.compile(*BUNDLED, ignoreErrors=True)
 
     failed = {name: status for name, status in processed.items() if name in BUNDLED and status != "compiled"}

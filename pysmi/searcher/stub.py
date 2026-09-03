@@ -31,7 +31,7 @@ class StubSearcher(AbstractSearcher):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}"
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
         """Report the configured modules as permanently up to date.
 
         These MIBs are supplied by the target implementation, so they must
