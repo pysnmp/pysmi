@@ -8,8 +8,6 @@
 
 import json
 
-from pysnmp.smi.builder import MibBuilder
-
 from pysmi.codegen import JsonCodeGen, PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.parser.smi import parserFactory
@@ -62,7 +60,14 @@ def render_source(mib, deps=(), genTexts=True, **dialect):
 
 
 def render_pysnmp(mib, deps=(), genTexts=True, **dialect):
-    """Compile *mib* through the pysnmp backend and execute the generated module."""
+    """Compile *mib* through the pysnmp backend and execute the generated module.
+
+    pysnmp is imported here rather than at module scope so that the tests
+    asserting on pysmi's own output never acquire an import path to it. See
+    pysnmp/pysmi#127.
+    """
+    from pysnmp.smi.builder import MibBuilder
+
     pycode = render_source(mib, deps=deps, genTexts=genTexts, **dialect)
 
     mibBuilder = MibBuilder()

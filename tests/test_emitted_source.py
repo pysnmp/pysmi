@@ -17,11 +17,8 @@ pysnmp/pysmi#101 for the bug it hid.
 import sys
 import unittest
 
-from tests import test_reference_smiv2_pysnmp as reference_fixtures
 from tests.harness import render_source
-
-#: A module carrying every macro that takes a REFERENCE clause.
-MACROS_MIB = reference_fixtures.ReferenceTestCase.__doc__
+from tests.test_spec_reference import MACROS_MIB
 
 MODULE_IDENTITY_MIB = """
 TEST-MIB DEFINITIONS ::= BEGIN

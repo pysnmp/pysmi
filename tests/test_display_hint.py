@@ -16,7 +16,7 @@ See pysnmp/pysmi#95.
 import sys
 import unittest
 
-from tests.harness import render
+from tests.harness import render_json, render_source
 
 MIB = """
 TEST-MIB DEFINITIONS ::= BEGIN
@@ -47,28 +47,30 @@ HINTS = {
 
 
 class DisplayHintTestCase(unittest.TestCase):
-    """Every hint reaches both backends exactly as it was written."""
+    """Every hint reaches both artifacts exactly as it was written."""
 
-    def testEveryFormSurvivesIntoBothBackends(self):
+    def testEveryFormSurvivesIntoBothArtifacts(self):
         for name, (hint, syntax) in HINTS.items():
             with self.subTest(form=name, hint=hint):
-                doc, ctx = render(MIB % (hint, syntax))
-                self.assertEqual(doc["TestConvention"]["displayhint"], hint)
-                self.assertEqual(ctx["TestConvention"]().getDisplayHint(), hint)
+                mib = MIB % (hint, syntax)
+                self.assertEqual(render_json(mib)["TestConvention"]["displayhint"], hint)
+                self.assertIn(f"    displayHint = '{hint}'", render_source(mib))
 
     def testAbsentHintProducesNoKey(self):
+        # An absent hint must not become an empty one: "" is a hint that renders
+        # every value as blank, not the absence of a hint.
         mib = MIB.replace('    DISPLAY-HINT "%s"\n', "") % "OCTET STRING"
-        doc, ctx = render(mib)
-        self.assertNotIn("displayhint", doc["TestConvention"])
-        self.assertEqual(ctx["TestConvention"]().getDisplayHint(), "")
+        self.assertNotIn("displayhint", render_json(mib)["TestConvention"])
+        self.assertNotIn("displayHint", render_source(mib))
 
     def testHintSurvivesWithoutTexts(self):
         # The hint says how to render a value, so it is not narrative and is
         # kept when DESCRIPTION and REFERENCE are dropped.
-        doc, ctx = render(MIB % ("1x:", "OCTET STRING"), genTexts=False)
+        mib = MIB % ("1x:", "OCTET STRING")
+        doc = render_json(mib, genTexts=False)
         self.assertEqual(doc["TestConvention"]["displayhint"], "1x:")
         self.assertNotIn("description", doc["TestConvention"])
-        self.assertEqual(ctx["TestConvention"]().getDisplayHint(), "1x:")
+        self.assertIn("    displayHint = '1x:'", render_source(mib, genTexts=False))
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

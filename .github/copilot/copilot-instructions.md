@@ -171,30 +171,42 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 
 - **Framework**: `unittest` (stdlib) test classes, run through `pytest` as the test runner. `pyproject.toml` configures `[tool.pytest.ini_options]` with `testpaths = ["tests"]` and `addopts = "--cov=pysmi --cov-report=term-missing"`.
 - **Legacy runner**: `tests/__main__.py` still loads a named suite via `unittest.TestLoader().loadTestsFromNames([...])` and runs with `unittest.TextTestRunner(verbosity=2)` for `python -m tests` invocation; prefer `pytest` for new work.
-- **Test file naming**: `test_<feature>_<smiversion>_<target>.py`, e.g. `test_objecttype_smiv2_pysnmp.py`, `test_typedeclaration_smiv1_pysnmp.py`, `test_zipreader.py`.
-- **Test class naming**: `<Feature>TestCase`, e.g. `ObjectTypeBasicTestCase`, `ZipReaderTestCase`.
-- **MIB-as-docstring fixture**: each test class stores a full ASN.1 MIB module in the class `__doc__` string, then `setUp` parses it:
+- **The oracle is the spec, not pysnmp**: assertions read pysmi's own output -- the JSON document from
+  `render_json` and the generated source from `render_source` -- against the clause definitions in RFC 2578,
+  RFC 2579, RFC 2580 and RFC 3584. Never assert by loading the generated module into pysnmp and reading a
+  value back off the object: pysnmp normalises, tolerates and discards, so such a test compares pysnmp
+  against pysnmp and passes over the defect. `tests/test_layering.py` enforces this and will fail the build.
+  See pysnmp/pysmi#127, and pysnmp/pysmi#128 for a bug that survived years of runtime assertions.
+- **The one exception**: `tests/test_pysnmp_consumer.py` is the consumer layer. It loads generated modules
+  under pysnmp to check they still work, is marked `pysnmp_consumer`, and does not gate CI. Put a public-API
+  smoke check there; never put a correctness assertion there.
+- **Test file naming**: `test_<area>.py`, with `test_spec_<macro>.py` for the spec layer, e.g.
+  `test_spec_objecttype.py`, `test_spec_index.py`, `test_zipreader.py`.
+- **Test class naming**: `<Feature>TestCase`, e.g. `ClauseTestCase`, `ZipReaderTestCase`.
+- **Fixtures**: MIB fragments are module-level string constants (`MIB`, `TRAP_MIB`), rendered through
+  `tests/harness.py`. The older style that stored a MIB in the class `__doc__` and rebuilt the codegen
+  pipeline in `setUp` has been removed; do not reintroduce it.
   ```python
-  class ObjectTypeBasicTestCase(unittest.TestCase):
-      """
-      TEST-MIB DEFINITIONS ::= BEGIN
-      ...
-      END
-      """
+  from tests.harness import render_json, render_source
 
-      def setUp(self):
-          ast = parserFactory()().parse(self.__class__.__doc__)[0]
-          mibInfo, symtable = SymtableCodeGen().genCode(ast, {}, genTexts=True)
-          self.mibInfo, pycode = PySnmpCodeGen().genCode(ast, {mibInfo.name: symtable}, genTexts=True)
-          codeobj = compile(pycode, "test", "exec")
-          mibBuilder = MibBuilder()
-          mibBuilder.loadTexts = True
-          self.ctx = {"mibBuilder": mibBuilder}
-          exec(codeobj, self.ctx, self.ctx)
+  class ClauseTestCase(unittest.TestCase):
+      """RFC 2578 section 7: OBJECT-TYPE."""
+
+      @classmethod
+      def setUpClass(cls):
+          cls.doc = render_json(MIB)["testObjectType"]
+          cls.source = render_source(MIB)
+
+      def testMaxAccessKeepsTheRfcSpelling(self):
+          self.assertEqual(cls.doc["maxaccess"], "accessible-for-notify")
   ```
-- **Assertions**: `self.assertTrue(..., 'message')`, `self.assertEqual(actual, expected, 'message')` — always include a trailing failure-message string.
-- **Test method naming**: `test<Feature><Aspect>`, e.g. `testObjectTypeName`, `testObjectTypeDescription`, `testObjectTypeSyntax`.
-- New tests must follow this exact fixture style and naming.
+- **Assertions**: plain `self.assertEqual(actual, expected)` / `self.assertIn(...)`. Add a trailing message only
+  where the failure would otherwise be unreadable. Cite the RFC section a new assertion enforces, in the class
+  docstring or an inline comment saying why the rule exists.
+- **Test method naming**: `test<WhatMustHold>`, phrased as the property rather than the accessor, e.g.
+  `testTheDocumentKeepsTheRfcSpelling`, `testAnImpliedStringDropsTheLengthPrefix`.
+- **Known-wrong behaviour**: mark it `@unittest.expectedFailure` with the assertion written the way the spec
+  says it should read, and a comment naming the bug issue. Do not weaken the assertion to make it pass.
 
 ## Technology-Specific Guidelines
 

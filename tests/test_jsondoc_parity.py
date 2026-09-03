@@ -6,20 +6,23 @@
 #
 """The JSON backend is asserted against the same MIBs as the pysnmp backend.
 
-Every construct with a dedicated ``*_smiv2_pysnmp.py`` fixture and no JSON
-counterpart had a completely uncovered generator in ``pysmi.codegen.jsondoc``.
+Every construct that had a dedicated pysnmp fixture and no JSON counterpart had
+a completely uncovered generator in ``pysmi.codegen.jsondoc``.
 The JSON document is what ``pysnmp/mibs`` republishes, so it is a shipped
 artifact in its own right and not a by-product of the pysnmp one.
 
-These tests render the fixture MIBs through both backends and assert the JSON
-document directly, rather than through a consumer's object model. See
-pysnmp/pysmi#96 and #99.
+These tests render the fixture MIBs through both backends and assert on both
+artifacts pysmi produces -- the document and the generated source. Parity is
+between those two, never between one of them and what a consumer made of it:
+a document checked against pysnmp is checked against the party whose reading of
+it is the thing in question. See pysnmp/pysmi#96, #99 and #127.
 """
 
+import re
 import sys
 import unittest
 
-from tests.harness import render
+from tests.harness import render_json, render_source
 
 NOTIFICATION_MIB = """
 TEST-MIB DEFINITIONS ::= BEGIN
@@ -62,7 +65,8 @@ END
 
 class ObjectIdentityJsonTestCase(unittest.TestCase):
     def setUp(self):
-        self.doc, self.ctx = render(NOTIFICATION_MIB)
+        self.doc = render_json(NOTIFICATION_MIB)
+        self.source = render_source(NOTIFICATION_MIB)
 
     def testShape(self):
         self.assertEqual(
@@ -77,14 +81,15 @@ class ObjectIdentityJsonTestCase(unittest.TestCase):
             },
         )
 
-    def testOidAgreesWithPySnmp(self):
+    def testOidAgreesWithTheEmittedSource(self):
         self.assertEqual(self.doc["testIdentity"]["oid"], "1.3.1")
-        self.assertEqual(self.ctx["testIdentity"].getName(), (1, 3, 1))
+        self.assertIn("testIdentity = ObjectIdentity((1, 3, 1))", self.source)
 
 
 class NotificationTypeJsonTestCase(unittest.TestCase):
     def setUp(self):
-        self.doc, self.ctx = render(NOTIFICATION_MIB)
+        self.doc = render_json(NOTIFICATION_MIB)
+        self.source = render_source(NOTIFICATION_MIB)
 
     def testShape(self):
         self.assertEqual(
@@ -100,16 +105,15 @@ class NotificationTypeJsonTestCase(unittest.TestCase):
             },
         )
 
-    def testObjectsAgreeWithPySnmp(self):
-        self.assertEqual(
-            [(o["module"], o["object"]) for o in self.doc["testNotify"]["objects"]],
-            list(self.ctx["testNotify"].getObjects()),
-        )
+    def testObjectsAgreeWithTheEmittedSource(self):
+        emitted = "".join(f'("{o["module"]}", "{o["object"]}"), ' for o in self.doc["testNotify"]["objects"])
+        self.assertIn(f".setObjects({emitted[:-2]})", self.source)
 
 
 class NotificationGroupJsonTestCase(unittest.TestCase):
     def setUp(self):
-        self.doc, self.ctx = render(NOTIFICATION_MIB)
+        self.doc = render_json(NOTIFICATION_MIB)
+        self.source = render_source(NOTIFICATION_MIB)
 
     def testShape(self):
         self.assertEqual(
@@ -125,17 +129,15 @@ class NotificationGroupJsonTestCase(unittest.TestCase):
             },
         )
 
-    def testObjectsAgreeWithPySnmp(self):
-        self.assertEqual(
-            [(o["module"], o["object"]) for o in self.doc["testNotifyGroup"]["objects"]],
-            list(self.ctx["testNotifyGroup"].getObjects()),
-        )
+    def testObjectsAgreeWithTheEmittedSource(self):
+        emitted = "".join(f'("{o["module"]}", "{o["object"]}"), ' for o in self.doc["testNotifyGroup"]["objects"])
+        self.assertIn(f".setObjects({emitted[:-2]})", self.source)
 
-    def testReferenceSurvivesWherePySnmpCannotTakeIt(self):
+    def testReferenceSurvivesWhereTheGeneratedSourceCannotTakeIt(self):
         # pysnmp's NotificationGroup has no setReference(), so the pysnmp
-        # backend drops the clause. The JSON document still carries it.
+        # backend emits no call. The JSON document still carries it.
         self.assertEqual(self.doc["testNotifyGroup"]["reference"], "RFC 2580 Section 4")
-        self.assertFalse(hasattr(self.ctx["testNotifyGroup"], "setReference"))
+        self.assertNotIn("testNotifyGroup.setReference(", self.source)
 
 
 TRAP_MIB = """
@@ -171,7 +173,8 @@ class TrapTypeJsonTestCase(unittest.TestCase):
     """RFC 3584 section 3: an SMIv1 trap maps to enterprise.0.specific."""
 
     def setUp(self):
-        self.doc, self.ctx = render(TRAP_MIB)
+        self.doc = render_json(TRAP_MIB)
+        self.source = render_source(TRAP_MIB)
 
     def testShape(self):
         self.assertEqual(
@@ -190,22 +193,22 @@ class TrapTypeJsonTestCase(unittest.TestCase):
         self.assertEqual(self.doc["testTrap"]["oid"], "1.3.6.1.4.1.20408" + ".0." + "7")
 
     def testBothBackendsAgreeOnTheConvertedOid(self):
-        self.assertEqual(
-            tuple(int(x) for x in self.doc["testTrap"]["oid"].split(".")),
-            tuple(self.ctx["testTrap"].getName()),
-        )
+        # The generated source keeps the enterprise and the trap number as two
+        # terms, so the sum rather than the spelling is what has to agree.
+        self.assertIn("testTrap = NotificationType((1, 3, 6, 1, 4, 1, 20408) + (0,7))", self.source)
 
     def testTheBracedEnterpriseFormGivesTheSameOid(self):
         # curlyBracesAroundEnterpriseInTrap is a spelling relaxation, not a
         # semantic one: the converted OID must not move.
         braced = TRAP_MIB.replace("ENTERPRISE  testId", "ENTERPRISE  { testId }")
-        doc, ctx = render(braced, curlyBracesAroundEnterpriseInTrap=True)
+        doc = render_json(braced, curlyBracesAroundEnterpriseInTrap=True)
+        source = render_source(braced, curlyBracesAroundEnterpriseInTrap=True)
         self.assertEqual(doc["testTrap"]["oid"], self.doc["testTrap"]["oid"])
-        self.assertEqual(ctx["testTrap"].getName(), self.ctx["testTrap"].getName())
+        self.assertIn("testTrap = NotificationType((1, 3, 6, 1, 4, 1, 20408) + (0,7))", source)
 
     def testTrapBecomesANotificationType(self):
         self.assertEqual(self.doc["testTrap"]["class"], "notificationtype")
-        self.assertEqual(self.ctx["testTrap"].__class__.__name__, "NotificationType")
+        self.assertIn("testTrap = NotificationType(", self.source)
 
 
 GENERIC_TRAP_MIB = """
@@ -241,9 +244,15 @@ class GenericTrapTestCase(unittest.TestCase):
     """RFC 3584 section 2.1.2 (5): an ENTERPRISE of snmp goes to snmpTraps."""
 
     def assertTrapOid(self, enterprise, value, oid):
-        doc, ctx = render(GENERIC_TRAP_MIB % (enterprise, value))
-        self.assertEqual(doc["testTrap"]["oid"], oid)
-        self.assertEqual(tuple(ctx["testTrap"].getName()), tuple(int(subId) for subId in oid.split(".")))
+        mib = GENERIC_TRAP_MIB % (enterprise, value)
+        self.assertEqual(render_json(mib)["testTrap"]["oid"], oid)
+        # The emitted OID is written as a prefix plus the trap suffix, so it is
+        # compared as the sub-identifiers it evaluates to.
+        emitted = next(x for x in render_source(mib).splitlines() if x.startswith("testTrap ="))
+        subids = tuple(
+            int(n) for n in re.findall(r"-?\d+", emitted.split("NotificationType(", 1)[1].split(")).", 1)[0])
+        )
+        self.assertEqual(subids, tuple(int(subId) for subId in oid.split(".")))
 
     def testEachGenericTrapTakesItsSnmpTrapsOid(self):
         for value, oid in GENERIC_TRAP_OIDS:
@@ -265,19 +274,19 @@ class WithoutTextsTestCase(unittest.TestCase):
     """genTexts=False must strip every narrative clause from the document."""
 
     def testNotificationTextsAreOmitted(self):
-        doc, _ = render(NOTIFICATION_MIB, genTexts=False)
+        doc = render_json(NOTIFICATION_MIB, genTexts=False)
         for symbol in ("testIdentity", "testNotify", "testNotifyGroup"):
             with self.subTest(symbol=symbol):
                 self.assertNotIn("description", doc[symbol])
                 self.assertNotIn("reference", doc[symbol])
 
     def testStructuralClausesSurviveWithoutTexts(self):
-        doc, _ = render(NOTIFICATION_MIB, genTexts=False)
+        doc = render_json(NOTIFICATION_MIB, genTexts=False)
         self.assertEqual(doc["testNotify"]["oid"], "1.3.3")
         self.assertEqual(doc["testNotify"]["objects"], [{"module": "TEST-MIB", "object": "testObject"}])
 
     def testTrapTextsAreOmitted(self):
-        doc, _ = render(TRAP_MIB, genTexts=False)
+        doc = render_json(TRAP_MIB, genTexts=False)
         self.assertNotIn("description", doc["testTrap"])
         self.assertNotIn("reference", doc["testTrap"])
         self.assertEqual(doc["testTrap"]["oid"], "1.3.6.1.4.1.20408.0.7")

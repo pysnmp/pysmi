@@ -43,10 +43,14 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+      # The consumer smoke test loads generated modules under pysnmp, which
+      # ships on its own cycle. Its regression is not ours, so it runs in the
+      # non-gating job below rather than here. See pysnmp/pysmi#127.
       - name: Run tests
         run: >
           uv run --locked --group dev --python ${{ matrix.python }}
-          pytest --junitxml=test-results/results.xml --cov=pysmi --cov-report=xml tests
+          pytest -m "not pysnmp_consumer"
+          --junitxml=test-results/results.xml --cov=pysmi --cov-report=xml tests
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -57,6 +61,22 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           fail_ci_if_error: false
+
+  run-consumer-smoke:
+    name: test-consumer (pysnmp, non-gating)
+    # Reports its result without blocking a merge: a red here means pysnmp
+    # changed under us, which is worth seeing and is not a pysmi defect.
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Load generated modules under pysnmp
+        run: >
+          uv run --locked --group dev --python 3.13
+          pytest -m pysnmp_consumer --no-header -q tests
 
   docs:
     name: docs
