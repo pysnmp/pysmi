@@ -56,6 +56,12 @@ class PySmiError(Exception):
     handler: Any
 
     def __init__(self, *args: object, **kwargs: object) -> None:
+        """Record the message and whatever context the caller attaches.
+
+        The first positional argument becomes ``msg``. Every keyword
+        argument is set as an attribute, which is how handlers annotate an
+        error with the MIB, reader, or writer involved as it travels up.
+        """
         Exception.__init__(self, *args)
         self.msg = str(args[0]) if args else ""
         for k in kwargs:
@@ -71,10 +77,12 @@ class PySmiError(Exception):
         raise AttributeError(name)
 
     def __repr__(self) -> str:
+        """Spell out every context attribute that was actually set."""
         attrs = ", ".join([f"{k}={getattr(self, k)!r}" for k in dir(self) if k[0] != "_" and k != "args"])
         return f"{self.__class__.__name__}({attrs})"
 
     def __str__(self) -> str:
+        """Report the message alone, leaving the context to ``__repr__``."""
         return self.msg
 
 
@@ -89,6 +97,7 @@ class PySmiLexerError(PySmiError):
     lineno: "int | str" = "?"
 
     def __str__(self) -> str:
+        """Report the message with the source line the offending token came from."""
         return self.msg + f", line {self.lineno}"
 
 

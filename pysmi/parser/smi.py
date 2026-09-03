@@ -91,6 +91,19 @@ class SmiV2Parser(AbstractParser):
     defaultLexer = lexerFactory()
 
     def __init__(self, startSym: str = "mibFile", tempdir: str = "") -> None:
+        """Build the grammar, optionally caching its tables on disk.
+
+        Args:
+            startSym (str): grammar symbol to start parsing from. The default
+                reads a whole MIB file; a narrower symbol parses a fragment.
+            tempdir (str): directory PLY may write its generated parser tables
+                to, under a subdirectory named for *startSym* so dialects do
+                not overwrite each other. Empty rebuilds the tables in memory
+                on every run.
+
+        Raises:
+            PySmiError: *tempdir* could not be created.
+        """
         if tempdir:
             tempdir = os.path.join(tempdir, startSym)
             try:
@@ -1284,6 +1297,15 @@ class SmiV2Parser(AbstractParser):
 
     # Error rule for syntax errors
     def p_error(self, p: YaccProduction) -> None:
+        """Reject input no grammar rule accepted.
+
+        PLY calls this hook rather than treating it as a grammar rule, so the
+        docstring is free text here. A false *p* means the error is at end of
+        input, which is left to the caller to report.
+
+        Raises:
+            PySmiParserError: a token was rejected mid-module.
+        """
         if p:
             raise error.PySmiParserError(f"Bad grammar near token type {p.type}, value {p.value}", lineno=p.lineno)
 

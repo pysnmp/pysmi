@@ -63,6 +63,7 @@ class PyPackageSearcher(AbstractSearcher):
         self.__loader: _EggLoader | None = None
 
     def __str__(self) -> str:
+        """Identify this searcher by the package it looks in."""
         return f'{self.__class__.__name__}{{"{self._package}"}}'
 
     @staticmethod

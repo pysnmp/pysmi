@@ -1,3 +1,5 @@
+"""Sphinx configuration for the PySMI documentation."""
+
 #
 # PySMI documentation build configuration file, created by
 # sphinx-quickstart on Sat Jun 27 23:15:54 2015.
@@ -10,7 +12,6 @@
 #
 # All configuration values have a default; values that are commented out
 # serve to show the default.
-
 
 import importlib.metadata
 

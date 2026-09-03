@@ -59,6 +59,7 @@ class HttpReader(AbstractReader):
         self._user_agent = f"pysmi-{pysmi_version}; python-{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]}; {sys.platform}"
 
     def __str__(self) -> str:
+        """Identify this reader by the URL template it fetches from."""
         return self._url
 
     def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:

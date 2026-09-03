@@ -47,6 +47,7 @@ class PackageReader(AbstractReader):
         self._package = package
 
     def __str__(self) -> str:
+        """Identify this reader by the package whose resources it reads."""
         return f'{self.__class__.__name__}{{"{self._package}"}}'
 
     def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:

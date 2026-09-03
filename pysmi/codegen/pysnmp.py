@@ -202,6 +202,12 @@ for _%(name)s_obj in [%(objects)s]:
     _CONSTRAINTS_UNION = "ConstraintsUnion("
 
     def __init__(self) -> None:
+        """Note the base SNMP types, then start with empty per-module state.
+
+        The type set is fixed for the life of the generator. Everything after
+        it is scratch space for a single module, reset by
+        ``reset()`` between runs.
+        """
         self._snmpTypes = set(self.typeClasses.values())
         self._snmpTypes.add("Bits")
         self._rows: set[str] = set()

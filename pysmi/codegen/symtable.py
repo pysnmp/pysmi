@@ -137,6 +137,11 @@ class SymtableCodeGen(AbstractCodeGen):
     fakeidx = 1000  # starting index for fake symbols
 
     def __init__(self) -> None:
+        """Start with empty per-module state.
+
+        Everything here is scratch space for a single module, reset by
+        ``reset()`` between runs.
+        """
         self._rows: set[str] = set()
         self._cols: dict[str, str] = {}  # k, v = name, datatype
         self._exports: set[str] = set()

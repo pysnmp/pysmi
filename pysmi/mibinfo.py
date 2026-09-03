@@ -142,5 +142,10 @@ class MibInfo:
     digest: str = ""
 
     def __init__(self, **kwargs: Any) -> None:
+        """Set the given fields, leaving the rest at their class defaults.
+
+        Every attribute documented above is accepted as a keyword argument, so
+        a reader fills in only what it knows about the MIB it just fetched.
+        """
         for k in kwargs:
             setattr(self, k, kwargs[k])
