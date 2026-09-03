@@ -32,7 +32,6 @@ from pysmi.codegen.base import (
     SequenceClause,
     SymbolsClause,
     TextClause,
-    dorepr,
 )
 from pysmi.mibinfo import MibInfo
 
@@ -625,45 +624,25 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal
-    def gen_def_val(
-        self, data: DefValClause, classmode: bool = False
-    ) -> str | list[Any]:  # XXX should be fixed, see pysnmp.py
-        """Render a DEFVAL as the Python source for that value.
+    def gen_def_val(self, data: DefValClause, classmode: bool = False) -> Any:
+        """Record a DEFVAL as it was written in the MIB.
 
-        Numbers, hexadecimal and binary strings, quoted strings, bit lists and
-        references to other symbols each render differently.
+        The symbol table is what later passes consult to learn an object's base
+        type, so the base type is not yet known here and a default cannot be
+        rendered: the same hexadecimal literal is an octet string for one type
+        and a number for another. The code generators resolve it themselves, in
+        :py:meth:`pysmi.codegen.pysnmp.PySnmpCodeGen.gen_def_val` and
+        :py:meth:`pysmi.codegen.jsondoc.JsonCodeGen.gen_def_val`, once this
+        table is complete.
 
         Args:
             data: converted clause values
             classmode: unused
 
         Returns:
-            Python source for the default value.
+            The default value as written.
         """
-        defval = data[0]
-        val: str | list[Any]
-
-        if isinstance(defval, int):  # number
-            val = str(defval)
-
-        elif self.is_hex(defval):  # hex
-            val = 'hexValue="' + defval[1:-2] + '"'  # not working for Integer baseTypes
-
-        elif self.is_binary(defval):  # binary
-            binval = defval[1:-2]
-            hexval = (binval and hex(int(binval, 2))[2:]) or ""
-            val = 'hexValue="' + hexval + '"'
-
-        elif isinstance(defval, list):  # bits list
-            val = defval
-
-        elif defval[0] == defval[-1] and defval[0] == '"':  # quoted strimg
-            val = dorepr(defval[1:-1])
-
-        else:  # symbol (oid as defval) or name for enumeration member
-            val = defval + ".getName()" if defval in self._out or defval in self._importMap else dorepr(defval)
-
-        return val
+        return data[0]
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def gen_description(self, data: TextClause, classmode: bool = False) -> str:
