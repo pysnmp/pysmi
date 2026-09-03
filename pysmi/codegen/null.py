@@ -4,20 +4,30 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-from pysmi.mibinfo import MibInfo
+"""A code generator that renders nothing."""
+
+import logging
+from typing import Any
+
+from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import AbstractCodeGen
-from pysmi import debug
+from pysmi.mibinfo import MibInfo
+
+logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class NullCodeGen(AbstractCodeGen):
     """Dummy code generation backend.
 
-       Could be used for disabling code generation at *MibCompiler*.
+    Could be used for disabling code generation at *MibCompiler*.
     """
 
-    def genCode(self, ast, symbolTable, **kwargs):
-        debug.logger & debug.flagCodegen and debug.logger('%s invoked' % self.__class__.__name__)
-        return MibInfo(oid=None, name='', imported=[]), ''
+    def gen_code(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
+        """Discard the module and return an empty result."""
+        logger.debug("%s invoked", self.__class__.__name__, extra={"codegen": self.__class__.__name__})
+        return MibInfo(oid=None, name="", imported=[]), ""
 
-    def genIndex(self, mibsMap, **kwargs):
-        return ''
+    def gen_index(self, processed: dict[str, Any], **kwargs: Any) -> str:
+        """Return an empty index."""
+        return ""

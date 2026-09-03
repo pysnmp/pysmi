@@ -1,10 +1,14 @@
-[tool.poetry]
+[project]
 name = "pysnmp-pysmi"
-version = "1.1.12"
-description = ""
-authors = ["rfaircloth-splunk <rfaircloth@splunk.com>"]
+dynamic = ["version"]
+description = "SNMP MIB parser"
+authors = [
+    {name = "Ilya Etingof", email = "etingof@gmail.com"},
+    {name = "rfaircloth-splunk", email = "rfaircloth@splunk.com"},
+]
 license = "BSD-2-Clause"
-repository = "https://github.com/pysnmp/pysmi"
+requires-python = ">=3.10"
+readme = "README.md"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
@@ -14,35 +18,100 @@ classifiers = [
     "Intended Audience :: Telecommunications Industry",
     "Natural Language :: English",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3 :: Only",
     "Topic :: Communications",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-readme = "README.md"
-
-packages = [
-    { include = "pysmi" },
+dependencies = [
+    "ply>=3.11",
+    "requests>=2.31.0",
 ]
-include = ["docs", "tests", "examples", "scripts"]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-ply = "^3.11"
-requests = "^2.31.0"
-
-
-[tool.poetry.dev-dependencies]
-Sphinx = "^4.3.0"
-pysnmp = "^4.4.12"
-pytest = "^7.2.0"
-pytest-cov = "^3.0.0"
-black = "^24.3.0"
-isort = "^5.10.1"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
-
-[tool.poetry.scripts]
+[project.scripts]
 mibcopy = "pysmi.scripts.mibcopy:start"
 mibdump = "pysmi.scripts.mibdump:start"
+
+[project.urls]
+Homepage = "https://github.com/pysnmp/pysmi"
+Repository = "https://github.com/pysnmp/pysmi"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "pysmi/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pysmi"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "S",      # flake8-bandit (security)
+    "SIM",    # flake8-simplify
+    "BLE",    # flake8-blind-except
+    "G",      # flake8-logging-format (keep logging interpolation lazy)
+    "LOG",    # flake8-logging (logger misuse)
+    "FLY",    # flynt (static str.join -> f-string)
+    "RUF",    # ruff-specific rules
+]
+ignore = [
+    "E501",   # line too long (let ruff format handle it)
+    "B028",   # no-explicit-stacklevel (existing pattern)
+    "S603",   # subprocess-without-shell-equals-true (was B603 in bandit)
+    "S607",   # start-process-with-partial-path (was B607 in bandit)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["pysmi"]
+
+# The code generator, lexer, and reader class attributes are shared compatibility
+# tables, not instance defaults. Tests execute the Python they generate.
+[tool.ruff.lint.per-file-ignores]
+"pysmi/codegen/base.py" = ["RUF012"]
+"pysmi/codegen/jsondoc.py" = ["RUF012"]
+"pysmi/codegen/pysnmp.py" = ["RUF012"]
+"pysmi/codegen/symtable.py" = ["RUF012"]
+"pysmi/lexer/smi.py" = ["RUF012"]
+"tests/test_*.py" = ["S102"]
+"tests/test_zipreader.py" = ["RUF012"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["pysmi"]
+ignore_missing_imports = true
+warn_unreachable = true
+# strict_equality caught a live bug where a tuple was compared against a string,
+# so an empty DEFVAL was discarded for every type.
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=pysmi --cov-report=term-missing"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.14",
+    "pysnmplib==6.0.0rc1",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.8",
+    "sphinx>=7.0",
+    "types-requests>=2.33.0",
+]

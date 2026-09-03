@@ -4,18 +4,22 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Relaxations of the SMI grammar.
+
+MIBs in the wild routinely deviate from the standards. Each of these describes
+one set of deviations to tolerate.
+"""
+
+from typing import Any
 
 #
 # Preconfigured sets of parser options.
 # Individual options could be used in certain combinations.
 #
-smiV2 = {}
+smiV2: dict[str, Any] = {}
 
 smiV1 = smiV2.copy()
-smiV1.update(
-    supportSmiV1Keywords=True,
-    supportIndex=True
-)
+smiV1.update(supportSmiV1Keywords=True, supportIndex=True)
 
 smiV1Relaxed = smiV1.copy()
 smiV1Relaxed.update(
@@ -25,5 +29,5 @@ smiV1Relaxed.update(
     uppercaseIdentifier=True,
     lowcaseIdentifier=True,
     curlyBracesAroundEnterpriseInTrap=True,
-    noCells=True
+    noCells=True,
 )

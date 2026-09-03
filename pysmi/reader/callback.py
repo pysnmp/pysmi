@@ -4,40 +4,60 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Reading MIB text from a user-supplied callable."""
+
+import logging
 import time
-from pysmi.reader.base import AbstractReader
-from pysmi.mibinfo import MibInfo
+from collections.abc import Callable
+from typing import Any
+
 from pysmi import error
-from pysmi import debug
+from pysmi._aliases import deprecated_camel_case
+from pysmi.mibinfo import MibInfo
+from pysmi.reader.base import AbstractReader
+
+logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class CallbackReader(AbstractReader):
     """Fetch ASN.1 MIB text by name by calling user-defined callable.
 
     *CallbackReader* class instance tries to retrieve ASN.1 MIB files
     by name and return their contents to caller.
     """
-    def __init__(self, cbFun, cbCtx=None):
+
+    def __init__(self, cbFun: Callable[[str, Any], str], cbCtx: Any = None) -> None:
         """Create an instance of *CallbackReader* bound to specific URL.
 
-           Args:
-               cbFun (callable): user callable accepting *MIB name* and *cbCtx* objects
+        Args:
+            cbFun (callable): user callable accepting *MIB name* and *cbCtx* objects
 
-           Keyword Args:
-               cbCtx (object): user object that can be used to communicate state information
-                   between user-scope code and the *cbFun* callable scope
+        Keyword Args:
+            cbCtx (object): user object that can be used to communicate state information
+                between user-scope code and the *cbFun* callable scope
         """
         self._cbFun = cbFun
         self._cbCtx = cbCtx
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
-    def getData(self, mibname, **options):
-        debug.logger & debug.flagReader and debug.logger(f'calling user callback {self._cbFun} for MIB {mibname}')
+    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+        """Ask the user callback for the MIB source.
+
+        Raises:
+            PySmiReaderFileNotFoundError: the callback returned nothing.
+        """
+        logger.debug(
+            "calling user callback %s for MIB %s",
+            self._cbFun,
+            mibname,
+            extra={"mib": mibname, "callback": str(self._cbFun)},
+        )
 
         res = self._cbFun(mibname, self._cbCtx)
         if res:
-            return MibInfo(path='file:///dev/stdin', file='', name=mibname, mtime=time.time()), res
+            return MibInfo(path="file:///dev/stdin", file="", name=mibname, mtime=time.time()), res
 
         raise error.PySmiReaderFileNotFoundError(mibname=mibname, reader=self)

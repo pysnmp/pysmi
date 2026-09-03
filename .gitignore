@@ -30,3 +30,11 @@ out
 cache
 *.log
 index.*
+report.md
+.DS_Store
+
+# Written by the example scripts when run from the repository.
+.pysnmp-mibs/
+
+# Sphinx output
+docs/build/

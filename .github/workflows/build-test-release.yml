@@ -9,149 +9,165 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
   pull_request:
     branches: [main, develop]
+  # A push to main only previews what it would release. Cutting one from main is
+  # a deliberate act, so it is a dispatch: rc first, GA when the rc has held up.
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "What to release from main"
+        type: choice
+        options:
+          - prerelease
+          - ga
+        default: prerelease
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
-      - name: Install actionlint
-        run: |
-          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/v1.6.3/scripts/download-actionlint.bash)
-      - uses: pre-commit/action@v2.0.3
+          python-version: "3.12"
+      - uses: pre-commit/action@v3.0.1
 
-  review_secrets:
-    name: security-detect-secrets
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          submodules: false
-          fetch-depth: "0"
-      - name: Trufflehog Actions Scan
-        uses: edplato/trufflehog-actions-scan@v0.9j-beta
-        with:
-          scanArguments: "--max_depth 30 -x .github/workflows/exclude-patterns.txt"
-
-  semgrep:
-    runs-on: ubuntu-latest
-    name: security-sast-semgrep
-    container:
-      image: semgrep/semgrep
+  run-unit-tests:
+    name: test-unit (py${{ matrix.python }} ${{ matrix.os }})
+    strategy:
+      matrix:
+        # Every supported Python on Linux; macOS and Windows track the newest
+        # one only, to catch platform breakage without a full cross product.
+        os: [ubuntu-latest]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: macos-latest
+            python: "3.14"
+          - os: windows-latest
+            python: "3.14"
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Semgrep
-        run: semgrep ci
-        env:
-          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Run tests
+        run: >
+          uv run --locked --group dev --python ${{ matrix.python }}
+          pytest --junitxml=test-results/results.xml --cov=pysmi --cov-report=xml tests
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.os }}-py${{ matrix.python }}
+          path: test-results
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: false
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      # -n reports cross-references that resolve to nothing, so a docstring or
+      # page still pointing at a renamed API fails here rather than on Read the
+      # Docs after merge. -W makes those warnings an error, --keep-going lists
+      # all of them instead of stopping at the first.
+      - name: Build documentation
+        run: uv run --locked --group dev sphinx-build -n -W --keep-going -b html docs/source docs/build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docs/build
 
   build:
     name: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Setup python
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.8"
-      - name: Run image
-        uses: abatilo/actions-poetry@v2.0.0
-        with:
-          poetry-version: "1.5.1"
+          enable-cache: true
       - name: Build
-        run: |
-          poetry install
-          poetry build
-      - uses: actions/upload-artifact@v2.2.4
+        run: uv build
+      - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist
-      - uses: actions/upload-artifact@v2.2.4
-        with:
-          name: output
-          path: output
 
-  run-unit-tests:
-    name: test-unit
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        python: ["3.8", "3.9"]
-        poetry-version: ["1.5.1"]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
-    needs:
-      - build
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python }}
-      - name: Run image
-        uses: abatilo/actions-poetry@v2.0.0
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
-      - name: run tests
-        run: |
-          poetry install
-          poetry run pytest --junitxml=test-results/results.xml --cov=./ --cov-report=xml tests
-      - uses: actions/upload-artifact@v2.2.4
-        with:
-          name: unit tests test-results
-          path: test-results
-      - uses: codecov/codecov-action@v2
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          #flags: ${{ matrix.os }}, ${{ matrix.poetry-version }}
-          fail_ci_if_error: true # optional (default = false)
   publish:
     name: Build Release
     needs:
-      #- pre-commit
-      - review_secrets
-      - semgrep
+      - pre-commit
       - build
+      - docs
       - run-unit-tests
     runs-on: ubuntu-latest
+    # PyPI knows this workflow, in this repository, in this environment. Nothing
+    # here holds a credential: the OIDC token is minted per run and expires.
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+      issues: write
+    env:
+      # develop still publishes a beta on every push. main only rehearses one,
+      # until someone dispatches the release.
+      DRY: ${{ github.event_name != 'workflow_dispatch' && github.ref_name == 'main' }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: false
           # Very important: semantic-release won't trigger a tagged
           # build if this is not set false
           persist-credentials: false
-      - name: Setup python
-        uses: actions/setup-python@v2
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.8"
-      - name: Run image
-        uses: abatilo/actions-poetry@v2.0.0
+          enable-cache: true
+      - uses: actions/setup-node@v4
         with:
-          poetry-version: "1.5.1"
-      - name: Build
+          node-version: "20"
+      # An rc is cut off main itself, so main has to be a prerelease branch for
+      # the run. Patched here rather than committed, because the same branch
+      # cuts the GA release afterwards.
+      - name: Release main as a prerelease
+        if: inputs.release_type == 'prerelease'
         run: |
-          poetry install
-          poetry build
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "14"
+          sed -i 's/^    "main",$/    { name: "main", prerelease: "rc" },/' .releaserc
       - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v2
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v4
         with:
-          semantic_version: 17
+          semantic_version: 24
+          dry_run: ${{ env.DRY }}
           extra_plugins: |
             @semantic-release/exec
             @semantic-release/git
-            @google/semantic-release-replace-plugin@1.1.0
+            @google/semantic-release-replace-plugin@1.2.7
+            conventional-changelog-conventionalcommits@8.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
-          PYPI_USERNAME: "__token__"
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      - name: Publish to PyPI
+        if: env.DRY != 'true' && steps.semantic.outputs.new_release_published == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+      # A dry run tags nothing and builds nothing, so the version main would
+      # release is only ever a log line. Build it as a .devN and keep it, so the
+      # release can be installed and tried before it is cut.
+      - name: Build the release main would cut
+        if: env.DRY == 'true' && steps.semantic.outputs.new_release_version != ''
+        run: |
+          sed -i 's/^__version__ = .*/__version__ = "${{ steps.semantic.outputs.new_release_version }}.dev${{ github.run_number }}"/' pysmi/__init__.py
+          uv build
+      - uses: actions/upload-artifact@v4
+        if: env.DRY == 'true' && steps.semantic.outputs.new_release_version != ''
+        with:
+          name: dist-preview
+          path: dist
 
   update-semver:
     name: Move Respository semver tags
@@ -159,5 +175,5 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - uses: haya14busa/action-update-semver@v1

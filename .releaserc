@@ -21,7 +21,13 @@
     },
   ],
   plugins: [
-    "@semantic-release/commit-analyzer",
+    # The default angular preset does not parse the "!" breaking-change
+    # marker at all, so "refactor!:" and "feat!:" were read as no release.
+    [
+      "@semantic-release/commit-analyzer",
+      { preset: "conventionalcommits"
+      },
+    ],
     [
       "@google/semantic-release-replace-plugin",
       {
@@ -41,32 +47,21 @@
               }
             ],
             "countMatches": true
-          },
-          {
-            "files": [
-              "pyproject.toml"
-            ],
-            "from": "version ?=.*",
-            "to": "version = \"${nextRelease.version}\"",
-            "results": [
-              {
-                "file": "pyproject.toml",
-                "hasChanged": true,
-                "numMatches": 1,
-                "numReplacements": 1
-              }
-            ],
-            "countMatches": true
           }
         ]
       }
     ],
-    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/release-notes-generator",
+      { preset: "conventionalcommits"
+      },
+    ],
     [
       "@semantic-release/exec",
       {
+        # Building is all semantic-release does here. The upload is a separate
+        # workflow step, so that PyPI is reached over OIDC and no token exists.
         "prepareCmd": "./.github/workflows/sr-prepare.sh ${nextRelease.version}",
-        "publishCmd": "./.github/workflows/sr-release.sh",
         "shell": "bash"
       },
     ],

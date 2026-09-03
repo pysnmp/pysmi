@@ -1,5 +1,42 @@
-Revision 1.1.12, 03-04-2024
+Revision 2.0.0
+--------------
+
+- Renamed the public API from camelCase to snake_case
+  (``addSources`` becomes ``add_sources``, ``getMibVariants`` becomes
+  ``get_mib_variants``, and so on). Every former name still works and
+  warns with ``DeprecationWarning``; a subclass that overrides a former
+  name is installed under the new one, so existing overrides keep being
+  called
+- Generated MIBs are now reproducible: import and export symbol lists
+  were emitted in ``set`` iteration order, so the same source produced
+  different output from run to run
+- The generated header no longer records the build clock, the
+  interpreter version or the absolute source path. It carries
+  ``Source digest sha256:...`` instead, taken over the ASN.1 text with
+  newlines normalised, so one MIB has one digest on every platform
+- ``MibInfo`` gained a ``digest`` field holding that value
+- The JSON backend now emits the stand-in column it synthesises for an
+  SMIv1 ``INDEX`` naming a bare type, matching the PySNMP backend
+- PySMI no longer imports ``pwd``, so it can be imported on Windows
+
+Revision 1.2.0, 31-08-2026
 --------------------------
+
+- Removed all Python 2 era code patterns and bumped minimum Python
+  version to 3.10
+- Migrated build system from Poetry to UV with the hatchling backend
+- Replaced flake8/black/isort with ruff and pylint (configured in
+  ``pyproject.toml``)
+- Replaced ``sys.exc_info()`` with ``except ... as exc`` and removed
+  ``try/except ImportError`` import shims (``importlib``/``imp``,
+  ``json``/``simplejson``, ``OrderedDict``)
+- Dropped the ``unittest2`` fallback in favor of direct ``unittest``
+  with ``pytest`` as the test runner
+- Updated CLI script shebangs to ``python3`` and refreshed the Copilot
+  instructions to match the new toolchain
+
+Revision 1.1.12, 03-04-2024
+---------------------------
 
 - Fix parsing path on windows
 - Bump jinja2, pycryptodomex and black version

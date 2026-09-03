@@ -4,39 +4,66 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
+"""Building readers from source URLs."""
 
+from typing import Any
 from urllib import parse as urlparse
 from urllib.request import url2pathname
+
+from pysmi import error
+from pysmi.reader.base import AbstractReader
+from pysmi.reader.httpclient import HttpReader
 from pysmi.reader.localfile import FileReader
 from pysmi.reader.zipreader import ZipReader
-from pysmi.reader.httpclient import HttpReader
-from pysmi import error
 
 
-def getReadersFromUrls(*sourceUrls, **options):
-    readers = []
+def getReadersFromUrls(*sourceUrls: str, **options: Any) -> list[AbstractReader]:
+    """Build readers from MIB source URLs.
+
+    The scheme picks the reader: ``http`` and ``https`` give an
+    :py:class:`~pysmi.reader.httpclient.HttpReader`, ``zip`` or a path ending
+    in ``.zip`` a :py:class:`~pysmi.reader.zipreader.ZipReader`, and ``file``
+    or a bare path a :py:class:`~pysmi.reader.localfile.FileReader`.
+
+    Args:
+        sourceUrls (str): URLs to build readers for
+
+    Keyword Args:
+        options: passed to :py:meth:`~pysmi.reader.base.AbstractReader.set_options`
+            on every reader built
+
+    Returns:
+        Readers, in the order their URLs were given.
+
+    Raises:
+        PySmiError: a URL uses a scheme no reader handles.
+    """
+    readers: list[AbstractReader] = []
     for sourceUrl in sourceUrls:
         mibSource = urlparse.urlparse(sourceUrl)
+        scheme = mibSource.scheme
 
-        if mibSource.scheme in ('', 'file', 'zip'):
-            scheme = mibSource.scheme
-            if scheme != 'file' and (mibSource.path.endswith('.zip') or
-                                     mibSource.path.endswith('.ZIP')):
-                scheme = 'zip'
+        # urlparse reads the drive letter of a Windows path as a one-character
+        # scheme, so "C:\mibs" arrives here as scheme "c". No URL scheme is a
+        # single letter, so such a source is a local path and is taken as it
+        # stands: putting it through url2pathname would eat any percent sign.
+        if len(scheme) == 1 and scheme.isalpha():
+            scheme = ""
+            localPath = sourceUrl
+        else:
+            localPath = url2pathname(mibSource.path)
+
+        if scheme in ("", "file", "zip"):
+            if scheme != "file" and (localPath.endswith(".zip") or localPath.endswith(".ZIP")):
+                readers.append(ZipReader(localPath).set_options(**options))
 
             else:
-                scheme = 'file'
+                readers.append(FileReader(localPath).set_options(**options))
 
-            if scheme == 'file':
-                readers.append(FileReader(url2pathname(mibSource.path)).setOptions(**options))
-            else:
-                readers.append(ZipReader(url2pathname(mibSource.path)).setOptions(**options))
-
-        elif mibSource.scheme in ('http', 'https'):
-            readers.append(HttpReader(sourceUrl).setOptions(**options))
+        elif scheme in ("http", "https"):
+            readers.append(HttpReader(sourceUrl).set_options(**options))
 
         else:
-            raise error.PySmiError('Unsupported URL scheme %s' % sourceUrl)
+            raise error.PySmiError(f"Unsupported URL scheme {sourceUrl}")
 
     return readers

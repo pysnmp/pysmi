@@ -19,7 +19,7 @@ This example showcases some of its features:
 
    inputMibs = ['IF-MIB', 'IP-MIB']
 
-   httpSources = [('pysnmp.github.io', 80, '/asn1/@mib@')]
+   httpSources = ['https://pysnmp.github.io/mibs/asn1/@mib@']
 
    # store compiled MIBs by calling this function
    def store_mibs(mibName, jsonDoc, cbCtx):
@@ -31,10 +31,10 @@ This example showcases some of its features:
    )
 
    # pull ASN.1 MIBs over HTTP
-   mibCompiler.addSources(*[HttpReader(*x) for x in httpSources])
+   mibCompiler.add_sources(*[HttpReader(x) for x in httpSources])
 
    # never recompile MIBs with ASN.1 MACROs
-   mibCompiler.addSearchers(StubSearcher(*JsonCodeGen.baseMibs))
+   mibCompiler.add_searchers(StubSearcher(*JsonCodeGen.baseMibs))
 
    status = mibCompiler.compile(*inputMibs)
 
@@ -45,6 +45,34 @@ This example showcases some of its features:
 
    /pysmi/compiler/mibcompiler
    /pysmi/compiler/mibstatus
+
+.. _camel-case-deprecation:
+
+Method naming
+-------------
+
+PySMI's methods were camelCase -- ``addSources``, ``getMibVariants``,
+``putData`` and so on. They are snake_case now, as :pep:`8` calls for:
+``add_sources``, ``get_mib_variants``, ``put_data``.
+
+Every renamed method keeps its old name, so existing code goes on working:
+
+.. code-block:: python
+
+   mibCompiler.addSources(HttpReader(url))   # works, warns
+   mibCompiler.add_sources(HttpReader(url))  # the same thing, quietly
+
+Calling the old name raises a :py:exc:`DeprecationWarning`, which Python hides
+by default. To see where your code still uses the old spelling, run it with
+warnings turned on::
+
+   python -W always::DeprecationWarning your_script.py
+
+The old names will be removed in a future major release.
+
+If you subclass a PySMI class and override a method under its old name, PySMI
+installs your override under the new name and warns, so it still runs. Renaming
+the override silences the warning.
 
 MIB sources
 -----------
@@ -77,7 +105,7 @@ Such cases include:
 name based on whatever reason it is aware of.
 
 In general, *searcher* logic is specific to target format. At the time being,
-only `pysnmp <http://snmplabs.com/pysnmp>`_ code generation backend requires
+only `pysnmp <https://github.com/pysnmp/pysnmp>`_ code generation backend requires
 such filtering.
 
 .. toctree::
@@ -114,6 +142,7 @@ AST into desired representation of the MIB.
    /pysmi/codegen/jsondoc/jsoncodegen
    /pysmi/codegen/pysnmp/pysnmpcodegen
    /pysmi/codegen/null/nullcodegen
+   /pysmi/codegen/symtable/symtablecodegen
 
 Borrow pre-compiled MIBs
 ------------------------
@@ -143,6 +172,29 @@ object given to :ref:`MibCompiler <compiler.MibCompiler>` on instantiation.
    /pysmi/writer/pyfile/pyfilewriter
    /pysmi/writer/callback/callbackwriter
 
+Extending PySMI
+---------------
+
+Each stage of the compiler is defined by a small interface, so a MIB source,
+searcher, parser, code generator or writer of your own can be dropped in
+beside the ones PySMI ships.
+
+.. toctree::
+   :maxdepth: 2
+
+   /pysmi/extending
+
+Exceptions
+----------
+
+Every stage reports failure by raising an exception of its own, all of them
+derived from a single base class.
+
+.. toctree::
+   :maxdepth: 2
+
+   /pysmi/error
+
 Examples
 --------
 
@@ -165,5 +217,40 @@ and watch the output:
 
    from pysmi import debug
 
-   debug.setLogger(debug.Debug('all'))
+   debug.enableDebugLogging('all')
+
+Pass the names of the subsystems you are interested in to keep the
+output down, prefixing a name with ``!`` to leave that one out:
+
+.. code-block:: python
+
+   debug.enableDebugLogging('reader', 'compiler')
+   debug.enableDebugLogging('all', '!grammar')
+
+PySMI logs through the standard :mod:`logging` module, and each
+subsystem logs to the logger named after its package, so an
+application that already configures logging can select and route
+this output itself without going through PySMI at all:
+
+.. code-block:: python
+
+   import logging
+
+   logging.getLogger('pysmi.compiler').setLevel(logging.DEBUG)
+
+Messages carry their variable parts as structured fields on the log
+record -- the name of the MIB being worked on as ``mib``, the file
+being read or written as ``path``, and so on -- so a handler can pick
+them out individually:
+
+.. code-block:: python
+
+   class MibHandler(logging.Handler):
+       def emit(self, record):
+           print(record.getMessage(), getattr(record, 'mib', None))
+
+.. note::
+
+   ``debug.setLogger()`` and ``debug.Debug()`` still work, but are
+   deprecated in favour of ``debug.enableDebugLogging()``.
 

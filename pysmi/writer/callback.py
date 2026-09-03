@@ -4,23 +4,31 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-import sys
-from pysmi.writer.base import AbstractWriter
-from pysmi import debug
+"""Passing transformed modules to a user-supplied callable."""
+
+import logging
+from collections.abc import Callable
+from typing import Any
+
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
+from pysmi.writer.base import AbstractWriter
+
+logger = logging.getLogger(__name__)
 
 
+@deprecated_camel_case
 class CallbackWriter(AbstractWriter):
     """Invokes user-specified callable and passes transformed
-       MIB module to it.
+    MIB module to it.
 
-       Note: user callable object signature must be as follows
+    Note: user callable object signature must be as follows
 
-       .. function:: cbFun(mibname, contents, cbCtx)
+    .. function:: cbFun(mibname, contents, cbCtx)
 
     """
 
-    def __init__(self, cbFun, cbCtx=None):
+    def __init__(self, cbFun: Callable[[str, str, Any], Any], cbCtx: Any = None) -> None:
         """Creates an instance of *CallbackWriter* class.
 
         Args:
@@ -31,22 +39,31 @@ class CallbackWriter(AbstractWriter):
         self._cbFun = cbFun
         self._cbCtx = cbCtx
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
-    def putData(self, mibname, data, comments=(), dryRun=False):
+    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+        """Hand the generated MIB to the user callback.
+
+        Raises:
+            PySmiWriterError: the callback raised.
+        """
         if dryRun:
-            debug.logger & debug.flagWriter and debug.logger('dry run mode')
+            logger.debug("dry run mode", extra={"mib": mibname})
             return
 
         try:
             self._cbFun(mibname, data, self._cbCtx)
 
-        except Exception:
+        # The callback is arbitrary user code, so anything it raises is turned
+        # into a writer error rather than escaping as itself.
+        except Exception as exc:
             raise error.PySmiWriterError(
-                f'user callback {self._cbFun} failure writing {mibname}: {sys.exc_info()[1]}', writer=self)
+                f"user callback {self._cbFun} failure writing {mibname}: {exc}", writer=self
+            ) from exc
 
-        debug.logger & debug.flagWriter and debug.logger('user callback for %s succeeded' % mibname)
+        logger.debug("user callback for %s succeeded", mibname, extra={"mib": mibname})
 
-    def getData(self, filename):
-        return ''
+    def get_data(self, filename: str) -> str:
+        """Return an empty string; a callback writer stores nothing to read back."""
+        return ""

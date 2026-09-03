@@ -4,67 +4,73 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
+"""Storing transformed modules as Python files, optionally byte-compiled."""
+
+import contextlib
+import importlib.machinery
+import logging
 import os
-import sys
-import tempfile
 import py_compile
+import tempfile
+from typing import Final
 
-try:
-    import importlib
-
-    try:
-        SOURCE_SUFFIXES = importlib.machinery.SOURCE_SUFFIXES
-
-    except Exception:
-        raise ImportError()
-
-except ImportError:
-    import imp
-
-    SOURCE_SUFFIXES = [s[0] for s in imp.get_suffixes()
-                       if s[2] == imp.PY_SOURCE]
-
-from pysmi.writer.base import AbstractWriter
-from pysmi.compat import encode, decode
-from pysmi import debug
 from pysmi import error
+from pysmi._aliases import deprecated_camel_case
+from pysmi.compat import decode, encode
+from pysmi.writer.base import AbstractWriter
+
+logger = logging.getLogger(__name__)
+
+SOURCE_SUFFIXES: Final = importlib.machinery.SOURCE_SUFFIXES
 
 
+@deprecated_camel_case
 class PyFileWriter(AbstractWriter):
     """Stores transformed MIB modules as Python files at specified location.
 
-       User is expected to pass *PyFileWriter* class instance to
-       *MibCompiler* on instantiation. The rest is internal to *MibCompiler*.
+    User is expected to pass *PyFileWriter* class instance to
+    *MibCompiler* on instantiation. The rest is internal to *MibCompiler*.
     """
+
     pyCompile = True
     pyOptimizationLevel = -1
 
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         """Creates an instance of *PyFileWriter* class.
 
-           Args:
-               path: writable directory to store Python modules
+        Args:
+            path: writable directory to store Python modules
         """
         self._path = decode(os.path.normpath(path))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def putData(self, mibname, data, comments=(), dryRun=False):
+    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+        """Write the generated MIB as a Python module.
+
+        Comments are rendered as a module docstring. The module is also
+        byte-compiled when ``pyCompile`` is set, which it is by default; a
+        module that fails to compile is removed rather than left behind.
+
+        Raises:
+            PySmiWriterError: the module could not be written or compiled.
+        """
         if dryRun:
-            debug.logger & debug.flagWriter and debug.logger('dry run mode')
+            logger.debug("dry run mode", extra={"mib": mibname})
             return
 
         if not os.path.exists(self._path):
             try:
                 os.makedirs(self._path)
 
-            except OSError:
+            except OSError as exc:
                 raise error.PySmiWriterError(
-                    f'failure creating destination directory {self._path}: {sys.exc_info()[1]}', writer=self)
+                    f"failure creating destination directory {self._path}: {exc}", writer=self
+                ) from exc
 
         if comments:
-            data = '#\n' + ''.join(['# %s\n' % x for x in comments]) + '#\n' + data
+            data = "#\n" + "".join([f"# {x}\n" for x in comments]) + "#\n" + data
 
         pyfile = os.path.join(self._path, decode(mibname))
         pyfile += SOURCE_SUFFIXES[0]
@@ -77,18 +83,14 @@ class PyFileWriter(AbstractWriter):
             os.close(fd)
             os.rename(tfile, pyfile)
 
-        except (OSError, UnicodeEncodeError):
-            exc = sys.exc_info()
+        except (OSError, UnicodeEncodeError) as exc:
             if tfile:
-                try:
+                with contextlib.suppress(OSError):
                     os.unlink(tfile)
 
-                except OSError:
-                    pass
+            raise error.PySmiWriterError(f"failure writing file {pyfile}: {exc}", file=pyfile, writer=self) from exc
 
-            raise error.PySmiWriterError(f'failure writing file {pyfile}: {exc[1]}', file=pyfile, writer=self)
-
-        debug.logger & debug.flagWriter and debug.logger('created file %s' % pyfile)
+        logger.debug("created file %s", pyfile, extra={"mib": mibname, "path": pyfile})
 
         if self.pyCompile:
             try:
@@ -97,16 +99,15 @@ class PyFileWriter(AbstractWriter):
             except (SyntaxError, py_compile.PyCompileError):
                 pass  # XXX
 
-            except:
-                try:
+            # Whatever py_compile failed with, the half-written file has to go.
+            except Exception as exc:
+                with contextlib.suppress(OSError):
                     os.unlink(pyfile)
-                except Exception:
-                    pass
 
-                raise error.PySmiWriterError(f'failure compiling {pyfile}: {sys.exc_info()[1]}', file=mibname, writer=self)
+                raise error.PySmiWriterError(f"failure compiling {pyfile}: {exc}", file=mibname, writer=self) from exc
 
-        debug.logger & debug.flagWriter and debug.logger('%s stored' % mibname)
+        logger.debug("%s stored", mibname, extra={"mib": mibname})
 
-    def getData(self, filename):
-        return ''
-
+    def get_data(self, filename: str) -> str:
+        """Return an empty string; compiled modules are not read back."""
+        return ""

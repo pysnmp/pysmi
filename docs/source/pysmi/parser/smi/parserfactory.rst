@@ -18,6 +18,8 @@ be called with the :ref:`SMI dialect object <parser.smi.dialect>`.
 
 The parser object should be passed to the :ref:`MibCompiler <compiler.MibCompiler>` object.
 
+.. autoclass:: pysmi.parser.smi.SmiV2Parser
+
 .. autofunction:: pysmi.parser.smi.parserFactory
 
 .. note::
