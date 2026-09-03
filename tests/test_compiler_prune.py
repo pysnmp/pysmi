@@ -124,6 +124,53 @@ class MibCompilerPruneTestCase(unittest.TestCase):
         self.assertEqual("pruned", processed["MIB-A"])
         self.assertEqual("untouched", processed["MIB-B"])
 
+    def testAnUnreadableSourceWithoutIgnoreErrorsRaises(self):
+        class BrokenReader:
+            def get_data(self, mibname, **options):
+                raise error.PySmiError("reader is down")
+
+            def clear_cache(self):
+                pass
+
+            def __str__(self):
+                return "BrokenReader"
+
+        compiler = MibCompiler(SmiV1CompatParser(), JsonCodeGen(), self.writer)
+        compiler.add_sources(BrokenReader())
+
+        with self.assertRaises(error.PySmiError):
+            compiler.prune()
+
+    def testAWriterThatFailsToRemoveIsReportedAsFailedWithIgnoreErrors(self):
+        class FailingDeleteWriter(FileWriter):
+            def del_data(self, mibname, dryRun=False):
+                raise error.PySmiWriterError(f"cannot remove {mibname}", writer=self)
+
+        os.unlink(os.path.join(self.src, "MIB-B"))
+
+        writer = FailingDeleteWriter(self.dst).set_options(suffix=".json")
+        compiler = MibCompiler(SmiV1CompatParser(), JsonCodeGen(), writer)
+        compiler.add_sources(FileReader(self.src))
+
+        processed = compiler.prune(ignoreErrors=True)
+
+        self.assertEqual("failed", processed["MIB-B"])
+        self.assertIn("MIB-B.json", os.listdir(self.dst))
+
+    def testAWriterThatFailsToRemoveRaisesWithoutIgnoreErrors(self):
+        class FailingDeleteWriter(FileWriter):
+            def del_data(self, mibname, dryRun=False):
+                raise error.PySmiWriterError(f"cannot remove {mibname}", writer=self)
+
+        os.unlink(os.path.join(self.src, "MIB-B"))
+
+        writer = FailingDeleteWriter(self.dst).set_options(suffix=".json")
+        compiler = MibCompiler(SmiV1CompatParser(), JsonCodeGen(), writer)
+        compiler.add_sources(FileReader(self.src))
+
+        with self.assertRaises(error.PySmiError):
+            compiler.prune()
+
 
 if __name__ == "__main__":
     unittest.main()
