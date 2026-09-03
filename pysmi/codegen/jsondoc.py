@@ -18,6 +18,7 @@ from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
     ComplianceClause,
+    ComplianceRefinement,
     DefValClause,
     IndexClause,
     NamedNumbersClause,
@@ -444,8 +445,13 @@ class JsonCodeGen(AbstractCodeGen):
         outDict["oid"] = oidStr
         outDict["class"] = "modulecompliance"
 
+        compliances, refinements = compliances or ([], [])
+
         if compliances:
             outDict["modulecompliance"] = compliances
+
+        if refinements:
+            outDict["refinements"] = refinements
 
         if status:
             outDict["status"] = status
@@ -821,22 +827,98 @@ class JsonCodeGen(AbstractCodeGen):
         return "scalar", outDict
 
     # noinspection PyUnusedLocal
-    def gen_compliances(self, data: ComplianceClause) -> list[Any]:
-        """Render the objects a MODULE-COMPLIANCE clause requires.
+    def gen_compliances(self, data: ComplianceClause) -> tuple[list[Any], list[Any]]:
+        """Render what a MODULE-COMPLIANCE requires, and how it refines it.
 
         Args:
             data: converted clause values
 
         Returns:
-            One entry per required object, naming the object and its module.
+            The objects the compliance requires, one entry each naming the
+            object and its module, and the GROUP and OBJECT sub-clauses that
+            qualify them.
         """
         compliances = []
+        refinements = []
 
         for complianceModule in data[0]:
             name = complianceModule[0] or self.moduleName[0]
             compliances += [{"object": self.trans_opers(compl), "module": name} for compl in complianceModule[1]]
 
-        return compliances
+            for refinement in complianceModule[2][1]:
+                rendered = self.gen_compliance_refinement(name, refinement)
+                if rendered:
+                    refinements.append(rendered)
+
+        return compliances, refinements
+
+    def gen_compliance_refinement(
+        self, module: str, refinement: ComplianceRefinement
+    ) -> "OrderedDict[str, Any] | None":
+        """Render one GROUP or OBJECT sub-clause of a MODULE-COMPLIANCE.
+
+        Args:
+            module: the module the sub-clause names, already defaulted
+            refinement: the tagged sub-clause
+
+        Returns:
+            The sub-clause as a JSON object, or ``None`` when its texts are
+            suppressed and it refines nothing.
+        """
+        outDict: OrderedDict[str, Any] = OrderedDict()
+        outDict["module"] = module
+
+        if refinement[0] == "ComplianceGroup":
+            outDict["object"] = self.trans_opers(refinement[1])
+            outDict["kind"] = "group"
+
+            # A GROUP says nothing but the condition it applies under, so
+            # without its description there is nothing left to report.
+            if not self.genRules["text"]:
+                return None
+
+            outDict["description"] = self.textFilter("description", refinement[2])
+
+            return outDict
+
+        _tag, name, syntax, writeSyntax, minAccess, description = refinement
+
+        outDict["object"] = self.trans_opers(name[1][0])
+        outDict["kind"] = "object"
+
+        if syntax:
+            outDict["syntax"] = self.gen_refined_syntax(syntax)
+
+        if writeSyntax:
+            outDict["writesyntax"] = self.gen_refined_syntax(writeSyntax[1])
+
+        if minAccess:
+            outDict["minaccess"] = minAccess[1]
+
+        if self.genRules["text"] and description:
+            outDict["description"] = self.textFilter("description", description)
+
+        return outDict
+
+    def gen_refined_syntax(self, syntax: Any) -> Any:
+        """Render the SYNTAX of a compliance refinement as an object type does.
+
+        The syntax handlers return the node type alongside the type itself,
+        which a refinement has no use for -- it names an existing object
+        rather than declaring a new one.
+
+        Args:
+            syntax: the unconverted syntax subtree
+
+        Returns:
+            The type as a JSON object.
+        """
+        rendered = self.prep_data([syntax])[0]
+
+        if isinstance(rendered, tuple) and len(rendered) == 2:
+            return rendered[1]
+
+        return rendered
 
     # noinspection PyUnusedLocal
     def gen_conceptual_table(self, data: Any) -> tuple[Any, ...]:

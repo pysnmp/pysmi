@@ -338,9 +338,12 @@ class ClauseTypeTestCase(unittest.TestCase):
         self.assertFalse(conforms([[("202601010000Z", "text")]], RevisionsClause))
 
         # The module name is absent when the clause means the current module.
-        self.assertTrue(conforms([[(None, ["aGroup"])]], ComplianceClause))
-        self.assertTrue(conforms([[("SNMPv2-MIB", ["aGroup"])]], ComplianceClause))
-        self.assertFalse(conforms([[(None, "aGroup")]], ComplianceClause))
+        # The third element carries the sub-clause detail the name list drops.
+        group = ("ComplianceGroup", "aGroup", "applies when...")
+        self.assertTrue(conforms([[(None, ["aGroup"], (["aGroup"], []))]], ComplianceClause))
+        self.assertTrue(conforms([[("SNMPv2-MIB", ["aGroup"], ([], [group]))]], ComplianceClause))
+        self.assertFalse(conforms([[(None, "aGroup", ([], []))]], ComplianceClause))
+        self.assertFalse(conforms([[(None, ["aGroup"])]], ComplianceClause))
 
         self.assertTrue(conforms(["a text"], TextClause))
         self.assertFalse(conforms("a text", TextClause))
