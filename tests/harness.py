@@ -49,10 +49,21 @@ def render_json(mib, deps=(), genTexts=True, **dialect):
     return json.loads(doc)
 
 
-def render_pysnmp(mib, deps=(), genTexts=True, **dialect):
-    """Compile *mib* through the pysnmp backend and execute the generated module."""
+def render_source(mib, deps=(), genTexts=True, **dialect):
+    """Compile *mib* through the pysnmp backend and hand back the source.
+
+    The generated module is the product. ``render_pysnmp`` hands back only what
+    executing it built, which cannot show how a line was written -- whether a
+    setter carries its ``mibBuilder.loadTexts`` guard, say.
+    """
     ast, _, table = symbol_table(mib, deps=deps, genTexts=genTexts, **dialect)
     _, pycode = PySnmpCodeGen().gen_code(ast, table, genTexts=genTexts)
+    return pycode
+
+
+def render_pysnmp(mib, deps=(), genTexts=True, **dialect):
+    """Compile *mib* through the pysnmp backend and execute the generated module."""
+    pycode = render_source(mib, deps=deps, genTexts=genTexts, **dialect)
 
     mibBuilder = MibBuilder()
     mibBuilder.loadTexts = genTexts
