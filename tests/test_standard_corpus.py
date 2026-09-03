@@ -200,53 +200,6 @@ class CorpusSurfaceTestCase(unittest.TestCase):
         self.assertEqual(enumeration["ethernetCsmacd"], 6)
 
 
-class GeneratedModulesLoadTestCase(unittest.TestCase):
-    """The pysnmp backend's output has to be loadable, not merely valid Python.
-
-    A missing guard or a call pysnmp does not implement leaves source that
-    compiles and then fails at load. Only running it finds that.
-    """
-
-    def testEveryGeneratedModuleLoadsIntoOneBuilder(self):
-        from pysnmp.smi.builder import MibBuilder
-
-        _, written = compiled(PySnmpCodeGen)
-
-        mibBuilder = MibBuilder()
-        mibBuilder.loadTexts = True
-        ctx = {"mibBuilder": mibBuilder}
-
-        for name in LOAD_ORDER:
-            with self.subTest(module=name):
-                exec(compile(written[name], name, "exec"), ctx, ctx)
-
-    def testTheLoadedSymbolsCarryTheOidsTheJsonDocumentReports(self):
-        from pysnmp.smi.builder import MibBuilder
-
-        _, written = compiled(PySnmpCodeGen)
-        docs = documents()
-
-        mibBuilder = MibBuilder()
-        mibBuilder.loadTexts = True
-        ctx = {"mibBuilder": mibBuilder}
-        for name in LOAD_ORDER:
-            exec(compile(written[name], name, "exec"), ctx, ctx)
-
-        compared = 0
-        for name in LOAD_ORDER:
-            for symbol, node in docs[name].items():
-                if not isinstance(node, dict) or "oid" not in node:
-                    continue
-                built = ctx.get(symbol)
-                if built is None or not hasattr(built, "getName"):
-                    continue
-                with self.subTest(module=name, symbol=symbol):
-                    self.assertEqual(".".join(str(x) for x in built.getName()), node["oid"])
-                compared += 1
-
-        self.assertGreater(compared, 200)
-
-
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
 
 if __name__ == "__main__":

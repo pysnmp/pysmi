@@ -16,7 +16,7 @@ The pysnmp backend still emits only the names, because pysnmp's
 
 import unittest
 
-from tests.harness import render, render_json
+from tests.harness import render_json, render_source
 
 MIB = """
 TEST-MIB DEFINITIONS ::= BEGIN
@@ -97,7 +97,8 @@ PLAIN_MIB = MIB.replace(
 
 class RefinementTestCase(unittest.TestCase):
     def setUp(self):
-        self.doc, self.ctx = render(MIB)
+        self.doc = render_json(MIB)
+        self.source = render_source(MIB)
         self.refinements = self.doc["testCompliance"]["refinements"]
 
     def testWhatTheComplianceRequiresIsUnchanged(self):
@@ -160,15 +161,17 @@ class RefinementTestCase(unittest.TestCase):
     def testTheTwoKindsAreDistinguishable(self):
         self.assertEqual([r["kind"] for r in self.refinements], ["group", "object", "object"])
 
-    def testPysnmpStillCarriesOnlyTheNames(self):
+    def testTheGeneratedSourceStillCarriesOnlyTheNames(self):
         # pysnmp's ModuleCompliance has no attribute for any of this, so the
         # pysnmp backend deliberately emits none of it. See pysnmp/pysnmp#133.
-        compliance = self.ctx["testCompliance"]
-        self.assertEqual(
-            compliance.getObjects(),
-            (("TEST-MIB", "testGroup"), ("TEST-MIB", "conditionalGroup")),
+        self.assertIn(
+            "testCompliance = ModuleCompliance((1, 3, 5)).setObjects("
+            '("TEST-MIB", "testGroup"), ("TEST-MIB", "conditionalGroup"))',
+            self.source,
         )
-        self.assertFalse(hasattr(compliance, "getRefinements"))
+        for dropped in ("minaccess", "writesyntax", "setRefinements"):
+            with self.subTest(clause=dropped):
+                self.assertNotIn(dropped, self.source)
 
 
 class WithoutRefinementsTestCase(unittest.TestCase):

@@ -18,7 +18,7 @@ import logging
 import sys
 import unittest
 
-from tests.harness import render
+from tests.harness import render_json, render_source
 
 MIB = """
 TEST-MIB DEFINITIONS ::= BEGIN
@@ -45,29 +45,34 @@ REVISION = """    REVISION     "%s"
 def module(lastUpdated="202401011200Z", revisions=()):
     """Render a MODULE-IDENTITY carrying the given dates."""
     body = "".join(REVISION % r for r in revisions)
-    doc, ctx = render(MIB % (lastUpdated, body), deps=())
-    return doc["testModule"], ctx["testModule"]
+    mib = MIB % (lastUpdated, body)
+    return render_json(mib, deps=())["testModule"], render_source(mib, deps=())
 
 
 class RevisionDateTestCase(unittest.TestCase):
     """A REVISION is normalised; both ExtUTCTime lengths are understood."""
 
     def testThirteenCharacterForm(self):
-        doc, ctx = module(revisions=[("202401011200Z", "recent")])
+        doc, source = module(revisions=[("202401011200Z", "recent")])
         self.assertEqual(doc["revisions"], [{"revision": "2024-01-01 12:00", "description": "recent"}])
-        self.assertEqual(ctx.getRevisions(), ("2024-01-01 12:00",))
+        self.assertIn("testModule.setRevisions(('2024-01-01 12:00',))", source)
 
     def testElevenCharacterFormExpandsToTheNineteenHundreds(self):
         doc, _ = module(revisions=[("9902012359Z", "old")])
         self.assertEqual(doc["revisions"][0]["revision"], "1999-02-01 23:59")
 
     def testEveryRevisionIsKeptInSourceOrder(self):
-        doc, ctx = module(revisions=[("202401011200Z", "third"), ("200001010000Z", "second"), ("9901010000Z", "first")])
+        doc, source = module(
+            revisions=[("202401011200Z", "third"), ("200001010000Z", "second"), ("9901010000Z", "first")]
+        )
         self.assertEqual(
             [r["revision"] for r in doc["revisions"]],
             ["2024-01-01 12:00", "2000-01-01 00:00", "1999-01-01 00:00"],
         )
-        self.assertEqual(len(ctx.getRevisions()), 3)
+        self.assertIn(
+            "testModule.setRevisions(('2024-01-01 12:00', '2000-01-01 00:00', '1999-01-01 00:00',))",
+            source,
+        )
 
     def testDescriptionTravelsWithItsRevision(self):
         doc, _ = module(revisions=[("202401011200Z", "newer"), ("200001010000Z", "older")])
@@ -98,9 +103,9 @@ class LastUpdatedTestCase(unittest.TestCase):
     """
 
     def testThirteenCharacterFormIsReformatted(self):
-        doc, ctx = module(lastUpdated="202401011200Z")
+        doc, source = module(lastUpdated="202401011200Z")
         self.assertEqual(doc["lastupdated"], "2024-01-01 12:00")
-        self.assertEqual(ctx.getLastUpdated(), "2024-01-01 12:00")
+        self.assertIn("testModule.setLastUpdated('2024-01-01 12:00')", source)
 
     def testElevenCharacterFormExpandsToTheNineteenHundreds(self):
         doc, _ = module(lastUpdated="9912312359Z")

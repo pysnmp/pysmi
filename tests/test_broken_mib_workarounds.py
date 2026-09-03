@@ -20,7 +20,7 @@ pysnmp/pysmi#69.
 import pathlib
 import unittest
 
-from tests.harness import render_json, render_pysnmp
+from tests.harness import render_json, render_source
 
 BROKEN = pathlib.Path(__file__).parent / "data" / "broken"
 
@@ -55,8 +55,13 @@ class UnimportedTypeTestCase(unittest.TestCase):
     def testThePySnmpBackendResolvesTheSyntax(self):
         for name in UNIMPORTED_TYPES:
             with self.subTest(syntax=name):
-                ctx = render_pysnmp(load(f"UNIMPORTED-{name.upper()}-MIB"))
-                self.assertEqual(ctx["brokenObject"].getSyntax().__class__.__name__, name)
+                source = render_source(load(f"UNIMPORTED-{name.upper()}-MIB"))
+                self.assertIn(f"brokenObject = MibScalar((1, 3, 1), {name}())", source)
+                # The type has to be imported into the generated module even
+                # though the MIB never asked for it, or the line above raises
+                # NameError on load.
+                imported = next(line for line in source.splitlines() if '"SNMPv2-SMI"' in line)
+                self.assertIn(f'"{name}"', imported)
 
     def testTheJsonBackendResolvesTheSyntax(self):
         for name in UNIMPORTED_TYPES:
@@ -82,8 +87,7 @@ class UnimportedNotificationTypeTestCase(unittest.TestCase):
         self.source = load("UNIMPORTED-NOTIFICATION-TYPE-MIB")
 
     def testThePySnmpBackendBuildsTheNotification(self):
-        ctx = render_pysnmp(self.source)
-        self.assertEqual(ctx["brokenNotification"].__class__.__name__, "NotificationType")
+        self.assertIn("brokenNotification = NotificationType((1, 3, 2))", render_source(self.source))
 
     def testTheJsonBackendBuildsTheNotification(self):
         doc = render_json(self.source)

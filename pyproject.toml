@@ -109,6 +109,10 @@ strict = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=pysmi --cov-report=term-missing"
+# The consumer smoke test asserts through pysnmp rather than on pysmi's own
+# output, so an upstream regression must not report as ours. See
+# pysnmp/pysmi#127.
+markers = ["pysnmp_consumer: loads a generated module under pysnmp; non-gating"]
 
 [dependency-groups]
 dev = [

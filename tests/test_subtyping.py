@@ -17,7 +17,7 @@ real MIBs contain them and tolerating them is correct here. See pysnmp/pysmi#88.
 import sys
 import unittest
 
-from tests.harness import render
+from tests.harness import render_json, render_source
 from tests.mibs import SNMPV2_SMI, SNMPV2_TC
 
 DEPS = (SNMPV2_SMI, SNMPV2_TC)
@@ -42,9 +42,10 @@ END
 
 
 def constraints(syntax):
-    """Return the JSON constraints and the pysnmp subtype spec for one SYNTAX."""
-    doc, ctx = render(MIB % syntax, deps=DEPS)
-    return doc["testObject"]["syntax"].get("constraints"), ctx["testObject"].getSyntax().subtypeSpec
+    """Return the JSON constraints and the emitted syntax expression for one SYNTAX."""
+    doc = render_json(MIB % syntax, deps=DEPS)
+    line = next(x for x in render_source(MIB % syntax, deps=DEPS).splitlines() if x.startswith("testObject ="))
+    return doc["testObject"]["syntax"].get("constraints"), line
 
 
 class RangeBoundsTestCase(unittest.TestCase):
@@ -53,7 +54,7 @@ class RangeBoundsTestCase(unittest.TestCase):
     def testNegativeLowerBound(self):
         json, spec = constraints("Integer32 (-20..100)")
         self.assertEqual(json, {"range": [{"min": -20, "max": 100}]})
-        self.assertIn("consts -20, 100", repr(spec))
+        self.assertIn("Integer32().subtype(subtypeSpec=ValueRangeConstraint(-20, 100))", spec)
 
     def testHexadecimalBoundsBecomeNumbers(self):
         json, _ = constraints("Integer32 ('0F'H..'FF'H)")
@@ -78,23 +79,26 @@ class SizeConstraintTestCase(unittest.TestCase):
     def testSingleSizeRange(self):
         json, spec = constraints("OCTET STRING (SIZE(0..255))")
         self.assertEqual(json, {"size": [{"min": 0, "max": 255}]})
-        self.assertIn("consts 0, 255", repr(spec))
+        self.assertIn("OctetString().subtype(subtypeSpec=ValueSizeConstraint(0, 255))", spec)
 
     def testAlternationOfExactSizes(self):
         # The DateAndTime shape from RFC 2579.
         json, _ = constraints("OCTET STRING (SIZE(0 | 8 | 11))")
         self.assertEqual(json, {"size": [{"min": 0, "max": 0}, {"min": 8, "max": 8}, {"min": 11, "max": 11}]})
 
-    def testTextualConventionKeepsItsOwnSizeAndTheRefinement(self):
+    def testARefinementIsIntersectedWithTheConventionRatherThanReplacingIt(self):
+        # DisplayString carries SIZE(0..255) of its own. .subtype() intersects
+        # the refinement with it; .clone(subtypeSpec=...) would replace it and
+        # silently widen every value the convention already excluded.
         json, spec = constraints("DisplayString (SIZE(0..32))")
         self.assertEqual(json, {"size": [{"min": 0, "max": 32}]})
-        self.assertIn("consts 0, 255", repr(spec))
-        self.assertIn("consts 0, 32", repr(spec))
+        self.assertIn("DisplayString().subtype(subtypeSpec=ValueSizeConstraint(0, 32))", spec)
+        self.assertNotIn(".clone(subtypeSpec=", spec)
 
     def testTypeNameSurvivesTheRefinement(self):
-        doc, ctx = render(MIB % "DisplayString (SIZE(0..32))", deps=DEPS)
+        doc = render_json(MIB % "DisplayString (SIZE(0..32))", deps=DEPS)
         self.assertEqual(doc["testObject"]["syntax"]["type"], "DisplayString")
-        self.assertEqual(ctx["testObject"].getSyntax().__class__.__name__, "DisplayString")
+        self.assertIn("DisplayString().subtype(", render_source(MIB % "DisplayString (SIZE(0..32))", deps=DEPS))
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

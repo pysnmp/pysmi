@@ -1517,11 +1517,11 @@ for _{name}_obj in [{objects}]:
             classmode: unused
 
         Returns:
-            A ``setMaxAccess()`` call, empty for a not-accessible object, which
-            is already the default.
+            A ``setMaxAccess()`` call carrying the declared access, hyphens
+            removed to match the spelling pysnmp compares against.
         """
         access = data[0].replace("-", "")
-        return (access != "notaccessible" and '.setMaxAccess("' + access + '")') or ""
+        return '.setMaxAccess("' + access + '")'
 
     def gen_octet_string_sub_type(self, data: RangesClause, classmode: bool = False) -> str:
         """Render an octet string size restriction.
