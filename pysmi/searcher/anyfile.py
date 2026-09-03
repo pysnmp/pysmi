@@ -36,6 +36,7 @@ class AnyFileSearcher(AbstractSearcher):
         self._path = os.path.normpath(decode(path))
 
     def __str__(self) -> str:
+        """Identify this searcher by the directory it looks in."""
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:

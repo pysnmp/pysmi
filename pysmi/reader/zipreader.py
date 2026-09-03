@@ -140,6 +140,7 @@ class ZipReader(AbstractReader):
         return dataObj if dataObj is not None else "", mtime
 
     def __str__(self) -> str:
+        """Identify this reader by the archive it reads members from."""
         return f'{self.__class__.__name__}{{"{self._name}"}}'
 
     def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:

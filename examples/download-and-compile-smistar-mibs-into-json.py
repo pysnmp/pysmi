@@ -26,6 +26,7 @@ httpSources = ["https://pysnmp.github.io/mibs/asn1/@mib@"]
 
 
 def printOut(mibName, jsonDoc, cbCtx):
+    """Print the JSON document the compiler produced for *mibName*."""
     print(f"\n\n# MIB module {mibName}")
     print(jsonDoc)
 

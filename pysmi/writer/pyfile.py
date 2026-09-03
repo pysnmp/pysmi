@@ -46,6 +46,7 @@ class PyFileWriter(AbstractWriter):
         self._path = decode(os.path.normpath(path))
 
     def __str__(self) -> str:
+        """Identify this writer by the directory it stores modules in."""
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:

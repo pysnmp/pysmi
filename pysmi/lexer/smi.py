@@ -196,6 +196,12 @@ class SmiV2Lexer(AbstractLexer):
     t_ignore = " \t"
 
     def __init__(self, tempdir: str = "") -> None:
+        """Build the lexer, optionally caching its tables on disk.
+
+        Args:
+            tempdir (str): directory PLY may write its generated lexer tables
+                to. Empty keeps them in memory, rebuilt on every run.
+        """
         self._tempdir = tempdir
         self.lexer: Any = None
         self.reset()
@@ -359,6 +365,15 @@ class SmiV2Lexer(AbstractLexer):
         return t
 
     def t_error(self, t: LexToken) -> None:
+        """Reject input no token rule matched.
+
+        PLY calls this hook rather than treating it as a token rule, so the
+        docstring is free text here. Unlike the default, which skips the
+        character and carries on, this stops the module outright.
+
+        Raises:
+            PySmiLexerError: always.
+        """
         raise error.PySmiLexerError(
             f"Illegal character '{t.value[0]}', {len(t.value) - 1} characters left unparsed at this stage",
             lineno=t.lineno,

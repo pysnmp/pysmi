@@ -54,6 +54,7 @@ class FileReader(AbstractReader):
         self._dirCache: dict[str, tuple[list[str], dict[str, str]]] = {}
 
     def __str__(self) -> str:
+        """Identify this reader by the directory tree it searches."""
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def clear_cache(self) -> None:

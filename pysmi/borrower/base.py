@@ -48,6 +48,7 @@ class AbstractBorrower:
         self._reader = reader
 
     def __str__(self) -> str:
+        """Identify this borrower by the reader behind it and what it will lend."""
         return f"{self.__class__.__name__}{{{self._reader}, genTexts={self.genTexts}, exts={self.exts}}}"
 
     def set_options(self, **kwargs: Any) -> "AbstractBorrower":

@@ -40,6 +40,7 @@ class FileWriter(AbstractWriter):
         self._path = decode(os.path.normpath(path))
 
     def __str__(self) -> str:
+        """Identify this writer by the directory it stores files in."""
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def get_data(self, filename: str, dryRun: bool = False) -> str:

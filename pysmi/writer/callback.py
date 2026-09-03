@@ -40,6 +40,7 @@ class CallbackWriter(AbstractWriter):
         self._cbCtx = cbCtx
 
     def __str__(self) -> str:
+        """Identify this writer by the callback it hands MIBs to."""
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
     def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
