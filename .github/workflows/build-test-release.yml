@@ -5,14 +5,12 @@ on:
     branches:
       - "main"
       - "next"
-      - "develop"
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
   pull_request:
-    branches: [main, next, develop]
-  # develop publishes a beta on every push. next and main only preview what they
-  # would release: cutting an rc or a GA is a deliberate act, so it is a
-  # dispatch, and the branch it is dispatched on picks which one.
+    branches: [main, next]
+  # next publishes an rc on every push. main only previews what it would
+  # release: cutting the GA is a deliberate act, so it is a dispatch.
   workflow_dispatch:
 
 jobs:
@@ -110,10 +108,10 @@ jobs:
       contents: write
       issues: write
     env:
-      # Only two things cut a real release: a push to develop, and a dispatch.
-      # Everything else — pushes to next and main, and every pull request —
-      # rehearses one and stops.
-      DRY: ${{ !(github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_name == 'develop')) }}
+      # Only two things cut a real release: a push to next, and a dispatch.
+      # Everything else — pushes to main and every pull request — rehearses one
+      # and stops.
+      DRY: ${{ !(github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_name == 'next')) }}
     steps:
       - uses: actions/checkout@v4
         with:
