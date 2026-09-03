@@ -85,6 +85,39 @@ class JsonCodeGen(AbstractCodeGen):
     indent = " " * 4
     fakeidx = 1000  # starting index for fake symbols
 
+    #: The schema versions this generator can emit. A consumer that has to
+    #: keep working across pysmi releases asks for the one it understands and
+    #: is told, rather than left to infer the shape from the document.
+    SCHEMA_VERSIONS = (1,)
+
+    #: The schema emitted when none is asked for: always the newest.
+    SCHEMA_VERSION = SCHEMA_VERSIONS[-1]
+
+    @classmethod
+    def _schema_version(cls, kwargs: dict[str, Any]) -> int:
+        """Resolve the ``schemaVersion`` keyword argument.
+
+        Args:
+            kwargs: the keyword arguments a generator entry point was given
+
+        Returns:
+            The schema version to emit.
+
+        Raises:
+            PySmiCodegenError: a version this generator cannot emit was asked
+                for.
+        """
+        version = kwargs.get("schemaVersion")
+
+        if version is None:
+            return cls.SCHEMA_VERSION
+
+        if version not in cls.SCHEMA_VERSIONS:
+            supported = ", ".join(str(v) for v in cls.SCHEMA_VERSIONS)
+            raise error.PySmiCodegenError(f"unsupported JSON schema version {version!r}; this pysmi emits {supported}")
+
+        return cast("int", version)
+
     def __init__(self) -> None:
         self._rows: set[str] = set()
         self._cols: dict[str, str] = {}  # k, v = name, datatype
@@ -1636,14 +1669,19 @@ class JsonCodeGen(AbstractCodeGen):
             textFilter: callable applied to each text before it is rendered;
                 by default runs of whitespace are collapsed
             comments: lines to record in the document
+            schemaVersion: schema to emit, from
+                :py:attr:`SCHEMA_VERSIONS`; the newest by default. The version
+                emitted is recorded in the document's ``meta``.
 
         Returns:
             The module's :py:class:`~pysmi.mibinfo.MibInfo` and the document.
 
         Raises:
-            PySmiCodegenError: a symbol in the symbol table was never rendered.
+            PySmiCodegenError: a symbol in the symbol table was never rendered,
+                or a schema version this generator cannot emit was asked for.
             PySmiSemanticError: the module is not internally consistent.
         """
+        schemaVersion = self._schema_version(kwargs)
         self.genRules["text"] = kwargs.get("genTexts", False)
         self.textFilter = kwargs.get("textFilter") or (lambda symbol, text: re.sub(r"\s+", " ", text))
         self.symbolTable = symbolTable
@@ -1671,8 +1709,10 @@ class JsonCodeGen(AbstractCodeGen):
 
             outDict[sym] = self._out[sym]
 
+        outDict["meta"] = OrderedDict()
+        outDict["meta"]["schema"] = schemaVersion
+
         if "comments" in kwargs:
-            outDict["meta"] = OrderedDict()
             outDict["meta"]["comments"] = kwargs["comments"]
             outDict["meta"]["module"] = self.moduleName[0]
 
@@ -1715,13 +1755,18 @@ class JsonCodeGen(AbstractCodeGen):
         Keyword Args:
             old_index_data: an index to merge into, as JSON
             comments: lines to record in the document
+            schemaVersion: schema to emit, from
+                :py:attr:`SCHEMA_VERSIONS`; the newest by default. The version
+                emitted is recorded in the index's ``meta``.
 
         Returns:
             The index as a JSON document.
 
         Raises:
-            PySmiCodegenError: the index passed in could not be read.
+            PySmiCodegenError: the index passed in could not be read, or a
+                schema version this generator cannot emit was asked for.
         """
+        schemaVersion = self._schema_version(kwargs)
         outDict: dict[str, Any] = {
             "meta": {},
             "identity": {},
@@ -1820,6 +1865,10 @@ class JsonCodeGen(AbstractCodeGen):
                         unique_prefixes[oid] = modData[oid]
 
                 outDict["oids"] = unique_prefixes
+
+        # After the merge, so that the version an old index declared is
+        # replaced by the one this run emits rather than carried forward.
+        outDict["meta"]["schema"] = schemaVersion
 
         if "comments" in kwargs:
             outDict["meta"]["comments"] = kwargs["comments"]
