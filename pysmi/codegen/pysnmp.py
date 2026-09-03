@@ -917,7 +917,7 @@ for _{name}_obj in [{objects}]:
 
         SMIv1 traps have no OID of their own; theirs is derived from the
         ENTERPRISE clause and the trap number, which is how SMIv2 names the
-        same notification. See :py:func:`~pysmi.codegen.base.trap_type_oid`.
+        same notification. See ``trap_type_oid``.
 
         Args:
             data: rendered clause values
