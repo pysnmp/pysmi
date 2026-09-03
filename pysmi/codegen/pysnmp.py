@@ -1246,17 +1246,20 @@ for _{name}_obj in [{objects}]:
                     val = ""
 
             elif defvalType[0][0] == "Bits":
+                # The default names the bits that are set. Passing them as a
+                # value keeps the type's own named values intact; passing them
+                # as namedValues would redefine the type and set no default.
                 defvalBits = []
                 bits = dict(defvalType[1])
 
                 for bit in defval:
                     bitValue = bits.get(bit)
                     if bitValue is not None:
-                        defvalBits.append((bit, bitValue))
+                        defvalBits.append(bit)
                     else:
                         raise error.PySmiSemanticError(f'no such bit as "{bit}" for symbol "{objname}"')
 
-                return self.gen_bits([defvalBits])[1]
+                val = "(" + ", ".join(dorepr(bit) for bit in defvalBits) + ",)" if defvalBits else "()"
 
             else:
                 raise error.PySmiSemanticError(
