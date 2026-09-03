@@ -20,19 +20,39 @@ def parse(mib, **dialect):
     return parserFactory(**dialect)().parse(mib)[0]
 
 
-def render_json(mib, genTexts=True, **dialect):
-    """Compile *mib* through the JSON backend and decode the document."""
+def symbol_table(mib, deps=(), genTexts=True, **dialect):
+    """Build the symbol table for *mib*, resolving *deps* into it first.
+
+    A DEFVAL or a sub-typed textual convention makes the codegens walk the
+    imported type back to its base, so any module named in IMPORTS has to be in
+    the table. See tests.mibs for the stubs that stand in for the standard ones.
+
+    Returns:
+        A tuple of the parsed AST, the module name and the whole symbol table.
+    """
+    table = {}
+    for dep in deps:
+        depInfo, depTable = SymtableCodeGen().gen_code(parse(dep, **dialect), dict(table), genTexts=genTexts)
+        table[depInfo.name] = depTable
+
     ast = parse(mib, **dialect)
-    mibInfo, symtable = SymtableCodeGen().gen_code(ast, {}, genTexts=genTexts)
-    _, doc = JsonCodeGen().gen_code(ast, {mibInfo.name: symtable}, genTexts=genTexts)
+    mibInfo, symtable = SymtableCodeGen().gen_code(ast, dict(table), genTexts=genTexts)
+    table[mibInfo.name] = symtable
+
+    return ast, mibInfo.name, table
+
+
+def render_json(mib, deps=(), genTexts=True, **dialect):
+    """Compile *mib* through the JSON backend and decode the document."""
+    ast, _, table = symbol_table(mib, deps=deps, genTexts=genTexts, **dialect)
+    _, doc = JsonCodeGen().gen_code(ast, table, genTexts=genTexts)
     return json.loads(doc)
 
 
-def render_pysnmp(mib, genTexts=True, **dialect):
+def render_pysnmp(mib, deps=(), genTexts=True, **dialect):
     """Compile *mib* through the pysnmp backend and execute the generated module."""
-    ast = parse(mib, **dialect)
-    mibInfo, symtable = SymtableCodeGen().gen_code(ast, {}, genTexts=genTexts)
-    _, pycode = PySnmpCodeGen().gen_code(ast, {mibInfo.name: symtable}, genTexts=genTexts)
+    ast, _, table = symbol_table(mib, deps=deps, genTexts=genTexts, **dialect)
+    _, pycode = PySnmpCodeGen().gen_code(ast, table, genTexts=genTexts)
 
     mibBuilder = MibBuilder()
     mibBuilder.loadTexts = genTexts
@@ -41,10 +61,13 @@ def render_pysnmp(mib, genTexts=True, **dialect):
     return ctx
 
 
-def render(mib, genTexts=True, **dialect):
+def render(mib, deps=(), genTexts=True, **dialect):
     """Compile *mib* through both backends.
 
     Returns:
         A tuple of the decoded JSON document and the pysnmp module scope.
     """
-    return render_json(mib, genTexts=genTexts, **dialect), render_pysnmp(mib, genTexts=genTexts, **dialect)
+    return (
+        render_json(mib, deps=deps, genTexts=genTexts, **dialect),
+        render_pysnmp(mib, deps=deps, genTexts=genTexts, **dialect),
+    )
