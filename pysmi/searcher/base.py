@@ -45,7 +45,7 @@ class AbstractSearcher:
             rebuild: ignore whatever is stored and report nothing, so the
                 caller recompiles
             digest: digest of the MIB source about to be compiled, as
-                returned by :py:func:`pysmi.mibinfo.source_digest`. Lets a
+                returned by ``pysmi.mibinfo.source_digest``. Lets a
                 subclass tell a stored file apart from one produced from a
                 *different* source that merely has an equal or older
                 modification time -- the case a primary source with a stale

@@ -38,9 +38,7 @@ class AnyFileSearcher(AbstractSearcher):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def file_exists(
-        self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None
-    ) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
         """Compare a stored file's modification time against the MIB source.
 
         A file that is otherwise fresh is also checked against the

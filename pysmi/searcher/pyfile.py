@@ -45,9 +45,7 @@ class PyFileSearcher(AbstractSearcher):
     def __str__(self) -> str:
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def file_exists(
-        self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None
-    ) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
         """Compare a compiled Python module's timestamp against the MIB source.
 
         The timestamp is read out of the bytecode header rather than from the
