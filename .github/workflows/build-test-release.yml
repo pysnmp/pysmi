@@ -9,6 +9,17 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
   pull_request:
     branches: [main, develop]
+  # A push to main only previews what it would release. Cutting one from main is
+  # a deliberate act, so it is a dispatch: rc first, GA when the rc has held up.
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "What to release from main"
+        type: choice
+        options:
+          - prerelease
+          - ga
+        default: prerelease
 
 jobs:
   pre-commit:
@@ -97,6 +108,17 @@ jobs:
       - docs
       - run-unit-tests
     runs-on: ubuntu-latest
+    # PyPI knows this workflow, in this repository, in this environment. Nothing
+    # here holds a credential: the OIDC token is minted per run and expires.
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+      issues: write
+    env:
+      # develop still publishes a beta on every push. main only rehearses one,
+      # until someone dispatches the release.
+      DRY: ${{ github.event_name != 'workflow_dispatch' && github.ref_name == 'main' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -110,10 +132,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      # An rc is cut off main itself, so main has to be a prerelease branch for
+      # the run. Patched here rather than committed, because the same branch
+      # cuts the GA release afterwards.
+      - name: Release main as a prerelease
+        if: inputs.release_type == 'prerelease'
+        run: |
+          sed -i 's/^    "main",$/    { name: "main", prerelease: "rc" },/' .releaserc
       - name: Semantic Release
+        id: semantic
         uses: cycjimmy/semantic-release-action@v4
         with:
           semantic_version: 24
+          dry_run: ${{ env.DRY }}
           extra_plugins: |
             @semantic-release/exec
             @semantic-release/git
@@ -121,8 +152,22 @@ jobs:
             conventional-changelog-conventionalcommits@8.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
-          PYPI_USERNAME: "__token__"
-          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+      - name: Publish to PyPI
+        if: env.DRY != 'true' && steps.semantic.outputs.new_release_published == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+      # A dry run tags nothing and builds nothing, so the version main would
+      # release is only ever a log line. Build it as a .devN and keep it, so the
+      # release can be installed and tried before it is cut.
+      - name: Build the release main would cut
+        if: env.DRY == 'true' && steps.semantic.outputs.new_release_version != ''
+        run: |
+          sed -i 's/^__version__ = .*/__version__ = "${{ steps.semantic.outputs.new_release_version }}.dev${{ github.run_number }}"/' pysmi/__init__.py
+          uv build
+      - uses: actions/upload-artifact@v4
+        if: env.DRY == 'true' && steps.semantic.outputs.new_release_version != ''
+        with:
+          name: dist-preview
+          path: dist
 
   update-semver:
     name: Move Respository semver tags

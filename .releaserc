@@ -59,8 +59,9 @@
     [
       "@semantic-release/exec",
       {
+        # Building is all semantic-release does here. The upload is a separate
+        # workflow step, so that PyPI is reached over OIDC and no token exists.
         "prepareCmd": "./.github/workflows/sr-prepare.sh ${nextRelease.version}",
-        "publishCmd": "./.github/workflows/sr-release.sh",
         "shell": "bash"
       },
     ],
