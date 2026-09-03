@@ -171,6 +171,19 @@ class MibCompilerPruneTestCase(unittest.TestCase):
         with self.assertRaises(error.PySmiError):
             compiler.prune()
 
+    def testABaseMibResolvableThroughTheBundledFallbackIsNeverPruned(self):
+        # SNMPv2-SMI compiled to self.dst as a dependency of MIB-A/MIB-B in
+        # setUp. Its user-supplied stub disappearing must not make prune
+        # treat it as gone -- pysmi's own bundled copy still resolves it,
+        # see pysnmp/pysmi#113, and that has to count as "still sourced" the
+        # same way a user source would.
+        os.unlink(os.path.join(self.src, "SNMPv2-SMI"))
+
+        processed = self.compiler.prune()
+
+        self.assertEqual("untouched", processed["SNMPv2-SMI"])
+        self.assertIn("SNMPv2-SMI.json", os.listdir(self.dst))
+
 
 if __name__ == "__main__":
     unittest.main()

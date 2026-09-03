@@ -124,28 +124,55 @@ class MibCompiler:
 
     indexFile = "index"
 
-    def __init__(self, parser: "AbstractParser", codegen: "AbstractCodeGen", writer: "AbstractWriter") -> None:
+    #: Dotted package holding the bundled base MIB ASN.1 sources -- read
+    #: through :py:class:`~pysmi.reader.package.PackageReader` when
+    #: ``useBundledMibs`` is set. See pysnmp/pysmi#113.
+    bundledMibsPackage = "pysmi.mibs.asn1"
+
+    def __init__(
+        self,
+        parser: "AbstractParser",
+        codegen: "AbstractCodeGen",
+        writer: "AbstractWriter",
+        useBundledMibs: bool = True,
+    ) -> None:
         """Creates an instance of *MibCompiler* class.
 
         Args:
             parser: ASN.1 MIB parser object
             codegen: MIB transformation object
             writer: transformed MIB storing object
+
+        Keyword Args:
+            useBundledMibs: register pysmi's own bundled copy of the
+                RFC-frozen base MIBs (``SNMPv2-SMI`` and friends) as a
+                fallback source, tried only once every source added through
+                :py:meth:`add_sources` has failed. Set to ``False`` so a
+                misconfigured ``add_sources`` call fails loudly instead of
+                silently succeeding from the bundled copy.
         """
         self._parser = parser
         self._codegen = codegen
         self._symbolgen = SymtableCodeGen()
         self._writer = writer
         self._sources: list[AbstractReader] = []
+        self._fallback_sources: list[AbstractReader] = []
         self._searchers: list[AbstractSearcher] = []
         self._borrowers: list[AbstractBorrower] = []
+
+        if useBundledMibs:
+            from pysmi.reader.package import PackageReader
+
+            self.add_fallback_sources(PackageReader(self.bundledMibsPackage))
 
     def add_sources(self, *sources: "AbstractReader") -> "MibCompiler":
         """Add more ASN.1 MIB source repositories.
 
         MibCompiler.compile will invoke each of configured source objects
         in order of their addition asking each to fetch MIB module specified
-        by name.
+        by name. Every one of these is tried before any
+        :py:meth:`add_fallback_sources` source, whatever order either was
+        added in.
 
         Args:
             sources: reader object(s)
@@ -163,6 +190,36 @@ class MibCompiler:
         )
 
         return self
+
+    def add_fallback_sources(self, *sources: "AbstractReader") -> "MibCompiler":
+        """Add more ASN.1 MIB source repositories, tried only as a last resort.
+
+        Every :py:meth:`add_sources` source is tried, for every MIB, before
+        any of these -- a user-supplied copy always wins over a bundled one,
+        regardless of which was added first. Use this for a source that
+        should fill a gap rather than be preferred, such as pysmi's own
+        bundled base MIBs (see ``useBundledMibs`` on the constructor).
+
+        Args:
+            sources: reader object(s)
+
+        Returns:
+            reference to itself (can be used for call chaining)
+
+        """
+        self._fallback_sources.extend(sources)
+
+        logger.debug(
+            "current fallback MIB source(s): %s",
+            ", ".join(str(x) for x in self._fallback_sources),
+            extra={"fallback_sources": [str(x) for x in self._fallback_sources]},
+        )
+
+        return self
+
+    def _all_sources(self) -> list["AbstractReader"]:
+        """Every configured source, in the order they are tried: :py:meth:`add_sources` first."""
+        return [*self._sources, *self._fallback_sources]
 
     def add_searchers(self, *searchers: "AbstractSearcher") -> "MibCompiler":
         """Add more transformed MIBs repositories.
@@ -262,7 +319,7 @@ class MibCompiler:
                 logger.debug("MIB %s already failed", mibname, extra={"mib": mibname})
                 continue
 
-            for source in self._sources:
+            for source in self._all_sources():
                 logger.debug("trying source %s", source, extra={"mib": mibname, "source": str(source)})
 
                 try:
@@ -738,7 +795,7 @@ class MibCompiler:
         """
         processed: dict[str, MibStatus] = {}
 
-        for source in self._sources:
+        for source in self._all_sources():
             source.clear_cache()
 
         for mibname in self._writer.list_data():
@@ -747,7 +804,7 @@ class MibCompiler:
 
             stillSourced = False
 
-            for source in self._sources:
+            for source in self._all_sources():
                 try:
                     source.get_data(mibname)
                     stillSourced = True
