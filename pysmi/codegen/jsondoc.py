@@ -10,7 +10,6 @@ import json
 import logging
 import re
 from collections import OrderedDict
-from time import strftime, strptime
 from typing import Any, cast
 
 from pysmi import error
@@ -28,6 +27,7 @@ from pysmi.codegen.base import (
     SequenceClause,
     SymbolsClause,
     TextClause,
+    format_ext_utc_time,
     trap_type_oid,
 )
 from pysmi.mibinfo import MibInfo
@@ -1305,35 +1305,13 @@ class JsonCodeGen(AbstractCodeGen):
     def gen_time(self, data: TextClause) -> list[Any]:
         """Render MIB timestamps as readable dates.
 
-        Two-digit SMIv1 years are read as nineteen-hundreds. A timestamp that
-        cannot be parsed at all is replaced with the epoch rather than rejected,
-        because malformed dates are common and never affect the semantics of a
-        module.
-
         Args:
             data: timestamps as written in the MIB
 
         Returns:
             One formatted date per timestamp.
         """
-        times = []
-        for timeStr in data:
-            if len(timeStr) == 11:
-                timeStr = "19" + timeStr
-
-            # XXX raise in strict mode
-            # elif lenTimeStr != 13:
-            #  raise error.PySmiSemanticError("Invalid date %s" % t)
-            try:
-                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
-
-            except ValueError:
-                # XXX raise in strict mode
-                # raise error.PySmiSemanticError("Invalid date %s: %s" % (t, sys.exc_info()[1]))
-                timeStr = "197001010000Z"  # dummy date for dates with typos
-                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
-
-        return times
+        return [format_ext_utc_time(timeStr, self.moduleName[0]) for timeStr in data]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def gen_last_updated(self, data: TextClause) -> str:
@@ -1345,7 +1323,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The timestamp as a formatted date.
         """
-        return data[0]
+        return format_ext_utc_time(data[0], self.moduleName[0])
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def gen_organization(self, data: TextClause) -> str:

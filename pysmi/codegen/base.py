@@ -6,11 +6,15 @@
 #
 """Interface shared by the code generators, and helpers common to them."""
 
+import logging
+from time import strftime, strptime
 from typing import Any, ClassVar, Final, TypeAlias, TypeGuard
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.mibinfo import MibInfo
+
+logger = logging.getLogger(__name__)
 
 _RFC1155_RFC1065_KEY: Final = "RFC1155-SMI/RFC1065-SMI"
 
@@ -118,6 +122,55 @@ def trap_type_oid(enterprise: tuple[int, ...], value: int) -> tuple[int, ...]:
         return (*SNMP_TRAPS, value + 1)
 
     return (*enterprise, 0, value)
+
+
+#: How a timestamp is rendered once read. Both clauses carrying an ExtUTCTime --
+#: LAST-UPDATED and REVISION -- are rendered this way, so a consumer has one
+#: format to read rather than one per clause.
+EXT_UTC_TIME_FORMAT: Final = "%Y-%m-%d %H:%M"
+
+#: What a timestamp that cannot be read is rendered as.
+EPOCH_TIMESTAMP: Final = "1970-01-01 00:00"
+
+
+def format_ext_utc_time(timeStr: str, module: str = "") -> str:
+    """Render one ExtUTCTime value.
+
+    RFC 2578 section 2 defines ``ExtUTCTime ::= OCTET STRING(SIZE(11 | 13))``,
+    written ``YYMMDDHHMMZ`` or ``YYYYMMDDHHMMZ``, and restricts the two-digit
+    year to 1900-1999. Both forms are read; the short one is expanded.
+
+    A value that cannot be read at all is replaced with the epoch rather than
+    rejected, because a wrong date is common in MIBs found in the wild and never
+    changes what a module means. The substitution is logged, so a value that was
+    invented is distinguishable from one the module really carries. Turn it on
+    with ``mibdump --debug codegen`` or by configuring the ``pysmi.codegen``
+    logger.
+
+    Args:
+        timeStr: the timestamp as written in the MIB
+        module: name of the module it was written in, for the log message
+
+    Returns:
+        The formatted date, or the epoch if the value could not be read.
+    """
+    written = timeStr
+
+    if len(timeStr) == 11:
+        timeStr = "19" + timeStr
+
+    try:
+        return strftime(EXT_UTC_TIME_FORMAT, strptime(timeStr, "%Y%m%d%H%MZ"))
+
+    except ValueError:
+        logger.warning(
+            "%s: cannot read the timestamp %r, rendering it as %s",
+            module or "<unknown module>",
+            written,
+            EPOCH_TIMESTAMP,
+            extra={"mibModule": module, "timestamp": written},
+        )
+        return EPOCH_TIMESTAMP
 
 
 #: A range or SIZE constraint. Each entry is ``(low, high)``, or ``(value,)``
