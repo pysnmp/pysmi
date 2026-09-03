@@ -89,6 +89,7 @@ possible changes to MIB file name.
    /pysmi/reader/zipreader/zipreader
    /pysmi/reader/httpclient/httpreader
    /pysmi/reader/callback/callbackreader
+   /pysmi/reader/package/packagereader
 
 Conditional compilation
 -----------------------
@@ -204,6 +205,7 @@ The following examples focus on various feature of the PySMI library.
    :maxdepth: 2
 
    /examples/download-and-compile-smistar-mibs-into-json.rst
+   /examples/build-json-index.rst
    /examples/download-and-compile-smistar-mibs-into-pysnmp-files.rst
    /examples/compile-smistar-mibs-into-pysnmp-files-if-needed.rst
    /examples/compile-smiv2-mibs-from-text-into-pysnmp-code.rst

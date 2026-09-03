@@ -91,6 +91,19 @@ class SmiV2Parser(AbstractParser):
     defaultLexer = lexerFactory()
 
     def __init__(self, startSym: str = "mibFile", tempdir: str = "") -> None:
+        """Build the grammar, optionally caching its tables on disk.
+
+        Args:
+            startSym (str): grammar symbol to start parsing from. The default
+                reads a whole MIB file; a narrower symbol parses a fragment.
+            tempdir (str): directory PLY may write its generated parser tables
+                to, under a subdirectory named for *startSym* so dialects do
+                not overwrite each other. Empty rebuilds the tables in memory
+                on every run.
+
+        Raises:
+            PySmiError: *tempdir* could not be created.
+        """
         if tempdir:
             tempdir = os.path.join(tempdir, startSym)
             try:
@@ -480,7 +493,7 @@ class SmiV2Parser(AbstractParser):
             p[8],  # status
             p[9],  # descriptionClause
             p[10],  # reference
-            p[11],  # augmentions
+            p[11],  # augmentations
             p[12],  # index
             p[13],  # DefValPart
             p[16],
@@ -848,7 +861,10 @@ class SmiV2Parser(AbstractParser):
     def p_DefValPart(self, p: YaccProduction) -> None:
         """DefValPart : DEFVAL '{' Value '}'
         | empty"""
-        if p[1] and p[3]:
+        # A zero is a value like any other, so test for one having been parsed
+        # rather than for its truth. Productions that deliberately swallow a
+        # default they cannot represent leave None here and still drop out.
+        if p[1] and p[3] is not None:
             p[0] = (p[1], p[3])
 
     def p_Value(self, p: YaccProduction) -> None:
@@ -1057,17 +1073,31 @@ class SmiV2Parser(AbstractParser):
 
     def p_ComplianceModule(self, p: YaccProduction) -> None:
         """ComplianceModule : MODULE ComplianceModuleName MandatoryPart CompliancePart"""
-        objects = (p[3] and p[3][1]) or []
-        objects += (p[4] and p[4][1]) or []
+        mandatory = (p[3] and p[3][1]) or []
+        refinements = (p[4] and p[4][1]) or []
+
+        # The second element stays the flat list of group names it has always
+        # been, so that what a compliance requires does not move. The GROUP and
+        # OBJECT sub-clauses carry more than a name -- the condition a group
+        # applies under, and the refinement an object is held to -- and that
+        # detail rides alongside rather than in place of it.
+        objects = list(mandatory)
+        objects += [r[1] for r in refinements if r[0] == "ComplianceGroup"]
+
         p[0] = (
             p[2],  # ModuleName
-            objects,
-        )  # MandatoryPart + CompliancePart
+            objects,  # MandatoryPart + the GROUP names of CompliancePart
+            (list(mandatory), refinements),
+        )
 
     def p_ComplianceModuleName(self, p: YaccProduction) -> None:
-        """ComplianceModuleName : UPPERCASE_IDENTIFIER
+        """ComplianceModuleName : UPPERCASE_IDENTIFIER '{' objectIdentifier '}'
+        | UPPERCASE_IDENTIFIER
         | empty"""
-        # XXX                   | UPPERCASE_IDENTIFIER objectIdentifier
+        # RFC 2580 section 5.4 names the module "by its module name, and
+        # optionally, by its associated OBJECT IDENTIFIER as well". The name
+        # is what identifies the module here, so the OID is accepted and
+        # discarded rather than carried into the AST.
         p[0] = p[1]
 
     def p_MandatoryPart(self, p: YaccProduction) -> None:
@@ -1112,18 +1142,17 @@ class SmiV2Parser(AbstractParser):
 
     def p_ComplianceGroup(self, p: YaccProduction) -> None:
         """ComplianceGroup : GROUP objectIdentifier DESCRIPTION Text"""
-        p[0] = p[2][1][0]  # objectIdentifier
-        #        p[1], # GROUP
-        #        (p[3], p[4])) # description
+        # RFC 2580 section 5.4.2 makes the DESCRIPTION mandatory here because
+        # it states the condition under which the group applies. Keeping only
+        # the name threw that condition away.
+        p[0] = ("ComplianceGroup", p[2][1][0], p[4])
 
     def p_ComplianceObject(self, p: YaccProduction) -> None:
         """ComplianceObject : OBJECT ObjectName SyntaxPart WriteSyntaxPart AccessPart DESCRIPTION Text"""
-        # p[0] = (p[1], # object
-        #        p[2], # name
-        #        p[3], # syntax
-        #        p[4], # write syntax
-        #        p[5], # access
-        #        (p[6], p[7])) # description
+        # RFC 2580 section 5.4.3: an OBJECT sub-clause refines what an
+        # implementation must support for one object -- a narrower SYNTAX, a
+        # narrower WRITE-SYNTAX, or a weaker MIN-ACCESS.
+        p[0] = ("ComplianceObject", p[2], p[3], p[4], p[5], p[7])
 
     def p_SyntaxPart(self, p: YaccProduction) -> None:
         """SyntaxPart : SYNTAX Syntax
@@ -1157,88 +1186,92 @@ class SmiV2Parser(AbstractParser):
             p[6],  # status
             (p[7], p[8]),  # description
             p[9],  # reference
-            #   p[10], # module capabilities
+            p[10],  # module capabilities
             p[13],
         )  # objectIdentifier
 
     def p_ModulePart_Capabilities(self, p: YaccProduction) -> None:
         """ModulePart_Capabilities : Modules_Capabilities
         | empty"""
-        # if p[1]:
-        #  p[0] = p[1]
+        if p[1]:
+            p[0] = p[1]
 
     def p_Modules_Capabilities(self, p: YaccProduction) -> None:
         """Modules_Capabilities : Modules_Capabilities Module_Capabilities
         | Module_Capabilities"""
-        # n = len(p)
-        # if n == 3:
-        #  p[0] = ('Modules_Capabilities', p[1][1] + [p[2]])
-        # elif n == 2:
-        #  p[0] = ('Modules_Capabilities', [p[1]])
+        n = len(p)
+        if n == 3:
+            p[0] = ("Modules_Capabilities", p[1][1] + [p[2]])
+        elif n == 2:
+            p[0] = ("Modules_Capabilities", [p[1]])
 
     def p_Module_Capabilities(self, p: YaccProduction) -> None:
         """Module_Capabilities : SUPPORTS ModuleName_Capabilities INCLUDES '{' CapabilitiesGroups '}' VariationPart"""
-        # p[0] = ('Module_Capabilities', (p[1], p[2]), # supports
-        #                               (p[3], p[5]), # includes
-        #                               p[7]) # variations
+        # RFC 2580 section 6.5.1: a SUPPORTS clause names one module, the
+        # groups of it the agent implements, and the variations it implements
+        # them with. The list lives inside a plain tuple so that the codegens
+        # reach it through the one handler on Modules_Capabilities.
+        p[0] = (p[2], p[5][1], (p[7] and p[7][1]) or [])
 
     def p_CapabilitiesGroups(self, p: YaccProduction) -> None:
         """CapabilitiesGroups : CapabilitiesGroups ',' CapabilitiesGroup
         | CapabilitiesGroup"""
-        # n = len(p)
-        # if n == 4:
-        #  p[0] = ('CapabilitiesGroups', p[1][1] + [p[3]])
-        # elif n == 2:
-        #  p[0] = ('CapabilitiesGroups', [p[1]])
+        n = len(p)
+        if n == 4:
+            p[0] = ("CapabilitiesGroups", p[1][1] + [p[3]])
+        elif n == 2:
+            p[0] = ("CapabilitiesGroups", [p[1]])
 
     def p_CapabilitiesGroup(self, p: YaccProduction) -> None:
         """CapabilitiesGroup : objectIdentifier"""
-        # p[0] = ('CapabilitiesGroup', p[1])
+        p[0] = p[1][1][0]
 
     def p_ModuleName_Capabilities(self, p: YaccProduction) -> None:
         """ModuleName_Capabilities : UPPERCASE_IDENTIFIER objectIdentifier
         | UPPERCASE_IDENTIFIER"""
-        # n = len(p)
-        # if n == 2:
-        #  p[0] = ('ModuleName_Capabilities', p[1])
-        # elif n == 3:
-        #  p[0] = ('ModuleName_Capabilities', p[1], p[2])
+        # As in a MODULE-COMPLIANCE, the name is what identifies the module and
+        # the optional OBJECT IDENTIFIER adds nothing a consumer can use, so it
+        # is accepted and dropped.
+        p[0] = p[1]
 
     def p_VariationPart(self, p: YaccProduction) -> None:
         """VariationPart : Variations
         | empty"""
-        # if p[1]:
-        #  p[0] = p[1]
+        if p[1]:
+            p[0] = p[1]
 
     def p_Variations(self, p: YaccProduction) -> None:
         """Variations : Variations Variation
         | Variation"""
-        # n = len(p)
-        # if n == 3:
-        #  p[0] = ('Variations', p[1][1] + [p[2]])
-        # elif n == 2:
-        #  p[0] = ('Variations', [p[1]])        pass
+        n = len(p)
+        if n == 3:
+            p[0] = ("Variations", p[1][1] + [p[2]])
+        elif n == 2:
+            p[0] = ("Variations", [p[1]])
 
     def p_Variation(self, p: YaccProduction) -> None:
         """Variation : VARIATION ObjectName SyntaxPart WriteSyntaxPart VariationAccessPart CreationPart DefValPart DESCRIPTION Text"""
-        # p[0] = (p[1], # variation
-        #        p[2], # name
-        #        p[3], # syntax
-        #        p[4], # write syntax
-        #        p[5], # access
-        #        p[6], # creation
-        #        p[7], # defval
-        #        (p[8], p[9])) # description
+        # RFC 2580 section 6.5.2. Every sub-clause but the name and the
+        # description is optional, and each is None when left out.
+        p[0] = (
+            p[2],  # name
+            p[3],  # syntax
+            p[4],  # write syntax
+            p[5],  # access
+            p[6],  # creation requires
+            p[7],  # defval
+            p[9],  # description
+        )
 
     def p_VariationAccessPart(self, p: YaccProduction) -> None:
         """VariationAccessPart : ACCESS VariationAccess
         | empty"""
-        # if p[1]:
-        #  p[0] = (p[1], p[2])
+        if p[1]:
+            p[0] = (p[1], p[2])
 
     def p_VariationAccess(self, p: YaccProduction) -> None:
         """VariationAccess : LOWERCASE_IDENTIFIER"""
-        # p[0] = p[1]
+        p[0] = p[1]
 
     def p_CreationPart(self, p: YaccProduction) -> None:
         """CreationPart : CREATION_REQUIRES '{' Cells '}'
@@ -1264,6 +1297,15 @@ class SmiV2Parser(AbstractParser):
 
     # Error rule for syntax errors
     def p_error(self, p: YaccProduction) -> None:
+        """Reject input no grammar rule accepted.
+
+        PLY calls this hook rather than treating it as a grammar rule, so the
+        docstring is free text here. A false *p* means the error is at end of
+        input, which is left to the caller to report.
+
+        Raises:
+            PySmiParserError: a token was rejected mid-module.
+        """
         if p:
             raise error.PySmiParserError(f"Bad grammar near token type {p.type}, value {p.value}", lineno=p.lineno)
 
@@ -1569,6 +1611,17 @@ relaxedGrammar = {
     "noCells": [NoCells.p_CreationPart],
 }
 
+#: Options whose productions reference ones another option contributes. Enabling
+#: such an option on its own leaves the grammar with undefined symbols, and PLY
+#: refuses to build it. Checked before the grammar is assembled so that the
+#: caller is told which option is missing rather than that the parser cannot be
+#: built.
+relaxedGrammarDependencies = {
+    # SupportIndex.p_typeSMIv1 refers to the SMIv1 application syntax that only
+    # supportSmiV1Keywords defines.
+    "supportIndex": ("supportSmiV1Keywords",),
+}
+
 
 def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
     """Factory function producing custom specializations of base *SmiV2Parser*
@@ -1585,7 +1638,8 @@ def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
         The following SMIv2 grammar relaxation parameters are defined:
 
         * supportSmiV1Keywords - parses SMIv1 grammar
-        * supportIndex - tolerates ASN.1 types in INDEX clause
+        * supportIndex - tolerates ASN.1 types in INDEX clause, and requires
+          supportSmiV1Keywords alongside it
         * commaAtTheEndOfImport - tolerates stray comma at the end of IMPORT section
         * commaAtTheEndOfSequence - tolerates stray comma at the end of sequence of elements in MIB
         * mixOfCommasAndSpaces - tolerate a mix of comma and spaces in MIB enumerations
@@ -1602,11 +1656,20 @@ def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
     """
     classAttr: dict[str, Any] = {}
 
+    enabled = {option for option in grammarOptions if grammarOptions[option]}
+
+    for option in enabled:
+        if option not in relaxedGrammar:
+            raise error.PySmiError(f"Unknown parser relaxation option: {option}")
+
+        missing = [dep for dep in relaxedGrammarDependencies.get(option, ()) if dep not in enabled]
+        if missing:
+            raise error.PySmiError(
+                f"Parser relaxation option {option} requires {', '.join(sorted(missing))} to be enabled as well"
+            )
+
     for option in grammarOptions:
         if grammarOptions[option]:
-            if option not in relaxedGrammar:
-                raise error.PySmiError(f"Unknown parser relaxation option: {option}")
-
             for func in relaxedGrammar[option]:
                 classAttr[func.__name__] = func
 

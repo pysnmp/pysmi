@@ -12,6 +12,8 @@ from pysnmp.smi.builder import MibBuilder
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.parser.smi import parserFactory
+from tests.harness import render_pysnmp
+from tests.mibs import SNMPV2_SMI
 
 
 class ObjectTypeBasicTestCase(unittest.TestCase):
@@ -58,12 +60,8 @@ class ObjectTypeBasicTestCase(unittest.TestCase):
     def testObjectTypeStatus(self):
         self.assertEqual(self.ctx["testObjectType"].getStatus(), "current", "bad STATUS")
 
-    # TODO:revisit
-    #    def testObjectTypeReference(self):
-    #        self.assertEqual(
-    #            self.ctx['testObjectType'].getReference(), b'ABC',
-    #            'bad REFERENCE'
-    #        )
+    def testObjectTypeReference(self):
+        self.assertEqual(self.ctx["testObjectType"].getReference(), "ABC", "bad REFERENCE")
 
     def testObjectTypeMaxAccess(self):
         self.assertEqual(self.ctx["testObjectType"].getMaxAccess(), "accessiblefornotify", "bad MAX-ACCESS")
@@ -198,17 +196,15 @@ class ObjectTypeWithIntegerConstraintTestCase(unittest.TestCase):
     """
 
     def setUp(self):
-        ast = parserFactory()().parse(self.__class__.__doc__)[0]
-        mibInfo, symtable = SymtableCodeGen().gen_code(ast, {}, genTexts=True)
-        self.mibInfo, pycode = PySnmpCodeGen().gen_code(ast, {mibInfo.name: symtable}, genTexts=True)
-        codeobj = compile(pycode, "test", "exec")
-
-        self.ctx = {"mibBuilder": MibBuilder()}
-
-        exec(codeobj, self.ctx, self.ctx)
+        # DEFVAL { 0 } makes the codegen resolve Unsigned32 back to its base,
+        # so SNMPv2-SMI has to be in the symbol table.
+        self.ctx = render_pysnmp(self.__class__.__doc__, deps=[SNMPV2_SMI])
 
     def testObjectTypeSyntax(self):
         self.assertEqual(self.ctx["testObjectType"].getSyntax().clone(123), 123, "bad integer range constrained SYNTAX")
+
+    def testObjectTypeDefault(self):
+        self.assertEqual(self.ctx["testObjectType"].getSyntax(), 0, "bad DEFVAL")
 
 
 class ObjectTypeWithIntegerSetConstraintTestCase(unittest.TestCase):

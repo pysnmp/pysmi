@@ -82,7 +82,7 @@ class JsonHexDefValTestCase(unittest.TestCase):
 
     def default(self, name):
         """Return the default clause the JSON document holds for *name*."""
-        return self.doc[name]["default"]["default"]
+        return self.doc[name]["default"]
 
     def testHexOnIntegerIsReportedAsDecimal(self):
         """0x0A on an Integer32 is the number ten, and says so."""

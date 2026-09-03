@@ -33,7 +33,7 @@ class AbstractSearcher:
             setattr(self, k, kwargs[k])
         return self
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
         """Report whether a compiled MIB is current, by raising.
 
         Args:
@@ -44,6 +44,13 @@ class AbstractSearcher:
         Keyword Args:
             rebuild: ignore whatever is stored and report nothing, so the
                 caller recompiles
+            digest: digest of the MIB source about to be compiled, as
+                returned by ``pysmi.mibinfo.source_digest``. Lets a
+                subclass tell a stored file apart from one produced from a
+                *different* source that merely has an equal or older
+                modification time -- the case a primary source with a stale
+                mtime, following a fallback source's compile, would
+                otherwise pass. ``None`` skips the check.
 
         Raises:
             PySmiFileNotModifiedError: the compiled MIB is up to date and the

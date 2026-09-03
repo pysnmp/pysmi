@@ -6,6 +6,7 @@
 #
 """Interface shared by the writers."""
 
+from collections.abc import Iterable
 from typing import Any
 
 from pysmi._aliases import deprecated_camel_case
@@ -58,5 +59,37 @@ class AbstractWriter:
 
         Returns:
             The stored text, or an empty string when there is none.
+        """
+        raise NotImplementedError()
+
+    def list_data(self) -> Iterable[str]:
+        """List the MIB module names this writer currently holds output for.
+
+        Used by :py:meth:`~pysmi.compiler.MibCompiler.prune` to find output
+        whose source MIB has since disappeared. A writer that cannot
+        enumerate what it holds -- :py:class:`~pysmi.writer.callback.CallbackWriter`
+        hands data to a callback and keeps none of its own -- reports
+        nothing, which excludes it from pruning entirely rather than
+        raising.
+
+        Returns:
+            Names of the modules stored, empty if there are none or this
+            writer does not track what it holds.
+        """
+        return ()
+
+    def del_data(self, mibname: str, dryRun: bool = False) -> None:
+        """Remove previously stored output for a MIB module.
+
+        Only ever called for a name :py:meth:`list_data` itself reported, so
+        the default implementation here is unreachable unless a subclass
+        overrides one of the pair without the other.
+
+        Keyword Args:
+            mibname (str): MIB module whose output should be removed
+            dryRun: report what would be removed without removing anything
+
+        Raises:
+            PySmiWriterError: the output could not be removed.
         """
         raise NotImplementedError()

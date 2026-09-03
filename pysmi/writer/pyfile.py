@@ -12,11 +12,13 @@ import logging
 import os
 import py_compile
 import tempfile
+from collections.abc import Iterable
 from typing import Final
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode, encode
+from pysmi.mibinfo import producer_of
 from pysmi.writer.base import AbstractWriter
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,7 @@ class PyFileWriter(AbstractWriter):
         self._path = decode(os.path.normpath(path))
 
     def __str__(self) -> str:
+        """Identify this writer by the directory it stores modules in."""
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
     def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
@@ -81,7 +84,7 @@ class PyFileWriter(AbstractWriter):
             fd, tfile = tempfile.mkstemp(dir=self._path)
             os.write(fd, encode(data))
             os.close(fd)
-            os.rename(tfile, pyfile)
+            os.replace(tfile, pyfile)
 
         except (OSError, UnicodeEncodeError) as exc:
             if tfile:
@@ -111,3 +114,69 @@ class PyFileWriter(AbstractWriter):
     def get_data(self, filename: str) -> str:
         """Return an empty string; compiled modules are not read back."""
         return ""
+
+    def list_data(self) -> Iterable[str]:
+        """List the MIB modules stored in the destination directory.
+
+        Only files carrying this package's own "Produced by" marker are
+        reported -- a file this writer did not itself create is not this
+        writer's to enumerate for pruning.
+        """
+        suffix = SOURCE_SUFFIXES[0]
+
+        try:
+            entries = os.listdir(self._path)
+        except OSError:
+            return ()
+
+        names = []
+
+        for entry in entries:
+            if not entry.endswith(suffix):
+                continue
+
+            path = os.path.join(self._path, entry)
+
+            if not os.path.isfile(path):
+                continue
+
+            try:
+                with open(path, "rb") as fp:
+                    text = decode(fp.read())
+
+            except (OSError, UnicodeDecodeError):
+                continue
+
+            if producer_of(text) is not None:
+                names.append(entry[: -len(suffix)])
+
+        return names
+
+    def del_data(self, mibname: str, dryRun: bool = False) -> None:
+        """Remove a previously written module, and its cached bytecode."""
+        pyfile = os.path.join(self._path, decode(mibname)) + SOURCE_SUFFIXES[0]
+
+        if dryRun:
+            logger.debug("dry run mode, not removing %s", pyfile, extra={"mib": mibname, "path": pyfile})
+            return
+
+        try:
+            os.unlink(pyfile)
+
+        except FileNotFoundError:
+            return
+
+        except OSError as exc:
+            raise error.PySmiWriterError(f"failure removing file {pyfile}: {exc}", file=pyfile, writer=self) from exc
+
+        cacheDir = os.path.join(self._path, "__pycache__")
+
+        if os.path.isdir(cacheDir):
+            prefix = decode(mibname) + "."
+
+            for entry in os.listdir(cacheDir):
+                if entry.startswith(prefix) and entry.endswith(".pyc"):
+                    with contextlib.suppress(OSError):
+                        os.unlink(os.path.join(cacheDir, entry))
+
+        logger.debug("%s removed", pyfile, extra={"mib": mibname, "path": pyfile})

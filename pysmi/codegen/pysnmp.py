@@ -9,24 +9,39 @@
 import logging
 import re
 from keyword import iskeyword
-from time import strftime, strptime
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
+    GENERIC_TRAPS,
+    SNMP_ENTERPRISE,
     AbstractCodeGen,
+    AgentCapabilitiesClause,
+    CapabilitiesClause,
     ComplianceClause,
     DefValClause,
     IndexClause,
+    ModuleComplianceClause,
+    ModuleIdentityClause,
     NamedNumbersClause,
+    NotificationGroupClause,
+    NotificationTypeClause,
+    ObjectGroupClause,
+    ObjectIdentityClause,
+    ObjectTypeClause,
     OidClause,
     RangesClause,
     RevisionsClause,
     SequenceClause,
     SymbolsClause,
     TextClause,
+    TrapTypeClause,
+    TypeDeclarationClause,
+    ValueDeclarationClause,
     dorepr,
+    format_ext_utc_time,
+    trap_type_oid,
 )
 from pysmi.mibinfo import MibInfo
 
@@ -144,6 +159,12 @@ class PySnmpCodeGen(AbstractCodeGen):
     indent = " " * 4
     fakeidx = 1000  # starting index for fake symbols
 
+    # pysnmp SMI classes that do not implement setReference(). RFC 2580 allows
+    # REFERENCE on the conformance macros these back, but emitting the call
+    # yields a module that raises AttributeError when loaded with
+    # loadTexts=True. The text is still carried by the JSON codegen.
+    _NO_SET_REFERENCE = frozenset(("ModuleCompliance", "NotificationGroup", "ObjectGroup"))
+
     # Template for version-guarded status assignment (duplicated across many
     # codegen methods; extracted to satisfy SonarQube S1192).
     _STATUS_VERSION_TEMPLATE = """\
@@ -181,6 +202,12 @@ for _%(name)s_obj in [%(objects)s]:
     _CONSTRAINTS_UNION = "ConstraintsUnion("
 
     def __init__(self) -> None:
+        """Note the base SNMP types, then start with empty per-module state.
+
+        The type set is fixed for the life of the generator. Everything after
+        it is scratch space for a single module, reset by
+        ``reset()`` between runs.
+        """
         self._snmpTypes = set(self.typeClasses.values())
         self._snmpTypes.add("Bits")
         self._rows: set[str] = set()
@@ -228,7 +255,7 @@ for _%(name)s_obj in [%(objects)s]:
 
         return symbol.replace("-", "_")
 
-    def prep_data(self, pdata: Any, classmode: bool = False) -> list[Any]:
+    def prep_data(self, pdata: Any, classmode: bool = False) -> tuple[Any, ...]:
         """Convert a parse subtree into the values a clause handler expects.
 
         Each element that is a tagged tuple is dispatched through
@@ -242,9 +269,11 @@ for _%(name)s_obj in [%(objects)s]:
             classmode: the subtree sits inside a type declaration
 
         Returns:
-            One converted value per element of the subtree.
+            One converted value per element of the subtree. A tuple rather
+            than a list so a handler can name the exact shape it expects;
+            see https://github.com/pysnmp/pysmi/issues/47.
         """
-        data = []
+        data: list[Any] = []
 
         for el in pdata:
             if not isinstance(el, tuple):
@@ -258,7 +287,7 @@ for _%(name)s_obj in [%(objects)s]:
                     self.handlersTable[el[0]](self, self.prep_data(el[1:], classmode=classmode), classmode=classmode)
                 )
 
-        return data
+        return tuple(data)
 
     def gen_imports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
         """Render the module's import statements.
@@ -488,10 +517,31 @@ for _%(name)s_obj in [%(objects)s]:
 
             return baseSymType, symSubtype
 
+    def _reference_line(self, name: str, reference: str | None, pysnmpClass: str | None = None) -> str:
+        """Render the guarded ``setReference()`` assignment for a symbol.
+
+        Args:
+            name: translated symbol name
+            reference: rendered REFERENCE clause; empty or ``None`` when
+                the clause is absent
+            pysnmpClass: pysnmp class backing the symbol; ``None`` when every
+                class the clause can produce implements ``setReference()``
+
+        Returns:
+            The assignment line, or an empty string when nothing is emitted.
+        """
+        if not (self.genRules["text"] and reference):
+            return ""
+
+        if pysnmpClass in self._NO_SET_REFERENCE:
+            return ""
+
+        return self.ifTextStr + name + reference + "\n"
+
     # Clause generation functions
 
     # noinspection PyUnusedLocal
-    def gen_agent_capabilities(self, data: Any, classmode: bool = False) -> Any:
+    def gen_agent_capabilities(self, data: AgentCapabilitiesClause, classmode: bool = False) -> Any:
         """Render an AGENT-CAPABILITIES clause as an ``AgentCapabilities`` object.
 
         Args:
@@ -501,7 +551,7 @@ for _%(name)s_obj in [%(objects)s]:
         Returns:
             Source for the object and its texts.
         """
-        name, productRelease, status, description, reference, oid = data
+        name, productRelease, status, description, reference, _capabilities, oid = data
 
         label = self.gen_label(name)
         name = self.trans_opers(name)
@@ -521,15 +571,14 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += name + reference + "\n"
+        outStr += self._reference_line(name, reference, "AgentCapabilities")
 
         self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_module_identity(self, data: Any, classmode: bool = False) -> str:
+    def gen_module_identity(self, data: ModuleIdentityClause, classmode: bool = False) -> str:
         """Render a MODULE-IDENTITY clause as a ``ModuleIdentity`` object.
 
         The revision descriptions are guarded, because older PySNMP versions
@@ -582,7 +631,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_module_compliance(self, data: Any, classmode: bool = False) -> str:
+    def gen_module_compliance(self, data: ModuleComplianceClause, classmode: bool = False) -> str:
         """Render a MODULE-COMPLIANCE clause as a ``ModuleCompliance`` object.
 
         Args:
@@ -607,15 +656,14 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "ModuleCompliance")
 
         self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_notification_group(self, data: Any, classmode: bool = False) -> str:
+    def gen_notification_group(self, data: NotificationGroupClause, classmode: bool = False) -> str:
         """Render a NOTIFICATION-GROUP clause as a ``NotificationGroup`` object.
 
         The objects are set in batches when the group names more of them than
@@ -664,15 +712,14 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += name + reference + "\n"
+        outStr += self._reference_line(name, reference, "NotificationGroup")
 
         self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_notification_type(self, data: Any, classmode: bool = False) -> str:
+    def gen_notification_type(self, data: NotificationTypeClause, classmode: bool = False) -> str:
         """Render a NOTIFICATION-TYPE clause as a ``NotificationType`` object.
 
         Args:
@@ -718,15 +765,14 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "NotificationType")
 
         self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_object_group(self, data: Any, classmode: bool = False) -> str:
+    def gen_object_group(self, data: ObjectGroupClause, classmode: bool = False) -> str:
         """Render an OBJECT-GROUP clause as an ``ObjectGroup`` object.
 
         Args:
@@ -779,15 +825,14 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "ObjectGroup")
 
         self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_object_identity(self, data: Any, classmode: bool = False) -> Any:
+    def gen_object_identity(self, data: ObjectIdentityClause, classmode: bool = False) -> Any:
         """Render an OBJECT-IDENTITY clause as an ``ObjectIdentity`` object.
 
         Args:
@@ -811,15 +856,14 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "ObjectIdentity")
 
         self.reg_sym(name, outStr, oidStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_object_type(self, data: Any, classmode: bool = False) -> str:
+    def gen_object_type(self, data: ObjectTypeClause, classmode: bool = False) -> str:
         """Render an OBJECT-TYPE clause as the object it describes.
 
         Which class is used depends on what the object turned out to be: a
@@ -836,7 +880,7 @@ for _{name}_obj in [{objects}]:
         Returns:
             Source for the object and its texts.
         """
-        name, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
+        name, syntax, units, maxaccess, status, description, reference, augmentation, index, defval, oid = data
 
         label = self.gen_label(name)
         name = self.trans_opers(name)
@@ -846,7 +890,11 @@ for _{name}_obj in [{objects}]:
         indexStr, fakeStrlist, fakeSyms = index or ("", "", [])
         subtype = (syntax[0] == "Bits" and "Bits()" + syntax[1]) or syntax[1]  # Bits hack #1
 
-        classtype = self.typeClasses.get(syntax[0], syntax[0])
+        # The first element of a SYNTAX clause is the type name. Saying so
+        # keeps dict.get on the two-argument overload: with an Any default
+        # mypy resolves to the one-argument form and reports str | None,
+        # which the explicit default rules out.
+        classtype = self.typeClasses.get(syntax[0], cast("str", syntax[0]))
         classtype = self.trans_opers(classtype)
         classtype = (syntax[0] == "Bits" and "MibScalar") or classtype  # Bits hack #2
         classtype = (name in self.symbolTable[self.moduleName[0]]["_symtable_cols"] and "MibTableColumn") or classtype
@@ -859,20 +907,19 @@ for _{name}_obj in [{objects}]:
         outStr += indexStr or ""
         outStr += "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference)
 
-        if augmention:
-            augmention = self.trans_opers(augmention)
+        if augmentation:
+            augmentation = self.trans_opers(augmentation)
             outStr += (
-                augmention
+                augmentation
                 + '.registerAugmentions(("'
                 + self._importMap.get(name, self.moduleName[0])
                 + '", "'
                 + name
                 + '"))\n'
             )
-            outStr += name + ".setIndexNames(*" + augmention + ".getIndexNames())\n"
+            outStr += name + ".setIndexNames(*" + augmentation + ".getIndexNames())\n"
 
         if status:
             outStr += self.ifTextStr + name + status + "\n"
@@ -890,12 +937,12 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_trap_type(self, data: Any, classmode: bool = False) -> Any:
+    def gen_trap_type(self, data: TrapTypeClause, classmode: bool = False) -> Any:
         """Render a TRAP-TYPE clause as a ``NotificationType`` object.
 
-        SMIv1 traps have no OID of their own; theirs is built from the
-        enterprise OID, a zero, and the trap number, which is how SMIv2 names
-        the same notification.
+        SMIv1 traps have no OID of their own; theirs is derived from the
+        ENTERPRISE clause and the trap number, which is how SMIv2 names the
+        same notification. See ``trap_type_oid``.
 
         Args:
             data: rendered clause values
@@ -911,7 +958,14 @@ for _{name}_obj in [{objects}]:
 
         enterpriseStr, _parentOid = enterprise
 
-        outStr = name + " = NotificationType(" + enterpriseStr + " + (0," + str(value) + "))" + label
+        if enterpriseStr == str(SNMP_ENTERPRISE) and value in GENERIC_TRAPS:
+            oidStr = str(trap_type_oid(SNMP_ENTERPRISE, value))
+        else:
+            # The enterprise is rendered as its own tuple so that the sum reads
+            # the way the clause does: this enterprise, this trap number.
+            oidStr = enterpriseStr + " + (0," + str(value) + ")"
+
+        outStr = name + " = NotificationType(" + oidStr + ")" + label
 
         if objects:
             objects = [
@@ -937,15 +991,14 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        if self.genRules["text"] and reference:
-            outStr += self.ifTextStr + name + reference + "\n"
+        outStr += self._reference_line(name, reference, "NotificationType")
 
         self.reg_sym(name, outStr, enterpriseStr)
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_type_declaration(self, data: Any, classmode: bool = False) -> str:
+    def gen_type_declaration(self, data: TypeDeclarationClause, classmode: bool = False) -> str:
         """Render a type declaration as a Python class.
 
         A declaration with no parent type is a SEQUENCE, which PySNMP does not
@@ -972,7 +1025,7 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_value_declaration(self, data: Any, classmode: bool = False) -> str:
+    def gen_value_declaration(self, data: ValueDeclarationClause, classmode: bool = False) -> str:
         """Render a plain OID assignment as a ``MibIdentifier``.
 
         Args:
@@ -1092,6 +1145,24 @@ for _{name}_obj in [{objects}]:
             outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")\n"
 
         return outStr
+
+    # noinspection PyUnusedLocal,PyMethodMayBeStatic
+    def gen_capabilities(self, data: CapabilitiesClause, classmode: bool = False) -> str:
+        """Render nothing for an AGENT-CAPABILITIES body.
+
+        pysnmp's ``AgentCapabilities`` has no setter for what a SUPPORTS
+        clause carries -- its own source says as much -- so there is nowhere
+        to put it. The parser keeps the detail regardless, and the JSON
+        backend emits it; see pysnmp/pysnmp#133.
+
+        Args:
+            data: rendered clause values
+            classmode: unused
+
+        Returns:
+            An empty string.
+        """
+        return ""
 
     # noinspection PyUnusedLocal
     def gen_conceptual_table(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
@@ -1228,17 +1299,20 @@ for _{name}_obj in [{objects}]:
                     val = ""
 
             elif defvalType[0][0] == "Bits":
+                # The default names the bits that are set. Passing them as a
+                # value keeps the type's own named values intact; passing them
+                # as namedValues would redefine the type and set no default.
                 defvalBits = []
                 bits = dict(defvalType[1])
 
                 for bit in defval:
                     bitValue = bits.get(bit)
                     if bitValue is not None:
-                        defvalBits.append((bit, bitValue))
+                        defvalBits.append(bit)
                     else:
                         raise error.PySmiSemanticError(f'no such bit as "{bit}" for symbol "{objname}"')
 
-                return self.gen_bits([defvalBits])[1]
+                val = "(" + ", ".join(dorepr(bit) for bit in defvalBits) + ",)" if defvalBits else "()"
 
             else:
                 raise error.PySmiSemanticError(
@@ -1540,34 +1614,13 @@ for _{name}_obj in [{objects}]:
     def gen_time(self, data: TextClause, classmode: bool = False) -> list[Any]:
         """Render MIB timestamps as readable dates.
 
-        Two-digit SMIv1 years are read as nineteen-hundreds. A timestamp that
-        cannot be parsed at all is replaced with the epoch rather than rejected,
-        because malformed dates are common and never affect the semantics of a
-        module.
-
         Args:
             data: timestamps as written in the MIB
 
         Returns:
             One formatted date per timestamp.
         """
-        times = []
-        for timeStr in data:
-            if len(timeStr) == 11:
-                timeStr = "19" + timeStr
-            # XXX raise in strict mode
-            # elif lenTimeStr != 13:
-            #  raise error.PySmiSemanticError("Invalid date %s" % t)
-            try:
-                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
-
-            except ValueError:
-                # XXX raise in strict mode
-                # raise error.PySmiSemanticError("Invalid date %s: %s" % (t, sys.exc_info()[1]))
-                timeStr = "197001010000Z"  # dummy date for dates with typos
-                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
-
-        return times
+        return [format_ext_utc_time(timeStr, self.moduleName[0]) for timeStr in data]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def gen_last_updated(self, data: TextClause, classmode: bool = False) -> str:
@@ -1580,8 +1633,7 @@ for _{name}_obj in [{objects}]:
         Returns:
             A ``setLastUpdated()`` call.
         """
-        text = data[0]
-        return ".setLastUpdated(" + dorepr(text) + ")"
+        return ".setLastUpdated(" + dorepr(format_ext_utc_time(data[0], self.moduleName[0])) + ")"
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def gen_organization(self, data: TextClause, classmode: bool = False) -> str:
@@ -1740,7 +1792,9 @@ for _{name}_obj in [{objects}]:
         text = data[0]
         return ".setUnits(" + dorepr(self.textFilter("units", text)) + ")"
 
-    handlersTable = {
+    #: Grammar tag -> clause handler. Each handler declares its own clause
+    #: shape, so the table cannot name one signature for all of them.
+    handlersTable: ClassVar[dict[str, Any]] = {
         "agentCapabilitiesClause": gen_agent_capabilities,
         "moduleIdentityClause": gen_module_identity,
         "moduleComplianceClause": gen_module_compliance,
@@ -1756,6 +1810,7 @@ for _{name}_obj in [{objects}]:
         "BitNames": gen_bit_names,
         "BITS": gen_bits,
         "ComplianceModules": gen_compliances,
+        "Modules_Capabilities": gen_capabilities,
         "conceptualTable": gen_conceptual_table,
         "CONTACT-INFO": gen_contact_info,
         "DISPLAY-HINT": gen_display_hint,

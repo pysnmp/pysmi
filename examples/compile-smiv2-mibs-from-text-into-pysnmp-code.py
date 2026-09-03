@@ -36,6 +36,7 @@ mibCompiler = MibCompiler(
 
 # our own callback function serves as a MIB source here
 def readMib(mibname, cbCtx):
+    """Return the ASN.1 text for *mibname*, read from a ``.txt`` file."""
     with open(srcDir + mibname + ".txt") as srcFile:
         return srcFile.read()
 

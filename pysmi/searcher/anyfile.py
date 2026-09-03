@@ -10,9 +10,12 @@ import logging
 import os
 import time
 
+from pysmi import __name__ as packageName
+from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
+from pysmi.mibinfo import digest_of, producer_of
 from pysmi.searcher.base import AbstractSearcher
 
 logger = logging.getLogger(__name__)
@@ -33,13 +36,21 @@ class AnyFileSearcher(AbstractSearcher):
         self._path = os.path.normpath(decode(path))
 
     def __str__(self) -> str:
+        """Identify this searcher by the directory it looks in."""
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
         """Compare a stored file's modification time against the MIB source.
 
-        Unlike the Python-specific searchers this reads no file contents, so
-        it works for any output format.
+        A file that is otherwise fresh is also checked against the
+        "Produced by" marker, and the "Source digest" of the ASN.1 it was
+        compiled from, this package's own writer leaves behind -- read as
+        a "#"-commented line, or from a JSON document's ``meta.comments``.
+        So a MIB compiled by a since-fixed pysmi is stale even though its
+        source never changed, and a compiled file left behind by one
+        source is stale once a *different* source -- one that happens to
+        carry an equal or older modification time -- is the one on offer
+        now.
         """
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
@@ -67,7 +78,41 @@ class AnyFileSearcher(AbstractSearcher):
                 extra={"mib": mibname, "path": f, "mtime": fileTime},
             )
 
-            if fileTime >= mtime:
-                raise error.PySmiFileNotModifiedError()
+            if fileTime < mtime:
+                continue
+
+            try:
+                with open(f, "rb") as fp:
+                    text = decode(fp.read())
+
+            except (OSError, UnicodeDecodeError) as exc:
+                raise error.PySmiSearcherError(f"failure opening compiled file {f}: {exc}", searcher=self) from exc
+
+            producer = producer_of(text)
+
+            if producer is not None and producer != (packageName, packageVersion):
+                logger.debug(
+                    "%s was produced by %s-%s, this is %s-%s, will rebuild",
+                    f,
+                    *producer,
+                    packageName,
+                    packageVersion,
+                    extra={"mib": mibname, "path": f, "producer": producer},
+                )
+                continue
+
+            storedDigest = digest_of(text)
+
+            if digest is not None and storedDigest is not None and storedDigest != digest:
+                logger.debug(
+                    "%s was produced from %s, this is %s, will rebuild",
+                    f,
+                    storedDigest,
+                    digest,
+                    extra={"mib": mibname, "path": f, "storedDigest": storedDigest, "digest": digest},
+                )
+                continue
+
+            raise error.PySmiFileNotModifiedError()
 
         raise error.PySmiFileNotFoundError(f"no compiled file {mibname} found", searcher=self)

@@ -73,6 +73,8 @@ class MibStatus(str):
     enterprise: tuple[str, ...]
     #: MODULE-COMPLIANCE OIDs.
     compliance: tuple[str, ...]
+    #: NOTIFICATION-TYPE OIDs, including converted TRAP-TYPEs.
+    notification: tuple[str, ...]
     #: Why the transformation failed.
     error: error.PySmiError
 
@@ -94,6 +96,7 @@ statusFailed: Final = MibStatus("failed")
 statusUnprocessed: Final = MibStatus("unprocessed")
 statusMissing: Final = MibStatus("missing")
 statusBorrowed: Final = MibStatus("borrowed")
+statusPruned: Final = MibStatus("pruned")
 
 
 @deprecated_camel_case
@@ -121,28 +124,55 @@ class MibCompiler:
 
     indexFile = "index"
 
-    def __init__(self, parser: "AbstractParser", codegen: "AbstractCodeGen", writer: "AbstractWriter") -> None:
+    #: Dotted package holding the bundled base MIB ASN.1 sources -- read
+    #: through :py:class:`~pysmi.reader.package.PackageReader` when
+    #: ``useBundledMibs`` is set. See pysnmp/pysmi#113.
+    bundledMibsPackage = "pysmi.mibs.asn1"
+
+    def __init__(
+        self,
+        parser: "AbstractParser",
+        codegen: "AbstractCodeGen",
+        writer: "AbstractWriter",
+        useBundledMibs: bool = True,
+    ) -> None:
         """Creates an instance of *MibCompiler* class.
 
         Args:
             parser: ASN.1 MIB parser object
             codegen: MIB transformation object
             writer: transformed MIB storing object
+
+        Keyword Args:
+            useBundledMibs: register pysmi's own bundled copy of the
+                RFC-frozen base MIBs (``SNMPv2-SMI`` and friends) as a
+                fallback source, tried only once every source added through
+                :py:meth:`add_sources` has failed. Set to ``False`` so a
+                misconfigured ``add_sources`` call fails loudly instead of
+                silently succeeding from the bundled copy.
         """
         self._parser = parser
         self._codegen = codegen
         self._symbolgen = SymtableCodeGen()
         self._writer = writer
         self._sources: list[AbstractReader] = []
+        self._fallback_sources: list[AbstractReader] = []
         self._searchers: list[AbstractSearcher] = []
         self._borrowers: list[AbstractBorrower] = []
+
+        if useBundledMibs:
+            from pysmi.reader.package import PackageReader
+
+            self.add_fallback_sources(PackageReader(self.bundledMibsPackage))
 
     def add_sources(self, *sources: "AbstractReader") -> "MibCompiler":
         """Add more ASN.1 MIB source repositories.
 
         MibCompiler.compile will invoke each of configured source objects
         in order of their addition asking each to fetch MIB module specified
-        by name.
+        by name. Every one of these is tried before any
+        :py:meth:`add_fallback_sources` source, whatever order either was
+        added in.
 
         Args:
             sources: reader object(s)
@@ -160,6 +190,36 @@ class MibCompiler:
         )
 
         return self
+
+    def add_fallback_sources(self, *sources: "AbstractReader") -> "MibCompiler":
+        """Add more ASN.1 MIB source repositories, tried only as a last resort.
+
+        Every :py:meth:`add_sources` source is tried, for every MIB, before
+        any of these -- a user-supplied copy always wins over a bundled one,
+        regardless of which was added first. Use this for a source that
+        should fill a gap rather than be preferred, such as pysmi's own
+        bundled base MIBs (see ``useBundledMibs`` on the constructor).
+
+        Args:
+            sources: reader object(s)
+
+        Returns:
+            reference to itself (can be used for call chaining)
+
+        """
+        self._fallback_sources.extend(sources)
+
+        logger.debug(
+            "current fallback MIB source(s): %s",
+            ", ".join(str(x) for x in self._fallback_sources),
+            extra={"fallback_sources": [str(x) for x in self._fallback_sources]},
+        )
+
+        return self
+
+    def _all_sources(self) -> list["AbstractReader"]:
+        """Every configured source, in the order they are tried: :py:meth:`add_sources` first."""
+        return [*self._sources, *self._fallback_sources]
 
     def add_searchers(self, *searchers: "AbstractSearcher") -> "MibCompiler":
         """Add more transformed MIBs repositories.
@@ -259,7 +319,7 @@ class MibCompiler:
                 logger.debug("MIB %s already failed", mibname, extra={"mib": mibname})
                 continue
 
-            for source in self._sources:
+            for source in self._all_sources():
                 logger.debug("trying source %s", source, extra={"mib": mibname, "source": str(source)})
 
                 try:
@@ -362,7 +422,9 @@ class MibCompiler:
 
             for searcher in self._searchers:
                 try:
-                    searcher.file_exists(mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")))
+                    searcher.file_exists(
+                        mibname, fileInfo.mtime, rebuild=bool(options.get("rebuild")), digest=fileInfo.digest
+                    )
 
                 except error.PySmiFileNotFoundError:
                     logger.debug(
@@ -630,6 +692,7 @@ class MibCompiler:
                         revision=mibInfo.revision,
                         enterprise=mibInfo.enterprise,
                         compliance=mibInfo.compliance,
+                        notification=mibInfo.notification,
                     )
 
             except error.PySmiError as exc:
@@ -696,3 +759,112 @@ class MibCompiler:
                 return
 
             raise exc
+
+    def prune(self, **options: Any) -> dict[str, MibStatus]:
+        """Remove previously stored output whose source MIB no longer exists.
+
+        *compile* only ever acts on the MIBs it is asked for, so output for a
+        module that has since been removed from every configured source
+        lingers in the destination forever. *prune* closes that gap: it asks
+        the writer what it currently holds (:py:meth:`~pysmi.writer.base.AbstractWriter.list_data`,
+        which reports nothing for a writer that cannot enumerate its own
+        output, e.g. :py:class:`~pysmi.writer.callback.CallbackWriter`), and
+        for each name tries every configured source in turn. A name none of
+        them have any more is removed.
+
+        Only output carrying this package's own "Produced by" marker is ever
+        considered -- a file the writer holds that this tool did not
+        generate is left alone, whatever else is true of it.
+
+        Every source has :py:meth:`~pysmi.reader.base.AbstractReader.clear_cache`
+        called on it first, so a reader already warmed up by an earlier
+        *compile* in this same run reports what exists right now rather than
+        what existed when it was first asked.
+
+        Keyword Args:
+            dryRun: report what would be removed without removing anything
+            ignoreErrors: keep going after a source or writer error instead
+                of raising
+
+        Returns:
+            A dictionary of MIB module names the writer held (keys) and
+            *MibStatus* instances (values) -- *pruned* if removed, *untouched*
+            if a source still has it, *failed* if removal itself failed.
+
+        Raises:
+            PySmiError: a source or the writer failed, unless ``ignoreErrors``
+                is set.
+        """
+        processed: dict[str, MibStatus] = {}
+
+        for source in self._all_sources():
+            source.clear_cache()
+
+        for mibname in self._writer.list_data():
+            if mibname in processed:
+                continue
+
+            stillSourced = False
+
+            for source in self._all_sources():
+                try:
+                    source.get_data(mibname)
+                    stillSourced = True
+                    break
+
+                except error.PySmiReaderFileNotFoundError:
+                    continue
+
+                except error.PySmiError as exc:
+                    logger.debug(
+                        "error %s from %s while checking %s, leaving it alone",
+                        exc,
+                        source,
+                        mibname,
+                        extra={"mib": mibname, "source": str(source), "error": str(exc)},
+                    )
+
+                    if not options.get("ignoreErrors"):
+                        exc.mibname = mibname
+                        raise
+
+                    # An error checking a source is not proof the MIB is
+                    # gone, so it is kept rather than risk deleting output
+                    # whose source merely could not be read this run.
+                    stillSourced = True
+                    break
+
+            if stillSourced:
+                logger.debug("%s still has a source, keeping it", mibname, extra={"mib": mibname})
+                processed[mibname] = statusUntouched
+                continue
+
+            logger.debug("%s has no source left, pruning", mibname, extra={"mib": mibname})
+
+            try:
+                self._writer.del_data(mibname, dryRun=bool(options.get("dryRun")))
+                processed[mibname] = statusPruned
+
+            except error.PySmiError as exc:
+                exc.mibname = mibname
+
+                logger.debug(
+                    "error %s from %s while pruning %s",
+                    exc,
+                    self._writer,
+                    mibname,
+                    extra={"mib": mibname, "writer": str(self._writer), "error": str(exc)},
+                )
+
+                if not options.get("ignoreErrors"):
+                    raise
+
+                processed[mibname] = statusFailed.set_options(error=exc)
+
+        logger.debug(
+            "MIBs pruned: %s",
+            ", ".join(x for x in processed if processed[x] == "pruned") or "<none>",
+            extra={"pruned": [x for x in processed if processed[x] == "pruned"]},
+        )
+
+        return processed

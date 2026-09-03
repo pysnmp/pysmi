@@ -18,6 +18,9 @@ Revision 2.0.0
 - The JSON backend now emits the stand-in column it synthesises for an
   SMIv1 ``INDEX`` naming a bare type, matching the PySNMP backend
 - PySMI no longer imports ``pwd``, so it can be imported on Windows
+- The JSON backend no longer nests a default value under two
+  ``default`` keys. A default now reads at ``obj["default"]``, flat
+  like every other clause, instead of ``obj["default"]["default"]``
 
 Revision 1.2.0, 31-08-2026
 --------------------------

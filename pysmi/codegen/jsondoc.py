@@ -10,23 +10,38 @@ import json
 import logging
 import re
 from collections import OrderedDict
-from time import strftime, strptime
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
+    AgentCapabilitiesClause,
+    CapabilitiesClause,
+    CapabilitiesVariation,
     ComplianceClause,
+    ComplianceRefinement,
     DefValClause,
     IndexClause,
+    ModuleComplianceClause,
+    ModuleIdentityClause,
     NamedNumbersClause,
+    NotificationGroupClause,
+    NotificationTypeClause,
+    ObjectGroupClause,
+    ObjectIdentityClause,
+    ObjectTypeClause,
     OidClause,
     RangesClause,
     RevisionsClause,
     SequenceClause,
     SymbolsClause,
     TextClause,
+    TrapTypeClause,
+    TypeDeclarationClause,
+    ValueDeclarationClause,
+    format_ext_utc_time,
+    trap_type_oid,
 )
 from pysmi.mibinfo import MibInfo
 
@@ -81,7 +96,45 @@ class JsonCodeGen(AbstractCodeGen):
     indent = " " * 4
     fakeidx = 1000  # starting index for fake symbols
 
+    #: The schema versions this generator can emit. A consumer that has to
+    #: keep working across pysmi releases asks for the one it understands and
+    #: is told, rather than left to infer the shape from the document.
+    SCHEMA_VERSIONS: tuple[int, ...] = (1,)
+
+    #: The schema emitted when none is asked for -- always the newest.
+    SCHEMA_VERSION: int = SCHEMA_VERSIONS[-1]
+
+    @classmethod
+    def _schema_version(cls, kwargs: dict[str, Any]) -> int:
+        """Resolve the ``schemaVersion`` keyword argument.
+
+        Args:
+            kwargs: the keyword arguments a generator entry point was given
+
+        Returns:
+            The schema version to emit.
+
+        Raises:
+            PySmiCodegenError: a version this generator cannot emit was asked
+                for.
+        """
+        version = kwargs.get("schemaVersion")
+
+        if version is None:
+            return cls.SCHEMA_VERSION
+
+        if version not in cls.SCHEMA_VERSIONS:
+            supported = ", ".join(str(v) for v in cls.SCHEMA_VERSIONS)
+            raise error.PySmiCodegenError(f"unsupported JSON schema version {version!r}; this pysmi emits {supported}")
+
+        return cast("int", version)
+
     def __init__(self) -> None:
+        """Start with empty per-module state.
+
+        Everything here is scratch space for a single module, reset by
+        ``reset()`` between runs.
+        """
         self._rows: set[str] = set()
         self._cols: dict[str, str] = {}  # k, v = name, datatype
         self._seenSyms: set[str] = set()
@@ -92,6 +145,7 @@ class JsonCodeGen(AbstractCodeGen):
         self._enterpriseOid: str | None = None
         self._oids: set[str] = set()
         self._complianceOids: list[str] = []
+        self._notificationOids: list[str] = []
         self.moduleName: list[str] = ["DUMMY"]
         self.genRules: dict[str, Any] = {"text": True}
         self.symbolTable: dict[str, Any] = {}
@@ -111,7 +165,7 @@ class JsonCodeGen(AbstractCodeGen):
         """
         return symbol.replace("-", "_")
 
-    def prep_data(self, pdata: Any) -> list[Any]:
+    def prep_data(self, pdata: Any) -> tuple[Any, ...]:
         """Convert a parse subtree into the values a clause handler expects.
 
         Each element that is a tagged tuple is dispatched through
@@ -123,9 +177,11 @@ class JsonCodeGen(AbstractCodeGen):
             pdata: parse subtree
 
         Returns:
-            One converted value per element of the subtree.
+            One converted value per element of the subtree. A tuple rather
+            than a list so a handler can name the exact shape it expects;
+            see https://github.com/pysnmp/pysmi/issues/47.
         """
-        data = []
+        data: list[Any] = []
         for el in pdata:
             if not isinstance(el, tuple):
                 data.append(el)
@@ -133,7 +189,7 @@ class JsonCodeGen(AbstractCodeGen):
                 data.append(el[0])
             else:
                 data.append(self.handlersTable[el[0]](self, self.prep_data(el[1:])))
-        return data
+        return tuple(data)
 
     def gen_imports(self, imports: dict[str, Any]) -> tuple[Any, ...]:
         # convertion to SNMPv2
@@ -262,6 +318,11 @@ class JsonCodeGen(AbstractCodeGen):
             if moduleCompliance:
                 self._complianceOids.append(outDict["oid"])
 
+            # Both NOTIFICATION-TYPE and a converted TRAP-TYPE land here, which
+            # is what makes a trap findable by OID rather than only by name.
+            if outDict.get("class") == "notificationtype":
+                self._notificationOids.append(outDict["oid"])
+
     def gen_numeric_oid(self, oid: tuple[Any, ...]) -> tuple[Any, ...]:
         """Resolve an OID to numbers, following names into other modules.
 
@@ -344,7 +405,7 @@ class JsonCodeGen(AbstractCodeGen):
     # Clause generation functions
 
     # noinspection PyUnusedLocal
-    def gen_agent_capabilities(self, data: Any) -> Any:
+    def gen_agent_capabilities(self, data: AgentCapabilitiesClause) -> Any:
         """Render an AGENT-CAPABILITIES clause.
 
         Args:
@@ -353,7 +414,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The clause as a JSON object.
         """
-        name, productRelease, status, description, reference, oid = data
+        name, productRelease, status, description, reference, capabilities, oid = data
 
         self.gen_label(name)
         name = self.trans_opers(name)
@@ -367,6 +428,9 @@ class JsonCodeGen(AbstractCodeGen):
 
         if productRelease:
             outDict["productrelease"] = productRelease
+
+        if capabilities:
+            outDict["capabilities"] = capabilities
 
         if status:
             outDict["status"] = status
@@ -382,7 +446,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_module_identity(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_module_identity(self, data: ModuleIdentityClause) -> "OrderedDict[str, Any]":
         """Render a MODULE-IDENTITY clause.
 
         Args:
@@ -423,7 +487,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_module_compliance(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_module_compliance(self, data: ModuleComplianceClause) -> "OrderedDict[str, Any]":
         """Render a MODULE-COMPLIANCE clause.
 
         Args:
@@ -444,8 +508,13 @@ class JsonCodeGen(AbstractCodeGen):
         outDict["oid"] = oidStr
         outDict["class"] = "modulecompliance"
 
+        compliances, refinements = compliances or ([], [])
+
         if compliances:
             outDict["modulecompliance"] = compliances
+
+        if refinements:
+            outDict["refinements"] = refinements
 
         if status:
             outDict["status"] = status
@@ -461,7 +530,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_notification_group(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_notification_group(self, data: NotificationGroupClause) -> "OrderedDict[str, Any]":
         """Render a NOTIFICATION-GROUP clause.
 
         Args:
@@ -501,7 +570,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_notification_type(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_notification_type(self, data: NotificationTypeClause) -> "OrderedDict[str, Any]":
         """Render a NOTIFICATION-TYPE clause.
 
         Args:
@@ -541,7 +610,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_object_group(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_object_group(self, data: ObjectGroupClause) -> "OrderedDict[str, Any]":
         """Render an OBJECT-GROUP clause.
 
         Args:
@@ -578,7 +647,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_object_identity(self, data: Any) -> Any:
+    def gen_object_identity(self, data: ObjectIdentityClause) -> Any:
         """Render an OBJECT-IDENTITY clause.
 
         Args:
@@ -613,7 +682,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_object_type(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_object_type(self, data: ObjectTypeClause) -> "OrderedDict[str, Any]":
         """Render an OBJECT-TYPE clause.
 
         What kind of node it is depends on what the object turned out to be: a
@@ -631,7 +700,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The clause as a JSON object.
         """
-        name, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
+        name, syntax, units, maxaccess, status, description, reference, augmentation, index, defval, oid = data
 
         self.gen_label(name)
         name = self.trans_opers(name)
@@ -669,12 +738,12 @@ class JsonCodeGen(AbstractCodeGen):
             outDict["indices"] = indexStr
         if self.genRules["text"] and reference:
             outDict["reference"] = reference
-        if augmention:
-            augmention = self.trans_opers(augmention)
-            outDict["augmention"] = OrderedDict()
-            outDict["augmention"]["name"] = name
-            outDict["augmention"]["module"] = self.moduleName[0]
-            outDict["augmention"]["object"] = augmention
+        if augmentation:
+            augmentation = self.trans_opers(augmentation)
+            outDict["augmentation"] = OrderedDict()
+            outDict["augmentation"]["name"] = name
+            outDict["augmentation"]["module"] = self.moduleName[0]
+            outDict["augmentation"]["object"] = augmentation
         if status:
             outDict["status"] = status
 
@@ -692,12 +761,12 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_trap_type(self, data: Any) -> Any:
+    def gen_trap_type(self, data: TrapTypeClause) -> Any:
         """Render a TRAP-TYPE clause as a notification.
 
-        SMIv1 traps have no OID of their own; theirs is built from the
-        enterprise OID, a zero, and the trap number, which is how SMIv2 names
-        the same notification.
+        SMIv1 traps have no OID of their own; theirs is derived from the
+        ENTERPRISE clause and the trap number, which is how SMIv2 names the
+        same notification. See ``trap_type_oid``.
 
         Args:
             data: converted clause values
@@ -711,10 +780,11 @@ class JsonCodeGen(AbstractCodeGen):
         name = self.trans_opers(name)
 
         enterpriseStr, parentOid = enterprise
+        enterpriseOid = tuple(int(subId) for subId in enterpriseStr.split("."))
 
         outDict = OrderedDict()
         outDict["name"] = name
-        outDict["oid"] = enterpriseStr + ".0." + str(value)
+        outDict["oid"] = ".".join(str(subId) for subId in trap_type_oid(enterpriseOid, value))
         outDict["class"] = "notificationtype"
 
         if variables:
@@ -734,7 +804,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_type_declaration(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_type_declaration(self, data: TypeDeclarationClause) -> "OrderedDict[str, Any]":
         """Render a type declaration.
 
         Args:
@@ -759,7 +829,7 @@ class JsonCodeGen(AbstractCodeGen):
         return outDict
 
     # noinspection PyUnusedLocal
-    def gen_value_declaration(self, data: Any) -> "OrderedDict[str, Any]":
+    def gen_value_declaration(self, data: ValueDeclarationClause) -> "OrderedDict[str, Any]":
         """Render a plain OID assignment.
 
         Args:
@@ -821,22 +891,200 @@ class JsonCodeGen(AbstractCodeGen):
         return "scalar", outDict
 
     # noinspection PyUnusedLocal
-    def gen_compliances(self, data: ComplianceClause) -> list[Any]:
-        """Render the objects a MODULE-COMPLIANCE clause requires.
+    def gen_compliances(self, data: ComplianceClause) -> tuple[list[Any], list[Any]]:
+        """Render what a MODULE-COMPLIANCE requires, and how it refines it.
 
         Args:
             data: converted clause values
 
         Returns:
-            One entry per required object, naming the object and its module.
+            The objects the compliance requires, one entry each naming the
+            object and its module, and the GROUP and OBJECT sub-clauses that
+            qualify them.
         """
         compliances = []
+        refinements = []
 
         for complianceModule in data[0]:
             name = complianceModule[0] or self.moduleName[0]
             compliances += [{"object": self.trans_opers(compl), "module": name} for compl in complianceModule[1]]
 
-        return compliances
+            for refinement in complianceModule[2][1]:
+                rendered = self.gen_compliance_refinement(name, refinement)
+                if rendered:
+                    refinements.append(rendered)
+
+        return compliances, refinements
+
+    def gen_compliance_refinement(
+        self, module: str, refinement: ComplianceRefinement
+    ) -> "OrderedDict[str, Any] | None":
+        """Render one GROUP or OBJECT sub-clause of a MODULE-COMPLIANCE.
+
+        Args:
+            module: the module the sub-clause names, already defaulted
+            refinement: the tagged sub-clause
+
+        Returns:
+            The sub-clause as a JSON object, or ``None`` when its texts are
+            suppressed and it refines nothing.
+        """
+        outDict: OrderedDict[str, Any] = OrderedDict()
+        outDict["module"] = module
+
+        if refinement[0] == "ComplianceGroup":
+            outDict["object"] = self.trans_opers(refinement[1])
+            outDict["kind"] = "group"
+
+            # A GROUP says nothing but the condition it applies under, so
+            # without its description there is nothing left to report.
+            if not self.genRules["text"]:
+                return None
+
+            outDict["description"] = self.textFilter("description", refinement[2])
+
+            return outDict
+
+        _tag, name, syntax, writeSyntax, minAccess, description = refinement
+
+        outDict["object"] = self.trans_opers(name[1][0])
+        outDict["kind"] = "object"
+
+        if syntax:
+            outDict["syntax"] = self.gen_refined_syntax(syntax)
+
+        if writeSyntax:
+            outDict["writesyntax"] = self.gen_refined_syntax(writeSyntax[1])
+
+        if minAccess:
+            outDict["minaccess"] = minAccess[1]
+
+        if self.genRules["text"] and description:
+            outDict["description"] = self.textFilter("description", description)
+
+        return outDict
+
+    # noinspection PyUnusedLocal
+    def gen_capabilities(self, data: CapabilitiesClause) -> list[Any]:
+        """Render what an AGENT-CAPABILITIES says it supports.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            One entry per SUPPORTS clause, naming the module, the groups it
+            includes, and the variations it implements them with.
+        """
+        capabilities = []
+
+        for module, groups, variations in data[0]:
+            outDict: OrderedDict[str, Any] = OrderedDict()
+            outDict["module"] = module
+            outDict["includes"] = [self.trans_opers(group) for group in groups]
+
+            rendered = [self.gen_capabilities_variation(module, v) for v in variations]
+            rendered = [v for v in rendered if v]
+
+            if rendered:
+                outDict["variations"] = rendered
+
+            capabilities.append(outDict)
+
+        return capabilities
+
+    def gen_capabilities_variation(
+        self, module: str, variation: CapabilitiesVariation
+    ) -> "OrderedDict[str, Any] | None":
+        """Render one VARIATION sub-clause of a SUPPORTS clause.
+
+        Args:
+            module: the module the SUPPORTS clause names
+            variation: the sub-clause
+
+        Returns:
+            The sub-clause as a JSON object, or ``None`` when its texts are
+            suppressed and it qualifies nothing.
+        """
+        name, syntax, writeSyntax, access, creation, defVal, description = variation
+
+        outDict: OrderedDict[str, Any] = OrderedDict()
+        outDict["object"] = self.trans_opers(name[1][0])
+
+        if syntax:
+            outDict["syntax"] = self.gen_refined_syntax(syntax)
+
+        if writeSyntax:
+            outDict["writesyntax"] = self.gen_refined_syntax(writeSyntax[1])
+
+        if access:
+            outDict["access"] = access[1]
+
+        if creation:
+            outDict["creationrequires"] = [self.trans_opers(cell[1][1][0]) for cell in creation[1][1]]
+
+        if defVal:
+            outDict["default"] = self.gen_variation_def_val(module, outDict["object"], defVal)
+
+        # RFC 2580 section 6.5.2 requires the DESCRIPTION, and a variation that
+        # refines nothing else says only what that description says.
+        if not self.genRules["text"]:
+            return outDict if len(outDict) > 1 else None
+
+        outDict["description"] = self.textFilter("description", description)
+
+        return outDict
+
+    def gen_variation_def_val(self, module: str, objname: str, defVal: Any) -> Any:
+        """Render the DEFVAL of a VARIATION as the varied object's type.
+
+        The object a variation names belongs to the module SUPPORTS names, not
+        to the one being compiled, so its type is only resolvable when that
+        module was read too. Where it was not, the default is reported as it
+        was written rather than dropped.
+
+        Args:
+            module: the module the SUPPORTS clause names
+            objname: the object the variation names
+            defVal: the unconverted DEFVAL subtree
+
+        Returns:
+            The default value, rendered as the object's type where that type
+            could be resolved and as written where it could not.
+        """
+        converted = self.prep_data([defVal])[0]
+
+        try:
+            return self.gen_def_val(converted, objname=objname)
+
+        except error.PySmiError:
+            logger.warning(
+                "could not render the DEFVAL of VARIATION %s in %s as its own type; reporting it as written",
+                objname,
+                module,
+            )
+            # The same form gen_def_val itself hands back for a default it was
+            # given no object to interpret.
+            return converted
+
+    def gen_refined_syntax(self, syntax: Any) -> Any:
+        """Render the SYNTAX of a compliance refinement as an object type does.
+
+        The syntax handlers return the node type alongside the type itself,
+        which a refinement has no use for -- it names an existing object
+        rather than declaring a new one.
+
+        Args:
+            syntax: the unconverted syntax subtree
+
+        Returns:
+            The type as a JSON object.
+        """
+        rendered = self.prep_data([syntax])[0]
+
+        if isinstance(rendered, tuple) and len(rendered) == 2:
+            return rendered[1]
+
+        return rendered
 
     # noinspection PyUnusedLocal
     def gen_conceptual_table(self, data: Any) -> tuple[Any, ...]:
@@ -990,7 +1238,7 @@ class JsonCodeGen(AbstractCodeGen):
                     f'unknown type "{defvalType}" for defval "{defval}" of symbol "{objname}"'
                 )
 
-        return {"default": outDict}
+        return outDict
 
     # noinspection PyMethodMayBeStatic
     def gen_description(self, data: TextClause) -> str:
@@ -1215,35 +1463,13 @@ class JsonCodeGen(AbstractCodeGen):
     def gen_time(self, data: TextClause) -> list[Any]:
         """Render MIB timestamps as readable dates.
 
-        Two-digit SMIv1 years are read as nineteen-hundreds. A timestamp that
-        cannot be parsed at all is replaced with the epoch rather than rejected,
-        because malformed dates are common and never affect the semantics of a
-        module.
-
         Args:
             data: timestamps as written in the MIB
 
         Returns:
             One formatted date per timestamp.
         """
-        times = []
-        for timeStr in data:
-            if len(timeStr) == 11:
-                timeStr = "19" + timeStr
-
-            # XXX raise in strict mode
-            # elif lenTimeStr != 13:
-            #  raise error.PySmiSemanticError("Invalid date %s" % t)
-            try:
-                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
-
-            except ValueError:
-                # XXX raise in strict mode
-                # raise error.PySmiSemanticError("Invalid date %s: %s" % (t, sys.exc_info()[1]))
-                timeStr = "197001010000Z"  # dummy date for dates with typos
-                times.append(strftime("%Y-%m-%d %H:%M", strptime(timeStr, "%Y%m%d%H%MZ")))
-
-        return times
+        return [format_ext_utc_time(timeStr, self.moduleName[0]) for timeStr in data]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def gen_last_updated(self, data: TextClause) -> str:
@@ -1255,7 +1481,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The timestamp as a formatted date.
         """
-        return data[0]
+        return format_ext_utc_time(data[0], self.moduleName[0])
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def gen_organization(self, data: TextClause) -> str:
@@ -1404,7 +1630,9 @@ class JsonCodeGen(AbstractCodeGen):
         text = data[0]
         return self.textFilter("units", text)
 
-    handlersTable = {
+    #: Grammar tag -> clause handler. Each handler declares its own clause
+    #: shape, so the table cannot name one signature for all of them.
+    handlersTable: ClassVar[dict[str, Any]] = {
         "agentCapabilitiesClause": gen_agent_capabilities,
         "moduleIdentityClause": gen_module_identity,
         "moduleComplianceClause": gen_module_compliance,
@@ -1421,6 +1649,7 @@ class JsonCodeGen(AbstractCodeGen):
         "BitNames": gen_bit_names,
         "BITS": gen_bits,
         "ComplianceModules": gen_compliances,
+        "Modules_Capabilities": gen_capabilities,
         "conceptualTable": gen_conceptual_table,
         "CONTACT-INFO": gen_contact_info,
         "DISPLAY-HINT": gen_display_hint,
@@ -1460,14 +1689,19 @@ class JsonCodeGen(AbstractCodeGen):
             textFilter: callable applied to each text before it is rendered;
                 by default runs of whitespace are collapsed
             comments: lines to record in the document
+            schemaVersion: schema to emit, from
+                :py:attr:`SCHEMA_VERSIONS`; the newest by default. The version
+                emitted is recorded in the document's ``meta``.
 
         Returns:
             The module's :py:class:`~pysmi.mibinfo.MibInfo` and the document.
 
         Raises:
-            PySmiCodegenError: a symbol in the symbol table was never rendered.
+            PySmiCodegenError: a symbol in the symbol table was never rendered,
+                or a schema version this generator cannot emit was asked for.
             PySmiSemanticError: the module is not internally consistent.
         """
+        schemaVersion = self._schema_version(kwargs)
         self.genRules["text"] = kwargs.get("genTexts", False)
         self.textFilter = kwargs.get("textFilter") or (lambda symbol, text: re.sub(r"\s+", " ", text))
         self.symbolTable = symbolTable
@@ -1480,6 +1714,7 @@ class JsonCodeGen(AbstractCodeGen):
         self._enterpriseOid = None
         self._oids = set()
         self._complianceOids = []
+        self._notificationOids = []
         self.moduleName[0], moduleOid, imports, declarations = ast
 
         outDict, importedModules = self.gen_imports((imports and imports) or {})
@@ -1494,8 +1729,10 @@ class JsonCodeGen(AbstractCodeGen):
 
             outDict[sym] = self._out[sym]
 
+        outDict["meta"] = OrderedDict()
+        outDict["meta"]["schema"] = schemaVersion
+
         if "comments" in kwargs:
-            outDict["meta"] = OrderedDict()
             outDict["meta"]["comments"] = kwargs["comments"]
             outDict["meta"]["module"] = self.moduleName[0]
 
@@ -1521,6 +1758,7 @@ class JsonCodeGen(AbstractCodeGen):
             oids=self._oids,
             enterprise=self._enterpriseOid,
             compliance=self._complianceOids,
+            notification=self._notificationOids,
             imported=tuple(x for x in importedModules if x not in self.fakeMibs),
         ), json.dumps(outDict, indent=2)
 
@@ -1537,18 +1775,24 @@ class JsonCodeGen(AbstractCodeGen):
         Keyword Args:
             old_index_data: an index to merge into, as JSON
             comments: lines to record in the document
+            schemaVersion: schema to emit, from
+                :py:attr:`SCHEMA_VERSIONS`; the newest by default. The version
+                emitted is recorded in the index's ``meta``.
 
         Returns:
             The index as a JSON document.
 
         Raises:
-            PySmiCodegenError: the index passed in could not be read.
+            PySmiCodegenError: the index passed in could not be read, or a
+                schema version this generator cannot emit was asked for.
         """
+        schemaVersion = self._schema_version(kwargs)
         outDict: dict[str, Any] = {
             "meta": {},
             "identity": {},
             "enterprise": {},
             "compliance": {},
+            "notification": {},
             "oids": {},
         }
         if kwargs.get("old_index_data"):
@@ -1616,6 +1860,13 @@ class JsonCodeGen(AbstractCodeGen):
                     modData[compliance_oid] = []
                 modData[compliance_oid].append(module)
 
+            modData = outDict["notification"]
+            notification_oids = getattr(status, "notification", ())
+            for notification_oid in notification_oids:
+                if notification_oid not in modData:
+                    modData[notification_oid] = []
+                modData[notification_oid].append(module)
+
             modData = outDict["oids"]
             objects_oids = getattr(status, "oids", ())
             for object_oid in objects_oids:
@@ -1634,6 +1885,10 @@ class JsonCodeGen(AbstractCodeGen):
                         unique_prefixes[oid] = modData[oid]
 
                 outDict["oids"] = unique_prefixes
+
+        # After the merge, so that the version an old index declared is
+        # replaced by the one this run emits rather than carried forward.
+        outDict["meta"]["schema"] = schemaVersion
 
         if "comments" in kwargs:
             outDict["meta"]["comments"] = kwargs["comments"]

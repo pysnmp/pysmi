@@ -81,7 +81,7 @@ class DefValEmptyStringTestCase(unittest.TestCase):
         doc = json.loads(jsoncode)
 
         self.assertEqual(
-            doc["testEmptyString"]["default"]["default"],
+            doc["testEmptyString"]["default"],
             {"value": "", "format": "string"},
             "empty DEFVAL dropped for OCTET STRING",
         )

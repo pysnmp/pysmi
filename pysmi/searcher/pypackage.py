@@ -63,6 +63,7 @@ class PyPackageSearcher(AbstractSearcher):
         self.__loader: _EggLoader | None = None
 
     def __str__(self) -> str:
+        """Identify this searcher by the package it looks in."""
         return f'{self.__class__.__name__}{{"{self._package}"}}'
 
     @staticmethod
@@ -84,11 +85,15 @@ class PyPackageSearcher(AbstractSearcher):
         )  # dst
         return time.mktime(t)
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False) -> None:
+    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
         """Look for a compiled MIB inside an importable Python package.
 
         Handles both packages on the filesystem and packages inside a zipped
-        egg, where timestamps come from the archive directory.
+        egg, where timestamps come from the archive directory. ``digest`` is
+        forwarded to :py:class:`~pysmi.searcher.pyfile.PyFileSearcher` when a
+        package turns out to be a plain directory; a zipped egg's directory
+        entry carries no source text to check it against, the same
+        limitation as its "Produced by" marker check.
         """
         if rebuild:
             logger.debug("pretend %s is very old", mibname, extra={"mib": mibname})
@@ -121,7 +126,9 @@ class PyPackageSearcher(AbstractSearcher):
                     self._package,
                     extra={"mib": mibname, "package": self._package},
                 )
-                return PyFileSearcher(os.path.split(packageFile)[0]).file_exists(mibname, mtime, rebuild=rebuild)
+                return PyFileSearcher(os.path.split(packageFile)[0]).file_exists(
+                    mibname, mtime, rebuild=rebuild, digest=digest
+                )
 
             else:
                 raise error.PySmiFileNotFoundError(f"{self._package} is neither importable nor a file", searcher=self)

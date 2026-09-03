@@ -6,11 +6,16 @@
 #
 """Interface shared by the code generators, and helpers common to them."""
 
+import logging
+from collections.abc import Sequence
+from time import strftime, strptime
 from typing import Any, ClassVar, Final, TypeAlias, TypeGuard
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.mibinfo import MibInfo
+
+logger = logging.getLogger(__name__)
 
 _RFC1155_RFC1065_KEY: Final = "RFC1155-SMI/RFC1065-SMI"
 
@@ -25,56 +30,217 @@ _RFC1155_RFC1065_KEY: Final = "RFC1155-SMI/RFC1065-SMI"
 
 #: A clause carrying one piece of text, e.g. DESCRIPTION or STATUS. The text
 #: is ``data[0]``.
-TextClause: TypeAlias = list[str]
+TextClause: TypeAlias = Sequence[str]
 
 #: A clause carrying a list of symbol names, e.g. OBJECTS or the names of a
 #: BITS type. The names are ``data[0]``.
-SymbolsClause: TypeAlias = list[list[str]]
+SymbolsClause: TypeAlias = Sequence[list[str]]
 
 #: A clause carrying named numbers, e.g. BITS or an INTEGER enumeration. Each
 #: pair is ``(name, number)`` and the pairs are ``data[0]``.
-NamedNumbersClause: TypeAlias = list[list[tuple[str, int]]]
+NamedNumbersClause: TypeAlias = Sequence[list[tuple[str, int]]]
 
 #: An INDEX clause. Each entry is ``(implied, name)``, where ``implied`` is 1
 #: for the IMPLIED column and 0 otherwise. The entries are ``data[0]``.
-IndexClause: TypeAlias = list[list[tuple[int, str]]]
+IndexClause: TypeAlias = Sequence[list[tuple[int, str]]]
 
 #: A SEQUENCE clause. Each entry is ``(name, type)`` and the entries are
 #: ``data[0]``.
-SequenceClause: TypeAlias = list[list[tuple[str, str]]]
+SequenceClause: TypeAlias = Sequence[list[tuple[str, str]]]
 
 #: An OBJECT IDENTIFIER value. ``data[0]`` is the sequence of sub-identifiers.
 #: Each is a name still to be resolved, an arc written as a number, or the
 #: ``name(number)`` form, which the grammar keeps as ``(name, number)`` without
 #: defining the name in this module.
-OidClause: TypeAlias = list[list[str | int | tuple[str, int]]]
+OidClause: TypeAlias = Sequence[list[str | int | tuple[str, int]]]
 
 #: A DEFVAL clause. ``data[0]`` is the default: an int for an integer, a list
 #: of bit names for BITS, and a string for everything else -- an enumeration
 #: label, an OID, or a quoted hex or binary literal. The pysnmp and JSON
 #: generators reach the handler from gen_object_type whether or not the object
 #: declares a default, so those two accept ``DefValClause | None``.
-DefValClause: TypeAlias = list[str] | list[int] | list[list[str]]
+DefValClause: TypeAlias = Sequence[str] | Sequence[int] | Sequence[list[str]]
 
 #: A REVISION clause. Each entry is ``(timestamp, (kind, text))``, and the
 #: entries are ``data[0]``.
-RevisionsClause: TypeAlias = list[list[tuple[str, tuple[str, str]]]]
+RevisionsClause: TypeAlias = Sequence[list[tuple[str, tuple[str, str]]]]
+
+#: A GROUP or OBJECT sub-clause of a MODULE-COMPLIANCE, tagged by which it is.
+#: A GROUP carries ``(tag, name, description)``. An OBJECT carries
+#: ``(tag, name, syntax, writeSyntax, minAccess, description)``, where the
+#: three refinements are ``None`` when the sub-clause leaves them out and are
+#: unconverted parse subtrees otherwise.
+ComplianceRefinement: TypeAlias = tuple[Any, ...]
 
 #: The MODULE clauses of a MODULE-COMPLIANCE. Each entry is
-#: ``(module, groups)``; ``module`` is ``None`` where the clause leaves the
-#: module name out, meaning the one being defined. ``groups`` holds the names
-#: from MANDATORY-GROUPS and GROUP; an OBJECT clause contributes nothing.
-ComplianceClause: TypeAlias = list[list[tuple[str | None, list[str]]]]
+#: ``(module, groups, (mandatoryGroups, refinements))``; ``module`` is ``None``
+#: where the clause leaves the module name out, meaning the one being defined.
+#: ``groups`` holds the names from MANDATORY-GROUPS and GROUP, which is what a
+#: compliance requires. The third element carries the detail those names lose:
+#: which of them were mandatory, and the GROUP and OBJECT sub-clauses in full.
+ComplianceClause: TypeAlias = Sequence[list[tuple[str | None, list[str], tuple[list[str], list[ComplianceRefinement]]]]]
+
+#: A VARIATION sub-clause of an AGENT-CAPABILITIES SUPPORTS clause, as
+#: ``(name, syntax, writeSyntax, access, creationRequires, defVal,
+#: description)``. Everything but the name and the description is ``None``
+#: when the sub-clause leaves it out; the syntaxes are unconverted parse
+#: subtrees, as in a compliance refinement.
+CapabilitiesVariation: TypeAlias = tuple[Any, ...]
+
+#: The SUPPORTS clauses of an AGENT-CAPABILITIES. Each entry is
+#: ``(module, groups, variations)``: the module named by SUPPORTS, the group
+#: names its INCLUDES lists, and the VARIATION sub-clauses that qualify them.
+CapabilitiesClause: TypeAlias = Sequence[list[tuple[str, list[str], list[CapabilitiesVariation]]]]
+
+#: The clauses below are the top-level ones: what a handler registered in
+#: ``handlersTable`` against a whole macro receives. Every backend gets the
+#: same number of fields in the same order -- that much comes from the
+#: grammar -- so the arity and the field order can be written down and
+#: checked. A field's *type* is whatever that backend's own sub-handler
+#: returned for it, and for several of them the three backends legitimately
+#: disagree (pysnmp renders a string, JSON builds a document, the symbol
+#: table keeps a name), so those stay `Any` rather than claim a precision
+#: that is not there. See https://github.com/pysnmp/pysmi/issues/47.
+
+#: ``(name, productRelease, status, description, reference, capabilities, oid)``
+AgentCapabilitiesClause: TypeAlias = tuple[str, str, str, str, str | None, Any, tuple[Any, ...]]
+
+#: ``(name, lastUpdated, organization, contactInfo, description, revisions, oid)``
+ModuleIdentityClause: TypeAlias = tuple[str, str, str, str, str, Any, tuple[Any, ...]]
+
+#: ``(name, status, description, reference, compliances, oid)``
+ModuleComplianceClause: TypeAlias = tuple[str, str, str, str | None, Any, tuple[Any, ...]]
+
+#: ``(name, objects, status, description, reference, oid)``
+NotificationGroupClause: TypeAlias = tuple[str, Any, str, str, str | None, tuple[Any, ...]]
+
+#: ``(name, objects, status, description, reference, oid)``
+NotificationTypeClause: TypeAlias = tuple[str, Any, str, str, str | None, tuple[Any, ...]]
+
+#: ``(name, objects, status, description, reference, oid)``
+ObjectGroupClause: TypeAlias = tuple[str, Any, str, str, str | None, tuple[Any, ...]]
+
+#: ``(name, status, description, reference, oid)``
+ObjectIdentityClause: TypeAlias = tuple[str, str, str, str | None, tuple[Any, ...]]
+
+#: ``(name, syntax, units, maxaccess, status, description, reference,
+#: augmentation, index, defval, oid)``. SMIv1 leaves DESCRIPTION optional, so
+#: the description is ``None`` for an SMIv1 object that omits it.
+ObjectTypeClause: TypeAlias = tuple[
+    str, tuple[Any, ...], str | None, str, str, str | None, str | None, Any, Any, Any, tuple[Any, ...]
+]
+
+#: ``(name, enterprise, variables, description, reference, value)``. RFC 1215
+#: leaves DESCRIPTION and REFERENCE optional.
+TrapTypeClause: TypeAlias = tuple[str, tuple[Any, ...], Any, str | None, str | None, int]
+
+#: ``(name, declaration)``, where the declaration is the converted right-hand
+#: side of the type assignment, or ``None`` for a bare type reference.
+TypeDeclarationClause: TypeAlias = tuple[str, Any]
+
+#: ``(name, oid)``
+ValueDeclarationClause: TypeAlias = tuple[str, tuple[Any, ...]]
+
 
 #: A bound in a range or size constraint. The lexer turns a decimal into an
 #: int; a hex or binary literal reaches the generator as the literal text.
 Bound: TypeAlias = int | str
 
+#: RFC 3418's ``snmp`` group, ``{ mib-2 11 }``. RFC 1215 section 2.1.5 gives a
+#: TRAP-TYPE naming this enterprise a different meaning: its value goes in the
+#: generic-trap field rather than the enterprise-specific one.
+SNMP_ENTERPRISE: tuple[int, ...] = (1, 3, 6, 1, 2, 1, 11)
+
+#: RFC 3418's ``snmpTraps``, under which the six generic traps are numbered
+#: from one.
+SNMP_TRAPS: tuple[int, ...] = (1, 3, 6, 1, 6, 3, 1, 1, 5)
+
+#: The generic traps RFC 3584 section 3.1 gives a mapping for: coldStart(0)
+#: through egpNeighborLoss(5).
+GENERIC_TRAPS = range(6)
+
+
+def trap_type_oid(enterprise: tuple[int, ...], value: int) -> tuple[int, ...]:
+    """Give an SMIv1 trap the OID its SMIv2 notification is known by.
+
+    RFC 3584 section 2.1.2 (5) builds that OID from the ENTERPRISE clause, a
+    zero, and the trap number -- except where the ENTERPRISE is ``snmp``. Those
+    are the six generic traps, and section 3.1 maps them onto ``snmpTraps``,
+    numbered from one rather than from zero.
+
+    A trap that names ``snmp`` but numbers itself past those six is described
+    by neither RFC; RFC 1215 section 2.1.5 says the convention "is not intended
+    to provide a means to define additional standard SNMP traps". Rather than
+    reject it or invent an OID under ``snmpTraps`` that names nothing, it keeps
+    the enterprise-specific form it would have had.
+
+    Args:
+        enterprise: the ENTERPRISE clause as sub-identifiers
+        value: the value of the TRAP-TYPE invocation
+
+    Returns:
+        The notification's OID as sub-identifiers.
+    """
+    if tuple(enterprise) == SNMP_ENTERPRISE and value in GENERIC_TRAPS:
+        return (*SNMP_TRAPS, value + 1)
+
+    return (*enterprise, 0, value)
+
+
+#: How a timestamp is rendered once read. Both clauses carrying an ExtUTCTime --
+#: LAST-UPDATED and REVISION -- are rendered this way, so a consumer has one
+#: format to read rather than one per clause.
+EXT_UTC_TIME_FORMAT: Final = "%Y-%m-%d %H:%M"
+
+#: What a timestamp that cannot be read is rendered as.
+EPOCH_TIMESTAMP: Final = "1970-01-01 00:00"
+
+
+def format_ext_utc_time(timeStr: str, module: str = "") -> str:
+    """Render one ExtUTCTime value.
+
+    RFC 2578 section 2 defines ``ExtUTCTime ::= OCTET STRING(SIZE(11 | 13))``,
+    written ``YYMMDDHHMMZ`` or ``YYYYMMDDHHMMZ``, and restricts the two-digit
+    year to 1900-1999. Both forms are read; the short one is expanded.
+
+    A value that cannot be read at all is replaced with the epoch rather than
+    rejected, because a wrong date is common in MIBs found in the wild and never
+    changes what a module means. The substitution is logged, so a value that was
+    invented is distinguishable from one the module really carries. Turn it on
+    with ``mibdump --debug codegen`` or by configuring the ``pysmi.codegen``
+    logger.
+
+    Args:
+        timeStr: the timestamp as written in the MIB
+        module: name of the module it was written in, for the log message
+
+    Returns:
+        The formatted date, or the epoch if the value could not be read.
+    """
+    written = timeStr
+
+    if len(timeStr) == 11:
+        timeStr = "19" + timeStr
+
+    try:
+        return strftime(EXT_UTC_TIME_FORMAT, strptime(timeStr, "%Y%m%d%H%MZ"))
+
+    except ValueError:
+        logger.warning(
+            "%s: cannot read the timestamp %r, rendering it as %s",
+            module or "<unknown module>",
+            written,
+            EPOCH_TIMESTAMP,
+            extra={"mibModule": module, "timestamp": written},
+        )
+        return EPOCH_TIMESTAMP
+
+
 #: A range or SIZE constraint. Each entry is ``(low, high)``, or ``(value,)``
 #: where a single value is permitted rather than a span. The entries are
 #: ``data[0]``. Ranges and sizes share the grammar's ``ranges`` production, so
 #: the two constraints carry the same shape.
-RangesClause: TypeAlias = list[list[tuple[Bound] | tuple[Bound, Bound]]]
+RangesClause: TypeAlias = Sequence[list[tuple[Bound] | tuple[Bound, Bound]]]
 
 
 def dorepr(s: Any) -> str:

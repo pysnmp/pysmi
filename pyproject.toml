@@ -70,6 +70,7 @@ select = [
     "LOG",    # flake8-logging (logger misuse)
     "FLY",    # flynt (static str.join -> f-string)
     "RUF",    # ruff-specific rules
+    "D1",     # pydocstyle: every public thing carries a docstring
 ]
 ignore = [
     "E501",   # line too long (let ruff format handle it)
@@ -89,6 +90,10 @@ known-first-party = ["pysmi"]
 "pysmi/codegen/pysnmp.py" = ["RUF012"]
 "pysmi/codegen/symtable.py" = ["RUF012"]
 "pysmi/lexer/smi.py" = ["RUF012"]
+# Test names describe what they assert, so a docstring on every one of them
+# would only repeat the name back.
+"tests/*" = ["D1"]
+"tests/harness.py" = ["S102"]
 "tests/test_*.py" = ["S102"]
 "tests/test_zipreader.py" = ["RUF012"]
 
@@ -108,7 +113,7 @@ addopts = "--cov=pysmi --cov-report=term-missing"
 [dependency-groups]
 dev = [
     "mypy>=1.14",
-    "pysnmplib==6.0.0rc1",
+    "pysnmplib==6.0.0rc2",
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "ruff>=0.8",

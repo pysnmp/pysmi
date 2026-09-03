@@ -54,6 +54,8 @@ def start() -> None:
     cacheDirectory = ""
     nodepsFlag = False
     rebuildFlag = False
+    pruneFlag = False
+    bundledMibsFlag = True
     dryrunFlag = False
     genMibTextsFlag = False
     keepTextsLayout = False
@@ -77,11 +79,13 @@ def start() -> None:
         [--cache-directory=<DIRECTORY>]
         [--disable-fuzzy-source]
         [--no-dependencies]
+        [--no-bundled-mibs]
         [--no-python-compile]
         [--python-optimization-level]
         [--ignore-errors]
         [--build-index]
         [--rebuild]
+        [--prune]
         [--dry-run]
         [--no-mib-writes]
         [--generate-mib-texts]
@@ -92,7 +96,19 @@ def start() -> None:
                 Use @mib@ placeholder token in URI to refer directly to
                 the required MIB module when source does not support
                 directory listing (e.g. HTTP).
-        FORMAT   - pysnmp, json, null""".format(os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES)))
+        FORMAT   - pysnmp, json, null
+        --prune  - remove previously stored output whose source MIB no
+                longer exists in any configured source. Runs without
+                MIB-NAME arguments; deletes unless combined with
+                --dry-run.
+        --no-bundled-mibs - do not fall back to pysmi's own bundled copy
+                of the RFC-frozen base MIBs (SNMPv2-SMI and similar) when
+                none of --mib-source has them. Without this, a compile
+                that would once have failed on a missing base MIB now
+                silently succeeds from the bundled copy; pass this to make
+                a misconfigured --mib-source fail loudly instead.""".format(
+        os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES))
+    )
 
     try:
         opts, inputMibs = getopt.getopt(
@@ -111,11 +127,13 @@ def start() -> None:
                 "destination-directory=",
                 "cache-directory=",
                 "no-dependencies",
+                "no-bundled-mibs",
                 "no-python-compile",
                 "python-optimization-level=",
                 "ignore-errors",
                 "build-index",
                 "rebuild",
+                "prune",
                 "dry-run",
                 "no-mib-writes",
                 "generate-mib-texts",
@@ -182,6 +200,9 @@ def start() -> None:
         if opt[0] == "--no-dependencies":
             nodepsFlag = True
 
+        if opt[0] == "--no-bundled-mibs":
+            bundledMibsFlag = False
+
         if opt[0] == "--no-python-compile":
             pyCompileFlag = False
 
@@ -201,6 +222,9 @@ def start() -> None:
 
         if opt[0] == "--rebuild":
             rebuildFlag = True
+
+        if opt[0] == "--prune":
+            pruneFlag = True
 
         if opt[0] == "--dry-run":
             dryrunFlag = True
@@ -225,7 +249,7 @@ def start() -> None:
 
         inputMibs = [os.path.basename(os.path.splitext(x)[0]) for x in inputMibs]
 
-    if not inputMibs:
+    if not inputMibs and not pruneFlag:
         sys.stderr.write(f"ERROR: MIB modules names not specified\r\n{helpMessage}\r\n")
         sys.exit(EX_USAGE)
 
@@ -339,7 +363,9 @@ def start() -> None:
     Destination format: {}
     Parser grammar cache directory: {}
     Also compile all relevant MIBs: {}
+    Use pysmi's bundled base MIBs as a fallback source: {}
     Rebuild MIBs regardless of age: {}
+    Prune stored MIBs with no remaining source: {}
     Dry run mode: {}
     Create/update MIBs: {}
     Byte-compile Python modules: {} (optimization level {})
@@ -358,7 +384,9 @@ def start() -> None:
                 dstFormat,
                 cacheDirectory or "not used",
                 (nodepsFlag and "no") or "yes",
+                (bundledMibsFlag and "yes") or "no",
                 (rebuildFlag and "yes") or "no",
+                (pruneFlag and "yes") or "no",
                 (dryrunFlag and "yes") or "no",
                 (writeMibsFlag and "yes") or "no",
                 (dstFormat == "pysnmp" and pyCompileFlag and "yes") or "no",
@@ -373,7 +401,11 @@ def start() -> None:
 
     # Initialize compiler infrastructure
 
-    mibCompiler = MibCompiler(SmiV1CompatParser(tempdir=cacheDirectory), codeGenerator, fileWriter)
+    mibCompiler = MibCompiler(
+        SmiV1CompatParser(tempdir=cacheDirectory), codeGenerator, fileWriter, useBundledMibs=bundledMibsFlag
+    )
+
+    pruned = {}
 
     try:
         mibCompiler.add_sources(*getReadersFromUrls(*mibSources, **dict(fuzzyMatching=doFuzzyMatchingFlag)))
@@ -402,6 +434,9 @@ def start() -> None:
 
         if buildIndexFlag:
             mibCompiler.build_index(safe, dryRun=dryrunFlag, ignoreErrors=True)
+
+        if pruneFlag:
+            pruned = mibCompiler.prune(dryRun=dryrunFlag, ignoreErrors=ignoreErrorsFlag)
 
     except error.PySmiError as exc:
         sys.stderr.write(f"ERROR: {exc}\r\n")
@@ -442,12 +477,25 @@ def start() -> None:
                 + "\n"
             )
 
+            if pruneFlag:
+                prunedVerb = "Would be " if dryrunFlag else ""
+                sys.stdout.write(
+                    f"MIBs {prunedVerb}pruned: "
+                    + ", ".join(sorted(x for x in pruned if pruned[x] == "pruned"))
+                    + "\r\n"
+                )
+                sys.stderr.write(
+                    "Failed to prune: "
+                    + "\n ".join([f"{x} ({pruned[x].error})" for x in sorted(pruned) if pruned[x] == "failed"])
+                    + "\n"
+                )
+
         exitCode = EX_OK
 
         if any(x for x in processed.values() if x == "missing"):
             exitCode = EX_MIB_MISSING
 
-        if any(x for x in processed.values() if x == "failed"):
+        if any(x for x in processed.values() if x == "failed") or any(x for x in pruned.values() if x == "failed"):
             exitCode = EX_MIB_FAILED
 
         sys.exit(exitCode)
