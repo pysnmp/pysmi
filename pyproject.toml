@@ -89,6 +89,7 @@ known-first-party = ["pysmi"]
 "pysmi/codegen/pysnmp.py" = ["RUF012"]
 "pysmi/codegen/symtable.py" = ["RUF012"]
 "pysmi/lexer/smi.py" = ["RUF012"]
+"tests/harness.py" = ["S102"]
 "tests/test_*.py" = ["S102"]
 "tests/test_zipreader.py" = ["RUF012"]
 
