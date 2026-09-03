@@ -77,38 +77,49 @@ class AgentCapabilitiesTestCase(unittest.TestCase):
         self.assertEqual(self.ctx["testCapability"].__class__.__name__, "AgentCapabilities", "bad SYNTAX class")
 
 
-class AgentCapabilitiesDroppedClausesTestCase(unittest.TestCase):
-    """SUPPORTS, INCLUDES and VARIATION are discarded in the parser.
-
-    The fixture above declares all three. Neither backend reports any of it,
-    which is pinned here so that the drop is a documented decision rather than
-    something noticed by its absence.
+class AgentCapabilitiesSupportsTestCase(unittest.TestCase):
+    """SUPPORTS, INCLUDES and VARIATION reach the JSON document only.
 
     pysnmp's ``AgentCapabilities`` carries productRelease, status, description
     and reference, and nothing else -- its class body still says
-    ``# TODO: implement the rest of properties``. So for the pysnmp backend
-    there is nowhere to put this. The JSON document has somewhere, and the
-    parser productions would have to be restored first. See pysnmp/pysmi#90.
+    ``# TODO: implement the rest of properties``. So the pysnmp backend has
+    nowhere to put this and its output is unchanged; see pysnmp/pysnmp#133.
+    The JSON document has somewhere, and carries it in full.
     """
 
     def setUp(self):
         mib = AgentCapabilitiesTestCase.__doc__
         self.doc, self.ctx = render(mib)
+        self.capabilities = self.doc["testCapability"]["capabilities"]
 
-    def testTheDocumentCarriesOnlyTheClausesPysnmpCanHold(self):
+    def testTheSupportedModuleIsNamed(self):
+        self.assertEqual([c["module"] for c in self.capabilities], ["TEST-MIB"])
+
+    def testIncludesNamesEveryGroup(self):
         self.assertEqual(
-            set(self.doc["testCapability"]),
-            {"name", "oid", "class", "productrelease", "status", "description"},
+            self.capabilities[0]["includes"],
+            ["testSystemGroup", "testNotificationObjectGroup", "testNotificationGroup"],
         )
 
-    def testNothingOfTheVariationReachesEitherBackend(self):
-        rendered = str(self.doc["testCapability"]) + str(vars(self.ctx["testCapability"]))
-        for dropped in ("testSysLevelType", "SUPPORTS", "INCLUDES", "VARIATION", "testSysLevelEntry"):
+    def testEachVariationIsReported(self):
+        variations = self.capabilities[0]["variations"]
+        self.assertEqual([v["object"] for v in variations], ["testSysLevelType", "testSysLevelType"])
+        self.assertEqual([v["access"] for v in variations], ["read-only", "read-only"])
+        self.assertEqual([v["description"] for v in variations], ["Not supported.", "Supported."])
+
+    def testThePysnmpObjectIsUnchanged(self):
+        # The parser now keeps the detail, but pysnmp has no setter for it, so
+        # nothing about the object it builds may move.
+        rendered = str(vars(self.ctx["testCapability"]))
+        for dropped in ("testSysLevelType", "SUPPORTS", "INCLUDES", "VARIATION"):
             with self.subTest(clause=dropped):
                 self.assertNotIn(dropped, rendered)
 
-    def testTheSupportedModuleIsNotNamed(self):
-        self.assertNotIn("supports", self.doc["testCapability"])
+    def testTheDocumentCarriesNothingElseNew(self):
+        self.assertEqual(
+            set(self.doc["testCapability"]),
+            {"name", "oid", "class", "productrelease", "status", "description", "capabilities"},
+        )
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

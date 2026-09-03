@@ -17,6 +17,7 @@ from pysmi.codegen.base import (
     GENERIC_TRAPS,
     SNMP_ENTERPRISE,
     AbstractCodeGen,
+    CapabilitiesClause,
     ComplianceClause,
     DefValClause,
     IndexClause,
@@ -530,7 +531,7 @@ for _%(name)s_obj in [%(objects)s]:
         Returns:
             Source for the object and its texts.
         """
-        name, productRelease, status, description, reference, oid = data
+        name, productRelease, status, description, reference, _capabilities, oid = data
 
         label = self.gen_label(name)
         name = self.trans_opers(name)
@@ -1120,6 +1121,24 @@ for _{name}_obj in [{objects}]:
             outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")\n"
 
         return outStr
+
+    # noinspection PyUnusedLocal,PyMethodMayBeStatic
+    def gen_capabilities(self, data: CapabilitiesClause, classmode: bool = False) -> str:
+        """Render nothing for an AGENT-CAPABILITIES body.
+
+        pysnmp's ``AgentCapabilities`` has no setter for what a SUPPORTS
+        clause carries -- its own source says as much -- so there is nowhere
+        to put it. The parser keeps the detail regardless, and the JSON
+        backend emits it; see pysnmp/pysnmp#133.
+
+        Args:
+            data: rendered clause values
+            classmode: unused
+
+        Returns:
+            An empty string.
+        """
+        return ""
 
     # noinspection PyUnusedLocal
     def gen_conceptual_table(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
@@ -1765,6 +1784,7 @@ for _{name}_obj in [{objects}]:
         "BitNames": gen_bit_names,
         "BITS": gen_bits,
         "ComplianceModules": gen_compliances,
+        "Modules_Capabilities": gen_capabilities,
         "conceptualTable": gen_conceptual_table,
         "CONTACT-INFO": gen_contact_info,
         "DISPLAY-HINT": gen_display_hint,

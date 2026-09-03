@@ -1173,88 +1173,92 @@ class SmiV2Parser(AbstractParser):
             p[6],  # status
             (p[7], p[8]),  # description
             p[9],  # reference
-            #   p[10], # module capabilities
+            p[10],  # module capabilities
             p[13],
         )  # objectIdentifier
 
     def p_ModulePart_Capabilities(self, p: YaccProduction) -> None:
         """ModulePart_Capabilities : Modules_Capabilities
         | empty"""
-        # if p[1]:
-        #  p[0] = p[1]
+        if p[1]:
+            p[0] = p[1]
 
     def p_Modules_Capabilities(self, p: YaccProduction) -> None:
         """Modules_Capabilities : Modules_Capabilities Module_Capabilities
         | Module_Capabilities"""
-        # n = len(p)
-        # if n == 3:
-        #  p[0] = ('Modules_Capabilities', p[1][1] + [p[2]])
-        # elif n == 2:
-        #  p[0] = ('Modules_Capabilities', [p[1]])
+        n = len(p)
+        if n == 3:
+            p[0] = ("Modules_Capabilities", p[1][1] + [p[2]])
+        elif n == 2:
+            p[0] = ("Modules_Capabilities", [p[1]])
 
     def p_Module_Capabilities(self, p: YaccProduction) -> None:
         """Module_Capabilities : SUPPORTS ModuleName_Capabilities INCLUDES '{' CapabilitiesGroups '}' VariationPart"""
-        # p[0] = ('Module_Capabilities', (p[1], p[2]), # supports
-        #                               (p[3], p[5]), # includes
-        #                               p[7]) # variations
+        # RFC 2580 section 6.5.1: a SUPPORTS clause names one module, the
+        # groups of it the agent implements, and the variations it implements
+        # them with. The list lives inside a plain tuple so that the codegens
+        # reach it through the one handler on Modules_Capabilities.
+        p[0] = (p[2], p[5][1], (p[7] and p[7][1]) or [])
 
     def p_CapabilitiesGroups(self, p: YaccProduction) -> None:
         """CapabilitiesGroups : CapabilitiesGroups ',' CapabilitiesGroup
         | CapabilitiesGroup"""
-        # n = len(p)
-        # if n == 4:
-        #  p[0] = ('CapabilitiesGroups', p[1][1] + [p[3]])
-        # elif n == 2:
-        #  p[0] = ('CapabilitiesGroups', [p[1]])
+        n = len(p)
+        if n == 4:
+            p[0] = ("CapabilitiesGroups", p[1][1] + [p[3]])
+        elif n == 2:
+            p[0] = ("CapabilitiesGroups", [p[1]])
 
     def p_CapabilitiesGroup(self, p: YaccProduction) -> None:
         """CapabilitiesGroup : objectIdentifier"""
-        # p[0] = ('CapabilitiesGroup', p[1])
+        p[0] = p[1][1][0]
 
     def p_ModuleName_Capabilities(self, p: YaccProduction) -> None:
         """ModuleName_Capabilities : UPPERCASE_IDENTIFIER objectIdentifier
         | UPPERCASE_IDENTIFIER"""
-        # n = len(p)
-        # if n == 2:
-        #  p[0] = ('ModuleName_Capabilities', p[1])
-        # elif n == 3:
-        #  p[0] = ('ModuleName_Capabilities', p[1], p[2])
+        # As in a MODULE-COMPLIANCE, the name is what identifies the module and
+        # the optional OBJECT IDENTIFIER adds nothing a consumer can use, so it
+        # is accepted and dropped.
+        p[0] = p[1]
 
     def p_VariationPart(self, p: YaccProduction) -> None:
         """VariationPart : Variations
         | empty"""
-        # if p[1]:
-        #  p[0] = p[1]
+        if p[1]:
+            p[0] = p[1]
 
     def p_Variations(self, p: YaccProduction) -> None:
         """Variations : Variations Variation
         | Variation"""
-        # n = len(p)
-        # if n == 3:
-        #  p[0] = ('Variations', p[1][1] + [p[2]])
-        # elif n == 2:
-        #  p[0] = ('Variations', [p[1]])        pass
+        n = len(p)
+        if n == 3:
+            p[0] = ("Variations", p[1][1] + [p[2]])
+        elif n == 2:
+            p[0] = ("Variations", [p[1]])
 
     def p_Variation(self, p: YaccProduction) -> None:
         """Variation : VARIATION ObjectName SyntaxPart WriteSyntaxPart VariationAccessPart CreationPart DefValPart DESCRIPTION Text"""
-        # p[0] = (p[1], # variation
-        #        p[2], # name
-        #        p[3], # syntax
-        #        p[4], # write syntax
-        #        p[5], # access
-        #        p[6], # creation
-        #        p[7], # defval
-        #        (p[8], p[9])) # description
+        # RFC 2580 section 6.5.2. Every sub-clause but the name and the
+        # description is optional, and each is None when left out.
+        p[0] = (
+            p[2],  # name
+            p[3],  # syntax
+            p[4],  # write syntax
+            p[5],  # access
+            p[6],  # creation requires
+            p[7],  # defval
+            p[9],  # description
+        )
 
     def p_VariationAccessPart(self, p: YaccProduction) -> None:
         """VariationAccessPart : ACCESS VariationAccess
         | empty"""
-        # if p[1]:
-        #  p[0] = (p[1], p[2])
+        if p[1]:
+            p[0] = (p[1], p[2])
 
     def p_VariationAccess(self, p: YaccProduction) -> None:
         """VariationAccess : LOWERCASE_IDENTIFIER"""
-        # p[0] = p[1]
+        p[0] = p[1]
 
     def p_CreationPart(self, p: YaccProduction) -> None:
         """CreationPart : CREATION_REQUIRES '{' Cells '}'

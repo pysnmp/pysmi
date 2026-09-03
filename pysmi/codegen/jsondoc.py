@@ -16,6 +16,8 @@ from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
+    CapabilitiesClause,
+    CapabilitiesVariation,
     ComplianceClause,
     ComplianceRefinement,
     DefValClause,
@@ -361,7 +363,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The clause as a JSON object.
         """
-        name, productRelease, status, description, reference, oid = data
+        name, productRelease, status, description, reference, capabilities, oid = data
 
         self.gen_label(name)
         name = self.trans_opers(name)
@@ -375,6 +377,9 @@ class JsonCodeGen(AbstractCodeGen):
 
         if productRelease:
             outDict["productrelease"] = productRelease
+
+        if capabilities:
+            outDict["capabilities"] = capabilities
 
         if status:
             outDict["status"] = status
@@ -907,6 +912,108 @@ class JsonCodeGen(AbstractCodeGen):
             outDict["description"] = self.textFilter("description", description)
 
         return outDict
+
+    # noinspection PyUnusedLocal
+    def gen_capabilities(self, data: CapabilitiesClause) -> list[Any]:
+        """Render what an AGENT-CAPABILITIES says it supports.
+
+        Args:
+            data: converted clause values
+
+        Returns:
+            One entry per SUPPORTS clause, naming the module, the groups it
+            includes, and the variations it implements them with.
+        """
+        capabilities = []
+
+        for module, groups, variations in data[0]:
+            outDict: OrderedDict[str, Any] = OrderedDict()
+            outDict["module"] = module
+            outDict["includes"] = [self.trans_opers(group) for group in groups]
+
+            rendered = [self.gen_capabilities_variation(module, v) for v in variations]
+            rendered = [v for v in rendered if v]
+
+            if rendered:
+                outDict["variations"] = rendered
+
+            capabilities.append(outDict)
+
+        return capabilities
+
+    def gen_capabilities_variation(
+        self, module: str, variation: CapabilitiesVariation
+    ) -> "OrderedDict[str, Any] | None":
+        """Render one VARIATION sub-clause of a SUPPORTS clause.
+
+        Args:
+            module: the module the SUPPORTS clause names
+            variation: the sub-clause
+
+        Returns:
+            The sub-clause as a JSON object, or ``None`` when its texts are
+            suppressed and it qualifies nothing.
+        """
+        name, syntax, writeSyntax, access, creation, defVal, description = variation
+
+        outDict: OrderedDict[str, Any] = OrderedDict()
+        outDict["object"] = self.trans_opers(name[1][0])
+
+        if syntax:
+            outDict["syntax"] = self.gen_refined_syntax(syntax)
+
+        if writeSyntax:
+            outDict["writesyntax"] = self.gen_refined_syntax(writeSyntax[1])
+
+        if access:
+            outDict["access"] = access[1]
+
+        if creation:
+            outDict["creationrequires"] = [self.trans_opers(cell[1][1][0]) for cell in creation[1][1]]
+
+        if defVal:
+            outDict["default"] = self.gen_variation_def_val(module, outDict["object"], defVal)
+
+        # RFC 2580 section 6.5.2 requires the DESCRIPTION, and a variation that
+        # refines nothing else says only what that description says.
+        if not self.genRules["text"]:
+            return outDict if len(outDict) > 1 else None
+
+        outDict["description"] = self.textFilter("description", description)
+
+        return outDict
+
+    def gen_variation_def_val(self, module: str, objname: str, defVal: Any) -> Any:
+        """Render the DEFVAL of a VARIATION as the varied object's type.
+
+        The object a variation names belongs to the module SUPPORTS names, not
+        to the one being compiled, so its type is only resolvable when that
+        module was read too. Where it was not, the default is reported as it
+        was written rather than dropped.
+
+        Args:
+            module: the module the SUPPORTS clause names
+            objname: the object the variation names
+            defVal: the unconverted DEFVAL subtree
+
+        Returns:
+            The default value, rendered as the object's type where that type
+            could be resolved and as written where it could not.
+        """
+        converted = self.prep_data([defVal])[0]
+
+        try:
+            return self.gen_def_val(converted, objname=objname)
+
+        except error.PySmiError:
+            logger.warning(
+                "could not render the DEFVAL of VARIATION %s in %s as its own type; reporting it as written",
+                objname,
+                module,
+            )
+            # The same form gen_def_val itself hands back for a default it was
+            # given no object to interpret.
+            return converted
 
     def gen_refined_syntax(self, syntax: Any) -> Any:
         """Render the SYNTAX of a compliance refinement as an object type does.
@@ -1489,6 +1596,7 @@ class JsonCodeGen(AbstractCodeGen):
         "BitNames": gen_bit_names,
         "BITS": gen_bits,
         "ComplianceModules": gen_compliances,
+        "Modules_Capabilities": gen_capabilities,
         "conceptualTable": gen_conceptual_table,
         "CONTACT-INFO": gen_contact_info,
         "DISPLAY-HINT": gen_display_hint,

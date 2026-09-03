@@ -22,6 +22,7 @@ from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
+    CapabilitiesClause,
     ComplianceClause,
     DefValClause,
     IndexClause,
@@ -331,7 +332,7 @@ class SymtableCodeGen(AbstractCodeGen):
             data: converted clause values
             classmode: unused; the clause never appears in a type declaration
         """
-        origName, _release, _status, _description, _reference, oid = data
+        origName, _release, _status, _description, _reference, _capabilities, oid = data
 
         pysmiName = self.trans_opers(origName)
 
@@ -585,6 +586,18 @@ class SymtableCodeGen(AbstractCodeGen):
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def gen_compliances(self, data: ComplianceClause, classmode: bool = False) -> str:
         """Ignore a MODULE-COMPLIANCE body; it defines no symbols.
+
+        Returns:
+            An empty string.
+        """
+        return ""
+
+    # noinspection PyUnusedLocal,PyMethodMayBeStatic
+    def gen_capabilities(self, data: CapabilitiesClause, classmode: bool = False) -> str:
+        """Ignore an AGENT-CAPABILITIES body; it defines no symbols.
+
+        Every name a SUPPORTS clause mentions belongs to the module it names,
+        not to this one.
 
         Returns:
             An empty string.
@@ -951,6 +964,7 @@ class SymtableCodeGen(AbstractCodeGen):
         "BitNames": gen_bit_names,
         "BITS": gen_bits,
         "ComplianceModules": gen_compliances,
+        "Modules_Capabilities": gen_capabilities,
         "conceptualTable": gen_conceptual_table,
         "CONTACT-INFO": gen_contact_info,
         "DISPLAY-HINT": gen_display_hint,
