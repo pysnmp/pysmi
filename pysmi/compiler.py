@@ -73,6 +73,8 @@ class MibStatus(str):
     enterprise: tuple[str, ...]
     #: MODULE-COMPLIANCE OIDs.
     compliance: tuple[str, ...]
+    #: NOTIFICATION-TYPE OIDs, including converted TRAP-TYPEs.
+    notification: tuple[str, ...]
     #: Why the transformation failed.
     error: error.PySmiError
 
@@ -630,6 +632,7 @@ class MibCompiler:
                         revision=mibInfo.revision,
                         enterprise=mibInfo.enterprise,
                         compliance=mibInfo.compliance,
+                        notification=mibInfo.notification,
                     )
 
             except error.PySmiError as exc:

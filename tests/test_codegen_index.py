@@ -20,6 +20,7 @@ from pysmi import error
 from pysmi.codegen import JsonCodeGen, PySnmpCodeGen
 from pysmi.codegen.null import NullCodeGen
 from pysmi.compiler import MibStatus
+from tests.harness import symbol_table
 
 
 def status(**attrs):
@@ -37,7 +38,7 @@ class JsonIndexTestCase(unittest.TestCase):
     def testEmptyIndexHasEverySection(self):
         self.assertEqual(
             sorted(self.index({})),
-            ["compliance", "enterprise", "identity", "meta", "oids"],
+            ["compliance", "enterprise", "identity", "meta", "notification", "oids"],
         )
 
     def testIdentityMapsOidToModule(self):
@@ -47,6 +48,24 @@ class JsonIndexTestCase(unittest.TestCase):
     def testEnterpriseMapsOidToModule(self):
         out = self.index({"A-MIB": status(enterprise="1.3.6.1.4.1.9")})
         self.assertEqual(out["enterprise"], {"1.3.6.1.4.1.9": ["A-MIB"]})
+
+    def testNotificationMapsOidToModule(self):
+        out = self.index({"A-MIB": status(notification=("1.3.6.1.4.1.9.0.1",))})
+        self.assertEqual(out["notification"], {"1.3.6.1.4.1.9.0.1": ["A-MIB"]})
+
+    def testNotificationGathersEveryModuleAtOneOid(self):
+        out = self.index(
+            {
+                "A-MIB": status(notification=("1.3.6.1.4.1.9.0.1",)),
+                "B-MIB": status(notification=("1.3.6.1.4.1.9.0.1",)),
+            }
+        )
+        self.assertEqual(out["notification"], {"1.3.6.1.4.1.9.0.1": ["A-MIB", "B-MIB"]})
+
+    def testNotificationIsNotCollapsedByPrefix(self):
+        """Unlike ``oids``, every notification stays addressable on its own."""
+        out = self.index({"A-MIB": status(notification=("1.3.6.1.4.1.9.0.1", "1.3.6.1.4.1.9.0.2"))})
+        self.assertEqual(sorted(out["notification"]), ["1.3.6.1.4.1.9.0.1", "1.3.6.1.4.1.9.0.2"])
 
     def testComplianceMapsEveryOidToModule(self):
         out = self.index({"A-MIB": status(compliance=("1.3.6.1.4.1.9.1", "1.3.6.1.4.1.9.2"))})
@@ -152,7 +171,7 @@ class JsonIndexOrderingTestCase(unittest.TestCase):
 
     def testTopLevelSectionsAreSorted(self):
         out = json.loads(JsonCodeGen().gen_index({}))
-        self.assertEqual(list(out), ["compliance", "enterprise", "identity", "meta", "oids"])
+        self.assertEqual(list(out), ["compliance", "enterprise", "identity", "meta", "notification", "oids"])
 
     def testSameInputRendersByteIdentically(self):
         processed = {
@@ -236,6 +255,97 @@ class PySnmpIndexTestCase(unittest.TestCase):
 class NullIndexTestCase(unittest.TestCase):
     def testNullCodeGenRendersAnEmptyIndex(self):
         self.assertEqual(NullCodeGen().gen_index({"A-MIB": status(oid="1.3.6")}), "")
+
+
+NOTIFICATION_MIB = """
+NOTIFY-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, NOTIFICATION-TYPE, MODULE-IDENTITY, Integer32
+        FROM SNMPv2-SMI;
+
+notifyModule MODULE-IDENTITY
+    LAST-UPDATED "202401010000Z"
+    ORGANIZATION "Org."
+    CONTACT-INFO "Contact."
+    DESCRIPTION  "A module that defines notifications."
+    ::= { 1 3 6 1 4 1 99 }
+
+notifyObject OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "An object carried by the notification."
+    ::= { 1 3 6 1 4 1 99 1 }
+
+notifyEvent NOTIFICATION-TYPE
+    OBJECTS     { notifyObject }
+    STATUS      current
+    DESCRIPTION "A notification."
+    ::= { 1 3 6 1 4 1 99 2 }
+END
+"""
+
+TRAP_MIB = """
+TRAP-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    TRAP-TYPE
+        FROM RFC-1215
+
+    OBJECT-TYPE
+        FROM RFC1155-SMI;
+
+trapEnterprise OBJECT IDENTIFIER ::= { 1 3 6 1 4 1 98 }
+
+trapObject OBJECT-TYPE
+    SYNTAX      INTEGER
+    ACCESS      read-only
+    STATUS      mandatory
+    DESCRIPTION "An object carried by the trap."
+    ::= { 1 3 6 1 4 1 98 1 }
+
+trapEvent TRAP-TYPE
+    ENTERPRISE  trapEnterprise
+    VARIABLES   { trapObject }
+    DESCRIPTION "A trap."
+    ::= 3
+END
+"""
+
+
+class NotificationsReachTheIndexTestCase(unittest.TestCase):
+    """A notification is recorded as one, not just swept into ``oids``.
+
+    ``gen_index`` reads what the backend reported for each module, so the
+    section is only useful if ``gen_code`` fills it in. See pysnmp/pysmi#64.
+    """
+
+    def info(self, mib):
+        ast, _, table = symbol_table(mib)
+        mibInfo, _ = JsonCodeGen().gen_code(ast, table, genTexts=True)
+        return mibInfo
+
+    def testNotificationTypeIsRecorded(self):
+        self.assertEqual(self.info(NOTIFICATION_MIB).notification, ["1.3.6.1.4.1.99.2"])
+
+    def testAConvertedTrapTypeIsRecorded(self):
+        """RFC 3584 turns a TRAP-TYPE into a NOTIFICATION-TYPE, so it counts."""
+        self.assertEqual(self.info(TRAP_MIB).notification, ["1.3.6.1.4.1.98.0.3"])
+
+    def testPlainObjectsAreNotRecordedAsNotifications(self):
+        self.assertNotIn("1.3.6.1.4.1.99.1", self.info(NOTIFICATION_MIB).notification)
+
+    def testTheNotificationAlsoStaysInOids(self):
+        """The section adds a way to look a trap up; it takes nothing away."""
+        self.assertIn("1.3.6.1.4.1.99.2", self.info(NOTIFICATION_MIB).oids)
+
+    def testTheIndexPlacesTheNotificationUnderItsSection(self):
+        info = self.info(NOTIFICATION_MIB)
+        out = json.loads(
+            JsonCodeGen().gen_index({"NOTIFY-MIB": status(notification=info.notification, oids=info.oids)})
+        )
+        self.assertEqual(out["notification"], {"1.3.6.1.4.1.99.2": ["NOTIFY-MIB"]})
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
