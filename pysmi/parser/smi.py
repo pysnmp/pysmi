@@ -15,6 +15,7 @@ import os
 from typing import Any, cast
 
 import ply.yacc as yacc
+from ply.yacc import YaccProduction
 
 from pysmi import debug, error
 from pysmi.lexer.smi import lexerFactory
@@ -161,12 +162,12 @@ class SmiV2Parser(AbstractParser):
     # SMIv2 grammar follows
     #
 
-    def p_mibFile(self, p):
+    def p_mibFile(self, p: YaccProduction) -> None:
         """mibFile : modules
         | empty"""
         p[0] = ("mibFile", p[1])
 
-    def p_modules(self, p):
+    def p_modules(self, p: YaccProduction) -> None:
         """modules : modules module
         | module"""
         n = len(p)
@@ -175,7 +176,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = [p[1]]
 
-    def p_module(self, p):
+    def p_module(self, p: YaccProduction) -> None:
         """module : moduleName moduleOid DEFINITIONS COLON_COLON_EQUAL BEGIN exportsClause linkagePart declarationPart END"""
         p[0] = (
             p[1],  # name
@@ -184,28 +185,28 @@ class SmiV2Parser(AbstractParser):
             p[8],
         )  # declaration
 
-    def p_moduleOid(self, p):
+    def p_moduleOid(self, p: YaccProduction) -> None:
         """moduleOid : '{' objectIdentifier '}'
         | empty"""
         n = len(p)
         if n == 4:
             p[0] = p[2]
 
-    def p_linkagePart(self, p):
+    def p_linkagePart(self, p: YaccProduction) -> None:
         """linkagePart : linkageClause
         | empty"""
         if p[1]:
             p[0] = p[1]
 
-    def p_linkageClause(self, p):
+    def p_linkageClause(self, p: YaccProduction) -> None:
         """linkageClause : IMPORTS importPart ';'"""
         p[0] = p[2]
 
-    def p_exportsClause(self, p):
+    def p_exportsClause(self, p: YaccProduction) -> None:
         """exportsClause : EXPORTS
         | empty"""
 
-    def p_importPart(self, p):
+    def p_importPart(self, p: YaccProduction) -> None:
         """importPart : imports
         | empty"""
         # libsmi: TODO: ``IMPORTS ;'' allowed? refer ASN.1!
@@ -220,7 +221,7 @@ class SmiV2Parser(AbstractParser):
 
             p[0] = importDict
 
-    def p_imports(self, p):
+    def p_imports(self, p: YaccProduction) -> None:
         """imports : imports import
         | import"""
         n = len(p)
@@ -229,7 +230,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = [p[1]]
 
-    def p_import(self, p):
+    def p_import(self, p: YaccProduction) -> None:
         """import : importIdentifiers FROM moduleName"""
         # libsmi: TODO: multiple clauses with same moduleName allowed?
         # I guess so. refer ASN.1!
@@ -238,7 +239,7 @@ class SmiV2Parser(AbstractParser):
             p[1],
         )  # ids
 
-    def p_importIdentifiers(self, p):
+    def p_importIdentifiers(self, p: YaccProduction) -> None:
         """importIdentifiers : importIdentifiers ',' importIdentifier
         | importIdentifier"""
         n = len(p)
@@ -248,13 +249,13 @@ class SmiV2Parser(AbstractParser):
             p[0] = [p[1]]
 
     # Note that some named types must not be imported, REF:RFC1902,590
-    def p_importIdentifier(self, p):
+    def p_importIdentifier(self, p: YaccProduction) -> None:
         """importIdentifier : LOWERCASE_IDENTIFIER
         | UPPERCASE_IDENTIFIER
         | importedKeyword"""
         p[0] = p[1]
 
-    def p_importedKeyword(self, p):
+    def p_importedKeyword(self, p: YaccProduction) -> None:
         """importedKeyword : importedSMIKeyword
         | BITS
         | INTEGER32
@@ -271,7 +272,7 @@ class SmiV2Parser(AbstractParser):
         | UNSIGNED32"""
         p[0] = p[1]
 
-    def p_importedSMIKeyword(self, p):
+    def p_importedSMIKeyword(self, p: YaccProduction) -> None:
         """importedSMIKeyword : AGENT_CAPABILITIES
         | COUNTER32
         | COUNTER64
@@ -281,17 +282,17 @@ class SmiV2Parser(AbstractParser):
         | TRAP_TYPE"""
         p[0] = p[1]
 
-    def p_moduleName(self, p):
+    def p_moduleName(self, p: YaccProduction) -> None:
         """moduleName : UPPERCASE_IDENTIFIER"""
         p[0] = p[1]
 
-    def p_declarationPart(self, p):
+    def p_declarationPart(self, p: YaccProduction) -> None:
         """declarationPart : declarations
         | empty"""
         if p[1]:
             p[0] = p[1]
 
-    def p_declarations(self, p):
+    def p_declarations(self, p: YaccProduction) -> None:
         """declarations : declarations declaration
         | declaration"""
         n = len(p)
@@ -300,7 +301,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = [p[1]]
 
-    def p_declaration(self, p):
+    def p_declaration(self, p: YaccProduction) -> None:
         """declaration : typeDeclaration
         | valueDeclaration
         | objectIdentityClause
@@ -316,10 +317,10 @@ class SmiV2Parser(AbstractParser):
         if p[1]:
             p[0] = p[1]
 
-    def p_macroClause(self, p):
+    def p_macroClause(self, p: YaccProduction) -> None:
         """macroClause : macroName MACRO END"""
 
-    def p_macroName(self, p):
+    def p_macroName(self, p: YaccProduction) -> None:
         """macroName : MODULE_IDENTITY
         | OBJECT_TYPE
         | TRAP_TYPE
@@ -331,16 +332,16 @@ class SmiV2Parser(AbstractParser):
         | MODULE_COMPLIANCE
         | AGENT_CAPABILITIES"""
 
-    def p_choiceClause(self, p):
+    def p_choiceClause(self, p: YaccProduction) -> None:
         """choiceClause : CHOICE"""
 
     # libsmi: The only ASN.1 value declarations are for OIDs, REF:RFC1902,491.
-    def p_fuzzy_lowercase_identifier(self, p):
+    def p_fuzzy_lowercase_identifier(self, p: YaccProduction) -> None:
         """fuzzy_lowercase_identifier : LOWERCASE_IDENTIFIER
         | UPPERCASE_IDENTIFIER"""
         p[0] = p[1]
 
-    def p_valueDeclaration(self, p):
+    def p_valueDeclaration(self, p: YaccProduction) -> None:
         """valueDeclaration : fuzzy_lowercase_identifier OBJECT IDENTIFIER COLON_COLON_EQUAL '{' objectIdentifier '}'"""
         p[0] = (
             "valueDeclaration",
@@ -348,7 +349,7 @@ class SmiV2Parser(AbstractParser):
             p[6],
         )  # objectIdentifier
 
-    def p_typeDeclaration(self, p):
+    def p_typeDeclaration(self, p: YaccProduction) -> None:
         """typeDeclaration : typeName COLON_COLON_EQUAL typeDeclarationRHS"""
         p[0] = (
             "typeDeclaration",
@@ -356,17 +357,17 @@ class SmiV2Parser(AbstractParser):
             p[3],
         )  # declarationRHS
 
-    def p_typeName(self, p):
+    def p_typeName(self, p: YaccProduction) -> None:
         """typeName : UPPERCASE_IDENTIFIER
         | typeSMI"""
         p[0] = p[1]
 
-    def p_typeSMI(self, p):
+    def p_typeSMI(self, p: YaccProduction) -> None:
         """typeSMI : typeSMIandSPPI
         | typeSMIonly"""
         p[0] = p[1]
 
-    def p_typeSMIandSPPI(self, p):
+    def p_typeSMIandSPPI(self, p: YaccProduction) -> None:
         """typeSMIandSPPI : IPADDRESS
         | TIMETICKS
         | OPAQUE
@@ -374,13 +375,13 @@ class SmiV2Parser(AbstractParser):
         | UNSIGNED32"""
         p[0] = p[1]
 
-    def p_typeSMIonly(self, p):
+    def p_typeSMIonly(self, p: YaccProduction) -> None:
         """typeSMIonly : COUNTER32
         | GAUGE32
         | COUNTER64"""
         p[0] = p[1]
 
-    def p_typeDeclarationRHS(self, p):
+    def p_typeDeclarationRHS(self, p: YaccProduction) -> None:
         """typeDeclarationRHS : Syntax
         | TEXTUAL_CONVENTION DisplayPart STATUS Status DESCRIPTION Text ReferPart SYNTAX Syntax
         | choiceClause"""
@@ -398,20 +399,20 @@ class SmiV2Parser(AbstractParser):
                 p[0] = ("typeDeclarationRHS", p[1])
                 # ignore the choiceClause
 
-    def p_conceptualTable(self, p):
+    def p_conceptualTable(self, p: YaccProduction) -> None:
         """conceptualTable : SEQUENCE OF row"""
         p[0] = ("conceptualTable", p[3])
 
-    def p_row(self, p):
+    def p_row(self, p: YaccProduction) -> None:
         """row : UPPERCASE_IDENTIFIER"""
         # libsmi: TODO: this must be an entryType
         p[0] = ("row", p[1])
 
-    def p_entryType(self, p):
+    def p_entryType(self, p: YaccProduction) -> None:
         """entryType : SEQUENCE '{' sequenceItems '}'"""
         p[0] = (p[1], p[3])
 
-    def p_sequenceItems(self, p):
+    def p_sequenceItems(self, p: YaccProduction) -> None:
         """sequenceItems : sequenceItems ',' sequenceItem
         | sequenceItem"""
         # libsmi: TODO: might this list be emtpy?
@@ -421,11 +422,11 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = [p[1]]
 
-    def p_sequenceItem(self, p):
+    def p_sequenceItem(self, p: YaccProduction) -> None:
         """sequenceItem : LOWERCASE_IDENTIFIER sequenceSyntax"""
         p[0] = (p[1], p[2])
 
-    def p_Syntax(self, p):
+    def p_Syntax(self, p: YaccProduction) -> None:
         """Syntax : ObjectSyntax
         | BITS '{' NamedBits '}'"""
         # libsmi: TODO: standalone `BITS' ok? seen in RMON2-MIB
@@ -436,13 +437,13 @@ class SmiV2Parser(AbstractParser):
         elif n == 5:
             p[0] = (p[1], p[3])
 
-    def p_sequenceSyntax(self, p):
+    def p_sequenceSyntax(self, p: YaccProduction) -> None:
         """sequenceSyntax : BITS
         | UPPERCASE_IDENTIFIER anySubType
         | sequenceObjectSyntax"""
         p[0] = p[1]  # no subtype or complex syntax supported
 
-    def p_NamedBits(self, p):
+    def p_NamedBits(self, p: YaccProduction) -> None:
         """NamedBits : NamedBits ',' NamedBit
         | NamedBit"""
         n = len(p)
@@ -451,11 +452,11 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = [p[1]]
 
-    def p_NamedBit(self, p):
+    def p_NamedBit(self, p: YaccProduction) -> None:
         """NamedBit : LOWERCASE_IDENTIFIER '(' NUMBER ')'"""
         p[0] = (p[1], p[3])
 
-    def p_objectIdentityClause(self, p):
+    def p_objectIdentityClause(self, p: YaccProduction) -> None:
         """objectIdentityClause : LOWERCASE_IDENTIFIER OBJECT_IDENTITY STATUS Status DESCRIPTION Text ReferPart COLON_COLON_EQUAL '{' objectIdentifier '}'"""
         p[0] = (
             "objectIdentityClause",
@@ -467,7 +468,7 @@ class SmiV2Parser(AbstractParser):
             p[10],
         )  # objectIdentifier
 
-    def p_objectTypeClause(self, p):
+    def p_objectTypeClause(self, p: YaccProduction) -> None:
         """objectTypeClause : LOWERCASE_IDENTIFIER OBJECT_TYPE SYNTAX Syntax UnitsPart MaxOrPIBAccessPart STATUS Status descriptionClause ReferPart IndexPart MibIndex DefValPart COLON_COLON_EQUAL '{' ObjectName '}'"""
         p[0] = (
             "objectTypeClause",
@@ -485,13 +486,13 @@ class SmiV2Parser(AbstractParser):
             p[16],
         )  # ObjectName
 
-    def p_descriptionClause(self, p):
+    def p_descriptionClause(self, p: YaccProduction) -> None:
         """descriptionClause : DESCRIPTION Text
         | empty"""
         if p[1]:
             p[0] = (p[1], p[2])
 
-    def p_trapTypeClause(self, p):
+    def p_trapTypeClause(self, p: YaccProduction) -> None:
         """trapTypeClause : fuzzy_lowercase_identifier TRAP_TYPE ENTERPRISE objectIdentifier VarPart DescrPart ReferPart COLON_COLON_EQUAL NUMBER"""
         # libsmi: TODO: range of number?
         p[0] = (
@@ -505,12 +506,12 @@ class SmiV2Parser(AbstractParser):
             p[9],
         )  # NUMBER
 
-    def p_VarPart(self, p):
+    def p_VarPart(self, p: YaccProduction) -> None:
         """VarPart : VARIABLES '{' VarTypes '}'
         | empty"""
         p[0] = (p[1] and p[3]) or []
 
-    def p_VarTypes(self, p):
+    def p_VarTypes(self, p: YaccProduction) -> None:
         """VarTypes : VarTypes ',' VarType
         | VarType"""
         n = len(p)
@@ -519,28 +520,28 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = ("VarTypes", [p[1]])
 
-    def p_VarType(self, p):
+    def p_VarType(self, p: YaccProduction) -> None:
         """VarType : ObjectName"""
         p[0] = p[1][1][0]
 
-    def p_DescrPart(self, p):
+    def p_DescrPart(self, p: YaccProduction) -> None:
         """DescrPart : DESCRIPTION Text
         | empty"""
         if p[1]:
             p[0] = (p[1], p[2])
 
-    def p_MaxOrPIBAccessPart(self, p):
+    def p_MaxOrPIBAccessPart(self, p: YaccProduction) -> None:
         """MaxOrPIBAccessPart : MaxAccessPart
         | empty"""
         if p[1]:
             p[0] = p[1]
 
-    def p_MaxAccessPart(self, p):
+    def p_MaxAccessPart(self, p: YaccProduction) -> None:
         """MaxAccessPart : MAX_ACCESS Access
         | ACCESS Access"""
         p[0] = ("MaxAccessPart", p[2])
 
-    def p_notificationTypeClause(self, p):
+    def p_notificationTypeClause(self, p: YaccProduction) -> None:
         """notificationTypeClause : LOWERCASE_IDENTIFIER NOTIFICATION_TYPE NotificationObjectsPart STATUS Status DESCRIPTION Text ReferPart COLON_COLON_EQUAL '{' NotificationName '}'"""
         p[0] = (
             "notificationTypeClause",
@@ -553,7 +554,7 @@ class SmiV2Parser(AbstractParser):
             p[11],
         )  # NotificationName aka objectIdentifier
 
-    def p_moduleIdentityClause(self, p):
+    def p_moduleIdentityClause(self, p: YaccProduction) -> None:
         """moduleIdentityClause : LOWERCASE_IDENTIFIER MODULE_IDENTITY SubjectCategoriesPart LAST_UPDATED ExtUTCTime ORGANIZATION Text CONTACT_INFO Text DESCRIPTION Text RevisionPart COLON_COLON_EQUAL '{' objectIdentifier '}'"""
         p[0] = (
             "moduleIdentityClause",
@@ -570,17 +571,17 @@ class SmiV2Parser(AbstractParser):
 
     # Subject categories: RFC3159
 
-    def p_SubjectCategoriesPart(self, p):
+    def p_SubjectCategoriesPart(self, p: YaccProduction) -> None:
         """SubjectCategoriesPart : SUBJECT_CATEGORIES '{' SubjectCategories '}'
         | empty"""
         # if p[1]:
         #  p[0] = (p[1], p[3])
 
-    def p_SubjectCategories(self, p):
+    def p_SubjectCategories(self, p: YaccProduction) -> None:
         """SubjectCategories : CategoryIDs"""
         # p[0] = p[1]
 
-    def p_CategoryIDs(self, p):
+    def p_CategoryIDs(self, p: YaccProduction) -> None:
         """CategoryIDs : CategoryIDs ',' CategoryID
         | CategoryID"""
         # n = len(p)
@@ -589,7 +590,7 @@ class SmiV2Parser(AbstractParser):
         # elif n == 2:
         #  p[0] = ('CategoryIDs', [p[1]])
 
-    def p_CategoryID(self, p):
+    def p_CategoryID(self, p: YaccProduction) -> None:
         """CategoryID : LOWERCASE_IDENTIFIER '(' NUMBER ')'
         | LOWERCASE_IDENTIFIER"""
         # n = len(p)
@@ -600,7 +601,7 @@ class SmiV2Parser(AbstractParser):
 
     # ...subject categories
 
-    def p_ObjectSyntax(self, p):
+    def p_ObjectSyntax(self, p: YaccProduction) -> None:
         """ObjectSyntax : SimpleSyntax
         | conceptualTable
         | row
@@ -613,21 +614,21 @@ class SmiV2Parser(AbstractParser):
         elif n == 3:
             p[0] = p[2]
 
-    def p_typeTag(self, p):
+    def p_typeTag(self, p: YaccProduction) -> None:
         """typeTag : '[' APPLICATION NUMBER ']' IMPLICIT
         | '[' UNIVERSAL NUMBER ']' IMPLICIT"""
 
-    def p_sequenceObjectSyntax(self, p):
+    def p_sequenceObjectSyntax(self, p: YaccProduction) -> None:
         """sequenceObjectSyntax : sequenceSimpleSyntax
         | sequenceApplicationSyntax"""
         # libsmi: TO DO: add to this rule conceptualTable, row, entryType
         p[0] = p[1]
 
-    def p_valueofObjectSyntax(self, p):
+    def p_valueofObjectSyntax(self, p: YaccProduction) -> None:
         """valueofObjectSyntax : valueofSimpleSyntax"""
         p[0] = p[1]
 
-    def p_SimpleSyntax(self, p):
+    def p_SimpleSyntax(self, p: YaccProduction) -> None:
         """SimpleSyntax : INTEGER
         | INTEGER integerSubType
         | INTEGER enumSpec
@@ -652,7 +653,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 4:
             p[0] = ("SimpleSyntax", p[1] + " " + p[2], _resolve_max_bound(p[1] + " " + p[2], p[3]))
 
-    def p_valueofSimpleSyntax(self, p):
+    def p_valueofSimpleSyntax(self, p: YaccProduction) -> None:
         """valueofSimpleSyntax : NUMBER
         | NEGATIVENUMBER
         | NUMBER64
@@ -673,7 +674,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 4:  # XXX
             pass
 
-    def p_sequenceSimpleSyntax(self, p):
+    def p_sequenceSimpleSyntax(self, p: YaccProduction) -> None:
         """sequenceSimpleSyntax : INTEGER anySubType
         | INTEGER32 anySubType
         | OCTET STRING anySubType
@@ -684,7 +685,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 4:
             p[0] = p[1] + " " + p[2]  # XXX not supporting subtypes here
 
-    def p_ApplicationSyntax(self, p):
+    def p_ApplicationSyntax(self, p: YaccProduction) -> None:
         """ApplicationSyntax : IPADDRESS anySubType
         | COUNTER32
         | COUNTER32 integerSubType
@@ -704,7 +705,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 3:
             p[0] = ("ApplicationSyntax", p[1], _resolve_max_bound(p[1], p[2]))
 
-    def p_sequenceApplicationSyntax(self, p):
+    def p_sequenceApplicationSyntax(self, p: YaccProduction) -> None:
         """sequenceApplicationSyntax : IPADDRESS anySubType
         | COUNTER32 anySubType
         | GAUGE32 anySubType
@@ -718,7 +719,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 3:
             p[0] = p[1]  # XXX not supporting subtypes here
 
-    def p_anySubType(self, p):
+    def p_anySubType(self, p: YaccProduction) -> None:
         """anySubType : integerSubType
         | octetStringSubType
         | enumSpec
@@ -726,15 +727,15 @@ class SmiV2Parser(AbstractParser):
         if p[1]:
             p[0] = p[1]
 
-    def p_integerSubType(self, p):
+    def p_integerSubType(self, p: YaccProduction) -> None:
         """integerSubType : '(' ranges ')'"""
         p[0] = ("integerSubType", p[2])
 
-    def p_octetStringSubType(self, p):
+    def p_octetStringSubType(self, p: YaccProduction) -> None:
         """octetStringSubType : '(' SIZE '(' ranges ')' ')'"""
         p[0] = ("octetStringSubType", p[4])
 
-    def p_ranges(self, p):
+    def p_ranges(self, p: YaccProduction) -> None:
         """ranges : ranges '|' range
         | range"""
         n = len(p)
@@ -743,7 +744,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = [p[1]]
 
-    def p_range(self, p):
+    def p_range(self, p: YaccProduction) -> None:
         """range : value DOT_DOT value
         | value"""
         n = len(p)
@@ -752,7 +753,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 4:
             p[0] = (p[1], p[3])
 
-    def p_value(self, p):
+    def p_value(self, p: YaccProduction) -> None:
         """value : NEGATIVENUMBER
         | NUMBER
         | NEGATIVENUMBER64
@@ -761,11 +762,11 @@ class SmiV2Parser(AbstractParser):
         | BIN_STRING"""
         p[0] = p[1]
 
-    def p_enumSpec(self, p):
+    def p_enumSpec(self, p: YaccProduction) -> None:
         """enumSpec : '{' enumItems '}'"""
         p[0] = ("enumSpec", p[2])
 
-    def p_enumItems(self, p):
+    def p_enumItems(self, p: YaccProduction) -> None:
         """enumItems : enumItems ',' enumItem
         | enumItem"""
         n = len(p)
@@ -774,49 +775,49 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = [p[1]]
 
-    def p_enumItem(self, p):
+    def p_enumItem(self, p: YaccProduction) -> None:
         """enumItem : LOWERCASE_IDENTIFIER '(' enumNumber ')'"""
         p[0] = (p[1], p[3])
 
-    def p_enumNumber(self, p):
+    def p_enumNumber(self, p: YaccProduction) -> None:
         """enumNumber : NUMBER
         | NEGATIVENUMBER"""
         # XXX              | LOWERCASE_IDENTIFIER"""
         p[0] = p[1]
 
-    def p_Status(self, p):
+    def p_Status(self, p: YaccProduction) -> None:
         """Status : LOWERCASE_IDENTIFIER"""
         p[0] = ("Status", p[1])
 
-    def p_DisplayPart(self, p):
+    def p_DisplayPart(self, p: YaccProduction) -> None:
         """DisplayPart : DISPLAY_HINT Text
         | empty"""
         if p[1]:
             p[0] = (p[1], p[2])
 
-    def p_UnitsPart(self, p):
+    def p_UnitsPart(self, p: YaccProduction) -> None:
         """UnitsPart : UNITS Text
         | empty"""
         if p[1]:
             p[0] = (p[1], p[2])
 
-    def p_Access(self, p):
+    def p_Access(self, p: YaccProduction) -> None:
         """Access : LOWERCASE_IDENTIFIER"""
         p[0] = p[1]
 
-    def p_IndexPart(self, p):
+    def p_IndexPart(self, p: YaccProduction) -> None:
         """IndexPart : AUGMENTS '{' Entry '}'
         | empty"""
         if p[1]:
             p[0] = p[3]
 
-    def p_MibIndex(self, p):
+    def p_MibIndex(self, p: YaccProduction) -> None:
         """MibIndex : INDEX '{' IndexTypes '}'
         | empty"""
         if p[1]:
             p[0] = (p[1], p[3])
 
-    def p_IndexTypes(self, p):
+    def p_IndexTypes(self, p: YaccProduction) -> None:
         """IndexTypes : IndexTypes ',' IndexType
         | IndexType"""
         n = len(p)
@@ -825,7 +826,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = [p[1]]
 
-    def p_IndexType(self, p):
+    def p_IndexType(self, p: YaccProduction) -> None:
         """IndexType : IMPLIED Index
         | Index"""
         n = len(p)
@@ -834,23 +835,23 @@ class SmiV2Parser(AbstractParser):
         elif n == 3:
             p[0] = (1, p[2])  # IMPLIED
 
-    def p_Index(self, p):
+    def p_Index(self, p: YaccProduction) -> None:
         """Index : ObjectName"""
         # libsmi: TODO: use the SYNTAX value of the correspondent
         #               OBJECT-TYPE invocation
         p[0] = p[1][1][0]  # XXX just name???
 
-    def p_Entry(self, p):
+    def p_Entry(self, p: YaccProduction) -> None:
         """Entry : ObjectName"""
         p[0] = p[1][1][0]
 
-    def p_DefValPart(self, p):
+    def p_DefValPart(self, p: YaccProduction) -> None:
         """DefValPart : DEFVAL '{' Value '}'
         | empty"""
         if p[1] and p[3]:
             p[0] = (p[1], p[3])
 
-    def p_Value(self, p):
+    def p_Value(self, p: YaccProduction) -> None:
         """Value : valueofObjectSyntax
         | '{' BitsValue '}'"""
         n = len(p)
@@ -859,13 +860,13 @@ class SmiV2Parser(AbstractParser):
         elif n == 4:
             p[0] = p[2]
 
-    def p_BitsValue(self, p):
+    def p_BitsValue(self, p: YaccProduction) -> None:
         """BitsValue : BitNames
         | empty"""
         if p[1]:
             p[0] = p[1]
 
-    def p_BitNames(self, p):
+    def p_BitNames(self, p: YaccProduction) -> None:
         """BitNames : BitNames ',' LOWERCASE_IDENTIFIER
         | LOWERCASE_IDENTIFIER"""
         n = len(p)
@@ -874,27 +875,27 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = ("BitNames", [p[1]])
 
-    def p_ObjectName(self, p):
+    def p_ObjectName(self, p: YaccProduction) -> None:
         """ObjectName : objectIdentifier"""
         p[0] = p[1]
 
-    def p_NotificationName(self, p):
+    def p_NotificationName(self, p: YaccProduction) -> None:
         """NotificationName : objectIdentifier"""
         p[0] = p[1]
 
-    def p_ReferPart(self, p):
+    def p_ReferPart(self, p: YaccProduction) -> None:
         """ReferPart : REFERENCE Text
         | empty"""
         if p[1]:
             p[0] = (p[1], p[2])
 
-    def p_RevisionPart(self, p):
+    def p_RevisionPart(self, p: YaccProduction) -> None:
         """RevisionPart : Revisions
         | empty"""
         if p[1]:
             p[0] = p[1]
 
-    def p_Revisions(self, p):
+    def p_Revisions(self, p: YaccProduction) -> None:
         """Revisions : Revisions Revision
         | Revision"""
         n = len(p)
@@ -903,23 +904,23 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = ("Revisions", [p[1]])
 
-    def p_Revision(self, p):
+    def p_Revision(self, p: YaccProduction) -> None:
         """Revision : REVISION ExtUTCTime DESCRIPTION Text"""
         p[0] = (
             p[2],  # revision time
             (p[3], p[4]),
         )  # description
 
-    def p_NotificationObjectsPart(self, p):
+    def p_NotificationObjectsPart(self, p: YaccProduction) -> None:
         """NotificationObjectsPart : OBJECTS '{' Objects '}'
         | empty"""
         p[0] = (p[1] and p[3]) or []
 
-    def p_ObjectGroupObjectsPart(self, p):
+    def p_ObjectGroupObjectsPart(self, p: YaccProduction) -> None:
         """ObjectGroupObjectsPart : OBJECTS '{' Objects '}'"""
         p[0] = p[3]
 
-    def p_Objects(self, p):
+    def p_Objects(self, p: YaccProduction) -> None:
         """Objects : Objects ',' Object
         | Object"""
         n = len(p)
@@ -928,15 +929,15 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = ("Objects", [p[1]])
 
-    def p_Object(self, p):
+    def p_Object(self, p: YaccProduction) -> None:
         """Object : ObjectName"""
         p[0] = p[1][1][0]
 
-    def p_NotificationsPart(self, p):
+    def p_NotificationsPart(self, p: YaccProduction) -> None:
         """NotificationsPart : NOTIFICATIONS '{' Notifications '}'"""
         p[0] = p[3]
 
-    def p_Notifications(self, p):
+    def p_Notifications(self, p: YaccProduction) -> None:
         """Notifications : Notifications ',' Notification
         | Notification"""
         n = len(p)
@@ -945,23 +946,23 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = ("Notifications", [p[1]])
 
-    def p_Notification(self, p):
+    def p_Notification(self, p: YaccProduction) -> None:
         """Notification : NotificationName"""
         p[0] = p[1][1][0]
 
-    def p_Text(self, p):
+    def p_Text(self, p: YaccProduction) -> None:
         """Text : QUOTED_STRING"""
         p[0] = p[1][1:-1]  # getting rid of quotes
 
-    def p_ExtUTCTime(self, p):
+    def p_ExtUTCTime(self, p: YaccProduction) -> None:
         """ExtUTCTime : QUOTED_STRING"""
         p[0] = p[1][1:-1]  # getting rid of quotes
 
-    def p_objectIdentifier(self, p):
+    def p_objectIdentifier(self, p: YaccProduction) -> None:
         """objectIdentifier : subidentifiers"""
         p[0] = ("objectIdentifier", p[1])
 
-    def p_subidentifiers(self, p):
+    def p_subidentifiers(self, p: YaccProduction) -> None:
         """subidentifiers : subidentifiers subidentifier
         | subidentifier"""
         n = len(p)
@@ -970,7 +971,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = [p[1]]
 
-    def p_subidentifier(self, p):
+    def p_subidentifier(self, p: YaccProduction) -> None:
         """subidentifier : fuzzy_lowercase_identifier
         | NUMBER
         | LOWERCASE_IDENTIFIER '(' NUMBER ')'"""
@@ -982,11 +983,11 @@ class SmiV2Parser(AbstractParser):
             # it is not defined in *this* MIB
             p[0] = (p[1], p[3])
 
-    def p_objectIdentifier_defval(self, p):
+    def p_objectIdentifier_defval(self, p: YaccProduction) -> None:
         """objectIdentifier_defval : subidentifiers_defval"""
         p[0] = ("objectIdentifier_defval", p[1])
 
-    def p_subidentifiers_defval(self, p):
+    def p_subidentifiers_defval(self, p: YaccProduction) -> None:
         """subidentifiers_defval : subidentifiers_defval subidentifier_defval
         | subidentifier_defval"""
         n = len(p)
@@ -995,7 +996,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = ("subidentifiers_defval", [p[1]])
 
-    def p_subidentifier_defval(self, p):
+    def p_subidentifier_defval(self, p: YaccProduction) -> None:
         """subidentifier_defval : LOWERCASE_IDENTIFIER '(' NUMBER ')'
         | NUMBER"""
         n = len(p)
@@ -1004,7 +1005,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 5:
             p[0] = ("subidentifier_defval", p[1], p[3])
 
-    def p_objectGroupClause(self, p):
+    def p_objectGroupClause(self, p: YaccProduction) -> None:
         """objectGroupClause : LOWERCASE_IDENTIFIER OBJECT_GROUP ObjectGroupObjectsPart STATUS Status DESCRIPTION Text ReferPart COLON_COLON_EQUAL '{' objectIdentifier '}'"""
         p[0] = (
             "objectGroupClause",
@@ -1016,7 +1017,7 @@ class SmiV2Parser(AbstractParser):
             p[11],
         )  # objectIdentifier
 
-    def p_notificationGroupClause(self, p):
+    def p_notificationGroupClause(self, p: YaccProduction) -> None:
         """notificationGroupClause : LOWERCASE_IDENTIFIER NOTIFICATION_GROUP NotificationsPart STATUS Status DESCRIPTION Text ReferPart COLON_COLON_EQUAL '{' objectIdentifier '}'"""
         p[0] = (
             "notificationGroupClause",
@@ -1028,7 +1029,7 @@ class SmiV2Parser(AbstractParser):
             p[11],
         )  # objectIdentifier
 
-    def p_moduleComplianceClause(self, p):
+    def p_moduleComplianceClause(self, p: YaccProduction) -> None:
         """moduleComplianceClause : LOWERCASE_IDENTIFIER MODULE_COMPLIANCE STATUS Status DESCRIPTION Text ReferPart ComplianceModulePart COLON_COLON_EQUAL '{' objectIdentifier '}'"""
         p[0] = (
             "moduleComplianceClause",
@@ -1041,11 +1042,11 @@ class SmiV2Parser(AbstractParser):
             p[11],
         )  # objectIdentifier
 
-    def p_ComplianceModulePart(self, p):
+    def p_ComplianceModulePart(self, p: YaccProduction) -> None:
         """ComplianceModulePart : ComplianceModules"""
         p[0] = p[1]
 
-    def p_ComplianceModules(self, p):
+    def p_ComplianceModules(self, p: YaccProduction) -> None:
         """ComplianceModules : ComplianceModules ComplianceModule
         | ComplianceModule"""
         n = len(p)
@@ -1054,7 +1055,7 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = ("ComplianceModules", [p[1]])
 
-    def p_ComplianceModule(self, p):
+    def p_ComplianceModule(self, p: YaccProduction) -> None:
         """ComplianceModule : MODULE ComplianceModuleName MandatoryPart CompliancePart"""
         objects = (p[3] and p[3][1]) or []
         objects += (p[4] and p[4][1]) or []
@@ -1063,19 +1064,19 @@ class SmiV2Parser(AbstractParser):
             objects,
         )  # MandatoryPart + CompliancePart
 
-    def p_ComplianceModuleName(self, p):
+    def p_ComplianceModuleName(self, p: YaccProduction) -> None:
         """ComplianceModuleName : UPPERCASE_IDENTIFIER
         | empty"""
         # XXX                   | UPPERCASE_IDENTIFIER objectIdentifier
         p[0] = p[1]
 
-    def p_MandatoryPart(self, p):
+    def p_MandatoryPart(self, p: YaccProduction) -> None:
         """MandatoryPart : MANDATORY_GROUPS '{' MandatoryGroups '}'
         | empty"""
         if p[1]:
             p[0] = p[3]
 
-    def p_MandatoryGroups(self, p):
+    def p_MandatoryGroups(self, p: YaccProduction) -> None:
         """MandatoryGroups : MandatoryGroups ',' MandatoryGroup
         | MandatoryGroup"""
         n = len(p)
@@ -1084,17 +1085,17 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = ("MandatoryGroups", [p[1]])
 
-    def p_MandatoryGroup(self, p):
+    def p_MandatoryGroup(self, p: YaccProduction) -> None:
         """MandatoryGroup : objectIdentifier"""
         p[0] = p[1][1][0]  # objectIdentifier? Maybe name?
 
-    def p_CompliancePart(self, p):
+    def p_CompliancePart(self, p: YaccProduction) -> None:
         """CompliancePart : Compliances
         | empty"""
         if p[1]:
             p[0] = p[1]
 
-    def p_Compliances(self, p):
+    def p_Compliances(self, p: YaccProduction) -> None:
         """Compliances : Compliances Compliance
         | Compliance"""
         n = len(p)
@@ -1103,19 +1104,19 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = (p[1] and ("Compliances", [p[1]])) or None
 
-    def p_Compliance(self, p):
+    def p_Compliance(self, p: YaccProduction) -> None:
         """Compliance : ComplianceGroup
         | ComplianceObject"""
         if p[1]:
             p[0] = p[1]
 
-    def p_ComplianceGroup(self, p):
+    def p_ComplianceGroup(self, p: YaccProduction) -> None:
         """ComplianceGroup : GROUP objectIdentifier DESCRIPTION Text"""
         p[0] = p[2][1][0]  # objectIdentifier
         #        p[1], # GROUP
         #        (p[3], p[4])) # description
 
-    def p_ComplianceObject(self, p):
+    def p_ComplianceObject(self, p: YaccProduction) -> None:
         """ComplianceObject : OBJECT ObjectName SyntaxPart WriteSyntaxPart AccessPart DESCRIPTION Text"""
         # p[0] = (p[1], # object
         #        p[2], # name
@@ -1124,29 +1125,29 @@ class SmiV2Parser(AbstractParser):
         #        p[5], # access
         #        (p[6], p[7])) # description
 
-    def p_SyntaxPart(self, p):
+    def p_SyntaxPart(self, p: YaccProduction) -> None:
         """SyntaxPart : SYNTAX Syntax
         | empty"""
         if p[1]:
             p[0] = p[2]
 
-    def p_WriteSyntaxPart(self, p):
+    def p_WriteSyntaxPart(self, p: YaccProduction) -> None:
         """WriteSyntaxPart : WRITE_SYNTAX WriteSyntax
         | empty"""
         if p[1]:
             p[0] = p[2]
 
-    def p_WriteSyntax(self, p):
+    def p_WriteSyntax(self, p: YaccProduction) -> None:
         """WriteSyntax : Syntax"""
         p[0] = ("WriteSyntax", p[1])
 
-    def p_AccessPart(self, p):
+    def p_AccessPart(self, p: YaccProduction) -> None:
         """AccessPart : MIN_ACCESS Access
         | empty"""
         if p[1]:
             p[0] = (p[1], p[2])
 
-    def p_agentCapabilitiesClause(self, p):
+    def p_agentCapabilitiesClause(self, p: YaccProduction) -> None:
         """agentCapabilitiesClause : LOWERCASE_IDENTIFIER AGENT_CAPABILITIES PRODUCT_RELEASE Text STATUS Status DESCRIPTION Text ReferPart ModulePart_Capabilities COLON_COLON_EQUAL '{' objectIdentifier '}'"""
         p[0] = (
             "agentCapabilitiesClause",
@@ -1160,13 +1161,13 @@ class SmiV2Parser(AbstractParser):
             p[13],
         )  # objectIdentifier
 
-    def p_ModulePart_Capabilities(self, p):
+    def p_ModulePart_Capabilities(self, p: YaccProduction) -> None:
         """ModulePart_Capabilities : Modules_Capabilities
         | empty"""
         # if p[1]:
         #  p[0] = p[1]
 
-    def p_Modules_Capabilities(self, p):
+    def p_Modules_Capabilities(self, p: YaccProduction) -> None:
         """Modules_Capabilities : Modules_Capabilities Module_Capabilities
         | Module_Capabilities"""
         # n = len(p)
@@ -1175,13 +1176,13 @@ class SmiV2Parser(AbstractParser):
         # elif n == 2:
         #  p[0] = ('Modules_Capabilities', [p[1]])
 
-    def p_Module_Capabilities(self, p):
+    def p_Module_Capabilities(self, p: YaccProduction) -> None:
         """Module_Capabilities : SUPPORTS ModuleName_Capabilities INCLUDES '{' CapabilitiesGroups '}' VariationPart"""
         # p[0] = ('Module_Capabilities', (p[1], p[2]), # supports
         #                               (p[3], p[5]), # includes
         #                               p[7]) # variations
 
-    def p_CapabilitiesGroups(self, p):
+    def p_CapabilitiesGroups(self, p: YaccProduction) -> None:
         """CapabilitiesGroups : CapabilitiesGroups ',' CapabilitiesGroup
         | CapabilitiesGroup"""
         # n = len(p)
@@ -1190,11 +1191,11 @@ class SmiV2Parser(AbstractParser):
         # elif n == 2:
         #  p[0] = ('CapabilitiesGroups', [p[1]])
 
-    def p_CapabilitiesGroup(self, p):
+    def p_CapabilitiesGroup(self, p: YaccProduction) -> None:
         """CapabilitiesGroup : objectIdentifier"""
         # p[0] = ('CapabilitiesGroup', p[1])
 
-    def p_ModuleName_Capabilities(self, p):
+    def p_ModuleName_Capabilities(self, p: YaccProduction) -> None:
         """ModuleName_Capabilities : UPPERCASE_IDENTIFIER objectIdentifier
         | UPPERCASE_IDENTIFIER"""
         # n = len(p)
@@ -1203,13 +1204,13 @@ class SmiV2Parser(AbstractParser):
         # elif n == 3:
         #  p[0] = ('ModuleName_Capabilities', p[1], p[2])
 
-    def p_VariationPart(self, p):
+    def p_VariationPart(self, p: YaccProduction) -> None:
         """VariationPart : Variations
         | empty"""
         # if p[1]:
         #  p[0] = p[1]
 
-    def p_Variations(self, p):
+    def p_Variations(self, p: YaccProduction) -> None:
         """Variations : Variations Variation
         | Variation"""
         # n = len(p)
@@ -1218,7 +1219,7 @@ class SmiV2Parser(AbstractParser):
         # elif n == 2:
         #  p[0] = ('Variations', [p[1]])        pass
 
-    def p_Variation(self, p):
+    def p_Variation(self, p: YaccProduction) -> None:
         """Variation : VARIATION ObjectName SyntaxPart WriteSyntaxPart VariationAccessPart CreationPart DefValPart DESCRIPTION Text"""
         # p[0] = (p[1], # variation
         #        p[2], # name
@@ -1229,23 +1230,23 @@ class SmiV2Parser(AbstractParser):
         #        p[7], # defval
         #        (p[8], p[9])) # description
 
-    def p_VariationAccessPart(self, p):
+    def p_VariationAccessPart(self, p: YaccProduction) -> None:
         """VariationAccessPart : ACCESS VariationAccess
         | empty"""
         # if p[1]:
         #  p[0] = (p[1], p[2])
 
-    def p_VariationAccess(self, p):
+    def p_VariationAccess(self, p: YaccProduction) -> None:
         """VariationAccess : LOWERCASE_IDENTIFIER"""
         # p[0] = p[1]
 
-    def p_CreationPart(self, p):
+    def p_CreationPart(self, p: YaccProduction) -> None:
         """CreationPart : CREATION_REQUIRES '{' Cells '}'
         | empty"""
         if p[1]:
             p[0] = (p[1], p[3])
 
-    def p_Cells(self, p):
+    def p_Cells(self, p: YaccProduction) -> None:
         """Cells : Cells ',' Cell
         | Cell"""
         n = len(p)
@@ -1254,15 +1255,15 @@ class SmiV2Parser(AbstractParser):
         elif n == 2:
             p[0] = ("Cells", [p[1]])
 
-    def p_Cell(self, p):
+    def p_Cell(self, p: YaccProduction) -> None:
         """Cell : ObjectName"""
         p[0] = ("Cell", p[1])
 
-    def p_empty(self, p):
+    def p_empty(self, p: YaccProduction) -> None:
         """empty :"""
 
     # Error rule for syntax errors
-    def p_error(self, p):
+    def p_error(self, p: YaccProduction) -> None:
         if p:
             raise error.PySmiParserError(f"Bad grammar near token type {p.type}, value {p.value}", lineno=p.lineno)
 
@@ -1291,7 +1292,7 @@ class SupportSmiV1Keywords:
 
     # NETWORKADDRESS added
     @staticmethod
-    def p_importedKeyword(self, p):
+    def p_importedKeyword(self: "SmiV2Parser", p: YaccProduction) -> None:
         """importedKeyword : importedSMIKeyword
         | BITS
         | INTEGER32
@@ -1311,7 +1312,7 @@ class SupportSmiV1Keywords:
 
     # MAX is a range bound in SMIv1, and a forbidden word in SMIv2.
     @staticmethod
-    def p_value(self, p):
+    def p_value(self: "SmiV2Parser", p: YaccProduction) -> None:
         """value : NEGATIVENUMBER
         | NUMBER
         | NEGATIVENUMBER64
@@ -1323,7 +1324,7 @@ class SupportSmiV1Keywords:
 
     # NETWORKADDRESS added
     @staticmethod
-    def p_typeSMIandSPPI(self, p):
+    def p_typeSMIandSPPI(self: "SmiV2Parser", p: YaccProduction) -> None:
         """typeSMIandSPPI : IPADDRESS
         | NETWORKADDRESS
         | TIMETICKS
@@ -1334,7 +1335,7 @@ class SupportSmiV1Keywords:
 
     # NETWORKADDRESS added
     @staticmethod
-    def p_ApplicationSyntax(self, p):
+    def p_ApplicationSyntax(self: "SmiV2Parser", p: YaccProduction) -> None:
         """ApplicationSyntax : IPADDRESS anySubType
         | NETWORKADDRESS anySubType
         | COUNTER32
@@ -1356,7 +1357,7 @@ class SupportSmiV1Keywords:
 
     # NETWORKADDRESS added for SEQUENCE syntax
     @staticmethod
-    def p_sequenceApplicationSyntax(self, p):
+    def p_sequenceApplicationSyntax(self: "SmiV2Parser", p: YaccProduction) -> None:
         """sequenceApplicationSyntax : IPADDRESS anySubType
         | NETWORKADDRESS anySubType
         | COUNTER32 anySubType
@@ -1382,7 +1383,7 @@ class SupportIndex:
 
     # SMIv1 IndexTypes added
     @staticmethod
-    def p_Index(self, p):
+    def p_Index(self: "SmiV2Parser", p: YaccProduction) -> None:
         """Index : ObjectName
         | typeSMIv1"""
 
@@ -1392,7 +1393,7 @@ class SupportIndex:
 
     # for Index rule
     @staticmethod
-    def p_typeSMIv1(self, p):
+    def p_typeSMIv1(self: "SmiV2Parser", p: YaccProduction) -> None:
         """typeSMIv1 : INTEGER
         | OCTET STRING
         | IPADDRESS
@@ -1413,7 +1414,7 @@ class CommaInImport:
 
     # comma at the end of import list
     @staticmethod
-    def p_importIdentifiers(self, p):
+    def p_importIdentifiers(self: "SmiV2Parser", p: YaccProduction) -> None:
         """importIdentifiers : importIdentifiers ',' importIdentifier
         | importIdentifier
         | importIdentifiers ','"""
@@ -1432,7 +1433,7 @@ class CommaInSequence:
 
     # comma at the end of sequence list
     @staticmethod
-    def p_sequenceItems(self, p):
+    def p_sequenceItems(self: "SmiV2Parser", p: YaccProduction) -> None:
         """sequenceItems : sequenceItems ',' sequenceItem
         | sequenceItem
         | sequenceItems ','"""
@@ -1452,7 +1453,7 @@ class CommaAndSpaces:
 
     # common typos handled (mix of commas and spaces)
     @staticmethod
-    def p_enumItems(self, p):
+    def p_enumItems(self: "SmiV2Parser", p: YaccProduction) -> None:
         """enumItems : enumItems ',' enumItem
         | enumItem
         | enumItems enumItem
@@ -1475,7 +1476,7 @@ class UppercaseIdentifier:
 
     # common mistake - using UPPERCASE_IDENTIFIER
     @staticmethod
-    def p_enumItem(self, p):
+    def p_enumItem(self: "SmiV2Parser", p: YaccProduction) -> None:
         """enumItem : LOWERCASE_IDENTIFIER '(' enumNumber ')'
         | UPPERCASE_IDENTIFIER '(' enumNumber ')'"""
         p[0] = (p[1], p[3])
@@ -1487,7 +1488,7 @@ class LowcaseIdentifier:
 
     # common mistake - LOWERCASE_IDENTIFIER in symbol's name
     @staticmethod
-    def p_notificationTypeClause(self, p):
+    def p_notificationTypeClause(self: "SmiV2Parser", p: YaccProduction) -> None:
         """notificationTypeClause : fuzzy_lowercase_identifier NOTIFICATION_TYPE NotificationObjectsPart STATUS Status DESCRIPTION Text ReferPart COLON_COLON_EQUAL '{' NotificationName '}'"""  # some MIBs have uppercase and/or lowercase id
         p[0] = (
             "notificationTypeClause",
@@ -1507,7 +1508,7 @@ class CurlyBracesInEnterprises:
 
     # common mistake - curly brackets around enterprise symbol
     @staticmethod
-    def p_trapTypeClause(self, p):
+    def p_trapTypeClause(self: "SmiV2Parser", p: YaccProduction) -> None:
         """trapTypeClause : fuzzy_lowercase_identifier TRAP_TYPE EnterprisePart VarPart DescrPart ReferPart COLON_COLON_EQUAL NUMBER"""
         # libsmi: TODO: range of number?
         p[0] = (
@@ -1522,7 +1523,7 @@ class CurlyBracesInEnterprises:
         )  # NUMBER
 
     @staticmethod
-    def p_EnterprisePart(self, p):
+    def p_EnterprisePart(self: "SmiV2Parser", p: YaccProduction) -> None:
         """EnterprisePart : ENTERPRISE objectIdentifier
         | ENTERPRISE '{' objectIdentifier '}'"""
         n = len(p)
@@ -1538,7 +1539,7 @@ class NoCells:
 
     # common mistake - no Cells
     @staticmethod
-    def p_CreationPart(self, p):
+    def p_CreationPart(self: "SmiV2Parser", p: YaccProduction) -> None:
         """CreationPart : CREATION_REQUIRES '{' Cells '}'
         | CREATION_REQUIRES '{' '}'
         | empty"""
