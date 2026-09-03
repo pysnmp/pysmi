@@ -25,6 +25,8 @@ import pytest
 
 from pysmi.codegen import PySnmpCodeGen
 from tests.harness import render_pysnmp
+from tests.test_spec_index import MULTI_MIB
+from tests.test_spec_objecttype import ACCESS_MIB
 from tests.test_standard_corpus import LOAD_ORDER, compiled, documents
 
 pytestmark = pytest.mark.pysnmp_consumer
@@ -207,6 +209,40 @@ class PublicApiTestCase(unittest.TestCase):
 
     def testTheModuleIdentityCarriesItsRevisions(self):
         self.assertEqual(self.ctx["testModule"].getRevisions(), ("2000-01-10 00:00",))
+
+
+class MaxAccessTestCase(unittest.TestCase):
+    """The access a module declares survives being loaded.
+
+    This reads back an accessor whose value pysmi wrote, so it only says pysnmp
+    kept what it was handed. What the emitted call has to be is settled against
+    RFC 2578 section 7.3 in test_spec_objecttype. It is worth reading back all
+    the same: pysnmp defaults MibScalar and MibTableColumn to "readonly" and
+    MibTable and MibTableRow to "not-accessible", and none of those is spelled
+    "notaccessible", so dropping the call again shows up here too rather than
+    reading back as its own default. See pysnmp/pysmi#128.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.scalars = render_pysnmp(ACCESS_MIB)
+        cls.table = render_pysnmp(MULTI_MIB % "")
+
+    def testAScalarKeepsEveryValueOfSection73(self):
+        for symbol, access in (
+            ("testNotAccessible", "notaccessible"),
+            ("testForNotify", "accessiblefornotify"),
+            ("testReadOnly", "readonly"),
+            ("testReadWrite", "readwrite"),
+            ("testReadCreate", "readcreate"),
+        ):
+            with self.subTest(symbol=symbol):
+                self.assertEqual(self.scalars[symbol].getMaxAccess(), access)
+
+    def testEveryClassBehindATableKeepsNotAccessible(self):
+        for symbol in ("testTable", "testEntry", "testInt", "testStr"):
+            with self.subTest(symbol=symbol):
+                self.assertEqual(self.table[symbol].getMaxAccess(), "notaccessible")
 
 
 class CorpusLoadTestCase(unittest.TestCase):
