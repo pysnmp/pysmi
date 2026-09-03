@@ -990,7 +990,7 @@ class JsonCodeGen(AbstractCodeGen):
                     f'unknown type "{defvalType}" for defval "{defval}" of symbol "{objname}"'
                 )
 
-        return {"default": outDict}
+        return outDict
 
     # noinspection PyMethodMayBeStatic
     def gen_description(self, data: TextClause) -> str:
