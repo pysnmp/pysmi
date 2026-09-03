@@ -195,9 +195,43 @@ class TrapTypeJsonTestCase(unittest.TestCase):
             tuple(self.ctx["testTrap"].getName()),
         )
 
+    def testTheBracedEnterpriseFormGivesTheSameOid(self):
+        # curlyBracesAroundEnterpriseInTrap is a spelling relaxation, not a
+        # semantic one: the converted OID must not move.
+        braced = TRAP_MIB.replace("ENTERPRISE  testId", "ENTERPRISE  { testId }")
+        doc, ctx = render(braced, curlyBracesAroundEnterpriseInTrap=True)
+        self.assertEqual(doc["testTrap"]["oid"], self.doc["testTrap"]["oid"])
+        self.assertEqual(ctx["testTrap"].getName(), self.ctx["testTrap"].getName())
+
     def testTrapBecomesANotificationType(self):
         self.assertEqual(self.doc["testTrap"]["class"], "notificationtype")
         self.assertEqual(self.ctx["testTrap"].__class__.__name__, "NotificationType")
+
+
+GENERIC_TRAP_MIB = """
+TEST-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    TRAP-TYPE
+        FROM RFC-1215;
+
+snmp OBJECT IDENTIFIER ::= { 1 3 6 1 2 1 11 }
+
+testTrap TRAP-TYPE
+    ENTERPRISE  snmp
+    DESCRIPTION "A trap whose enterprise is snmp."
+    ::= 6
+
+END
+"""
+
+
+class GenericTrapTestCase(unittest.TestCase):
+    """The enterprise is not special-cased. See pysnmp/pysmi#105."""
+
+    def testSnmpEnterpriseGetsTheSameZeroInsertion(self):
+        doc, ctx = render(GENERIC_TRAP_MIB)
+        self.assertEqual(doc["testTrap"]["oid"], "1.3.6.1.2.1.11.0.6")
+        self.assertEqual(tuple(ctx["testTrap"].getName()), (1, 3, 6, 1, 2, 1, 11, 0, 6))
 
 
 class WithoutTextsTestCase(unittest.TestCase):
