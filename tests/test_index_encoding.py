@@ -255,9 +255,8 @@ class AugmentsTestCase(unittest.TestCase):
         )
 
     def testAugmentingRowNamesItsBase(self):
-        # "augmention" is the published spelling; pinned, not endorsed.
         self.assertEqual(
-            self.doc["augEntry"]["augmention"],
+            self.doc["augEntry"]["augmentation"],
             {"name": "augEntry", "module": "TEST-MIB", "object": "baseEntry"},
         )
 

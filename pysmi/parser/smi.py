@@ -480,7 +480,7 @@ class SmiV2Parser(AbstractParser):
             p[8],  # status
             p[9],  # descriptionClause
             p[10],  # reference
-            p[11],  # augmentions
+            p[11],  # augmentations
             p[12],  # index
             p[13],  # DefValPart
             p[16],

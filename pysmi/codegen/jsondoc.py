@@ -644,7 +644,7 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The clause as a JSON object.
         """
-        name, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
+        name, syntax, units, maxaccess, status, description, reference, augmentation, index, defval, oid = data
 
         self.gen_label(name)
         name = self.trans_opers(name)
@@ -682,12 +682,12 @@ class JsonCodeGen(AbstractCodeGen):
             outDict["indices"] = indexStr
         if self.genRules["text"] and reference:
             outDict["reference"] = reference
-        if augmention:
-            augmention = self.trans_opers(augmention)
-            outDict["augmention"] = OrderedDict()
-            outDict["augmention"]["name"] = name
-            outDict["augmention"]["module"] = self.moduleName[0]
-            outDict["augmention"]["object"] = augmention
+        if augmentation:
+            augmentation = self.trans_opers(augmentation)
+            outDict["augmentation"] = OrderedDict()
+            outDict["augmentation"]["name"] = name
+            outDict["augmentation"]["module"] = self.moduleName[0]
+            outDict["augmentation"]["object"] = augmentation
         if status:
             outDict["status"] = status
 

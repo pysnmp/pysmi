@@ -78,7 +78,7 @@ would look like:
         "oid": "1.3.6.1.2.1.31.1.3.1",
         "class": "objecttype",
         "maxaccess": "not-accessible",
-        "augmention": {
+        "augmentation": {
           "name": "ifTestEntry",
           "module": "IF-MIB",
           "object": "ifEntry"

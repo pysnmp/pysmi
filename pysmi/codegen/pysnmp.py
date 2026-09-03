@@ -859,7 +859,7 @@ for _{name}_obj in [{objects}]:
         Returns:
             Source for the object and its texts.
         """
-        name, syntax, units, maxaccess, status, description, reference, augmention, index, defval, oid = data
+        name, syntax, units, maxaccess, status, description, reference, augmentation, index, defval, oid = data
 
         label = self.gen_label(name)
         name = self.trans_opers(name)
@@ -884,17 +884,17 @@ for _{name}_obj in [{objects}]:
 
         outStr += self._reference_line(name, reference)
 
-        if augmention:
-            augmention = self.trans_opers(augmention)
+        if augmentation:
+            augmentation = self.trans_opers(augmentation)
             outStr += (
-                augmention
+                augmentation
                 + '.registerAugmentions(("'
                 + self._importMap.get(name, self.moduleName[0])
                 + '", "'
                 + name
                 + '"))\n'
             )
-            outStr += name + ".setIndexNames(*" + augmention + ".getIndexNames())\n"
+            outStr += name + ".setIndexNames(*" + augmentation + ".getIndexNames())\n"
 
         if status:
             outStr += self.ifTextStr + name + status + "\n"
