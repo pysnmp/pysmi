@@ -1585,6 +1585,17 @@ relaxedGrammar = {
     "noCells": [NoCells.p_CreationPart],
 }
 
+#: Options whose productions reference ones another option contributes. Enabling
+#: such an option on its own leaves the grammar with undefined symbols, and PLY
+#: refuses to build it. Checked before the grammar is assembled so that the
+#: caller is told which option is missing rather than that the parser cannot be
+#: built.
+relaxedGrammarDependencies = {
+    # SupportIndex.p_typeSMIv1 refers to the SMIv1 application syntax that only
+    # supportSmiV1Keywords defines.
+    "supportIndex": ("supportSmiV1Keywords",),
+}
+
 
 def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
     """Factory function producing custom specializations of base *SmiV2Parser*
@@ -1601,7 +1612,8 @@ def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
         The following SMIv2 grammar relaxation parameters are defined:
 
         * supportSmiV1Keywords - parses SMIv1 grammar
-        * supportIndex - tolerates ASN.1 types in INDEX clause
+        * supportIndex - tolerates ASN.1 types in INDEX clause, and requires
+          supportSmiV1Keywords alongside it
         * commaAtTheEndOfImport - tolerates stray comma at the end of IMPORT section
         * commaAtTheEndOfSequence - tolerates stray comma at the end of sequence of elements in MIB
         * mixOfCommasAndSpaces - tolerate a mix of comma and spaces in MIB enumerations
@@ -1618,11 +1630,20 @@ def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
     """
     classAttr: dict[str, Any] = {}
 
+    enabled = {option for option in grammarOptions if grammarOptions[option]}
+
+    for option in enabled:
+        if option not in relaxedGrammar:
+            raise error.PySmiError(f"Unknown parser relaxation option: {option}")
+
+        missing = [dep for dep in relaxedGrammarDependencies.get(option, ()) if dep not in enabled]
+        if missing:
+            raise error.PySmiError(
+                f"Parser relaxation option {option} requires {', '.join(sorted(missing))} to be enabled as well"
+            )
+
     for option in grammarOptions:
         if grammarOptions[option]:
-            if option not in relaxedGrammar:
-                raise error.PySmiError(f"Unknown parser relaxation option: {option}")
-
             for func in relaxedGrammar[option]:
                 classAttr[func.__name__] = func
 
