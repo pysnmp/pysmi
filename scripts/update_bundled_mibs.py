@@ -20,19 +20,31 @@ not go stale, see pysnmp/pysmi#113 -- means adding its name here and running
 this script; nothing else in the source tree names an individual bundled
 MIB.
 
-Every entry must be RFC-frozen or otherwise not routinely revised. A MIB an
-authority keeps changing (IANAifType-MIB, for instance) does not belong here:
-a bundled copy would silently go stale exactly when the real, current source
-is unreachable and this one gets used instead.
+What belongs here is a MIB that is widely imported and revised rarely, if at
+all. Most entries are RFC-frozen and can never drift. IANAifType-MIB is the
+exception: IANA does revise it, but only to register ifType values that take
+longer to reach shipping hardware than a pysmi release does to reach PyPI,
+and .github/workflows/bundled-mibs-freshness.yml compares the whole bundle
+against upstream every week. A bundled copy trailing upstream by an unused
+enumeration beats IF-MIB not resolving at all, which is what the bundle is
+for.
 
-That rules IF-MIB out for now, common as it is: it imports IANAifType from
-IANAifType-MIB, so bundling it would mean bundling a MIB IANA revises, or
-shipping a MIB the bundle cannot resolve on its own.
+A user-supplied copy always wins over a bundled one, so nothing here can
+shadow a current MIB the caller already has.
 
-What is here is every module a code generator names in its ``baseMibs`` --
-the modules pysmi itself calls foundational, all RFC-frozen and all imported
-by MIBs from every vendor -- plus SNMPv2-MIB. PYSNMP-USM-MIB is the one
-exception: it is pysnmp's own, not an RFC, and pysnmp ships it.
+What is here is:
+
+- every module a code generator names in its ``baseMibs``, the modules pysmi
+  itself calls foundational, plus SNMPv2-MIB. PYSNMP-USM-MIB is the one
+  exception: it is pysnmp's own, not an RFC, and pysnmp ships it.
+- every other non-vendor module that 1% or more of the 5523 vendor MIBs in
+  https://github.com/pysnmp/mibs name in IMPORTS. That corpus is the best
+  evidence available of what a MIB for a real product actually depends on,
+  and it is what put Q-BRIDGE-MIB, P-BRIDGE-MIB, BRIDGE-MIB, ENTITY-MIB,
+  IPV6-TC and HCNUM-TC here.
+- whatever those need to compile. The RMON MIBs are here only because
+  Q-BRIDGE-MIB imports RMON2-MIB; a bundled MIB that cannot resolve against
+  its siblings is no use as a fallback.
 """
 
 import pathlib
@@ -42,12 +54,25 @@ import urllib.request
 
 UPSTREAM = "https://pysnmp.github.io/mibs/asn1/{}"
 
+#: Where a MIB comes from when UPSTREAM is not the copy to trust.
+#:
+#: The pysnmp mirror carries a 2017 IANAifType-MIB, nine years of ifType
+#: registrations behind IANA's own. Bundling that would put a knowingly stale
+#: copy in the package and give the weekly freshness check nothing to catch,
+#: since the mirror is not moving either. IANA publishes the authoritative
+#: text, so IANAifType-MIB is fetched and compared against that instead.
+CANONICAL_SOURCES = {
+    "IANAifType-MIB": "https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib",
+}
+
 BUNDLED = (
     "SNMPv2-SMI",
     "SNMPv2-TC",
     "SNMPv2-CONF",
     "SNMPv2-MIB",
     "SNMPv2-TM",
+    "IF-MIB",
+    "IANAifType-MIB",
     "SNMP-FRAMEWORK-MIB",
     "SNMP-TARGET-MIB",
     "TRANSPORT-ADDRESS-MIB",
@@ -58,14 +83,31 @@ BUNDLED = (
     "RFC-1212",
     "RFC-1215",
     "RFC1213-MIB",
+    # Imported by 1% or more of the vendor MIBs in the pysnmp corpus.
+    "Q-BRIDGE-MIB",
+    "P-BRIDGE-MIB",
+    "BRIDGE-MIB",
+    "ENTITY-MIB",
+    "IPV6-TC",
+    "HCNUM-TC",
+    # Only Q-BRIDGE-MIB reaches for these, but it cannot compile without them.
+    "RMON-MIB",
+    "RMON2-MIB",
+    "RFC1271-MIB",
+    "TOKEN-RING-RMON-MIB",
 )
 
 DEST = pathlib.Path(__file__).resolve().parent.parent / "pysmi" / "mibs" / "asn1"
 
 
 def fetch(mibname: str) -> bytes:
-    """Download one MIB's canonical ASN.1 text."""
-    with urllib.request.urlopen(UPSTREAM.format(mibname), timeout=30) as response:  # noqa: S310
+    """Download one MIB's canonical ASN.1 text.
+
+    From UPSTREAM unless CANONICAL_SOURCES names somewhere better for it.
+    """
+    url = CANONICAL_SOURCES.get(mibname) or UPSTREAM.format(mibname)
+
+    with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310
         return response.read()
 
 
