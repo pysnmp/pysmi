@@ -253,9 +253,16 @@ RangesClause: TypeAlias = Sequence[list[tuple[Bound] | tuple[Bound, Bound]]]
 #: is the table :py:meth:`~pysmi.codegen.symtable.SymtableCodeGen.gen_code`
 #: repairs such a module from when asked to.
 #:
-#: Only these three modules are here. A symbol out of SNMPv2-MIB or any other
-#: compiled module is not repairable this way: supplying its import would add
-#: a compilation dependency the module never declared.
+#: SNMPv2-MIB (RFC 3418) is here too, but only for the symbols it alone
+#: defines. Its system and snmp groups restate what RFC1213-MIB and RFC1158-MIB
+#: already define under the same names, so an unimported ``sysUpTime`` could
+#: have been meant to come from any of the three and there is nothing to repair
+#: it from. ``snmpTrapOID`` -- the one most often left out, in the OBJECTS
+#: clause of a NOTIFICATION-TYPE -- is unambiguous, and is repaired.
+#:
+#: Every module named here is bundled in ``pysmi/mibs/asn1/``, so a repaired
+#: import resolves even when the MIB source the user configured has only the
+#: broken module.
 SMI_BASE_EXPORTS: Final[dict[str, str]] = {
     # RFC 2578 -- macros
     "MODULE-IDENTITY": "SNMPv2-SMI",
@@ -316,6 +323,40 @@ SMI_BASE_EXPORTS: Final[dict[str, str]] = {
     "NOTIFICATION-GROUP": "SNMPv2-CONF",
     "MODULE-COMPLIANCE": "SNMPv2-CONF",
     "AGENT-CAPABILITIES": "SNMPv2-CONF",
+    # RFC 3418 -- only what SNMPv2-MIB alone defines; see above
+    "snmpMIB": "SNMPv2-MIB",
+    "snmpMIBObjects": "SNMPv2-MIB",
+    "snmpMIBConformance": "SNMPv2-MIB",
+    "snmpMIBCompliances": "SNMPv2-MIB",
+    "snmpMIBGroups": "SNMPv2-MIB",
+    "sysORLastChange": "SNMPv2-MIB",
+    "sysORTable": "SNMPv2-MIB",
+    "sysOREntry": "SNMPv2-MIB",
+    "sysORIndex": "SNMPv2-MIB",
+    "sysORID": "SNMPv2-MIB",
+    "sysORDescr": "SNMPv2-MIB",
+    "sysORUpTime": "SNMPv2-MIB",
+    "snmpTrap": "SNMPv2-MIB",
+    "snmpTrapOID": "SNMPv2-MIB",
+    "snmpTrapEnterprise": "SNMPv2-MIB",
+    "snmpTraps": "SNMPv2-MIB",
+    "coldStart": "SNMPv2-MIB",
+    "warmStart": "SNMPv2-MIB",
+    "authenticationFailure": "SNMPv2-MIB",
+    "snmpSet": "SNMPv2-MIB",
+    "snmpSetSerialNo": "SNMPv2-MIB",
+    "snmpSilentDrops": "SNMPv2-MIB",
+    "snmpProxyDrops": "SNMPv2-MIB",
+    "snmpBasicCompliance": "SNMPv2-MIB",
+    "snmpBasicComplianceRev2": "SNMPv2-MIB",
+    "snmpGroup": "SNMPv2-MIB",
+    "snmpSetGroup": "SNMPv2-MIB",
+    "systemGroup": "SNMPv2-MIB",
+    "snmpCommunityGroup": "SNMPv2-MIB",
+    "snmpObsoleteGroup": "SNMPv2-MIB",
+    "snmpBasicNotificationsGroup": "SNMPv2-MIB",
+    "snmpNotificationGroup": "SNMPv2-MIB",
+    "snmpWarmStartNotificationGroup": "SNMPv2-MIB",
 }
 
 #: Key under which the symbol table records what

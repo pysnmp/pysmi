@@ -17,12 +17,14 @@ tests assert first. See pysnmp/pysmi#61.
 """
 
 import io
+import re
 import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
+import pysmi.mibs.asn1
 from pysmi import error
 from pysmi.codegen.base import SMI_BASE_EXPORTS
 from pysmi.codegen.symtable import SymtableCodeGen
@@ -30,7 +32,26 @@ from pysmi.scripts import mibdump
 from tests import mibs
 from tests.harness import parse, render_json, render_source, symbol_table
 
-DEPS = (mibs.SNMPV2_SMI, mibs.SNMPV2_TC)
+DEPS = (mibs.SNMPV2_SMI, mibs.SNMPV2_TC, mibs.SNMPV2_MIB)
+
+BUNDLED_ASN1 = Path(pysmi.mibs.asn1.__file__).parent
+
+#: Something the ASN.1 grammar registers a name with, i.e. what a module can
+#: be said to define. Enough to read a symbol list off a MIB without parsing
+#: it, which is the point: the table is checked against the source, not
+#: against another table built the same way it was.
+_DEFINES = re.compile(
+    r"^\s*([a-z][A-Za-z0-9-]*)\s+(?:OBJECT-TYPE|OBJECT IDENTIFIER|OBJECT-IDENTITY"
+    r"|NOTIFICATION-TYPE|MODULE-IDENTITY|OBJECT-GROUP|NOTIFICATION-GROUP"
+    r"|MODULE-COMPLIANCE|AGENT-CAPABILITIES)",
+    re.MULTILINE,
+)
+
+
+def definitions_in(mibname):
+    """Every symbol the bundled copy of *mibname* registers a name for."""
+    source = re.sub(r"--.*", "", (BUNDLED_ASN1 / mibname).read_text())
+    return set(_DEFINES.findall(source))
 
 
 def module(name, imports, syntax, oid):
@@ -55,13 +76,14 @@ END
 
 #: One module per kind of omission, with the symbol each one leaves out.
 #:
-#: The three cover the two ways an unresolved symbol surfaces in the symbol
-#: table: as the unknown parent of a symbol (the syntax cases), and as the
-#: unknown parent of an OID (the registration case).
+#: These cover the two ways an unresolved symbol surfaces in the symbol table:
+#: as the unknown parent of a symbol (the syntax cases), and as the unknown
+#: parent of an OID (the registration cases).
 BROKEN = {
     "Opaque": module("REPAIR-SMI-TYPE-MIB", "OBJECT-TYPE", "Opaque", "1 3 1"),
     "TruthValue": module("REPAIR-TC-MIB", "OBJECT-TYPE", "TruthValue", "1 3 2"),
     "enterprises": module("REPAIR-OID-MIB", "OBJECT-TYPE", "Integer32", "enterprises 99999 1"),
+    "snmpTrap": module("REPAIR-SNMPV2-MIB-MIB", "OBJECT-TYPE, Integer32", "Integer32", "snmpTrap 99999 1"),
 }
 
 #: A module with no IMPORTS clause at all -- the parse tree carries None there
@@ -145,15 +167,21 @@ class SmiBaseExportsTestCase(unittest.TestCase):
     """What the table is allowed to claim.
 
     A wrong entry here silently rewrites a MIB's meaning, so the table is
-    pinned to the three modules RFC 2578, RFC 2579 and RFC 2580 define, and to
-    symbols those modules actually export.
+    pinned to the modules RFC 2578, RFC 2579, RFC 2580 and RFC 3418 define, and
+    to symbols those modules actually export.
     """
 
-    def testEverySymbolComesFromAnSmiV2BaseModule(self):
+    def testEverySymbolComesFromABundledBaseModule(self):
+        # A repair has to resolve even when the configured MIB source holds
+        # nothing but the broken module, which is what the bundle is for.
         self.assertEqual(
             set(SMI_BASE_EXPORTS.values()),
-            {"SNMPv2-SMI", "SNMPv2-TC", "SNMPv2-CONF"},
+            {"SNMPv2-SMI", "SNMPv2-TC", "SNMPv2-CONF", "SNMPv2-MIB"},
         )
+
+        for module in set(SMI_BASE_EXPORTS.values()):
+            with self.subTest(module=module):
+                self.assertTrue((BUNDLED_ASN1 / module).is_file())
 
     def testTheConformanceMacrosAreAllThereIsInSnmpV2Conf(self):
         # RFC 2580 defines exactly these four macros and nothing else.
@@ -186,14 +214,35 @@ class SmiBaseExportsTestCase(unittest.TestCase):
             },
         )
 
-    def testNoSymbolComesFromACompiledModule(self):
-        # SNMPv2-MIB exports sysUpTime and snmpTrapOID, which vendor MIBs omit
-        # from IMPORTS at least as often as they omit a base type. Repairing
-        # those would add a compilation dependency the module never declared,
-        # so the table deliberately stops at the base modules.
-        for symbol in ("sysUpTime", "snmpTrapOID", "ifIndex"):
+    def testEverySnmpV2MibSymbolIsOneThatModuleDefines(self):
+        defined = definitions_in("SNMPv2-MIB")
+
+        for symbol, module in SMI_BASE_EXPORTS.items():
+            if module == "SNMPv2-MIB":
+                with self.subTest(symbol=symbol):
+                    self.assertIn(symbol, defined)
+
+    def testNoSnmpV2MibSymbolIsOneTheSmiV1MibsAlsoDefine(self):
+        # RFC1213-MIB and RFC1158-MIB restate the system and snmp groups under
+        # the same names, so an unimported sysUpTime could have been meant to
+        # come from any of the three and there is nothing to repair it from.
+        # Only what SNMPv2-MIB alone defines is repairable.
+        ambiguous = definitions_in("RFC1213-MIB") | definitions_in("RFC1158-MIB")
+
+        for symbol, module in SMI_BASE_EXPORTS.items():
+            if module == "SNMPv2-MIB":
+                with self.subTest(symbol=symbol):
+                    self.assertNotIn(symbol, ambiguous)
+
+    def testTheAmbiguousSymbolsAreLeftOutEvenThoughTheyAreOmittedJustAsOften(self):
+        for symbol in ("sysUpTime", "sysObjectID", "sysDescr", "ifIndex"):
             with self.subTest(symbol=symbol):
                 self.assertNotIn(symbol, SMI_BASE_EXPORTS)
+
+    def testTheSymbolMostOftenLeftOutIsRepairable(self):
+        # snmpTrapOID goes in the OBJECTS clause of a NOTIFICATION-TYPE and is
+        # SNMPv2-MIB's alone, so there is no doubt about what was meant.
+        self.assertEqual(SMI_BASE_EXPORTS["snmpTrapOID"], "SNMPv2-MIB")
 
 
 class MibDumpRepairTestCase(unittest.TestCase):

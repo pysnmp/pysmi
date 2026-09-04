@@ -6,7 +6,7 @@
 #
 """Stand-ins for the standard modules the tests import types from.
 
-pysmi never compiles SNMPv2-SMI or SNMPv2-TC in normal use -- pysnmp ships them
+pysmi never compiles SNMPv2-SMI, SNMPv2-TC or SNMPv2-MIB in normal use -- pysnmp ships them
 as hand-written Python. The codegens still have to resolve an imported type
 back to its base to render a DEFVAL or a sub-typed textual convention, so a
 test that imports one needs it in the symbol table.
@@ -39,6 +39,8 @@ mgmt        OBJECT IDENTIFIER ::= { internet 2 }
 mib-2       OBJECT IDENTIFIER ::= { mgmt 1 }
 private     OBJECT IDENTIFIER ::= { internet 4 }
 enterprises OBJECT IDENTIFIER ::= { private 1 }
+snmpV2      OBJECT IDENTIFIER ::= { internet 6 }
+snmpModules OBJECT IDENTIFIER ::= { snmpV2 3 }
 
 END
 """
@@ -60,6 +62,26 @@ PhysAddress ::= TEXTUAL-CONVENTION
     STATUS       current
     DESCRIPTION  "A media address."
     SYNTAX       OCTET STRING
+
+END
+"""
+
+SNMPV2_MIB = """
+SNMPv2-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    OBJECT-TYPE, snmpModules
+        FROM SNMPv2-SMI;
+
+snmpMIB     OBJECT IDENTIFIER ::= { snmpModules 1 }
+snmpMIBObjects OBJECT IDENTIFIER ::= { snmpMIB 1 }
+snmpTrap    OBJECT IDENTIFIER ::= { snmpMIBObjects 4 }
+
+snmpTrapOID OBJECT-TYPE
+    SYNTAX      OBJECT IDENTIFIER
+    MAX-ACCESS  accessible-for-notify
+    STATUS      current
+    DESCRIPTION "The authoritative identification of the notification."
+    ::= { snmpTrap 1 }
 
 END
 """
