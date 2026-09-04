@@ -21,7 +21,7 @@ from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.borrower.base import AbstractBorrower
-from pysmi.codegen.base import AbstractCodeGen
+from pysmi.codegen.base import REPAIRED_IMPORTS_KEY, AbstractCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.mibinfo import MibInfo, source_digest
 from pysmi.parser.base import AbstractParser
@@ -55,6 +55,9 @@ class MibStatus(str):
     # these exist depends on the status. Reading one that was never set raises
     # AttributeError.
 
+    #: Symbols imported to repair a missing IMPORTS entry, mapped to the
+    #: module each came from. Empty unless ``repairImports`` was asked for.
+    repaired: dict[str, str]
     #: URL the MIB was read from.
     path: str
     #: File the MIB was read from.
@@ -328,7 +331,9 @@ class MibCompiler:
                     fileInfo.digest = source_digest(fileData)
 
                     for mibTree in self._parser.parse(fileData):
-                        mibInfo, symbolTable = self._symbolgen.gen_code(mibTree, symbolTableMap)
+                        mibInfo, symbolTable = self._symbolgen.gen_code(
+                            mibTree, symbolTableMap, repairImports=options.get("repairImports")
+                        )
 
                         symbolTableMap[mibInfo.name] = symbolTable
 
@@ -693,6 +698,7 @@ class MibCompiler:
                         enterprise=mibInfo.enterprise,
                         compliance=mibInfo.compliance,
                         notification=mibInfo.notification,
+                        repaired=symbolTableMap.get(mibname, {}).get(REPAIRED_IMPORTS_KEY, {}),
                     )
 
             except error.PySmiError as exc:

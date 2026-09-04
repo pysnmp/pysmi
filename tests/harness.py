@@ -18,12 +18,15 @@ def parse(mib, **dialect):
     return parserFactory(**dialect)().parse(mib)[0]
 
 
-def symbol_table(mib, deps=(), genTexts=True, **dialect):
+def symbol_table(mib, deps=(), genTexts=True, repairImports=False, **dialect):
     """Build the symbol table for *mib*, resolving *deps* into it first.
 
     A DEFVAL or a sub-typed textual convention makes the codegens walk the
     imported type back to its base, so any module named in IMPORTS has to be in
     the table. See tests.mibs for the stubs that stand in for the standard ones.
+
+    *repairImports* is passed through to the symbol table, which is the only
+    layer that decides whether a missing IMPORTS entry is repaired or fatal.
 
     Returns:
         A tuple of the parsed AST, the module name and the whole symbol table.
@@ -34,27 +37,27 @@ def symbol_table(mib, deps=(), genTexts=True, **dialect):
         table[depInfo.name] = depTable
 
     ast = parse(mib, **dialect)
-    mibInfo, symtable = SymtableCodeGen().gen_code(ast, dict(table), genTexts=genTexts)
+    mibInfo, symtable = SymtableCodeGen().gen_code(ast, dict(table), genTexts=genTexts, repairImports=repairImports)
     table[mibInfo.name] = symtable
 
     return ast, mibInfo.name, table
 
 
-def render_json(mib, deps=(), genTexts=True, **dialect):
+def render_json(mib, deps=(), genTexts=True, repairImports=False, **dialect):
     """Compile *mib* through the JSON backend and decode the document."""
-    ast, _, table = symbol_table(mib, deps=deps, genTexts=genTexts, **dialect)
+    ast, _, table = symbol_table(mib, deps=deps, genTexts=genTexts, repairImports=repairImports, **dialect)
     _, doc = JsonCodeGen().gen_code(ast, table, genTexts=genTexts)
     return json.loads(doc)
 
 
-def render_source(mib, deps=(), genTexts=True, **dialect):
+def render_source(mib, deps=(), genTexts=True, repairImports=False, **dialect):
     """Compile *mib* through the pysnmp backend and hand back the source.
 
     The generated module is the product. ``render_pysnmp`` hands back only what
     executing it built, which cannot show how a line was written -- whether a
     setter carries its ``mibBuilder.loadTexts`` guard, say.
     """
-    ast, _, table = symbol_table(mib, deps=deps, genTexts=genTexts, **dialect)
+    ast, _, table = symbol_table(mib, deps=deps, genTexts=genTexts, repairImports=repairImports, **dialect)
     _, pycode = PySnmpCodeGen().gen_code(ast, table, genTexts=genTexts)
     return pycode
 

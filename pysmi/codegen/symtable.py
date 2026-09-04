@@ -21,6 +21,8 @@ from typing import Any, ClassVar
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
+    REPAIRED_IMPORTS_KEY,
+    SMI_BASE_EXPORTS,
     AbstractCodeGen,
     AgentCapabilitiesClause,
     CapabilitiesClause,
@@ -340,7 +342,36 @@ class SymtableCodeGen(AbstractCodeGen):
         for sym in regedSyms:
             self._postponedSyms.pop(sym)
 
-        # Clause handlers
+    def missing_canonical_imports(self) -> dict[str, str]:
+        """The SMIv2 base symbols this module uses without importing them.
+
+        RFC 2578 Section 3.2 requires a module to name in IMPORTS every symbol
+        it refers to and does not define. A module that skipped one leaves the
+        symbol unresolved here -- held back as an unknown parent, or named as
+        the parent of an OID that resolves to nothing -- and if that symbol is
+        one an SMIv2 base module exports, the import it should have carried is
+        not in doubt.
+
+        Returns:
+            The unresolved symbols, mapped to the module that exports each.
+            Empty when the module imports everything it uses, or when what it
+            omitted is not a base symbol and so cannot be guessed at.
+        """
+        unresolved = set(self._parentOids)
+        for parents, _symProps in self._postponedSyms.values():
+            unresolved.update(parents)
+
+        # The symbols are matched in the Python-safe form the parse tree
+        # carries, but imported under the name the base module exports.
+        exports = {self.trans_opers(symbol): (symbol, module) for symbol, module in SMI_BASE_EXPORTS.items()}
+
+        return dict(
+            exports[symbol]
+            for symbol in unresolved
+            if symbol in exports and symbol not in self._out and symbol not in self._importMap
+        )
+
+    # Clause handlers
 
     # noinspection PyUnusedLocal
     def gen_agent_capabilities(self, data: AgentCapabilitiesClause, classmode: bool = False) -> None:
@@ -1023,6 +1054,13 @@ class SymtableCodeGen(AbstractCodeGen):
         Keyword Args:
             genTexts: accepted for interface compatibility; texts are not
                 recorded in the symbol table
+            repairImports: supply the canonical import for any SMIv2 base
+                symbol the module uses without naming it in IMPORTS, rather
+                than failing on it. Off by default, so the strict reading of
+                RFC 2578 Section 3.2 is what a caller gets unless it asks
+                otherwise. What was supplied is recorded in the symbol table
+                under ``_symtable_repaired``, both for the report and for the
+                backend that renders the same module.
 
         Returns:
             The module's :py:class:`~pysmi.mibinfo.MibInfo` and its symbol
@@ -1045,13 +1083,32 @@ class SymtableCodeGen(AbstractCodeGen):
         self._out = {}  # should be new object, do not use `clear` method
         self.moduleName[0], moduleOid, imports, declarations = ast
 
-        _out, importedModules = self.gen_imports(imports or {})
+        repaired = kwargs.get("_repairedImports") or {}
+
+        # Copied rather than used in place: gen_imports rewrites what it is
+        # given, and a repair run walks the same clause once more.
+        moduleImports = {module: list(symbols) for module, symbols in (imports or {}).items()}
+        for symbol, module in repaired.items():
+            moduleImports.setdefault(module, []).append(symbol)
+
+        _out, importedModules = self.gen_imports(moduleImports)
 
         for declr in declarations or []:
             if declr:
                 clausetype = declr[0]
                 classmode = clausetype == "typeDeclaration"
                 self.handlersTable[declr[0]](self, self.prep_data(declr[1:], classmode), classmode)
+
+        if kwargs.get("repairImports") and not repaired:
+            missing = self.missing_canonical_imports()
+            if missing:
+                logger.info(
+                    "repairing MIB %s: importing %s",
+                    self.moduleName[0],
+                    ", ".join(f"{symbol} from {module}" for symbol, module in sorted(missing.items())),
+                    extra={"mib": self.moduleName[0], "repaired": missing},
+                )
+                return self.gen_code(ast, symbolTable, **dict(kwargs, _repairedImports=missing))
 
         if self._postponedSyms:
             raise error.PySmiSemanticError(f"Unknown parents for symbols: {', '.join(self._postponedSyms)}")
@@ -1060,6 +1117,7 @@ class SymtableCodeGen(AbstractCodeGen):
             if sym not in self._out and sym not in self._importMap:
                 raise error.PySmiSemanticError(f"Unknown parent symbol: {sym}")
 
+        self._out[REPAIRED_IMPORTS_KEY] = dict(repaired)
         self._out["_symtable_order"] = list(self._symsOrder)
         self._out["_symtable_cols"] = list(self._cols)
         self._out["_symtable_rows"] = list(self._rows)
