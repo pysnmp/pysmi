@@ -44,6 +44,8 @@ class ZipReader(AbstractReader):
     by name, fetch and return their contents to caller.
     """
 
+    isLocal = True
+
     useIndexFile = False
 
     def __init__(self, path: str, ignoreErrors: bool = True) -> None:

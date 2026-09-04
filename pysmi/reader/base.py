@@ -27,6 +27,16 @@ class AbstractReader:
     named inside the file but a reader only has the file name to go on.
     """
 
+    #: Whether asking this reader for a module it may not have is cheap.
+    #:
+    #: The compiler consults every source that can supply an authoritative
+    #: module, rather than stopping at the first, so that it can pick the
+    #: newest revision and report what it passed over. That is a filesystem
+    #: lookup for a directory, an archive or a package, and a network round
+    #: trip for a web server -- so only local readers are consulted that way,
+    #: and a remote one keeps its place in plain first-match order.
+    isLocal = False
+
     maxMibSize = 10000000  # MIBs can't be that large
     fuzzyMatching = True  # try different file names while searching for MIB
     originalMatching = uppercaseMatching = lowcaseMatching = True

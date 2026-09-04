@@ -39,6 +39,7 @@ into various formats.
          [--generate-mib-texts]
          [--keep-texts-layout]
          [--repair-imports]
+         [--strict-sources]
          <MIB-NAME> [MIB-NAME [...]]]
    Where:
        URI      - file, zip, http, https, ftp, sftp schemes are supported.
@@ -138,6 +139,36 @@ By default *mibdump* will search:
 
 Once another --mib-source option is given, those defaults will not be used
 and should be manually given to *mibdump* if needed.
+
+Which copy of a MIB gets compiled
+---------------------------------
+
+More than one --mib-source can have the same MIB module. Which one is used is
+decided by these rules, in order:
+
+1. For a module pysmi bundles a copy of, the newest MODULE-IDENTITY
+   LAST-UPDATED wins.
+2. Otherwise -- and to break a tie between equal revisions, and for the many
+   modules that carry no LAST-UPDATED at all -- source order wins: pysmi's
+   bundled copy first, then each --mib-source in the order it was given.
+
+Rule 1 applies only to the couple of dozen modules pysmi bundles, each pinned
+to an RFC or to IANA and re-checked against it. Two copies of one of those are
+the same specification at two revisions, and the newer is simply better. Two
+copies of a vendor MIB are not that -- they are a collision, or two firmware
+revisions -- so pysmi never picks between them: whichever --mib-source came
+first supplies it.
+
+Rule 2 puts the bundled copy ahead of anything a --mib-source has, which is a
+deliberate reversal of what pysmi did before. A distribution's
+/usr/share/snmp/mibs routinely carries a base MIB frozen years ago, and taking
+that over a copy pinned to its RFC is almost never what was wanted. To use
+your own copy of a bundled module anyway, ship a newer revision of it, or pass
+--no-bundled-mibs to drop the bundle entirely.
+
+Where two sources did have the same module, the report says which file was
+used and which were passed over. Pass --strict-sources to fail such a MIB
+instead of choosing.
 
 Fuzzying MIB module names
 -------------------------

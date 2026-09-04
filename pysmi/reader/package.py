@@ -36,6 +36,8 @@ class PackageReader(AbstractReader):
     on the compiled output, mtime aside.
     """
 
+    isLocal = True
+
     def __init__(self, package: str) -> None:
         """Create an instance of *PackageReader* serving *package*'s resources.
 
