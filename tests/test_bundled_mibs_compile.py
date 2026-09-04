@@ -14,7 +14,7 @@ pysnmp/pysmi#113.
 
 import unittest
 
-from pysmi.codegen import JsonCodeGen
+from pysmi.codegen import JsonCodeGen, PySnmpCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import PackageReader
@@ -38,6 +38,22 @@ class BundledMibsCompileTestCase(unittest.TestCase):
 
     def testTheBundleManifestHasNoDuplicates(self):
         self.assertEqual(len(BUNDLED), len(set(BUNDLED)))
+
+    def testEveryModuleACodeGeneratorCallsABaseMibIsBundled(self):
+        """The bundle is what makes a base MIB resolvable without a network.
+
+        ``baseMibs`` is where pysmi says which modules are foundational, so a
+        module named there but missing from the bundle is a compile that fails
+        on an unreachable source for a MIB pysmi already knew it would need.
+        PYSNMP-USM-MIB is the exception: it is pysnmp's own rather than an RFC,
+        and pysnmp ships it.
+        """
+        for mibname in set(PySnmpCodeGen.baseMibs) | set(JsonCodeGen.baseMibs):
+            if mibname in PySnmpCodeGen.fakeMibs or mibname == "PYSNMP-USM-MIB":
+                continue
+
+            with self.subTest(mib=mibname):
+                self.assertIn(mibname, BUNDLED)
 
 
 if __name__ == "__main__":

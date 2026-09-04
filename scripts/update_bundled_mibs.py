@@ -24,6 +24,15 @@ Every entry must be RFC-frozen or otherwise not routinely revised. A MIB an
 authority keeps changing (IANAifType-MIB, for instance) does not belong here:
 a bundled copy would silently go stale exactly when the real, current source
 is unreachable and this one gets used instead.
+
+That rules IF-MIB out for now, common as it is: it imports IANAifType from
+IANAifType-MIB, so bundling it would mean bundling a MIB IANA revises, or
+shipping a MIB the bundle cannot resolve on its own.
+
+What is here is every module a code generator names in its ``baseMibs`` --
+the modules pysmi itself calls foundational, all RFC-frozen and all imported
+by MIBs from every vendor -- plus SNMPv2-MIB. PYSNMP-USM-MIB is the one
+exception: it is pysnmp's own, not an RFC, and pysnmp ships it.
 """
 
 import pathlib
@@ -38,6 +47,12 @@ BUNDLED = (
     "SNMPv2-TC",
     "SNMPv2-CONF",
     "SNMPv2-MIB",
+    "SNMPv2-TM",
+    "SNMP-FRAMEWORK-MIB",
+    "SNMP-TARGET-MIB",
+    "TRANSPORT-ADDRESS-MIB",
+    "INET-ADDRESS-MIB",
+    "RFC1065-SMI",
     "RFC1155-SMI",
     "RFC1158-MIB",
     "RFC-1212",
