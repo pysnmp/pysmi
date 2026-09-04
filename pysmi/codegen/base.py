@@ -243,6 +243,113 @@ def format_ext_utc_time(timeStr: str, module: str = "") -> str:
 RangesClause: TypeAlias = Sequence[list[tuple[Bound] | tuple[Bound, Bound]]]
 
 
+#: Every symbol the SMIv2 base modules export, mapped to the module that
+#: exports it.
+#:
+#: Taken from the module definitions themselves: SNMPv2-SMI in RFC 2578
+#: Section 2, SNMPv2-TC in RFC 2579 Section 2, SNMPv2-CONF in RFC 2580
+#: Section 2. RFC 2578 Section 3.2 requires a module to name in IMPORTS every
+#: symbol it refers to and does not define; many vendor MIBs do not, and this
+#: is the table :py:meth:`~pysmi.codegen.symtable.SymtableCodeGen.gen_code`
+#: repairs such a module from when asked to.
+#:
+#: Only these three modules are here. A symbol out of SNMPv2-MIB or any other
+#: compiled module is not repairable this way: supplying its import would add
+#: a compilation dependency the module never declared.
+SMI_BASE_EXPORTS: Final[dict[str, str]] = {
+    # RFC 2578 -- macros
+    "MODULE-IDENTITY": "SNMPv2-SMI",
+    "OBJECT-IDENTITY": "SNMPv2-SMI",
+    "OBJECT-TYPE": "SNMPv2-SMI",
+    "NOTIFICATION-TYPE": "SNMPv2-SMI",
+    # RFC 2578 -- types
+    "Integer32": "SNMPv2-SMI",
+    "IpAddress": "SNMPv2-SMI",
+    "Counter32": "SNMPv2-SMI",
+    "Gauge32": "SNMPv2-SMI",
+    "Unsigned32": "SNMPv2-SMI",
+    "TimeTicks": "SNMPv2-SMI",
+    "Opaque": "SNMPv2-SMI",
+    "Counter64": "SNMPv2-SMI",
+    "ObjectName": "SNMPv2-SMI",
+    "NotificationName": "SNMPv2-SMI",
+    "ObjectSyntax": "SNMPv2-SMI",
+    "SimpleSyntax": "SNMPv2-SMI",
+    "ApplicationSyntax": "SNMPv2-SMI",
+    # RFC 2578 -- the registration tree
+    "org": "SNMPv2-SMI",
+    "dod": "SNMPv2-SMI",
+    "internet": "SNMPv2-SMI",
+    "directory": "SNMPv2-SMI",
+    "mgmt": "SNMPv2-SMI",
+    "mib-2": "SNMPv2-SMI",
+    "transmission": "SNMPv2-SMI",
+    "experimental": "SNMPv2-SMI",
+    "private": "SNMPv2-SMI",
+    "enterprises": "SNMPv2-SMI",
+    "security": "SNMPv2-SMI",
+    "snmpV2": "SNMPv2-SMI",
+    "snmpDomains": "SNMPv2-SMI",
+    "snmpProxys": "SNMPv2-SMI",
+    "snmpModules": "SNMPv2-SMI",
+    "zeroDotZero": "SNMPv2-SMI",
+    # RFC 2579
+    "TEXTUAL-CONVENTION": "SNMPv2-TC",
+    "DisplayString": "SNMPv2-TC",
+    "PhysAddress": "SNMPv2-TC",
+    "MacAddress": "SNMPv2-TC",
+    "TruthValue": "SNMPv2-TC",
+    "TestAndIncr": "SNMPv2-TC",
+    "AutonomousType": "SNMPv2-TC",
+    "InstancePointer": "SNMPv2-TC",
+    "VariablePointer": "SNMPv2-TC",
+    "RowPointer": "SNMPv2-TC",
+    "RowStatus": "SNMPv2-TC",
+    "TimeStamp": "SNMPv2-TC",
+    "TimeInterval": "SNMPv2-TC",
+    "DateAndTime": "SNMPv2-TC",
+    "StorageType": "SNMPv2-TC",
+    "TDomain": "SNMPv2-TC",
+    "TAddress": "SNMPv2-TC",
+    # RFC 2580
+    "OBJECT-GROUP": "SNMPv2-CONF",
+    "NOTIFICATION-GROUP": "SNMPv2-CONF",
+    "MODULE-COMPLIANCE": "SNMPv2-CONF",
+    "AGENT-CAPABILITIES": "SNMPv2-CONF",
+}
+
+#: Key under which the symbol table records what
+#: :py:meth:`~pysmi.codegen.symtable.SymtableCodeGen.gen_code` repaired, so
+#: that the backend rendering the same module imports the symbols too.
+REPAIRED_IMPORTS_KEY: Final = "_symtable_repaired"
+
+
+def with_repaired_imports(imports: Any, symbolTable: dict[str, Any], moduleName: str) -> dict[str, list[str]]:
+    """Copy *imports*, adding back whatever the symbol table had to repair.
+
+    The symbol table is built first and is where a missing IMPORTS entry is
+    detected, but the backend that renders the module resolves imports again
+    from the same parse tree. Without this the repair would be invisible to it
+    and the rendered module would refer to a symbol it never imported.
+
+    Args:
+        imports: the module's IMPORTS clause, as parsed; may be ``None``
+        symbolTable: symbols of this module and everything it imports
+        moduleName: the module being rendered
+
+    Returns:
+        A fresh imports mapping, safe to mutate.
+    """
+    repaired = dict(imports or {})
+    for module, symbols in repaired.items():
+        repaired[module] = list(symbols)
+
+    for symbol, module in symbolTable.get(moduleName, {}).get(REPAIRED_IMPORTS_KEY, {}).items():
+        repaired.setdefault(module, []).append(symbol)
+
+    return repaired
+
+
 def dorepr(s: Any) -> str:
     """Render a value as a Python literal for embedding in generated code."""
     return repr(s)

@@ -11,7 +11,8 @@ as hand-written Python. The codegens still have to resolve an imported type
 back to its base to render a DEFVAL or a sub-typed textual convention, so a
 test that imports one needs it in the symbol table.
 
-These carry the type assignments RFC 2578 and RFC 2579 define, and nothing else.
+These carry the type assignments RFC 2578 and RFC 2579 define, plus the few
+registration nodes of the RFC 2578 tree a test needs to hang an OID off.
 """
 
 SNMPV2_SMI = """
@@ -32,6 +33,12 @@ TimeTicks ::= [APPLICATION 3] IMPLICIT INTEGER (0..4294967295)
 Opaque ::= [APPLICATION 4] IMPLICIT OCTET STRING
 
 Counter64 ::= [APPLICATION 6] IMPLICIT INTEGER (0..18446744073709551615)
+
+internet    OBJECT IDENTIFIER ::= { iso 3 6 1 }
+mgmt        OBJECT IDENTIFIER ::= { internet 2 }
+mib-2       OBJECT IDENTIFIER ::= { mgmt 1 }
+private     OBJECT IDENTIFIER ::= { internet 4 }
+enterprises OBJECT IDENTIFIER ::= { private 1 }
 
 END
 """

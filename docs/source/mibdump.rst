@@ -38,6 +38,7 @@ into various formats.
          [--no-mib-writes]
          [--generate-mib-texts]
          [--keep-texts-layout]
+         [--repair-imports]
          <MIB-NAME> [MIB-NAME [...]]]
    Where:
        URI      - file, zip, http, https, ftp, sftp schemes are supported.
@@ -216,6 +217,28 @@ Default source of pre-compiled MIBs for pysnmp target is:
 
 If you wish to modify this default list use one or more
 --mib-borrower options.
+
+Repairing missing IMPORTS
+-------------------------
+
+RFC 2578, Section 3.2 requires a MIB module to name in IMPORTS every
+symbol it refers to and does not define itself. A great many vendor MIBs
+do not, and refer to a base type, textual convention or registration node
+they never imported.
+
+Where the omitted symbol is one that SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF
+exports, the import that was meant is not in doubt -- there is exactly
+one module it could have come from. The --repair-imports option supplies
+it.
+
+This is off by default, so that the strict reading of RFC 2578 stays the
+one you get unless you ask otherwise, and a MIB broken this way fails
+rather than being quietly patched. What was repaired, for which module,
+is listed on the "Repaired MIBs" line of the report.
+
+Symbols out of any other module are never repaired: supplying an import
+for, say, *sysUpTime* would add a compilation dependency on SNMPv2-MIB
+that the module never declared.
 
 Choosing target transformation
 ------------------------------

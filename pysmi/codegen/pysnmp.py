@@ -42,6 +42,7 @@ from pysmi.codegen.base import (
     dorepr,
     format_ext_utc_time,
     trap_type_oid,
+    with_repaired_imports,
 )
 from pysmi.mibinfo import MibInfo
 
@@ -1875,7 +1876,7 @@ for _{name}_obj in [{objects}]:
         self._moduleIdentityOid = None
         self.moduleName[0], moduleOid, imports, declarations = ast
 
-        out, importedModules = self.gen_imports(imports or {})
+        out, importedModules = self.gen_imports(with_repaired_imports(imports, symbolTable, self.moduleName[0]))
 
         for declr in declarations or []:
             if declr:
