@@ -243,6 +243,154 @@ def format_ext_utc_time(timeStr: str, module: str = "") -> str:
 RangesClause: TypeAlias = Sequence[list[tuple[Bound] | tuple[Bound, Bound]]]
 
 
+#: Every symbol the SMIv2 base modules export, mapped to the module that
+#: exports it.
+#:
+#: Taken from the module definitions themselves: SNMPv2-SMI in RFC 2578
+#: Section 2, SNMPv2-TC in RFC 2579 Section 2, SNMPv2-CONF in RFC 2580
+#: Section 2. RFC 2578 Section 3.2 requires a module to name in IMPORTS every
+#: symbol it refers to and does not define; many vendor MIBs do not, and this
+#: is the table :py:meth:`~pysmi.codegen.symtable.SymtableCodeGen.gen_code`
+#: repairs such a module from when asked to.
+#:
+#: SNMPv2-MIB (RFC 3418) is here too, but only for the symbols it alone
+#: defines. Its system and snmp groups restate what RFC1213-MIB and RFC1158-MIB
+#: already define under the same names, so an unimported ``sysUpTime`` could
+#: have been meant to come from any of the three and there is nothing to repair
+#: it from. ``snmpTrapOID`` -- the one most often left out, in the OBJECTS
+#: clause of a NOTIFICATION-TYPE -- is unambiguous, and is repaired.
+#:
+#: Every module named here is bundled in ``pysmi/mibs/asn1/``, so a repaired
+#: import resolves even when the MIB source the user configured has only the
+#: broken module.
+SMI_BASE_EXPORTS: Final[dict[str, str]] = {
+    # RFC 2578 -- macros
+    "MODULE-IDENTITY": "SNMPv2-SMI",
+    "OBJECT-IDENTITY": "SNMPv2-SMI",
+    "OBJECT-TYPE": "SNMPv2-SMI",
+    "NOTIFICATION-TYPE": "SNMPv2-SMI",
+    # RFC 2578 -- types
+    "Integer32": "SNMPv2-SMI",
+    "IpAddress": "SNMPv2-SMI",
+    "Counter32": "SNMPv2-SMI",
+    "Gauge32": "SNMPv2-SMI",
+    "Unsigned32": "SNMPv2-SMI",
+    "TimeTicks": "SNMPv2-SMI",
+    "Opaque": "SNMPv2-SMI",
+    "Counter64": "SNMPv2-SMI",
+    "ObjectName": "SNMPv2-SMI",
+    "NotificationName": "SNMPv2-SMI",
+    "ObjectSyntax": "SNMPv2-SMI",
+    "SimpleSyntax": "SNMPv2-SMI",
+    "ApplicationSyntax": "SNMPv2-SMI",
+    # RFC 2578 -- the registration tree
+    "org": "SNMPv2-SMI",
+    "dod": "SNMPv2-SMI",
+    "internet": "SNMPv2-SMI",
+    "directory": "SNMPv2-SMI",
+    "mgmt": "SNMPv2-SMI",
+    "mib-2": "SNMPv2-SMI",
+    "transmission": "SNMPv2-SMI",
+    "experimental": "SNMPv2-SMI",
+    "private": "SNMPv2-SMI",
+    "enterprises": "SNMPv2-SMI",
+    "security": "SNMPv2-SMI",
+    "snmpV2": "SNMPv2-SMI",
+    "snmpDomains": "SNMPv2-SMI",
+    "snmpProxys": "SNMPv2-SMI",
+    "snmpModules": "SNMPv2-SMI",
+    "zeroDotZero": "SNMPv2-SMI",
+    # RFC 2579
+    "TEXTUAL-CONVENTION": "SNMPv2-TC",
+    "DisplayString": "SNMPv2-TC",
+    "PhysAddress": "SNMPv2-TC",
+    "MacAddress": "SNMPv2-TC",
+    "TruthValue": "SNMPv2-TC",
+    "TestAndIncr": "SNMPv2-TC",
+    "AutonomousType": "SNMPv2-TC",
+    "InstancePointer": "SNMPv2-TC",
+    "VariablePointer": "SNMPv2-TC",
+    "RowPointer": "SNMPv2-TC",
+    "RowStatus": "SNMPv2-TC",
+    "TimeStamp": "SNMPv2-TC",
+    "TimeInterval": "SNMPv2-TC",
+    "DateAndTime": "SNMPv2-TC",
+    "StorageType": "SNMPv2-TC",
+    "TDomain": "SNMPv2-TC",
+    "TAddress": "SNMPv2-TC",
+    # RFC 2580
+    "OBJECT-GROUP": "SNMPv2-CONF",
+    "NOTIFICATION-GROUP": "SNMPv2-CONF",
+    "MODULE-COMPLIANCE": "SNMPv2-CONF",
+    "AGENT-CAPABILITIES": "SNMPv2-CONF",
+    # RFC 3418 -- only what SNMPv2-MIB alone defines; see above
+    "snmpMIB": "SNMPv2-MIB",
+    "snmpMIBObjects": "SNMPv2-MIB",
+    "snmpMIBConformance": "SNMPv2-MIB",
+    "snmpMIBCompliances": "SNMPv2-MIB",
+    "snmpMIBGroups": "SNMPv2-MIB",
+    "sysORLastChange": "SNMPv2-MIB",
+    "sysORTable": "SNMPv2-MIB",
+    "sysOREntry": "SNMPv2-MIB",
+    "sysORIndex": "SNMPv2-MIB",
+    "sysORID": "SNMPv2-MIB",
+    "sysORDescr": "SNMPv2-MIB",
+    "sysORUpTime": "SNMPv2-MIB",
+    "snmpTrap": "SNMPv2-MIB",
+    "snmpTrapOID": "SNMPv2-MIB",
+    "snmpTrapEnterprise": "SNMPv2-MIB",
+    "snmpTraps": "SNMPv2-MIB",
+    "coldStart": "SNMPv2-MIB",
+    "warmStart": "SNMPv2-MIB",
+    "authenticationFailure": "SNMPv2-MIB",
+    "snmpSet": "SNMPv2-MIB",
+    "snmpSetSerialNo": "SNMPv2-MIB",
+    "snmpSilentDrops": "SNMPv2-MIB",
+    "snmpProxyDrops": "SNMPv2-MIB",
+    "snmpBasicCompliance": "SNMPv2-MIB",
+    "snmpBasicComplianceRev2": "SNMPv2-MIB",
+    "snmpGroup": "SNMPv2-MIB",
+    "snmpSetGroup": "SNMPv2-MIB",
+    "systemGroup": "SNMPv2-MIB",
+    "snmpCommunityGroup": "SNMPv2-MIB",
+    "snmpObsoleteGroup": "SNMPv2-MIB",
+    "snmpBasicNotificationsGroup": "SNMPv2-MIB",
+    "snmpNotificationGroup": "SNMPv2-MIB",
+    "snmpWarmStartNotificationGroup": "SNMPv2-MIB",
+}
+
+#: Key under which the symbol table records what
+#: :py:meth:`~pysmi.codegen.symtable.SymtableCodeGen.gen_code` repaired, so
+#: that the backend rendering the same module imports the symbols too.
+REPAIRED_IMPORTS_KEY: Final = "_symtable_repaired"
+
+
+def with_repaired_imports(imports: Any, symbolTable: dict[str, Any], moduleName: str) -> dict[str, list[str]]:
+    """Copy *imports*, adding back whatever the symbol table had to repair.
+
+    The symbol table is built first and is where a missing IMPORTS entry is
+    detected, but the backend that renders the module resolves imports again
+    from the same parse tree. Without this the repair would be invisible to it
+    and the rendered module would refer to a symbol it never imported.
+
+    Args:
+        imports: the module's IMPORTS clause, as parsed; may be ``None``
+        symbolTable: symbols of this module and everything it imports
+        moduleName: the module being rendered
+
+    Returns:
+        A fresh imports mapping, safe to mutate.
+    """
+    repaired = dict(imports or {})
+    for module, symbols in repaired.items():
+        repaired[module] = list(symbols)
+
+    for symbol, module in symbolTable.get(moduleName, {}).get(REPAIRED_IMPORTS_KEY, {}).items():
+        repaired.setdefault(module, []).append(symbol)
+
+    return repaired
+
+
 def dorepr(s: Any) -> str:
     """Render a value as a Python literal for embedding in generated code."""
     return repr(s)

@@ -14,6 +14,9 @@ fails.
 """
 
 import logging
+import re
+from functools import cache
+from importlib import resources
 from typing import Any, Final
 
 from pysmi import __name__ as packageName
@@ -21,7 +24,7 @@ from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.borrower.base import AbstractBorrower
-from pysmi.codegen.base import AbstractCodeGen
+from pysmi.codegen.base import REPAIRED_IMPORTS_KEY, AbstractCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.mibinfo import MibInfo, source_digest
 from pysmi.parser.base import AbstractParser
@@ -32,6 +35,56 @@ from pysmi.writer.base import AbstractWriter
 logger = logging.getLogger(__name__)
 
 _AT_MIB_SUFFIX: Final = " at MIB %s"
+
+#: RFC 2578 ExtUTCTime, in either the 11-character two-digit-year form or the
+#: 13-character four-digit one. Read straight off the ASN.1 text: comparing
+#: two copies of a module must not cost a parse of each.
+_LAST_UPDATED: Final = re.compile(r'LAST-UPDATED\s+"(\d{10}Z|\d{12}Z)"')
+
+
+@cache
+def bundled_mib_names(package: str) -> frozenset[str]:
+    """Name every MIB module *package* carries a copy of.
+
+    This is the set of modules pysmi claims authority over -- each one pinned
+    to an RFC or to IANA by ``scripts/update_bundled_mibs.py`` and re-checked
+    against it on a schedule. Nothing else has that guarantee, which is why
+    the set is what decides whether the compiler may adjudicate between two
+    sources offering the same module or must leave the caller's source order
+    alone. See pysnmp/pysmi#133.
+    """
+    return frozenset(
+        entry.name
+        for entry in resources.files(package).iterdir()
+        if entry.is_file() and not entry.name.startswith("__")
+    )
+
+
+def revision_of(mibData: str) -> str | None:
+    """Read a module's MODULE-IDENTITY LAST-UPDATED, normalised for comparison.
+
+    The two-digit-year form is widened the way RFC 2578 Section 2 reads it, so
+    that a 1996 revision sorts below a 2006 one rather than above it.
+
+    Args:
+        mibData: the raw ASN.1 text of a MIB module.
+
+    Returns:
+        The timestamp as ``YYYYMMDDHHMMZ``, or ``None`` for a module carrying
+        no MODULE-IDENTITY -- every SMIv1 module, and the SMI modules
+        themselves.
+    """
+    match = _LAST_UPDATED.search(mibData)
+
+    if not match:
+        return None
+
+    stamp = match[1]
+
+    if len(stamp) == 11:
+        stamp = ("19" if stamp[:2] >= "70" else "20") + stamp
+
+    return stamp
 
 
 @deprecated_camel_case
@@ -55,6 +108,13 @@ class MibStatus(str):
     # these exist depends on the status. Reading one that was never set raises
     # AttributeError.
 
+    #: Symbols imported to repair a missing IMPORTS entry, mapped to the
+    #: module each came from. Empty unless ``repairImports`` was asked for.
+    repaired: dict[str, str]
+    #: Paths of the other copies of this module that were passed over, when
+    #: their content differed from the one used. Empty in the usual case that
+    #: only one configured source had the module.
+    shadowed: tuple[str, ...]
     #: URL the MIB was read from.
     path: str
     #: File the MIB was read from.
@@ -144,35 +204,38 @@ class MibCompiler:
             writer: transformed MIB storing object
 
         Keyword Args:
-            useBundledMibs: register pysmi's own bundled copy of the
-                RFC-frozen base MIBs (``SNMPv2-SMI`` and friends) as a
-                fallback source, tried only once every source added through
-                :py:meth:`add_sources` has failed. Set to ``False`` so a
-                misconfigured ``add_sources`` call fails loudly instead of
-                silently succeeding from the bundled copy.
+            useBundledMibs: register pysmi's own bundled copy of the base
+                MIBs (``SNMPv2-SMI`` and friends) as a priority source, tried
+                ahead of everything added through :py:meth:`add_sources`. Set
+                to ``False`` so a misconfigured ``add_sources`` call fails
+                loudly instead of silently succeeding from the bundled copy.
         """
         self._parser = parser
         self._codegen = codegen
         self._symbolgen = SymtableCodeGen()
         self._writer = writer
         self._sources: list[AbstractReader] = []
-        self._fallback_sources: list[AbstractReader] = []
+        self._priority_sources: list[AbstractReader] = []
         self._searchers: list[AbstractSearcher] = []
         self._borrowers: list[AbstractBorrower] = []
 
         if useBundledMibs:
             from pysmi.reader.package import PackageReader
 
-            self.add_fallback_sources(PackageReader(self.bundledMibsPackage))
+            self.add_priority_sources(PackageReader(self.bundledMibsPackage))
 
     def add_sources(self, *sources: "AbstractReader") -> "MibCompiler":
         """Add more ASN.1 MIB source repositories.
 
         MibCompiler.compile will invoke each of configured source objects
         in order of their addition asking each to fetch MIB module specified
-        by name. Every one of these is tried before any
-        :py:meth:`add_fallback_sources` source, whatever order either was
-        added in.
+        by name. **The first source that has a module supplies it**, and
+        every :py:meth:`add_priority_sources` source is asked first, whatever
+        order either was added in.
+
+        The one exception is a module pysmi bundles a copy of, where the
+        newest MODULE-IDENTITY revision wins instead and this order only
+        breaks the tie. :py:meth:`compile` documents the whole rule.
 
         Args:
             sources: reader object(s)
@@ -191,14 +254,20 @@ class MibCompiler:
 
         return self
 
-    def add_fallback_sources(self, *sources: "AbstractReader") -> "MibCompiler":
-        """Add more ASN.1 MIB source repositories, tried only as a last resort.
+    def add_priority_sources(self, *sources: "AbstractReader") -> "MibCompiler":
+        """Add ASN.1 MIB source repositories to be asked ahead of the rest.
 
-        Every :py:meth:`add_sources` source is tried, for every MIB, before
-        any of these -- a user-supplied copy always wins over a bundled one,
-        regardless of which was added first. Use this for a source that
-        should fill a gap rather than be preferred, such as pysmi's own
-        bundled base MIBs (see ``useBundledMibs`` on the constructor).
+        Every one of these is tried, for every MIB, before any
+        :py:meth:`add_sources` source, whatever order either was added in.
+        Use it for a source that is more trustworthy than whatever the caller
+        happens to have configured, such as pysmi's own bundled base MIBs
+        (see ``useBundledMibs`` on the constructor).
+
+        A distribution's ``/usr/share/snmp/mibs`` routinely carries a base MIB
+        frozen years ago, and taking that over a copy pinned to its RFC is
+        almost never what anyone wanted. Overriding a bundled module is still
+        possible -- ship a newer revision of it, or pass
+        ``useBundledMibs=False``.
 
         Args:
             sources: reader object(s)
@@ -207,19 +276,79 @@ class MibCompiler:
             reference to itself (can be used for call chaining)
 
         """
-        self._fallback_sources.extend(sources)
+        self._priority_sources.extend(sources)
 
         logger.debug(
-            "current fallback MIB source(s): %s",
-            ", ".join(str(x) for x in self._fallback_sources),
-            extra={"fallback_sources": [str(x) for x in self._fallback_sources]},
+            "current priority MIB source(s): %s",
+            ", ".join(str(x) for x in self._priority_sources),
+            extra={"priority_sources": [str(x) for x in self._priority_sources]},
         )
 
         return self
 
     def _all_sources(self) -> list["AbstractReader"]:
-        """Every configured source, in the order they are tried: :py:meth:`add_sources` first."""
-        return [*self._sources, *self._fallback_sources]
+        """Every configured source, in the order they are asked."""
+        return [*self._priority_sources, *self._sources]
+
+    def _read_source(self, source: "AbstractReader", mibname: str) -> tuple[MibInfo, str] | None:
+        """Ask one source for one module, or report that it does not have it.
+
+        Returns:
+            The file's :py:class:`~pysmi.mibinfo.MibInfo`, digest filled in,
+            and its ASN.1 text -- or ``None`` when this source has no such
+            module or cannot decode the one it has.
+        """
+        try:
+            fileInfo, fileData = source.get_data(mibname)
+
+        except error.PySmiReaderFileNotFoundError:
+            logger.debug("no %s found at %s", mibname, source, extra={"mib": mibname, "source": str(source)})
+            return None
+
+        except UnicodeDecodeError:
+            logger.debug("cannot decode %s found at %s", mibname, source, extra={"mib": mibname, "source": str(source)})
+            return None
+
+        fileInfo.digest = source_digest(fileData)
+
+        return fileInfo, fileData
+
+    def _candidate_sources(self, mibname: str) -> list[tuple["AbstractReader", MibInfo, str]]:
+        """Every source that can supply *mibname*, the one to use first.
+
+        Source order decides, except for a module pysmi bundles a copy of --
+        one of a couple of dozen names pinned to an RFC or to IANA. Two
+        sources offering one of those are offering the same specification at
+        different revisions rather than two different modules, so the newest
+        MODULE-IDENTITY wins and source order only breaks the tie. A module
+        with no revision to compare, and anything vendor-specific, is left in
+        source order: a vendor module appearing twice is a collision or two
+        firmware revisions, and which one the caller meant is what their
+        source order says.
+
+        Sources past the first hit are read only when reading them is a local
+        lookup, and only so that the loser can be named in the report.
+        """
+        candidates: list[tuple[AbstractReader, MibInfo, str]] = []
+
+        for source in self._all_sources():
+            if candidates and not getattr(source, "isLocal", False):
+                break
+
+            found = self._read_source(source, mibname)
+
+            if found:
+                candidates.append((source, *found))
+
+        if len(candidates) > 1 and mibname in bundled_mib_names(self.bundledMibsPackage):
+            revisions = [revision_of(data) for _, _, data in candidates]
+
+            if all(revisions):
+                # Stable, so equal revisions keep the order they were asked in.
+                ordered = sorted(zip(revisions, candidates, strict=True), key=lambda p: p[0] or "", reverse=True)
+                candidates = [candidate for _, candidate in ordered]
+
+        return candidates
 
     def add_searchers(self, *searchers: "AbstractSearcher") -> "MibCompiler":
         """Add more transformed MIBs repositories.
@@ -294,9 +423,36 @@ class MibCompiler:
             mibnames: list of ASN.1 MIBs names
             options: options that affect the way PySMI components work
 
+        Keyword Args:
+            strictSources: fail a MIB that more than one configured source
+                has a different copy of, rather than taking one and
+                reporting the other on ``MibStatus.shadowed``.
+
         Returns:
             A dictionary of MIB module names processed (keys) and *MibStatus*
             class instances (values)
+
+        Note:
+            **Which copy of a module gets compiled**, when more than one
+            source has it:
+
+            1. For a module pysmi bundles a copy of, the newest
+               MODULE-IDENTITY LAST-UPDATED wins.
+            2. Otherwise -- and to break a tie, and for the many modules
+               carrying no LAST-UPDATED at all -- source order wins: every
+               :py:meth:`add_priority_sources` reader, then every
+               :py:meth:`add_sources` reader, each in the order it was added.
+
+            Rule 1 is deliberately confined to the bundled names. Those are
+            pinned to an RFC or to IANA and re-checked against it, so two
+            copies of one are the same specification at two revisions and the
+            newer is simply better. Two copies of a vendor module are not
+            that: they are a collision, or two firmware revisions, and which
+            one was meant is what the caller's source order says.
+
+            ``MibStatus.path`` names the file a module was compiled from and
+            ``MibStatus.shadowed`` the copies passed over, so a build can
+            record what it resolved to and reproduce it later.
 
         """
         processed: dict[str, MibStatus] = {}
@@ -307,6 +463,7 @@ class MibCompiler:
         symbolTableMap: dict[str, Any] = {}
         mibsToParse = [x for x in mibnames]
         canonicalMibNames: dict[str, Any] = {}
+        shadowedMibs: dict[str, list[str]] = {}
 
         while mibsToParse:
             mibname = mibsToParse.pop(0)
@@ -319,16 +476,40 @@ class MibCompiler:
                 logger.debug("MIB %s already failed", mibname, extra={"mib": mibname})
                 continue
 
-            for source in self._all_sources():
+            candidates = self._candidate_sources(mibname)
+
+            shadowed = [info.path for _, info, _ in candidates[1:] if info.digest != candidates[0][1].digest]
+
+            if shadowed:
+                shadowedMibs[mibname] = shadowed
+
+                logger.warning(
+                    "%s taken from %s, shadowing a different copy at %s",
+                    mibname,
+                    candidates[0][1].path,
+                    ", ".join(shadowed),
+                    extra={"mib": mibname, "path": candidates[0][1].path, "shadowed": shadowed},
+                )
+
+                if options.get("strictSources"):
+                    conflict = error.PySmiError(
+                        f"{mibname} found at {candidates[0][1].path} and, with different content, "
+                        f"at {', '.join(shadowed)}"
+                    )
+                    conflict.mibname = mibname
+
+                    failedMibs[mibname] = conflict
+                    processed[mibname] = statusFailed.set_options(error=conflict)
+                    continue
+
+            for source, fileInfo, fileData in candidates:
                 logger.debug("trying source %s", source, extra={"mib": mibname, "source": str(source)})
 
                 try:
-                    fileInfo, fileData = source.get_data(mibname)
-
-                    fileInfo.digest = source_digest(fileData)
-
                     for mibTree in self._parser.parse(fileData):
-                        mibInfo, symbolTable = self._symbolgen.gen_code(mibTree, symbolTableMap)
+                        mibInfo, symbolTable = self._symbolgen.gen_code(
+                            mibTree, symbolTableMap, repairImports=options.get("repairImports")
+                        )
 
                         symbolTableMap[mibInfo.name] = symbolTable
 
@@ -358,18 +539,6 @@ class MibCompiler:
                         )
 
                     break
-                except UnicodeDecodeError:
-                    logger.debug(
-                        "cannot decode %s found at %s",
-                        mibname,
-                        source,
-                        extra={"mib": mibname, "source": str(source)},
-                    )
-                    continue
-
-                except error.PySmiReaderFileNotFoundError:
-                    logger.debug("no %s found at %s", mibname, source, extra={"mib": mibname, "source": str(source)})
-                    continue
 
                 except error.PySmiError as exc:
                     exc.source = source
@@ -693,6 +862,8 @@ class MibCompiler:
                         enterprise=mibInfo.enterprise,
                         compliance=mibInfo.compliance,
                         notification=mibInfo.notification,
+                        repaired=symbolTableMap.get(mibname, {}).get(REPAIRED_IMPORTS_KEY, {}),
+                        shadowed=tuple(shadowedMibs.get(mibname, ())),
                     )
 
             except error.PySmiError as exc:

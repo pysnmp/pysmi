@@ -42,6 +42,7 @@ from pysmi.codegen.base import (
     ValueDeclarationClause,
     format_ext_utc_time,
     trap_type_oid,
+    with_repaired_imports,
 )
 from pysmi.mibinfo import MibInfo
 
@@ -1717,7 +1718,7 @@ class JsonCodeGen(AbstractCodeGen):
         self._notificationOids = []
         self.moduleName[0], moduleOid, imports, declarations = ast
 
-        outDict, importedModules = self.gen_imports((imports and imports) or {})
+        outDict, importedModules = self.gen_imports(with_repaired_imports(imports, symbolTable, self.moduleName[0]))
 
         for declr in declarations or []:
             if declr:

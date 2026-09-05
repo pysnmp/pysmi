@@ -127,6 +127,44 @@ class MibDumpReportTestCase(unittest.TestCase):
         self.assertIn(f"Source MIB repositories: {self.src}", output)
         self.assertIn(f"Compiled MIBs destination directory: {self.dst}", output)
 
+    def testACopyInMoreThanOneSourceIsReported(self):
+        """The shadowed line names the copy used and the one passed over."""
+        other = Path(self._tmp.name) / "other"
+        other.mkdir()
+        (other / "TEST-REPORT-MIB").write_text(STANDALONE_MIB.replace("a scalar", "the other copy"))
+
+        code, output = runMibdump(
+            f"--mib-source={self.src}",
+            f"--mib-source={other}",
+            f"--destination-directory={self.dst}",
+            "--no-python-compile",
+            "--rebuild",
+            "TEST-REPORT-MIB",
+        )
+
+        self.assertEqual(0, code, output)
+        self.assertIn("MIBs found in more than one source: TEST-REPORT-MIB", output)
+        self.assertIn(str(other), output)
+
+    def testStrictSourcesFailsOnSuchACopy(self):
+        """--strict-sources turns that report line into a failure."""
+        other = Path(self._tmp.name) / "other"
+        other.mkdir()
+        (other / "TEST-REPORT-MIB").write_text(STANDALONE_MIB.replace("a scalar", "the other copy"))
+
+        code, output = runMibdump(
+            f"--mib-source={self.src}",
+            f"--mib-source={other}",
+            f"--destination-directory={self.dst}",
+            "--no-python-compile",
+            "--rebuild",
+            "--strict-sources",
+            "TEST-REPORT-MIB",
+        )
+
+        self.assertNotEqual(0, code)
+        self.assertIn("Failed MIBs: TEST-REPORT-MIB", output)
+
     def testUsageMessageRenders(self):
         """--help fills the usage template in, including the debug categories."""
         code, output = runMibdump("--help")
