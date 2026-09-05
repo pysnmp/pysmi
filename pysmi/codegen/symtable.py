@@ -46,6 +46,7 @@ from pysmi.codegen.base import (
     TrapTypeClause,
     TypeDeclarationClause,
     ValueDeclarationClause,
+    ValueRanges,
     trap_type_oid,
 )
 from pysmi.mibinfo import MibInfo
@@ -109,8 +110,6 @@ class SymtableCodeGen(AbstractCodeGen):
             "NOTIFICATION-GROUP",
         ),  # XXX
     }
-
-    baseTypes = ["Integer", "Integer32", "Bits", "ObjectIdentifier", "OctetString"]
 
     typeClasses = {
         "COUNTER32": "Counter32",
@@ -791,13 +790,21 @@ class SymtableCodeGen(AbstractCodeGen):
         return fakeIdxName, fakeIndexes, fakeSymsSyntax
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_integer_sub_type(self, data: RangesClause, classmode: bool = False) -> str:
-        """Ignore an integer range restriction.
+    def gen_integer_sub_type(self, data: RangesClause, classmode: bool = False) -> "ValueRanges | str":
+        """Record an integer range restriction.
+
+        The restriction is kept rather than dropped so that a DEFVAL can be
+        checked against it; the code generators resolve a type to its base
+        through this table and have nothing else to check against.
+
+        Args:
+            data: converted clause values
+            classmode: unused
 
         Returns:
-            An empty string.
+            The permitted ranges, or an empty string when none could be read.
         """
-        return ""
+        return self.value_ranges("range", data)
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
     def gen_max_access(self, data: TextClause, classmode: bool = False) -> str:
@@ -809,13 +816,21 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_octet_string_sub_type(self, data: RangesClause, classmode: bool = False) -> str:
-        """Ignore an octet string size restriction.
+    def gen_octet_string_sub_type(self, data: RangesClause, classmode: bool = False) -> "ValueRanges | str":
+        """Record an octet string size restriction.
+
+        The restriction is kept rather than dropped so that a DEFVAL can be
+        checked against it; the code generators resolve a type to its base
+        through this table and have nothing else to check against.
+
+        Args:
+            data: converted clause values
+            classmode: unused
 
         Returns:
-            An empty string.
+            The permitted sizes, or an empty string when none could be read.
         """
-        return ""
+        return self.value_ranges("size", data)
 
     # noinspection PyUnusedLocal
     def gen_oid(self, data: OidClause, classmode: bool = False) -> tuple[Any, ...]:
