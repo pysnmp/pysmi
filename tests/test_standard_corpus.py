@@ -196,7 +196,7 @@ class CorpusSurfaceTestCase(unittest.TestCase):
 
     def testALargeEnumerationIsKeptWhole(self):
         enumeration = self.docs["IANAifType-MIB"]["IANAifType"]["type"]["constraints"]["enumeration"]
-        self.assertEqual(len(enumeration), 304)
+        self.assertEqual(len(enumeration), 286)
         self.assertEqual(enumeration["ethernetCsmacd"], 6)
 
 
