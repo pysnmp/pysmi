@@ -5,42 +5,79 @@ on:
     branches:
       - "main"
       - "next"
-    tags:
-      - "v[0-9]+.[0-9]+.[0-9]+"
   pull_request:
     branches: [main, next]
-  # next publishes an rc on every push. main only previews what it would
-  # release: cutting the GA is a deliberate act, so it is a dispatch.
+    # `labeled` so that adding ci:full-matrix re-runs with macOS and Windows.
+    types: [opened, synchronize, reopened, labeled]
+  # No push releases anything. Both the rc from next and the GA from main are
+  # cut by dispatching this workflow by hand.
   workflow_dispatch:
+
+# One run per ref: a new push supersedes the one still in flight. A dispatch is
+# never cancelled, it is the only thing that can cut a release.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+
+# Read-only by default; the publish job raises only what Trusted Publishing
+# needs, while semantic-release authenticates with SEMREL_TOKEN.
+permissions:
+  contents: read
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - uses: pre-commit/action@v3.0.1
+
+  # Every supported Python on Linux on every run. macOS and Windows only on the
+  # edge versions, and only where they can pay for themselves: a push to
+  # main/next, a manual dispatch, or a PR labelled ci:full-matrix.
+  setup-matrix:
+    name: matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.plan.outputs.include }}
+    steps:
+      - id: plan
+        env:
+          BROAD: >-
+            ${{ github.event_name != 'pull_request'
+              || contains(github.event.pull_request.labels.*.name, 'ci:full-matrix') }}
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+
+          pythons = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+          jobs = [{"os": "ubuntu-latest", "python": p} for p in pythons]
+
+          if os.environ["BROAD"] == "true":
+              for platform in ("macos-latest", "windows-latest"):
+                  jobs += [{"os": platform, "python": p} for p in (pythons[0], pythons[-1])]
+
+          print("include=" + json.dumps(jobs))
+          PY
 
   run-unit-tests:
     name: test-unit (py${{ matrix.python }} ${{ matrix.os }})
     strategy:
       matrix:
-        # Every supported Python on Linux; macOS and Windows track the newest
-        # one only, to catch platform breakage without a full cross product.
-        os: [ubuntu-latest]
-        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-        include:
-          - os: macos-latest
-            python: "3.14"
-          - os: windows-latest
-            python: "3.14"
+        include: ${{ fromJSON(needs.setup-matrix.outputs.include) }}
       fail-fast: false
     runs-on: ${{ matrix.os }}
+    needs:
+      - build
+      - setup-matrix
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       # The consumer smoke test loads generated modules under pysnmp, which
@@ -51,12 +88,12 @@ jobs:
           uv run --locked --group dev --python ${{ matrix.python }}
           pytest -m "not pysnmp_consumer"
           --junitxml=test-results/results.xml --cov=pysmi --cov-report=xml tests
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-${{ matrix.os }}-py${{ matrix.python }}
           path: test-results
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
@@ -69,8 +106,11 @@ jobs:
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - name: Load generated modules under pysnmp
@@ -82,8 +122,11 @@ jobs:
     name: docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       # -n reports cross-references that resolve to nothing, so a docstring or
@@ -92,7 +135,7 @@ jobs:
       # all of them instead of stopping at the first.
       - name: Build documentation
         run: uv run --locked --group dev sphinx-build -n -W --keep-going -b html docs/source docs/build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: docs
           path: docs/build
@@ -101,19 +144,28 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - name: Build
         run: uv build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist
 
   publish:
     name: Build Release
+    # Semantic-release cuts tags from a branch, so keep this to branch refs and
+    # it can never re-enter on a tag it created itself. The push triggers are
+    # filtered to main and next, but a dispatch can name any branch, so name
+    # them again here: next cuts the rc, main cuts the GA, nothing else runs.
+    if: >-
+      github.ref == 'refs/heads/main' || github.ref == 'refs/heads/next'
     needs:
       - pre-commit
       - build
@@ -125,21 +177,21 @@ jobs:
     environment: release
     permissions:
       id-token: write
-      contents: write
-      issues: write
+      contents: read
     env:
-      # Only two things cut a real release: a push to next, and a dispatch.
-      # Everything else — pushes to main and every pull request — rehearses one
-      # and stops.
-      DRY: ${{ !(github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref_name == 'next')) }}
+      # Releasing is a deliberate act on both branches. Every push — to next as
+      # much as to main — rehearses the release and stops; only a dispatch cuts
+      # one. Automatic rcs are what let next drift below a GA already on PyPI.
+      DRY: ${{ github.event_name != 'workflow_dispatch' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: false
-          # Very important: semantic-release won't trigger a tagged
-          # build if this is not set false
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - uses: actions/setup-node@v4
@@ -147,20 +199,26 @@ jobs:
           node-version: "20"
       - name: Semantic Release
         id: semantic
-        uses: cycjimmy/semantic-release-action@v4
+        uses: cycjimmy/semantic-release-action@v6
         with:
           semantic_version: 24
           dry_run: ${{ env.DRY }}
           extra_plugins: |
+            @semantic-release/changelog
             @semantic-release/exec
             @semantic-release/git
-            @google/semantic-release-replace-plugin@1.2.7
+            @google/semantic-release-replace-plugin
             conventional-changelog-conventionalcommits@8.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
       - name: Publish to PyPI
         if: env.DRY != 'true' && steps.semantic.outputs.new_release_published == 'true'
         uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Move repository semver tags
+        if: env.DRY != 'true' && steps.semantic.outputs.new_release_published == 'true'
+        uses: haya14busa/action-update-semver@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
       # A dry run tags nothing and builds nothing, so the version the branch
       # would release is only ever a log line. Build it as a .devN and keep it,
       # so the release can be installed and tried before it is cut.
@@ -169,17 +227,8 @@ jobs:
         run: |
           sed -i 's/^__version__ = .*/__version__ = "${{ steps.semantic.outputs.new_release_version }}.dev${{ github.run_number }}"/' pysmi/__init__.py
           uv build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: env.DRY == 'true' && steps.semantic.outputs.new_release_version != ''
         with:
-          name: dist-preview
+          name: dist-preview-${{ steps.semantic.outputs.new_release_version }}.dev${{ github.run_number }}
           path: dist
-
-  update-semver:
-    name: Move Respository semver tags
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: publish
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: haya14busa/action-update-semver@v1
