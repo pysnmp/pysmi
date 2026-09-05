@@ -24,6 +24,7 @@ import logging
 import sys
 import unittest
 
+from pysmi.codegen import PySnmpCodeGen
 from tests.harness import render_json, render_source
 from tests.mibs import SNMPV2_SMI, SNMPV2_TC
 
@@ -165,6 +166,78 @@ class InheritedConstraintTestCase(DroppedDefaultTestCase):
 
     def testARefinedConventionKeepsAConformingDefault(self):
         self.assertKept("DisplayString (SIZE (0..32))", '"hello"', ".clone('hello')")
+
+
+class HexAndBinaryConflictTestCase(DroppedDefaultTestCase):
+    """RFC 2578 Section 7.9 also writes a default in hexadecimal or binary.
+
+    Both are read against the base type the object resolves to: as a number
+    where that is an integer -- the MIB bug ``gen_def_val`` already absorbs --
+    and as octets otherwise. Each reading has its own constraint to answer to.
+    """
+
+    def testHexadecimalReadAsANumberOutOfRange(self):
+        self.assertDropped("Integer32 (1..255)", "'FFFF'H")
+
+    def testHexadecimalReadAsANumberInRange(self):
+        self.assertKept("Integer32 (1..255)", "'0A'H", ".clone(10)")
+
+    def testBinaryReadAsANumberOutOfRange(self):
+        self.assertDropped("Integer32 (1..10)", "'11111111'B")
+
+    def testBinaryReadAsANumberInRange(self):
+        self.assertKept("Integer32 (1..255)", "'1010'B", ".clone(10)")
+
+    def testBinaryReadAsOctetsOfTheWrongWidth(self):
+        # '1010'B is one octet; the object takes four.
+        self.assertDropped("OCTET STRING (SIZE (4))", "'1010'B")
+
+    def testHexadecimalReadAsOctetsOfTheRightWidth(self):
+        self.assertKept("OCTET STRING (SIZE (4))", "'C0000201'H", '.clone(hexValue="C0000201")')
+
+    def testHexadecimalReadAsOctetsOfTheWrongWidth(self):
+        self.assertDropped("OCTET STRING (SIZE (2))", "'C0000201'H")
+
+
+class ConstraintLookupTestCase(unittest.TestCase):
+    """The lookup answers for a symbol table a MIB cannot produce.
+
+    These two paths are what stop a malformed module turning into a traceback
+    rather than a rendered MIB, so they are exercised against a symbol table
+    written by hand: reaching either through the parser would need a module the
+    grammar rejects before the symbol table is ever built.
+    """
+
+    def codegen(self, symbolTable):
+        codegen = PySnmpCodeGen()
+        codegen.symbolTable = symbolTable
+        return codegen
+
+    def testAMalformedBoundYieldsNoConstraint(self):
+        # An empty binary string has no digits to convert. Reporting no
+        # constraint leaves the renderer to reject it, rather than building one
+        # no value could satisfy.
+        self.assertEqual(self.codegen({}).value_ranges("range", [[("''b", "10")]]), "")
+
+    def testAnEmptyRangeListYieldsNoConstraint(self):
+        self.assertEqual(self.codegen({}).value_ranges("size", [[]]), "")
+
+    def testASymbolOutsideTheTableIsNotConstrained(self):
+        codegen = self.codegen({"TEST-MIB": {}})
+        self.assertEqual(codegen.get_value_ranges("absent", "TEST-MIB"), [])
+        self.assertEqual(codegen.get_value_ranges("absent", "NO-SUCH-MIB"), [])
+
+    def testATypeDerivedFromItselfTerminates(self):
+        # A circular derivation is a broken MIB, but the walk must end.
+        codegen = self.codegen(
+            {
+                "TEST-MIB": {
+                    "Ouroboros": {"syntax": (("Snake", "TEST-MIB"), "")},
+                    "Snake": {"syntax": (("Ouroboros", "TEST-MIB"), "")},
+                }
+            }
+        )
+        self.assertEqual(codegen.get_value_ranges("Ouroboros", "TEST-MIB"), [])
 
 
 class WarningTestCase(unittest.TestCase):
