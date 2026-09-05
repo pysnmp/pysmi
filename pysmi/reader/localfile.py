@@ -29,6 +29,8 @@ class FileReader(AbstractReader):
     by name, fetch and return their contents to caller.
     """
 
+    isLocal = True
+
     useIndexFile = True  # optional .index file mapping MIB to file name
     indexFile = ".index"
 

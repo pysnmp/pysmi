@@ -65,6 +65,7 @@ def start() -> None:
     buildIndexFlag = False
     writeMibsFlag = True
     repairImportsFlag = False
+    strictSourcesFlag = False
 
     helpMessage = """\
     Usage: {} [--help]
@@ -92,6 +93,7 @@ def start() -> None:
         [--generate-mib-texts]
         [--keep-texts-layout]
         [--repair-imports]
+        [--strict-sources]
         <MIB-NAME> [MIB-NAME [...]]]
     Where:
         URI      - file, zip, http, https, ftp, sftp schemes are supported.
@@ -114,7 +116,11 @@ def start() -> None:
                 without naming it in IMPORTS, which RFC 2578 Section 3.2
                 does not allow. Off by default, so a MIB broken this way
                 fails rather than being silently patched; what was
-                repaired is listed in the report.""".format(
+                repaired is listed in the report.
+        --strict-sources - fail a MIB that more than one --mib-source has a
+                different copy of. Without this the first one wins, by the
+                rule mibdump's documentation states, and the copies passed
+                over are named on the shadowed line of the report.""".format(
         os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES))
     )
 
@@ -148,6 +154,7 @@ def start() -> None:
                 "disable-fuzzy-source",
                 "keep-texts-layout",
                 "repair-imports",
+                "strict-sources",
             ],
         )
 
@@ -252,6 +259,9 @@ def start() -> None:
 
         if opt[0] == "--repair-imports":
             repairImportsFlag = True
+
+        if opt[0] == "--strict-sources":
+            strictSourcesFlag = True
 
     if not mibSources:
         mibSources = ["https://pysnmp.github.io:443/mibs/asn1/@mib@"]
@@ -437,6 +447,7 @@ def start() -> None:
                 writeMibs=writeMibsFlag,
                 ignoreErrors=ignoreErrorsFlag,
                 repairImports=repairImportsFlag,
+                strictSources=strictSourcesFlag,
             ),
         )
 
@@ -490,6 +501,13 @@ def start() -> None:
                 if getattr(processed[x], "repaired", None)
             )
             sys.stderr.write(f"Repaired MIBs: {repairedMibs}\n")
+
+            shadowedMibs = ", ".join(
+                f"{x} (used {processed[x].path}, passed over {', '.join(processed[x].shadowed)})"
+                for x in sorted(processed)
+                if getattr(processed[x], "shadowed", None)
+            )
+            sys.stderr.write(f"MIBs found in more than one source: {shadowedMibs}\n")
 
             sys.stderr.write(
                 "Failed MIBs: "
