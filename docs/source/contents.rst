@@ -34,13 +34,28 @@ Download & Install
 
    /download
 
+Development
+-----------
+
+How changes reach a release: the branches, what CI runs, and how a version is
+cut and published.
+
+.. toctree::
+   :maxdepth: 2
+
+   /ci-and-releases
+
 Changes
 -------
+
+The changelog is generated from the commit history at release time. The
+narrative history of the project through 1.0.5 is kept separately.
 
 .. toctree::
    :maxdepth: 1
 
    /changelog
+   /changelog-history
 
 License
 -------
