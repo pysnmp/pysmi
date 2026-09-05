@@ -61,6 +61,9 @@
       },
     ],
     [
+      "@semantic-release/changelog",
+    ],
+    [
       "@semantic-release/exec",
       {
         # Building is all semantic-release does here. The upload is a separate
@@ -73,6 +76,7 @@
       "@semantic-release/git",
       {
         "assets": [
+          "CHANGELOG.md",
           "NOTICE",
           "pyproject.toml",
           "pysmi/__init__.py"

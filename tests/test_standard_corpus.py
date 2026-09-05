@@ -15,7 +15,7 @@ Python but will not load.
 ``tests/data/asn1/`` holds the standard modules for that, taken from the org's
 own ``pysnmp/mibs``. Between them they reach most of the SMI surface: AUGMENTS,
 multi-column and IMPLIED indices, Counter64, the generic traps, conformance
-macros, and a 286-value enumeration. See pysnmp/pysmi#92.
+macros, and a large enumeration. See pysnmp/pysmi#92.
 """
 
 import functools
