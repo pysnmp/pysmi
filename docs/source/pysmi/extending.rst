@@ -41,6 +41,9 @@ Code generators
 .. autoclass:: pysmi.codegen.base.AbstractCodeGen
    :members: gen_code, gen_index, is_binary, is_hex, str2int
 
+.. autoclass:: pysmi.codegen.base.ValueRanges
+   :members: permits
+
 Borrowers
 ---------
 

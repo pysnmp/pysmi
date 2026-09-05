@@ -83,8 +83,6 @@ class JsonCodeGen(AbstractCodeGen):
     # - or import base ASN.1 types from implementation-specific MIBs
     fakeMibs = ("ASN1", "ASN1-ENUMERATION", "ASN1-REFINEMENT", *AbstractCodeGen.baseMibs)
 
-    baseTypes = ["Integer", "Integer32", "Bits", "ObjectIdentifier", "OctetString"]
-
     typeClasses = {
         "NetworkAddress": "IpAddress",  # RFC1065-SMI, RFC1155-SMI -> SNMPv2-SMI
         "nullSpecific": "zeroDotZero",  # RFC1158-MIB -> SNMPv2-SMI
@@ -1143,6 +1141,11 @@ class JsonCodeGen(AbstractCodeGen):
         one, and an empty string given for a non-string type is dropped rather
         than rendered.
 
+        A default that contradicts the object's own SYNTAX is dropped too, as
+        it is for the pysnmp backend: the document describes the same module,
+        and a default no SIZE or range permits describes it wrongly. See
+        pysnmp/pysmi#134.
+
         Args:
             data: converted clause values
             objname: object the default belongs to; without it the value is
@@ -1165,7 +1168,25 @@ class JsonCodeGen(AbstractCodeGen):
         defval = data[0]
         defvalType = self.get_base_type(objname, self.moduleName[0])
 
+        objModule = self.moduleName[0]
+
         if isinstance(defval, int):  # number
+            if defvalType[0][0] == "OctetString":
+                # RFC 2578 Section 7.9 gives a string-valued object an OCTET
+                # STRING default. IpAddress resolves here too, and pyasn1
+                # rejects a number for it outright. This is the mirror of the
+                # empty-string rule below.
+                logger.warning(
+                    'ignoring DEFVAL %s of object "%s" in module "%s": a string-valued object takes a string default',
+                    defval,
+                    objname,
+                    objModule,
+                )
+                return {}
+
+            if self.defval_violates_syntax(objname, objModule, "range", defval, str(defval)):
+                return {}
+
             outDict.update(value=defval, format="decimal")
 
         elif self.is_hex(defval):  # hex
@@ -1173,22 +1194,41 @@ class JsonCodeGen(AbstractCodeGen):
                 # The digits are a number here, not octets, so they are reported
                 # as one. Saying "hex" would have a reader decode them a second
                 # time and arrive at a different value.
-                outDict.update(value=int((len(defval) > 3 and defval[1:-2]) or "0", 16), format="decimal")
+                intval = int((len(defval) > 3 and defval[1:-2]) or "0", 16)
+                if self.defval_violates_syntax(objname, objModule, "range", intval, defval):
+                    return {}
+
+                outDict.update(value=intval, format="decimal")
             else:
-                outDict.update(value=defval[1:-2], format="hex")
+                hexval = defval[1:-2]
+                if self.defval_violates_syntax(objname, objModule, "size", (len(hexval) + 1) // 2, defval):
+                    return {}
+
+                outDict.update(value=hexval, format="hex")
 
         elif self.is_binary(defval):  # binary
             binval = defval[1:-2]
             if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
-                outDict.update(value=int(binval or "0", 2), format="decimal")
+                intval = int(binval or "0", 2)
+                if self.defval_violates_syntax(objname, objModule, "range", intval, defval):
+                    return {}
+
+                outDict.update(value=intval, format="decimal")
             else:
                 hexval = (binval and hex(int(binval, 2))[2:]) or ""
+                if self.defval_violates_syntax(objname, objModule, "size", (len(hexval) + 1) // 2, defval):
+                    return {}
+
                 outDict.update(value=hexval, format="hex")
 
         elif defval[0] == defval[-1] and defval[0] == '"':  # quoted string
             if defval[1:-1] == "" and defvalType[0][0] != "OctetString":  # common bug
                 # a warning should be here
                 return {}  # we will set no default value
+
+            if self.defval_violates_syntax(objname, objModule, "size", len(defval[1:-1]), defval):
+                return {}
+
             outDict.update(value=defval[1:-1], format="string")
 
         else:  # symbol (oid as defval) or name for enumeration member

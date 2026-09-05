@@ -9,7 +9,7 @@
 import logging
 from collections.abc import Sequence
 from time import strftime, strptime
-from typing import Any, ClassVar, Final, TypeAlias, TypeGuard
+from typing import Any, ClassVar, Final, NamedTuple, TypeAlias, TypeGuard
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
@@ -243,6 +243,33 @@ def format_ext_utc_time(timeStr: str, module: str = "") -> str:
 RangesClause: TypeAlias = Sequence[list[tuple[Bound] | tuple[Bound, Bound]]]
 
 
+class ValueRanges(NamedTuple):
+    """A SIZE or range restriction, kept as the bounds it was written with.
+
+    The symbol table used to discard these. ``get_base_type`` describes itself
+    as "gathering the restrictions imposed along the way", and for enumerations
+    and BITS it does, but a SIZE or a numeric range reached it as an empty
+    string -- so a DEFVAL was rendered against constraints nobody had read.
+    See pysnmp/pysmi#134.
+
+    Attributes:
+        kind: ``"size"`` for a SIZE restriction, ``"range"`` for a numeric one
+        bounds: the permitted spans, each an inclusive ``(low, high)`` pair
+    """
+
+    kind: str
+    bounds: tuple[tuple[int, int], ...]
+
+    def permits(self, value: int) -> bool:
+        """Tell whether *value* falls inside any one of the spans."""
+        return any(low <= value <= high for low, high in self.bounds)
+
+    def __str__(self) -> str:
+        """Render the restriction the way the MIB would have written it."""
+        spans = ", ".join(f"{low}..{high}" if low != high else str(low) for low, high in self.bounds)
+        return f"SIZE ({spans})" if self.kind == "size" else f"({spans})"
+
+
 #: Every symbol the SMIv2 base modules export, mapped to the module that
 #: exports it.
 #:
@@ -417,6 +444,13 @@ class AbstractCodeGen:
 
     Subclasses implement :py:meth:`gen_code` and :py:meth:`gen_index`.
     """
+
+    #: Symbols of the module being rendered and of everything it imports, as
+    #: built by :py:class:`~pysmi.codegen.symtable.SymtableCodeGen`.
+    symbolTable: dict[str, Any]
+
+    #: The SMI base types a derived type is ultimately resolved down to.
+    baseTypes: ClassVar[list[str]] = ["Integer", "Integer32", "Bits", "ObjectIdentifier", "OctetString"]
 
     # never compile these, they either:
     # - define MACROs (implementation supplies them)
@@ -745,3 +779,106 @@ class AbstractCodeGen:
                 raise error.PySmiSemanticError("empty hex string to int conversion")
         else:
             return int(s)
+
+    def value_ranges(self, kind: str, data: RangesClause) -> "ValueRanges | str":
+        """Read a SIZE or numeric range restriction as the bounds it permits.
+
+        Args:
+            kind: ``"size"`` for a SIZE restriction, ``"range"`` for a numeric one
+            data: converted clause values
+
+        Returns:
+            The restriction, or an empty string when it carries no bound this
+            can read. A malformed bound is left for the renderer to reject
+            rather than turned into a constraint nothing could satisfy.
+        """
+        bounds: list[tuple[int, int]] = []
+
+        for rng in data[0]:
+            vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
+
+            try:
+                bounds.append((self.str2int(vmin), self.str2int(vmax)))
+            except (error.PySmiError, TypeError, ValueError):
+                return ""
+
+        return (bounds and ValueRanges(kind, tuple(bounds))) or ""
+
+    def get_value_ranges(self, symName: str, module: str) -> list[ValueRanges]:
+        """Collect every SIZE or range restriction a symbol is subject to.
+
+        A refinement written on the object is only the innermost one: the
+        textual convention it names may carry its own, and so may whatever that
+        convention was derived from. RFC 2578 Section 9 makes each refinement a
+        subset of the one it narrows, so a value has to satisfy all of them.
+
+        Args:
+            symName: symbol to resolve
+            module: module that defines it
+
+        Returns:
+            The restrictions found, innermost first. Empty when the chain
+            carries none, or when it leaves the symbol table before reaching a
+            base type -- a type that cannot be resolved restricts nothing that
+            can be checked here.
+        """
+        ranges: list[ValueRanges] = []
+        seen: set[tuple[str, str]] = set()
+
+        # A MIB whose types derive from each other in a circle is broken, but it
+        # must not be walked forever while being told so.
+        while (module, symName) not in seen:
+            seen.add((module, symName))
+
+            if module not in self.symbolTable or symName not in self.symbolTable[module]:
+                break
+
+            symType, symSubtype = self.symbolTable[module][symName].get("syntax", (("", ""), ""))
+
+            if isinstance(symSubtype, ValueRanges):
+                ranges.append(symSubtype)
+
+            if not symType[0] or symType[0] in self.baseTypes:
+                break
+
+            symName, module = symType
+
+        return ranges
+
+    def defval_violates_syntax(self, objname: str, module: str, kind: str, measure: int, shown: object) -> bool:
+        """Tell whether a DEFVAL contradicts the SYNTAX of the object it is on.
+
+        MIBs in the wild write defaults their own SYNTAX forbids -- an empty
+        string against ``SIZE (1..31)``, a zero against ``(1..255)``. pysnmp
+        renders the default as a ``clone()`` on the constrained type, so pyasn1
+        raises while the module is being imported and the whole module, along
+        with everything importing it, fails to load. See pysnmp/pysmi#134.
+
+        The default is dropped rather than clamped: a value moved into range is
+        one the MIB never stated.
+
+        Args:
+            objname: object the default belongs to
+            module: module that defines it
+            kind: ``"size"`` when *measure* is a length in octets, ``"range"``
+                when it is the value itself
+            measure: what the restriction is checked against
+            shown: the default as written, for the warning alone
+
+        Returns:
+            True when a restriction rejects the value, having said so.
+        """
+        for ranges in self.get_value_ranges(objname, module):
+            if ranges.kind != kind or ranges.permits(measure):
+                continue
+
+            logger.warning(
+                'ignoring DEFVAL %s of object "%s" in module "%s": it violates the object\'s own SYNTAX %s',
+                shown,
+                objname,
+                module,
+                ranges,
+            )
+            return True
+
+        return False

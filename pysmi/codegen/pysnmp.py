@@ -131,8 +131,6 @@ class PySnmpCodeGen(AbstractCodeGen):
     tuple reports them as up to date and the compiler leaves them alone.
     """
 
-    baseTypes = ["Integer", "Integer32", "Bits", "ObjectIdentifier", "OctetString"]
-
     typeClasses = {
         "COUNTER32": "Counter32",
         "COUNTER64": "Counter64",
@@ -1225,6 +1223,12 @@ for _{name}_obj in [{objects}]:
         one, and an empty string given for a non-string type is dropped rather
         than rendered.
 
+        A default that contradicts the object's own SYNTAX is dropped too. The
+        default is rendered as a ``clone()`` on the constrained type, so one
+        that no SIZE or range permits makes pyasn1 raise while the module is
+        being imported, taking the module and everything importing it with it.
+        See pysnmp/pysmi#134.
+
         Args:
             data: rendered clause values
             classmode: unused
@@ -1248,27 +1252,63 @@ for _{name}_obj in [{objects}]:
         defval = data[0]
         defvalType = self.get_base_type(objname, self.moduleName[0])
 
+        objModule = self.moduleName[0]
+
         if isinstance(defval, int):  # number
+            if defvalType[0][0] == "OctetString":
+                # RFC 2578 Section 7.9 gives a string-valued object an OCTET
+                # STRING default. IpAddress resolves here too, and pyasn1
+                # rejects a number for it outright. This is the mirror of the
+                # empty-string rule below.
+                logger.warning(
+                    'ignoring DEFVAL %s of object "%s" in module "%s": a string-valued object takes a string default',
+                    defval,
+                    objname,
+                    objModule,
+                )
+                return False
+
+            if self.defval_violates_syntax(objname, objModule, "range", defval, str(defval)):
+                return False
+
             val = str(defval)
 
         elif self.is_hex(defval):  # hex
             if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
-                val = str(int(defval[1:-2], 16))
+                intval = int(defval[1:-2], 16)
+                if self.defval_violates_syntax(objname, objModule, "range", intval, defval):
+                    return False
+
+                val = str(intval)
             else:
-                val = 'hexValue="' + defval[1:-2] + '"'
+                hexval = defval[1:-2]
+                if self.defval_violates_syntax(objname, objModule, "size", (len(hexval) + 1) // 2, defval):
+                    return False
+
+                val = 'hexValue="' + hexval + '"'
 
         elif self.is_binary(defval):  # binary
             binval = defval[1:-2]
             if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
-                val = str(int(binval or "0", 2))
+                intval = int(binval or "0", 2)
+                if self.defval_violates_syntax(objname, objModule, "range", intval, defval):
+                    return False
+
+                val = str(intval)
             else:
                 hexval = (binval and hex(int(binval, 2))[2:]) or ""
+                if self.defval_violates_syntax(objname, objModule, "size", (len(hexval) + 1) // 2, defval):
+                    return False
+
                 val = 'hexValue="' + hexval + '"'
 
         elif defval[0] == defval[-1] and defval[0] == '"':  # quoted string
             if defval[1:-1] == "" and defvalType[0][0] != "OctetString":  # common bug
                 # a warning should be here
                 return False  # we will set no default value
+
+            if self.defval_violates_syntax(objname, objModule, "size", len(defval[1:-1]), defval):
+                return False
 
             val = dorepr(defval[1:-1])
 
