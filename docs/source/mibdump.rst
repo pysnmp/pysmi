@@ -55,7 +55,7 @@ into various formats.
                   MIB-NAME arguments; deletes unless combined with
                   --dry-run.
        --no-bundled-mibs - do not use pysmi's own bundled copies of the
-                  RFC-frozen base MIBs (SNMPv2-SMI and similar) at all. The
+                  bundled base MIBs (SNMPv2-SMI and similar) at all. The
                   bundle is not a last-resort fallback: it is consulted
                   ahead of --mib-source, and where both have one of the
                   301 bundled modules the newer MODULE-IDENTITY

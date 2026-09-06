@@ -35,16 +35,20 @@ entry names one of four sources:
     pinned RFC still stands, as well as re-cutting the module and comparing.
 
 ``iana``
-    IANA publishes the authoritative text and revises it continuously, so the
-    registry URL is the source and ``--check`` re-fetches and compares. These
-    are the only bundled modules whose upstream can move under us; the monthly
-    freshness workflow exists for them.
+    IANA publishes the authoritative text at a registry URL and revises it
+    continuously. The URL is the source, and ``--check`` re-fetches and
+    compares.
 
 ``ieee802.1``
     IEEE 802.1 publishes its MIB modules at a stable directory, one file per
-    revision plus an unversioned current one. The manifest pins the dated file,
-    so the bundled copy cannot silently follow a new revision; ``--check``
-    re-fetches the pinned file and compares.
+    dated revision. The *newest* revision in that directory is the source, so
+    ``--check`` reports a new one the way it reports a revised IANA registry.
+    The manifest records the revision each bundled copy came from, and
+    ``update`` writes back the one it fetched.
+
+    Pinning the dated file instead would make the copy here unfalsifiable: the
+    URL is immutable, so ``--check`` would compare equal forever while IEEE
+    moved on, and the module would trail upstream with nothing able to say so.
 
 ``local``
     Only RFC-1212 and RFC-1215. Both RFCs define a macro in prose rather than
@@ -70,20 +74,35 @@ imported, because there would be no way to tell a stale copy from a current
 one. See ``docs/source/bundled-mibs.rst`` for the inventory and for what is
 deliberately left out.
 
-A user-supplied copy wins over a bundled one when it carries a newer
-MODULE-IDENTITY revision -- not merely by being user-supplied, and not at all
-for the 34 entries here that carry no MODULE-IDENTITY to compare, short of
---prefer-mib-source or --no-bundled-mibs. So a stale entry here does shadow a
-caller's own copy of the same module, which is why nothing goes in that is
-still being revised.
+"Upstream still revises it" is not a reason to leave a module out
+----------------------------------------------------------------
 
-Those 34 are why the RFC-frozen rule is not a nicety. Every one of them is a
-pre-SMIv2 module or an SMI module proper -- RFC1213-MIB, SNMPv2-SMI, the PPP
-and RFC1xxx-MIB modules -- whose text was fixed when its RFC was published and
-cannot be revised without a new RFC under a new module name. A module that is
-still being revised and carries no revision stamp to compare would shadow the
-caller's copy for good; there is no such module here, and the manifest is where
-that stays true.
+It reads like one, and pysmi used to treat it as one -- the bundle was
+restricted to RFC-frozen modules on the grounds that anything still being
+revised would go stale in the package. Two mechanisms have since made that
+argument obsolete for any module carrying a MODULE-IDENTITY:
+
+- ``--check`` re-fetches every entry from its publisher on a schedule, so a
+  revision upstream is reported rather than sat on. That is what the source
+  must be a *live* URL for: pinning IANA or IEEE 802.1 to an immutable dated
+  file would buy apparent stability by making staleness undetectable.
+- A caller who supplies a properly dated, genuinely newer copy wins on the
+  MODULE-IDENTITY comparison. A bundled copy that has fallen a revision behind
+  loses to their current one; it does not shadow it.
+
+So a revised-upstream module is bundled like any other, and IANA's registries
+and the IEEE 802.1 directory are tracked at their current revision rather than
+frozen. What is actually disqualifying is having no publisher to re-fetch from
+at all, because then neither mechanism has anything to work with.
+
+The one place the old argument still holds is a module with no MODULE-IDENTITY:
+there is no revision for ``--check`` to report against and none for a caller's
+copy to beat, so the bundled copy is simply used. All 34 such entries here are
+pre-SMIv2 modules or SMI modules proper -- RFC1213-MIB, SNMPv2-SMI, the PPP and
+RFC1xxx-MIB modules -- whose text an RFC froze and which cannot be revised
+except as a new module under a new name. An undated module that upstream still
+revises would shadow a caller's better copy for good; there is no such module
+here, and ``tests/test_compiler_bundled_mibs.py`` is what keeps it that way.
 """
 
 import json
@@ -92,6 +111,7 @@ import re
 import sys
 import tempfile
 import urllib.request
+from functools import cache
 from typing import Any
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -245,6 +265,45 @@ def apply_patch(text: bytes, patch: str, mibname: str) -> bytes:
     return "\n".join(out).encode()
 
 
+IEEE_DIRECTORY = "https://www.ieee802.org/1/files/public/MIBs/"
+
+#: A file in the IEEE 802.1 MIB directory: module name, then the revision it
+#: carries. A few of the oldest are missing the trailing Z.
+IEEE_FILE = re.compile(r'href="((.+?)-(\d{12})Z?\.mib)"')
+
+
+@cache
+def ieee_index() -> dict[str, tuple[str, str]]:
+    """The newest published revision of every module in the IEEE directory.
+
+    Returns:
+        Module name mapped to its newest ``(revision, filename)``.
+    """
+    listing = download(IEEE_DIRECTORY).decode("utf-8", "replace")
+    newest: dict[str, tuple[str, str]] = {}
+
+    for filename, mibname, revision in IEEE_FILE.findall(listing):
+        if mibname not in newest or revision > newest[mibname][0]:
+            newest[mibname] = (revision, filename)
+
+    if not newest:
+        raise SystemExit(f"{IEEE_DIRECTORY}: no MIB files found in the listing")
+
+    return newest
+
+
+def ieee_current(mibname: str) -> tuple[str, str]:
+    """The revision and URL of the newest published copy of *mibname*."""
+    published = ieee_index().get(mibname)
+
+    if published is None:
+        raise SystemExit(f"{mibname}: no longer published at {IEEE_DIRECTORY}")
+
+    revision, filename = published
+
+    return revision, IEEE_DIRECTORY + filename
+
+
 def as_utf8(data: bytes) -> bytes:
     """Re-encode a publisher's text as UTF-8 if it is not already.
 
@@ -274,6 +333,8 @@ def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
 
     if entry["source"] == "rfc":
         data = extract(mibname, entry["rfc"])
+    elif entry["source"] == "ieee802.1":
+        data = as_utf8(download(ieee_current(mibname)[1]))
     else:
         data = as_utf8(download(entry["url"]))
 
@@ -414,7 +475,35 @@ def update() -> int:
         for mibname in modules:
             (staging_dir / mibname).replace(DEST / mibname)
 
+    record_ieee_revisions(modules)
+
     return docs()
+
+
+def record_ieee_revisions(modules: dict[str, dict[str, Any]]) -> None:
+    """Write back the IEEE 802.1 revision each bundled copy was taken from.
+
+    The source is the newest file in the directory rather than a fixed URL, so
+    the manifest is where the answer to "which revision is in the package"
+    lives. Recorded after the refresh, from the same cached listing the fetches
+    used, so the two cannot disagree.
+    """
+    stored = json.loads(MANIFEST.read_text())
+    changed = False
+
+    for mibname, entry in modules.items():
+        if entry["source"] != "ieee802.1":
+            continue
+
+        revision = ieee_current(mibname)[0]
+
+        if stored["modules"][mibname].get("revision") != revision:
+            stored["modules"][mibname]["revision"] = revision
+            changed = True
+            sys.stdout.write(f"{mibname}: now at IEEE revision {revision}\n")
+
+    if changed:
+        MANIFEST.write_text(json.dumps(stored, indent=2, sort_keys=True) + "\n")
 
 
 def verify(source: pathlib.Path | None = None) -> int:
@@ -478,15 +567,19 @@ def docs() -> int:
     """
     modules = manifest()
 
-    def source_of(entry: dict[str, Any]) -> str:
+    def source_of(mibname: str, entry: dict[str, Any]) -> str:
         if entry["source"] == "rfc":
             return f":rfc:`{entry['rfc']}`"
         if entry["source"] == "local":
             return "maintained here"
-        label = "IANA" if entry["source"] == "iana" else "IEEE 802.1"
-        # Anonymous, so that fifty links labelled "IEEE 802.1" do not each
+        if entry["source"] == "ieee802.1":
+            # The pinned revision, not the directory: which file the bundled
+            # copy came from is the thing a reader needs.
+            revision = entry["revision"]
+            return f"`IEEE 802.1 <{IEEE_DIRECTORY}{mibname}-{revision}Z.mib>`__"
+        # Anonymous, so that thirteen links labelled "IANA" do not each
         # register a duplicate target name.
-        return f"`{label} <{entry['url']}>`__"
+        return f"`IANA <{entry['url']}>`__"
 
     # A csv-table rather than an aligned one: the cells hold URLs, and padding
     # every row out to the longest of those would make the source unreadable
@@ -494,7 +587,7 @@ def docs() -> int:
     rows = [
         '   "{}", "{}", "{}", "{}"'.format(
             mibname,
-            source_of(entry),
+            source_of(mibname, entry),
             revision_of((DEST / mibname).read_bytes()),
             "yes" if "patch" in entry else "",
         )
@@ -582,12 +675,18 @@ RFC can replace it.
 because their published text does not compile as published.
 
 Membership is decided by whether a module has a publisher we can re-fetch and
-diff -- not by which directory a mirror files it under. That is deliberate: MIB
-collections routinely file CableLabs, DMTF, MEF and SCTE modules as "standard",
-and a bundled copy of a module nobody publishes could never be told apart from
-a stale one. Modules with no live authoritative source are therefore not
-bundled, however widely they are imported; they remain available from
-https://pysnmp.github.io/mibs/asn1/ as before.
+diff -- not by which directory a mirror files it under, and not by whether that
+publisher still revises it. MIB collections routinely file CableLabs, DMTF, MEF
+and SCTE modules as "standard", and a bundled copy of a module nobody publishes
+could never be told apart from a stale one. Modules with no live authoritative
+source are therefore not bundled, however widely they are imported; they remain
+available from https://pysnmp.github.io/mibs/asn1/ as before.
+
+A module its publisher still revises *is* bundled -- IANA's registries and the
+IEEE 802.1 directory are tracked at whatever they currently publish, not frozen
+at a dated file. Freezing would only make staleness undetectable: the whole
+point of ``--check`` is that a revision upstream gets reported, and a caller
+who has the newer copy already outranks the bundle on revision.
 
 Inventory
 ---------

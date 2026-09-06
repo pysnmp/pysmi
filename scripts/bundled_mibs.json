@@ -409,132 +409,132 @@
       "url": "https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib"
     },
     "IEEE8021-BRIDGE-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-BRIDGE-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-CFM-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-CFM-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-CFM-V2-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-CFM-V2-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-CN-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-CN-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-DDCFM-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-DDCFM-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-DEVID-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-DEVID-MIB-201807151904Z.mib"
+      "revision": "201807151904",
+      "source": "ieee802.1"
     },
     "IEEE8021-ECMP-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-ECMP-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-EVB-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-EVB-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-FQTSS-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-FQTSS-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-MIRP-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-MIRP-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-MSTP-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-MSTP-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-MVRPX-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-MVRPX-MIB-202103050000Z.mib"
+      "revision": "202103050000",
+      "source": "ieee802.1"
     },
     "IEEE8021-PAE-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-PAE-MIB-200406220000Z.mib"
+      "revision": "200406220000",
+      "source": "ieee802.1"
     },
     "IEEE8021-PB-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-PB-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-PBB-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-PBB-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-PBBTE-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-PBBTE-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-PE-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-PE-MIB-201201220000Z.mib"
+      "revision": "201201220000",
+      "source": "ieee802.1"
     },
     "IEEE8021-PFC-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-PFC-MIB-202103050000Z.mib"
+      "revision": "202103050000",
+      "source": "ieee802.1"
     },
     "IEEE8021-PSFP-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-PSFP-MIB-202309260000Z.mib"
+      "revision": "202309260000",
+      "source": "ieee802.1"
     },
     "IEEE8021-Preemption-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-Preemption-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-Q-BRIDGE-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-Q-BRIDGE-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-SECY-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-SECY-MIB-202206060000Z.mib"
+      "revision": "202206060000",
+      "source": "ieee802.1"
     },
     "IEEE8021-SPANNING-TREE-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-SPANNING-TREE-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-SPB-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-SPB-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-SRP-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-SRP-MIB-202309260000Z.mib"
+      "revision": "202309260000",
+      "source": "ieee802.1"
     },
     "IEEE8021-ST-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-ST-MIB-202309260000Z.mib"
+      "revision": "202309260000",
+      "source": "ieee802.1"
     },
     "IEEE8021-TC-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-TC-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-TEIPS-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-TEIPS-MIB-201108170000Z.mib"
+      "revision": "201108170000",
+      "source": "ieee802.1"
     },
     "IEEE8021-TPMR-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-TPMR-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021-TSN-REMOTE-MANAGEMENT-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021-TSN-REMOTE-MANAGEMENT-MIB-202211080000Z.mib"
+      "revision": "202211080000",
+      "source": "ieee802.1"
     },
     "IEEE8021X-PAE-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8021X-PAE-MIB-202002181507Z.mib"
+      "revision": "202002181507",
+      "source": "ieee802.1"
     },
     "IEEE8023-LAG-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/IEEE8023-LAG-MIB-201610120000Z.mib"
+      "revision": "201610120000",
+      "source": "ieee802.1"
     },
     "IF-INVERTED-STACK-MIB": {
       "rfc": 2864,
@@ -658,36 +658,36 @@
       "source": "rfc"
     },
     "LLDP-EXT-DOT1-EVB-EXTENSIONS-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/LLDP-EXT-DOT1-EVB-EXTENSIONS-MIB-201806210000Z.mib"
+      "revision": "201806210000",
+      "source": "ieee802.1"
     },
     "LLDP-EXT-DOT1-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/LLDP-EXT-DOT1-MIB-200505060000Z.mib"
+      "revision": "200505060000",
+      "source": "ieee802.1"
     },
     "LLDP-EXT-DOT1-V2-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/LLDP-EXT-DOT1-V2-MIB-201806210000Z.mib"
+      "revision": "201806210000",
+      "source": "ieee802.1"
     },
     "LLDP-EXT-DOT3-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/LLDP-EXT-DOT3-MIB-200505060000Z.mib"
+      "revision": "200505060000",
+      "source": "ieee802.1"
     },
     "LLDP-EXT-DOT3-V2-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/LLDP-EXT-DOT3-V2-MIB-200906080000Z.mib"
+      "revision": "200906080000",
+      "source": "ieee802.1"
     },
     "LLDP-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/LLDP-MIB-200505060000Z.mib"
+      "revision": "200505060000",
+      "source": "ieee802.1"
     },
     "LLDP-V2-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/LLDP-V2-MIB-201603110000Z.mib"
+      "revision": "201603110000",
+      "source": "ieee802.1"
     },
     "LLDP-V2-TC-MIB": {
-      "source": "ieee802.1",
-      "url": "https://www.ieee802.org/1/files/public/MIBs/LLDP-V2-TC-MIB-201603110000Z.mib"
+      "revision": "201603110000",
+      "source": "ieee802.1"
     },
     "MAU-MIB": {
       "rfc": 4836,
