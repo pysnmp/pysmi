@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Compile MIBs from web &#8212; SNMP SMI compiler 2.1.1 documentation</title>
+    <title>Compile MIBs from web &#8212; SNMP SMI compiler 2.2.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=f6a572b4" />
-    <script src="../_static/documentation_options.js?v=841abef3"></script>
+    <script src="../_static/documentation_options.js?v=b21de401"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="../_static/favicon.ico"/>
@@ -56,6 +56,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">PySMI documentation</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../mibdump.html">The <em>mibdump</em> tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bundled-mibs.html">Bundled base MIBs</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../library-reference.html">PySMI library</a></li>
 </ul>
 </li>
@@ -149,7 +150,7 @@ compilation occurs on every invocation.</p>
 <span class="n">mibCompiler</span><span class="o">.</span><span class="n">add_searchers</span><span class="p">(</span><span class="n">StubSearcher</span><span class="p">(</span><span class="o">*</span><span class="n">PySnmpCodeGen</span><span class="o">.</span><span class="n">baseMibs</span><span class="p">))</span>
 
 <span class="c1"># run non-recursive MIB compilation</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">mibCompiler</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="o">*</span><span class="n">inputMibs</span><span class="p">,</span> <span class="o">**</span><span class="nb">dict</span><span class="p">(</span><span class="n">noDeps</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">mibCompiler</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="o">*</span><span class="n">inputMibs</span><span class="p">,</span> <span class="n">noDeps</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Results: "</span> <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">results</span><span class="p">[</span><span class="n">x</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]))</span>
 </pre></div>

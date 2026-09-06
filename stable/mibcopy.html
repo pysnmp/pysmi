@@ -5,16 +5,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>The mibcopy tool &#8212; SNMP SMI compiler 2.1.1 documentation</title>
+    <title>The mibcopy tool &#8212; SNMP SMI compiler 2.2.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
-    <script src="_static/documentation_options.js?v=841abef3"></script>
+    <script src="_static/documentation_options.js?v=b21de401"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="_static/favicon.ico"/>
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="PySMI library" href="library-reference.html" />
+    <link rel="next" title="Bundled base MIBs" href="bundled-mibs.html" />
     <link rel="prev" title="The mibdump tool" href="mibdump.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
@@ -56,6 +56,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="documentation.html">PySMI documentation</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="mibdump.html">The <em>mibdump</em> tool</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="library-reference.html">PySMI library</a></li>
 </ul>
 </li>
@@ -81,7 +82,7 @@
   <li><a href="contents.html">Documentation overview</a><ul>
   <li><a href="documentation.html">PySMI documentation</a><ul>
       <li>Previous: <a href="mibdump.html" title="previous chapter">The <em>mibdump</em> tool</a></li>
-      <li>Next: <a href="library-reference.html" title="next chapter">PySMI library</a></li>
+      <li>Next: <a href="bundled-mibs.html" title="next chapter">Bundled base MIBs</a></li>
   </ul></li>
   </ul></li>
 </ul>
@@ -155,7 +156,7 @@ Usage:<span class="w"> </span>mibcopy<span class="w"> </span><span class="o">[</
 <span class="w">      </span><span class="o">[</span>--dry-run<span class="o">]</span>
 <span class="w">      </span>&lt;SOURCE<span class="w"> </span><span class="o">[</span>SOURCE...<span class="o">]</span>&gt;<span class="w"> </span>&lt;DESTINATION&gt;
 Where:
-<span class="w">    </span>URI<span class="w">      </span>-<span class="w"> </span>file,<span class="w"> </span>zip,<span class="w"> </span>http,<span class="w"> </span>https,<span class="w"> </span>ftp,<span class="w"> </span>sftp<span class="w"> </span>schemes<span class="w"> </span>are
+<span class="w">    </span>URI<span class="w">      </span>-<span class="w"> </span>file,<span class="w"> </span>zip,<span class="w"> </span>http,<span class="w"> </span>https<span class="w"> </span>schemes<span class="w"> </span>are
 <span class="w">               </span>supported.<span class="w"> </span>Use<span class="w"> </span>@mib@<span class="w"> </span>placeholder<span class="w"> </span>token<span class="w"> </span><span class="k">in</span><span class="w"> </span>URI<span class="w"> </span>to
 <span class="w">               </span>refer<span class="w"> </span>directly<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>required<span class="w"> </span>MIB<span class="w"> </span>module<span class="w"> </span>when
 <span class="w">               </span><span class="nb">source</span><span class="w"> </span>does<span class="w"> </span>not<span class="w"> </span>support<span class="w"> </span>directory<span class="w"> </span>listing
@@ -167,7 +168,7 @@ Where:
 <p>The –mib-source option can be given multiple times. Each instance of
 –mib-source must specify a URL where ASN.1 MIB modules should be
 looked up and downloaded from. At this moment three MIB sourcing
-methods are supported:</p>
+methods are supported – a URL of any other scheme is rejected:</p>
 <ul class="simple">
 <li><p>Local files. This could be a top-level directory where MIB files are
 located. Subdirectories will be automatically traversed as well.
@@ -178,11 +179,6 @@ Example: zip://mymibs.zip</p></li>
 <li><p>HTTP/HTTPS. A fully specified URL where MIB module name is specified by
 a &#64;mib&#64; placeholder. When specific MIB is looked up, PySMI will replace
 that placeholder with MIB module name it is looking for.
-Example: <a class="reference external" href="https://pysnmp.github.io/mibs/asn1">https://pysnmp.github.io/mibs/asn1/&#64;mib&#64;</a></p></li>
-<li><p>SFTP/FTP. A fully specified URL including FTP username and password.
-MIB module name is specified by a &#64;mib&#64; placeholder. When specific MIB
-is looked up, PySMI will replace that placeholder with MIB module name
-it is looking for.
 Example: <a class="reference external" href="https://pysnmp.github.io/mibs/asn1">https://pysnmp.github.io/mibs/asn1/&#64;mib&#64;</a></p></li>
 </ul>
 <p>When trying to fetch a MIB module, the <em>mibcopy</em> tool will try each of

@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Changelog &#8212; SNMP SMI compiler 2.1.1 documentation</title>
+    <title>Changelog &#8212; SNMP SMI compiler 2.2.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
-    <script src="_static/documentation_options.js?v=841abef3"></script>
+    <script src="_static/documentation_options.js?v=b21de401"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="_static/favicon.ico"/>
@@ -110,19 +110,76 @@
 <p>Generated from the commit history at release time. The narrative history
 through 1.0.5 is in <a class="reference external" href="https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst">CHANGES.rst</a>.</p>
 <section id="id1">
-<h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.1.0...v2.1.1">2.1.1</a> (2026-09-06)<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.1.1...v2.2.0">2.2.0</a> (2026-09-06)<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h2>
+<section id="features">
+<h3>Features<a class="headerlink" href="#features" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>mibdump:</strong> write out the base MIBs a JSON tree needs to stand alone (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/d37c2749740f6366bcbcc1db49fc5396cb6924a8">d37c274</a>)</p></li>
+<li><p><strong>mibs:</strong> bundle the standard MIB set, each pinned to its publisher (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/4533c626aa40d5b3875e2242ac89e6c7a3df65b9">4533c62</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/161">#161</a></p></li>
+<li><p><strong>mibs:</strong> compile the bundled MIBs into pysnmp modules at build time (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/47e9891d6008f4f2907992eafcc07a4b736be219">47e9891</a>)</p></li>
+<li><p><strong>mibs:</strong> report where the pysnmp/mibs mirror disagrees with the bundle (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/a7c4853296afb97d6abac952f85d02bdfb5d651a">a7c4853</a>), closes <a class="reference external" href="https://github.com/pysnmp/mibs/issues/345">pysnmp/mibs#345</a></p></li>
+<li><p>say which rule picked a MIB, and let –mib-source outrank the bundle (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/b2b1448bf0f3493fcae754dde484b49cc3dec560">b2b1448</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/155">#155</a></p></li>
+</ul>
+</section>
 <section id="bug-fixes">
 <h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><strong>ci:</strong> publish docs from a branch, not a detached HEAD (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/8ff1eccf667bf25cf55bb843b0ddbba45e8f9181">8ff1ecc</a>)</p></li>
-<li><p><strong>ci:</strong> publish docs from a branch, not a detached HEAD (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/212f083df413a9073d2074b02bf325a5c4301666">212f083</a>)</p></li>
+<li><p>let a module compiled from a fallback copy report as compiled (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/26b1927003555c6f98d75aa586ab49255cb884b1">26b1927</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/157">#157</a> <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/155">#155</a></p></li>
+<li><p><strong>mibdump:</strong> report the base MIBs a run may write, not the ones it did (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/01309b134c0f3a865718743676f54cf5b56a699e">01309b1</a>)</p></li>
+<li><p><strong>mibs:</strong> bundle IANA-GBOND-TC-MIB, and make verify catch what hid it (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/a2d077c98ca933e982532b8935054b99be6bef50">a2d077c</a>), closes <a class="reference external" href="https://github.com/pysnmp/mibs/issues/343">pysnmp/mibs#343</a></p></li>
+<li><p><strong>mibs:</strong> keep git’s line-ending filters off the bundled MIB bytes (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/f6741ceaa93bb20e0dded584b683fb191140d890">f6741ce</a>)</p></li>
+<li><p><strong>mibs:</strong> track IEEE 802.1 at its current revision, not a pinned file (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/579da07e54d0dee11c6a2d98d68cea19226743c6">579da07</a>)</p></li>
+<li><p>name the copy that actually parsed, under the name it parsed as (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/f211f0dd106c998624ebbb06baf5cbfb85617558">f211f0d</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/155">#155</a></p></li>
+<li><p><strong>reader:</strong> report an over-long MIB name as missing, not a crash (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/82699fef859c4642887a9185a9badb2aef61546d">82699fe</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/163">#163</a></p></li>
+<li><p>report the resolved copy on runs that recompile nothing (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/25e1e8efbfd2aefb5682c9fdb84cb0cefbea83c4">25e1e8e</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/156">#156</a> <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/155">#155</a></p></li>
 </ul>
 </section>
 </section>
+<section id="rc-2-2026-09-06">
+<h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.2.0-rc.1...v2.2.0-rc.2">2.2.0-rc.2</a> (2026-09-06)<a class="headerlink" href="#rc-2-2026-09-06" title="Link to this heading">¶</a></h2>
 <section id="id2">
-<h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.0.1...v2.1.0">2.1.0</a> (2026-09-06)<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h2>
-<section id="features">
-<h3>Features<a class="headerlink" href="#features" title="Link to this heading">¶</a></h3>
+<h3>Features<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>mibdump:</strong> write out the base MIBs a JSON tree needs to stand alone (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/d37c2749740f6366bcbcc1db49fc5396cb6924a8">d37c274</a>)</p></li>
+<li><p><strong>mibs:</strong> bundle the standard MIB set, each pinned to its publisher (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/4533c626aa40d5b3875e2242ac89e6c7a3df65b9">4533c62</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/161">#161</a></p></li>
+<li><p><strong>mibs:</strong> compile the bundled MIBs into pysnmp modules at build time (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/47e9891d6008f4f2907992eafcc07a4b736be219">47e9891</a>)</p></li>
+<li><p><strong>mibs:</strong> report where the pysnmp/mibs mirror disagrees with the bundle (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/a7c4853296afb97d6abac952f85d02bdfb5d651a">a7c4853</a>), closes <a class="reference external" href="https://github.com/pysnmp/mibs/issues/345">pysnmp/mibs#345</a></p></li>
+</ul>
+</section>
+<section id="id3">
+<h3>Bug Fixes<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>mibdump:</strong> report the base MIBs a run may write, not the ones it did (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/01309b134c0f3a865718743676f54cf5b56a699e">01309b1</a>)</p></li>
+<li><p><strong>mibs:</strong> bundle IANA-GBOND-TC-MIB, and make verify catch what hid it (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/a2d077c98ca933e982532b8935054b99be6bef50">a2d077c</a>), closes <a class="reference external" href="https://github.com/pysnmp/mibs/issues/343">pysnmp/mibs#343</a></p></li>
+<li><p><strong>mibs:</strong> keep git’s line-ending filters off the bundled MIB bytes (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/f6741ceaa93bb20e0dded584b683fb191140d890">f6741ce</a>)</p></li>
+<li><p><strong>mibs:</strong> track IEEE 802.1 at its current revision, not a pinned file (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/579da07e54d0dee11c6a2d98d68cea19226743c6">579da07</a>)</p></li>
+<li><p><strong>reader:</strong> report an over-long MIB name as missing, not a crash (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/82699fef859c4642887a9185a9badb2aef61546d">82699fe</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/163">#163</a></p></li>
+</ul>
+</section>
+</section>
+<section id="rc-1-2026-09-06">
+<h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.1.0...v2.2.0-rc.1">2.2.0-rc.1</a> (2026-09-06)<a class="headerlink" href="#rc-1-2026-09-06" title="Link to this heading">¶</a></h2>
+<section id="id4">
+<h3>Features<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>say which rule picked a MIB, and let –mib-source outrank the bundle (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/b2b1448bf0f3493fcae754dde484b49cc3dec560">b2b1448</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/155">#155</a></p></li>
+</ul>
+</section>
+<section id="id5">
+<h3>Bug Fixes<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>ci:</strong> publish docs from a branch, not a detached HEAD (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/8ff1eccf667bf25cf55bb843b0ddbba45e8f9181">8ff1ecc</a>)</p></li>
+<li><p><strong>ci:</strong> publish docs from a branch, not a detached HEAD (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/212f083df413a9073d2074b02bf325a5c4301666">212f083</a>)</p></li>
+<li><p>let a module compiled from a fallback copy report as compiled (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/26b1927003555c6f98d75aa586ab49255cb884b1">26b1927</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/157">#157</a> <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/155">#155</a></p></li>
+<li><p>name the copy that actually parsed, under the name it parsed as (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/f211f0dd106c998624ebbb06baf5cbfb85617558">f211f0d</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/155">#155</a></p></li>
+<li><p>report the resolved copy on runs that recompile nothing (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/25e1e8efbfd2aefb5682c9fdb84cb0cefbea83c4">25e1e8e</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/156">#156</a> <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/155">#155</a></p></li>
+</ul>
+</section>
+</section>
+<section id="id6">
+<h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.0.1...v2.1.0">2.1.0</a> (2026-09-06)<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h2>
+<section id="id7">
+<h3>Features<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>bundle every base MIB a code generator names (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/9f1137a1c1f9e4bd2984be119b92f20d211bd761">9f1137a</a>)</p></li>
 <li><p>bundle the standard MIBs real product MIBs import (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/983a61a8abdf3ef1e301fd9707bfeb574c61fc4b">983a61a</a>)</p></li>
@@ -131,8 +188,8 @@ through 1.0.5 is in <a class="reference external" href="https://github.com/pysnm
 <li><p>repair SNMPv2-MIB symbols that no SMIv1 MIB also defines (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/94ce1ef853d767883afce58d2f426f5f4eb397a6">94ce1ef</a>)</p></li>
 </ul>
 </section>
-<section id="id3">
-<h3>Bug Fixes<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<section id="id8">
+<h3>Bug Fixes<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>release:</strong> give the changelog a title semantic-release owns (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/32d800ae9ef17434812a5e7b383b0b0af47838f8">32d800a</a>)</p></li>
 <li><p>take the superseded MIBs from their RFC, not the mirror (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/29350cfdceeff34f21e78ff32070cc52b6453820">29350cf</a>)</p></li>
@@ -142,17 +199,17 @@ through 1.0.5 is in <a class="reference external" href="https://github.com/pysnm
 </section>
 <section id="rc-3-2026-09-06">
 <h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.1.0-rc.2...v2.1.0-rc.3">2.1.0-rc.3</a> (2026-09-06)<a class="headerlink" href="#rc-3-2026-09-06" title="Link to this heading">¶</a></h2>
-<section id="id4">
-<h3>Bug Fixes<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<section id="id9">
+<h3>Bug Fixes<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>ci:</strong> publish docs from a branch, not a detached HEAD (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/212f083df413a9073d2074b02bf325a5c4301666">212f083</a>)</p></li>
 </ul>
 </section>
 </section>
-<section id="rc-2-2026-09-06">
-<h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.1.0-rc.1...v2.1.0-rc.2">2.1.0-rc.2</a> (2026-09-06)<a class="headerlink" href="#rc-2-2026-09-06" title="Link to this heading">¶</a></h2>
-<section id="id5">
-<h3>Bug Fixes<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<section id="id10">
+<h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.1.0-rc.1...v2.1.0-rc.2">2.1.0-rc.2</a> (2026-09-06)<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h2>
+<section id="id11">
+<h3>Bug Fixes<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>release:</strong> give the changelog a title semantic-release owns (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/32d800ae9ef17434812a5e7b383b0b0af47838f8">32d800a</a>)</p></li>
 </ul>
@@ -160,8 +217,8 @@ through 1.0.5 is in <a class="reference external" href="https://github.com/pysnm
 </section>
 <section id="rc-1-2026-09-05">
 <h2><a class="reference external" href="https://github.com/pysnmp/pysmi/compare/v2.0.1...v2.1.0-rc.1">2.1.0-rc.1</a> (2026-09-05)<a class="headerlink" href="#rc-1-2026-09-05" title="Link to this heading">¶</a></h2>
-<section id="id6">
-<h3>Features<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
+<section id="id12">
+<h3>Features<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>bundle every base MIB a code generator names (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/9f1137a1c1f9e4bd2984be119b92f20d211bd761">9f1137a</a>)</p></li>
 <li><p>bundle the standard MIBs real product MIBs import (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/983a61a8abdf3ef1e301fd9707bfeb574c61fc4b">983a61a</a>)</p></li>
@@ -170,8 +227,8 @@ through 1.0.5 is in <a class="reference external" href="https://github.com/pysnm
 <li><p>repair SNMPv2-MIB symbols that no SMIv1 MIB also defines (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/94ce1ef853d767883afce58d2f426f5f4eb397a6">94ce1ef</a>)</p></li>
 </ul>
 </section>
-<section id="id7">
-<h3>Bug Fixes<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<section id="id13">
+<h3>Bug Fixes<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>take the superseded MIBs from their RFC, not the mirror (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/29350cfdceeff34f21e78ff32070cc52b6453820">29350cf</a>)</p></li>
 <li><p>validate a DEFVAL against the object’s own SYNTAX before emitting it (<a class="reference external" href="https://github.com/pysnmp/pysmi/commit/b6fac5a3122cc60c7875c1d80bc407b317071a07">b6fac5a</a>), closes <a class="reference external" href="https://github.com/pysnmp/pysmi/issues/134">#134</a></p></li>

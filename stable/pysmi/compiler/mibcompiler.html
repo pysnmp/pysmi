@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>MIB compiler &#8212; SNMP SMI compiler 2.1.1 documentation</title>
+    <title>MIB compiler &#8212; SNMP SMI compiler 2.2.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=f6a572b4" />
-    <script src="../../_static/documentation_options.js?v=841abef3"></script>
+    <script src="../../_static/documentation_options.js?v=b21de401"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="../../_static/favicon.ico"/>
@@ -56,6 +56,7 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../../documentation.html">PySMI documentation</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../../mibdump.html">The <em>mibdump</em> tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bundled-mibs.html">Bundled base MIBs</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../../library-reference.html">PySMI library</a></li>
 </ul>
 </li>
@@ -118,7 +119,7 @@
 <span id="compiler-mibcompiler"></span><h1>MIB compiler<a class="headerlink" href="#mib-compiler" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="pysmi.compiler.MibCompiler">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">MibCompiler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../extending.html#pysmi.parser.base.AbstractParser" title="pysmi.parser.base.AbstractParser"><span class="pre">AbstractParser</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">codegen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../extending.html#pysmi.codegen.base.AbstractCodeGen" title="pysmi.codegen.base.AbstractCodeGen"><span class="pre">AbstractCodeGen</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../extending.html#pysmi.writer.base.AbstractWriter" title="pysmi.writer.base.AbstractWriter"><span class="pre">AbstractWriter</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">useBundledMibs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.compiler.MibCompiler" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">MibCompiler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parser</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../extending.html#pysmi.parser.base.AbstractParser" title="pysmi.parser.base.AbstractParser"><span class="pre">AbstractParser</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">codegen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../extending.html#pysmi.codegen.base.AbstractCodeGen" title="pysmi.codegen.base.AbstractCodeGen"><span class="pre">AbstractCodeGen</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../extending.html#pysmi.writer.base.AbstractWriter" title="pysmi.writer.base.AbstractWriter"><span class="pre">AbstractWriter</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">useBundledMibs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preferConfiguredSources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.compiler.MibCompiler" title="Link to this definition">¶</a></dt>
 <dd><p>Top-level, user-facing, composite MIB compiler object.</p>
 <p>MibCompiler implements high-level MIB transformation processing logic.
 It executes its actions by calling the following specialized objects:</p>
@@ -148,11 +149,28 @@ in sequences to address many possible sources of data. They are
 </ul>
 </dd>
 <dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>useBundledMibs</strong> – register pysmi’s own bundled copy of the base
+<dd class="field-even"><ul class="simple">
+<li><p><strong>useBundledMibs</strong> – register pysmi’s own bundled copy of the base
 MIBs (<code class="docutils literal notranslate"><span class="pre">SNMPv2-SMI</span></code> and friends) as a priority source, tried
-ahead of everything added through <a class="reference internal" href="#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sources()</span></code></a>. Set
-to <code class="docutils literal notranslate"><span class="pre">False</span></code> so a misconfigured <code class="docutils literal notranslate"><span class="pre">add_sources</span></code> call fails
-loudly instead of silently succeeding from the bundled copy.</p>
+ahead of everything added through <a class="reference internal" href="#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sources()</span></code></a>. It
+is a source of its own rather than a last-resort fallback:
+where an <a class="reference internal" href="#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sources()</span></code></a> reader has one of those
+modules too, the newest MODULE-IDENTITY revision supplies it
+and this ordering only breaks the tie – <a class="reference internal" href="#pysmi.compiler.MibCompiler.compile" title="pysmi.compiler.MibCompiler.compile"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compile()</span></code></a>
+states the whole rule. Set to <code class="docutils literal notranslate"><span class="pre">False</span></code> to compile from
+<a class="reference internal" href="#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sources()</span></code></a> alone, so a misconfigured call fails
+loudly instead of silently succeeding from the bundled copy.</p></li>
+<li><p><strong>preferConfiguredSources</strong> – put <a class="reference internal" href="#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sources()</span></code></a> ahead of the
+bundled copy where the revisions do not decide – a module
+with no MODULE-IDENTITY to compare, or two copies carrying
+the same one. The newest revision still wins when there is
+one on every copy; this only settles what the bundle would
+otherwise settle by being asked first. Nearly half the
+bundled modules carry no MODULE-IDENTITY at all
+(<code class="docutils literal notranslate"><span class="pre">SNMPv2-SMI</span></code> and the other SMI modules among them), so
+for those this is the difference between the caller’s copy
+being used and the bundled one.</p></li>
+</ul>
 </dd>
 </dl>
 <dl class="py method">
@@ -210,8 +228,10 @@ happens to have configured, such as pysmi’s own bundled base MIBs
 <p>A distribution’s <code class="docutils literal notranslate"><span class="pre">/usr/share/snmp/mibs</span></code> routinely carries a base MIB
 frozen years ago, and taking that over a copy pinned to its RFC is
 almost never what anyone wanted. Overriding a bundled module is still
-possible – ship a newer revision of it, or pass
-<code class="docutils literal notranslate"><span class="pre">useBundledMibs=False</span></code>.</p>
+possible – ship a newer MODULE-IDENTITY revision of it, pass
+<code class="docutils literal notranslate"><span class="pre">preferConfiguredSources=True</span></code> so <a class="reference internal" href="#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sources()</span></code></a> outranks
+the bundle wherever revisions do not decide, or pass
+<code class="docutils literal notranslate"><span class="pre">useBundledMibs=False</span></code> to drop the bundle entirely.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>sources</strong> – reader object(s)</p>
@@ -249,8 +269,11 @@ by name. <strong>The first source that has a module supplies it</strong>, and
 every <a class="reference internal" href="#pysmi.compiler.MibCompiler.add_priority_sources" title="pysmi.compiler.MibCompiler.add_priority_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_priority_sources()</span></code></a> source is asked first, whatever
 order either was added in.</p>
 <p>The one exception is a module pysmi bundles a copy of, where the
-newest MODULE-IDENTITY revision wins instead and this order only
-breaks the tie. <a class="reference internal" href="#pysmi.compiler.MibCompiler.compile" title="pysmi.compiler.MibCompiler.compile"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compile()</span></code></a> documents the whole rule.</p>
+newest MODULE-IDENTITY revision wins instead – when every copy found
+carries one – and this order only breaks the tie. Where it does fall
+to this order, <code class="docutils literal notranslate"><span class="pre">preferConfiguredSources</span></code> on the constructor puts
+these sources ahead of the bundled copy. <a class="reference internal" href="#pysmi.compiler.MibCompiler.compile" title="pysmi.compiler.MibCompiler.compile"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compile()</span></code></a> documents
+the whole rule.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>sources</strong> – reader object(s)</p>
@@ -337,11 +360,17 @@ class instances (values)</p>
 source has it:</p>
 <ol class="arabic simple">
 <li><p>For a module pysmi bundles a copy of, the newest
-MODULE-IDENTITY LAST-UPDATED wins.</p></li>
-<li><p>Otherwise – and to break a tie, and for the many modules
-carrying no LAST-UPDATED at all – source order wins: every
+MODULE-IDENTITY LAST-UPDATED wins – provided every copy
+found carries one. An undated copy cannot be placed against
+a dated one, so a single one of those drops the module to
+rule 2 whatever the others carry.</p></li>
+<li><p>Otherwise – to break a tie between equal revisions, for a
+module with an undated copy, and for everything pysmi does
+not bundle – source order wins: every
 <a class="reference internal" href="#pysmi.compiler.MibCompiler.add_priority_sources" title="pysmi.compiler.MibCompiler.add_priority_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_priority_sources()</span></code></a> reader, then every
-<a class="reference internal" href="#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sources()</span></code></a> reader, each in the order it was added.</p></li>
+<a class="reference internal" href="#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sources()</span></code></a> reader, each in the order it was
+added. <code class="docutils literal notranslate"><span class="pre">preferConfiguredSources</span></code> moves the bundled copy
+behind <a class="reference internal" href="#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_sources()</span></code></a> for this rule only.</p></li>
 </ol>
 <p>Rule 1 is deliberately confined to the bundled names. Those are
 pinned to an RFC or to IANA and re-checked against it, so two
@@ -349,9 +378,17 @@ copies of one are the same specification at two revisions and the
 newer is simply better. Two copies of a vendor module are not
 that: they are a collision, or two firmware revisions, and which
 one was meant is what the caller’s source order says.</p>
-<p><code class="docutils literal notranslate"><span class="pre">MibStatus.path</span></code> names the file a module was compiled from and
-<code class="docutils literal notranslate"><span class="pre">MibStatus.shadowed</span></code> the copies passed over, so a build can
-record what it resolved to and reproduce it later.</p>
+<p>Rule 2 carries more than it looks like it does: 13 of the 27
+bundled modules – <code class="docutils literal notranslate"><span class="pre">SNMPv2-SMI</span></code>, <code class="docutils literal notranslate"><span class="pre">SNMPv2-TC</span></code>, <code class="docutils literal notranslate"><span class="pre">SNMPv2-CONF</span></code>
+and the other SMI and RFC-numbered ones – have no
+MODULE-IDENTITY at all, so for those rule 1 can never fire and
+the bundled copy is used unless <code class="docutils literal notranslate"><span class="pre">preferConfiguredSources</span></code> or
+<code class="docutils literal notranslate"><span class="pre">useBundledMibs=False</span></code> says otherwise.</p>
+<p><code class="docutils literal notranslate"><span class="pre">MibStatus.path</span></code> names the file a module was compiled from,
+<code class="docutils literal notranslate"><span class="pre">MibStatus.shadowed</span></code> the copies passed over, and
+<code class="docutils literal notranslate"><span class="pre">MibStatus.precedence</span></code> which of these rules chose between
+them – so a build can record what it resolved to, why, and
+reproduce it later.</p>
 </div>
 </dd></dl>
 
