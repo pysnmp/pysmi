@@ -12,6 +12,7 @@ rather than left to manual inspection.
 """
 
 import io
+import os
 import sys
 import tempfile
 import unittest
@@ -150,10 +151,11 @@ class MibDumpReportTestCase(unittest.TestCase):
         self.assertIn("MIBs found in more than one source:", output)
         # Not necessarily first on that line: the placeholder base MIBs this
         # fixture writes are shadowed by pysmi's bundled copies of them, and
-        # are reported too.
+        # are reported too. os.path.join, not "/": the reader reports the
+        # path as the platform spells it, which is a backslash on Windows.
         self.assertIn(
-            f"TEST-REPORT-MIB (used file://{self.src}/TEST-REPORT-MIB,"
-            f" passed over file://{other}/TEST-REPORT-MIB,",
+            f"TEST-REPORT-MIB (used file://{os.path.join(self.src, 'TEST-REPORT-MIB')},"
+            f" passed over file://{os.path.join(other, 'TEST-REPORT-MIB')},",
             output,
         )
         self.assertIn(str(other), output)
