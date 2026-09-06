@@ -94,14 +94,18 @@ class GetReadersFromUrlsTestCase(unittest.TestCase):
 
     def testHttpUrls(self):
         """http and https select the HTTP reader."""
-        readers = getReadersFromUrls("http://example.com/@mib@", "https://example.com/@mib@")
+        readers = getReadersFromUrls(
+            "http://example.com/@mib@", "https://example.com/@mib@"
+        )
 
         for reader in readers:
             self.assertIsInstance(reader, HttpReader)
 
     def testUnsupportedSchemeIsRejected(self):
         """A scheme no reader handles is still an error."""
-        self.assertRaises(error.PySmiError, getReadersFromUrls, "ftp://example.com/mibs")
+        self.assertRaises(
+            error.PySmiError, getReadersFromUrls, "ftp://example.com/mibs"
+        )
 
     def testReadersComeBackInOrder(self):
         """Readers are returned in the order their URLs were given."""

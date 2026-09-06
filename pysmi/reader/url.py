@@ -54,7 +54,9 @@ def getReadersFromUrls(*sourceUrls: str, **options: Any) -> list[AbstractReader]
             localPath = url2pathname(mibSource.path)
 
         if scheme in ("", "file", "zip"):
-            if scheme != "file" and (localPath.endswith(".zip") or localPath.endswith(".ZIP")):
+            if scheme != "file" and (
+                localPath.endswith(".zip") or localPath.endswith(".ZIP")
+            ):
                 readers.append(ZipReader(localPath).set_options(**options))
 
             else:

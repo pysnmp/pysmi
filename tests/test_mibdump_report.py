@@ -104,7 +104,9 @@ class MibDumpReportTestCase(unittest.TestCase):
 
         self.assertEqual(0, code, output)
 
-        upToDate = next(line for line in output.splitlines() if line.startswith("Up to date MIBs:"))
+        upToDate = next(
+            line for line in output.splitlines() if line.startswith("Up to date MIBs:")
+        )
 
         self.assertIn("TEST-REPORT-MIB", upToDate)
         self.assertNotIn("Created/updated MIBs: TEST-REPORT-MIB", output)
@@ -131,7 +133,9 @@ class MibDumpReportTestCase(unittest.TestCase):
         """The shadowed line names the copy used and the one passed over."""
         other = Path(self._tmp.name) / "other"
         other.mkdir()
-        (other / "TEST-REPORT-MIB").write_text(STANDALONE_MIB.replace("a scalar", "the other copy"))
+        (other / "TEST-REPORT-MIB").write_text(
+            STANDALONE_MIB.replace("a scalar", "the other copy")
+        )
 
         code, output = runMibdump(
             f"--mib-source={self.src}",
@@ -150,7 +154,9 @@ class MibDumpReportTestCase(unittest.TestCase):
         """--strict-sources turns that report line into a failure."""
         other = Path(self._tmp.name) / "other"
         other.mkdir()
-        (other / "TEST-REPORT-MIB").write_text(STANDALONE_MIB.replace("a scalar", "the other copy"))
+        (other / "TEST-REPORT-MIB").write_text(
+            STANDALONE_MIB.replace("a scalar", "the other copy")
+        )
 
         code, output = runMibdump(
             f"--mib-source={self.src}",

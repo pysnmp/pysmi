@@ -61,7 +61,9 @@ class RevisionOfTestCase(unittest.TestCase):
     """Reading LAST-UPDATED off the text, without parsing the module."""
 
     def testTheFourDigitYearFormIsReadAsWritten(self):
-        self.assertEqual("200605020000Z", revision_of(stamped("A-MIB", "200605020000Z")))
+        self.assertEqual(
+            "200605020000Z", revision_of(stamped("A-MIB", "200605020000Z"))
+        )
 
     def testTheTwoDigitYearFormIsWidened(self):
         # RFC 2578 Section 2 reads 96 as 1996, so it has to sort below 2006
@@ -80,7 +82,9 @@ class SourceOrderTestCase(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.written = {}
         self.compiler = MibCompiler(
-            SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda n, d, ctx: self.written.update({n: d}))
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda n, d, ctx: self.written.update({n: d})),
         )
 
     def tearDown(self):
@@ -97,7 +101,10 @@ class SourceOrderTestCase(unittest.TestCase):
 
     def testUseBundledMibsFalseRegistersNoPrioritySource(self):
         compiler = MibCompiler(
-            SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None), useBundledMibs=False
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *a: None),
+            useBundledMibs=False,
         )
         self.assertEqual([], compiler._priority_sources)
 
@@ -108,7 +115,10 @@ class SourceOrderTestCase(unittest.TestCase):
 
     def testWithoutBundlingAMissingBaseMibStaysMissing(self):
         compiler = MibCompiler(
-            SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None), useBundledMibs=False
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *a: None),
+            useBundledMibs=False,
         )
         compiler.add_sources(FileReader(self._tmp.name))
         processed = compiler.compile(UNSTAMPED, ignoreErrors=True)
@@ -125,7 +135,9 @@ class SourceOrderTestCase(unittest.TestCase):
         # ASN.1 text it was read from (see pysnmp/pysmi#63) -- the one signal
         # that says which copy was used, since the symtable codegen adds the
         # same imports boilerplate to every module's output regardless.
-        self.write(self._tmp.name, UNSTAMPED, f"{UNSTAMPED} DEFINITIONS ::= BEGIN\nEND\n")
+        self.write(
+            self._tmp.name, UNSTAMPED, f"{UNSTAMPED} DEFINITIONS ::= BEGIN\nEND\n"
+        )
         bundled = (importlib.resources.files(BUNDLED_PACKAGE) / UNSTAMPED).read_text()
 
         self.compiler.add_sources(FileReader(self._tmp.name))
@@ -152,7 +164,9 @@ class SourceOrderTestCase(unittest.TestCase):
             def __str__(self):
                 return self.label
 
-        compiler = MibCompiler(SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None))
+        compiler = MibCompiler(
+            SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None)
+        )
         compiler.add_priority_sources(RecordingReader("priority"))
         compiler.add_sources(RecordingReader("primary"))
         compiler.compile("NO-SUCH-MIB", ignoreErrors=True)
@@ -163,7 +177,9 @@ class SourceOrderTestCase(unittest.TestCase):
         second = tempfile.TemporaryDirectory()
         self.addCleanup(second.cleanup)
 
-        first = self.write(self._tmp.name, "VENDOR-MIB", stamped("VENDOR-MIB", "200001010000Z"))
+        first = self.write(
+            self._tmp.name, "VENDOR-MIB", stamped("VENDOR-MIB", "200001010000Z")
+        )
         self.write(second.name, "VENDOR-MIB", stamped("VENDOR-MIB", "202601010000Z"))
 
         self.compiler.add_sources(FileReader(self._tmp.name), FileReader(second.name))
@@ -184,7 +200,9 @@ class NewestRevisionWinsTestCase(unittest.TestCase):
         # rule has something to compare.
         self.mibname = "SNMPv2-MIB"
         self.compiler = MibCompiler(
-            SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda n, d, ctx: self.written.update({n: d}))
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda n, d, ctx: self.written.update({n: d})),
         )
         self.compiler.add_sources(FileReader(self._tmp.name))
 
@@ -203,7 +221,9 @@ class NewestRevisionWinsTestCase(unittest.TestCase):
 
     def testAUserSourceWithAnOlderRevisionLoses(self):
         self.write(stamped(self.mibname, "199001010000Z"))
-        bundled = (importlib.resources.files(BUNDLED_PACKAGE) / self.mibname).read_text()
+        bundled = (
+            importlib.resources.files(BUNDLED_PACKAGE) / self.mibname
+        ).read_text()
         self.compiler.compile(self.mibname, ignoreErrors=True)
         self.assertIn(source_digest(bundled), self.written[self.mibname])
 
@@ -215,7 +235,9 @@ class NewestRevisionWinsTestCase(unittest.TestCase):
             (f"file://{os.path.join(self._tmp.name, self.mibname)}",),
             processed[self.mibname].shadowed,
         )
-        self.assertEqual(f"package://{BUNDLED_PACKAGE}/{self.mibname}", processed[self.mibname].path)
+        self.assertEqual(
+            f"package://{BUNDLED_PACKAGE}/{self.mibname}", processed[self.mibname].path
+        )
 
     def testOnlyOneSourceHavingItShadowsNothing(self):
         processed = self.compiler.compile(self.mibname, ignoreErrors=True)
@@ -223,7 +245,9 @@ class NewestRevisionWinsTestCase(unittest.TestCase):
 
     def testStrictSourcesFailsTheMibInsteadOfChoosing(self):
         self.write(stamped(self.mibname, "199001010000Z"))
-        processed = self.compiler.compile(self.mibname, ignoreErrors=True, strictSources=True)
+        processed = self.compiler.compile(
+            self.mibname, ignoreErrors=True, strictSources=True
+        )
         self.assertEqual("failed", processed[self.mibname])
 
 
@@ -248,7 +272,11 @@ class RecompileFromAChangedSourceTestCase(unittest.TestCase):
             fp.write(first)
 
         reader = FileReader(src.name)
-        compiler = MibCompiler(SmiV1CompatParser(), JsonCodeGen(), FileWriter(dst.name).set_options(suffix=".json"))
+        compiler = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            FileWriter(dst.name).set_options(suffix=".json"),
+        )
         compiler.add_sources(reader)
         compiler.add_searchers(AnyFileSearcher(dst.name).set_options(exts=[".json"]))
 

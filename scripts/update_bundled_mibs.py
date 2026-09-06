@@ -155,7 +155,9 @@ def unpaginate(text: str) -> str:
     return "\n".join(pages)
 
 
-BEGINS = re.compile(r"^[ \t]*([A-Za-z0-9][\w-]*)[ \t]+DEFINITIONS[ \t]*::=[ \t]*BEGIN\b", re.M)
+BEGINS = re.compile(
+    r"^[ \t]*([A-Za-z0-9][\w-]*)[ \t]+DEFINITIONS[ \t]*::=[ \t]*BEGIN\b", re.M
+)
 ENDS = re.compile(r"^[ \t]*END[ \t]*$", re.M)
 
 
@@ -234,7 +236,11 @@ def check() -> int:
             stale.append(f"{mibname}: bundled copy no longer matches its source")
 
     if stale:
-        sys.stderr.write("Bundled MIBs out of date:\n" + "\n".join(f"  {line}" for line in stale) + "\n")
+        sys.stderr.write(
+            "Bundled MIBs out of date:\n"
+            + "\n".join(f"  {line}" for line in stale)
+            + "\n"
+        )
         return 1
 
     sys.stdout.write(f"All {len(BUNDLED)} bundled MIBs are current.\n")
@@ -267,7 +273,9 @@ def update() -> int:
             sys.stdout.write(f"{mibname}: {len(data)} bytes\n")
 
         if verify(stagingDir) != 0:
-            sys.stderr.write("Staged bundle failed to verify; leaving the existing bundle untouched.\n")
+            sys.stderr.write(
+                "Staged bundle failed to verify; leaving the existing bundle untouched.\n"
+            )
             return 1
 
         for mibname in BUNDLED:
@@ -297,11 +305,17 @@ def verify(source: pathlib.Path | None = None) -> int:
     from pysmi.reader import FileReader
     from pysmi.writer import CallbackWriter
 
-    compiler = MibCompiler(SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None))
+    compiler = MibCompiler(
+        SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None)
+    )
     compiler.add_sources(FileReader(str(source if source is not None else DEST)))
     processed = compiler.compile(*BUNDLED, ignoreErrors=True)
 
-    failed = {name: status for name, status in processed.items() if name in BUNDLED and status != "compiled"}
+    failed = {
+        name: status
+        for name, status in processed.items()
+        if name in BUNDLED and status != "compiled"
+    }
 
     if failed:
         sys.stderr.write("Bundled MIBs failed to compile:\n")

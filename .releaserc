@@ -61,7 +61,15 @@
       },
     ],
     [
+      # Without an explicit title, semantic-release reads whatever heading the
+      # file already carries as prior content and prepends the new release
+      # above it, burying the title a little deeper on every release. Naming
+      # the title here makes the plugin own it and keep it at the top.
       "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md",
+        "changelogTitle": "# Changelog\n\nGenerated from the commit history at release time. The narrative history\nthrough 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).",
+      },
     ],
     [
       "@semantic-release/exec",

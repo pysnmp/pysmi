@@ -104,7 +104,11 @@ END
 
 def emitted_lines(pycode):
     """Index the emitted assignment lines by the symbol each one defines."""
-    return {line.split(" = ", 1)[0]: line for line in pycode.splitlines() if " = " in line and "import" not in line}
+    return {
+        line.split(" = ", 1)[0]: line
+        for line in pycode.splitlines()
+        if " = " in line and "import" not in line
+    }
 
 
 class ClauseTestCase(unittest.TestCase):
@@ -130,7 +134,11 @@ class ClauseTestCase(unittest.TestCase):
         self.assertEqual(self.doc["default"], {"value": 3, "format": "decimal"})
         self.assertEqual(
             self.doc["syntax"],
-            {"type": "Integer32", "class": "type", "constraints": {"range": [{"min": 0, "max": 7}]}},
+            {
+                "type": "Integer32",
+                "class": "type",
+                "constraints": {"range": [{"min": 0, "max": 7}]},
+            },
         )
 
     def testTheDocumentSpellsMaxAccessAsTheRfcDoes(self):
@@ -145,7 +153,10 @@ class ClauseTestCase(unittest.TestCase):
     def testTheEmittedSyntaxAppliesTheConstraintBeforeTheDefault(self):
         # DEFVAL is a value of the sub-typed SYNTAX, not of the base type, so
         # .clone() has to be applied to the constrained type.
-        self.assertIn("Integer32().subtype(subtypeSpec=ValueRangeConstraint(0, 7)).clone(3)", self.line)
+        self.assertIn(
+            "Integer32().subtype(subtypeSpec=ValueRangeConstraint(0, 7)).clone(3)",
+            self.line,
+        )
 
     def testTheEmittedUnitsAreNotGuarded(self):
         # UNITS says what the value means, not what the object is for, so a
@@ -221,7 +232,13 @@ class SyntaxTestCase(unittest.TestCase):
         # Each alternative is its own range with equal bounds.
         self.assertEqual(
             self.doc["testValueSet"]["syntax"]["constraints"],
-            {"range": [{"min": 0, "max": 0}, {"min": 2, "max": 2}, {"min": 44, "max": 44}]},
+            {
+                "range": [
+                    {"min": 0, "max": 0},
+                    {"min": 2, "max": 2},
+                    {"min": 44, "max": 44},
+                ]
+            },
         )
         self.assertIn(
             "ConstraintsUnion(ValueRangeConstraint(0, 0), ValueRangeConstraint(2, 2), ValueRangeConstraint(44, 44), )",
@@ -229,20 +246,33 @@ class SyntaxTestCase(unittest.TestCase):
         )
 
     def testASizeBecomesAValueSizeConstraint(self):
-        self.assertEqual(self.doc["testSize"]["syntax"]["constraints"], {"size": [{"min": 0, "max": 512}]})
+        self.assertEqual(
+            self.doc["testSize"]["syntax"]["constraints"],
+            {"size": [{"min": 0, "max": 512}]},
+        )
         self.assertIn("ValueSizeConstraint(0, 512)", self.lines["testSize"])
 
     def testBitsCarryTheirNamedPositions(self):
         # RFC 2578 section 7.1.4: a BITS value is a set of named bit positions.
-        self.assertEqual(self.doc["testBits"]["syntax"]["bits"], {"notification": 0, "set": 1})
-        self.assertIn('Bits().clone(namedValues=NamedValues(("notification", 0), ("set", 1)))', self.lines["testBits"])
+        self.assertEqual(
+            self.doc["testBits"]["syntax"]["bits"], {"notification": 0, "set": 1}
+        )
+        self.assertIn(
+            'Bits().clone(namedValues=NamedValues(("notification", 0), ("set", 1)))',
+            self.lines["testBits"],
+        )
 
     def testAnEnumerationCarriesItsNamedNumbers(self):
         # RFC 2578 section 7.1.1: an enumerated INTEGER names each value it
         # permits, and the enumeration is itself the constraint.
-        self.assertEqual(self.doc["testEnum"]["syntax"]["constraints"]["enumeration"], {"enable": 1, "disable": 2})
+        self.assertEqual(
+            self.doc["testEnum"]["syntax"]["constraints"]["enumeration"],
+            {"enable": 1, "disable": 2},
+        )
         self.assertIn("SingleValueConstraint(1, 2)", self.lines["testEnum"])
-        self.assertIn('NamedValues(("enable", 1), ("disable", 2))', self.lines["testEnum"])
+        self.assertIn(
+            'NamedValues(("enable", 1), ("disable", 2))', self.lines["testEnum"]
+        )
 
 
 class DefvalTestCase(unittest.TestCase):
@@ -254,24 +284,33 @@ class DefvalTestCase(unittest.TestCase):
         cls.lines = emitted_lines(render_source(SYNTAX_MIB, deps=[SNMPV2_SMI]))
 
     def testAnIntegerDefaultIsCarriedAsANumber(self):
-        self.assertEqual(self.doc["testInteger"]["default"], {"value": 123456, "format": "decimal"})
+        self.assertEqual(
+            self.doc["testInteger"]["default"], {"value": 123456, "format": "decimal"}
+        )
         self.assertIn(".clone(123456)", self.lines["testInteger"])
 
     def testAStringDefaultIsCarriedAsText(self):
-        self.assertEqual(self.doc["testString"]["default"], {"value": "test value", "format": "string"})
+        self.assertEqual(
+            self.doc["testString"]["default"],
+            {"value": "test value", "format": "string"},
+        )
         self.assertIn(".clone('test value')", self.lines["testString"])
 
     def testAnEnumeratedDefaultIsCarriedByName(self):
         # RFC 2578 section 7.9: the DEFVAL of an enumerated INTEGER is written
         # as a label, and stays a label -- resolving it to its number here would
         # lose the only thing that makes the document readable.
-        self.assertEqual(self.doc["testEnum"]["default"], {"value": "enable", "format": "enum"})
+        self.assertEqual(
+            self.doc["testEnum"]["default"], {"value": "enable", "format": "enum"}
+        )
         self.assertIn(".clone('enable')", self.lines["testEnum"])
 
     def testAZeroDefaultIsNotDiscarded(self):
         # A falsy default is still a default. See the strict_equality note in
         # pyproject.toml for the bug this shape hid.
-        self.assertEqual(self.doc["testRange"]["default"], {"value": 0, "format": "decimal"})
+        self.assertEqual(
+            self.doc["testRange"]["default"], {"value": 0, "format": "decimal"}
+        )
         self.assertIn(".clone(0)", self.lines["testRange"])
 
 

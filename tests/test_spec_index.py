@@ -25,7 +25,17 @@ import unittest
 from tests.harness import render_json, render_source
 
 #: RFC 2578 section 7.1.1-7.1.10, grouped by how section 7.7.1 encodes each one.
-INTEGER_TYPES = frozenset({"INTEGER", "Integer32", "Unsigned32", "Counter32", "Gauge32", "TimeTicks", "Counter64"})
+INTEGER_TYPES = frozenset(
+    {
+        "INTEGER",
+        "Integer32",
+        "Unsigned32",
+        "Counter32",
+        "Gauge32",
+        "TimeTicks",
+        "Counter64",
+    }
+)
 STRING_TYPES = frozenset({"OCTET STRING", "OctetString"})
 OID_TYPES = frozenset({"OBJECT IDENTIFIER", "ObjectIdentifier"})
 
@@ -246,21 +256,31 @@ class SingleColumnTestCase(unittest.TestCase):
         self.assertEqual(encode_instance(row("Integer32"), "testEntry", [42]), (42,))
 
     def testAnIpAddressIsFourSubIdentifiers(self):
-        self.assertEqual(encode_instance(row("IpAddress"), "testEntry", ["192.0.2.1"]), (192, 0, 2, 1))
+        self.assertEqual(
+            encode_instance(row("IpAddress"), "testEntry", ["192.0.2.1"]),
+            (192, 0, 2, 1),
+        )
 
     def testAFixedLengthStringHasNoLengthPrefix(self):
         doc = row("OCTET STRING (SIZE(4))", base="OCTET STRING")
-        self.assertEqual(encode_instance(doc, "testEntry", [b"abcd"]), (97, 98, 99, 100))
+        self.assertEqual(
+            encode_instance(doc, "testEntry", [b"abcd"]), (97, 98, 99, 100)
+        )
 
     def testAVariableLengthStringIsLengthPrefixed(self):
-        self.assertEqual(encode_instance(row("OCTET STRING"), "testEntry", [b"abc"]), (3, 97, 98, 99))
+        self.assertEqual(
+            encode_instance(row("OCTET STRING"), "testEntry", [b"abc"]), (3, 97, 98, 99)
+        )
 
     def testAnImpliedStringDropsTheLengthPrefix(self):
         doc = row("OCTET STRING", index="IMPLIED testIndex")
         self.assertEqual(encode_instance(doc, "testEntry", [b"abc"]), (97, 98, 99))
 
     def testAnOidIsCountPrefixed(self):
-        self.assertEqual(encode_instance(row("OBJECT IDENTIFIER"), "testEntry", [(1, 3, 6)]), (3, 1, 3, 6))
+        self.assertEqual(
+            encode_instance(row("OBJECT IDENTIFIER"), "testEntry", [(1, 3, 6)]),
+            (3, 1, 3, 6),
+        )
 
     def testAnImpliedOidDropsTheCount(self):
         doc = row("OBJECT IDENTIFIER", index="IMPLIED testIndex")
@@ -271,7 +291,9 @@ class SingleColumnTestCase(unittest.TestCase):
         # SIZE constraint on the index column. Losing it would silently move
         # every instance of the table.
         doc = row("OCTET STRING (SIZE(4))", base="OCTET STRING")
-        self.assertEqual(doc["testIndex"]["syntax"]["constraints"]["size"], [{"min": 4, "max": 4}])
+        self.assertEqual(
+            doc["testIndex"]["syntax"]["constraints"]["size"], [{"min": 4, "max": 4}]
+        )
 
 
 class ImpliedFlagTestCase(unittest.TestCase):
@@ -279,17 +301,25 @@ class ImpliedFlagTestCase(unittest.TestCase):
 
     def testImpliedIsFlaggedInTheDocument(self):
         doc = row("OCTET STRING", index="IMPLIED testIndex")
-        self.assertEqual(doc["testEntry"]["indices"], [{"module": "TEST-MIB", "object": "testIndex", "implied": 1}])
+        self.assertEqual(
+            doc["testEntry"]["indices"],
+            [{"module": "TEST-MIB", "object": "testIndex", "implied": 1}],
+        )
 
     def testAPlainIndexIsFlaggedAsNotImplied(self):
         # The flag is written either way rather than left absent, so a consumer
         # never has to guess what a missing key meant.
         doc = row("OCTET STRING")
-        self.assertEqual(doc["testEntry"]["indices"], [{"module": "TEST-MIB", "object": "testIndex", "implied": 0}])
+        self.assertEqual(
+            doc["testEntry"]["indices"],
+            [{"module": "TEST-MIB", "object": "testIndex", "implied": 0}],
+        )
 
     def testTheEmittedSourceCarriesTheFlagFirst(self):
         # pysnmp reads setIndexNames() as (implied, module, symbol) triples.
-        source = render_source(MIB % ("IMPLIED testIndex", "OCTET STRING", "OCTET STRING"))
+        source = render_source(
+            MIB % ("IMPLIED testIndex", "OCTET STRING", "OCTET STRING")
+        )
         self.assertIn('.setIndexNames((1, "TEST-MIB", "testIndex"))', source)
 
     def testTheEmittedSourceFlagsAPlainIndexAsZero(self):
@@ -301,7 +331,10 @@ class MultiColumnTestCase(unittest.TestCase):
     """Each INDEX column contributes its own encoding, in clause order."""
 
     def testFixedThenVariablePartsConcatenate(self):
-        self.assertEqual(encode_instance(render_json(MULTI_MIB % ""), "testEntry", [7, b"ab"]), (7, 2, 97, 98))
+        self.assertEqual(
+            encode_instance(render_json(MULTI_MIB % ""), "testEntry", [7, b"ab"]),
+            (7, 2, 97, 98),
+        )
 
     def testATrailingImpliedAppliesToTheLastColumnOnly(self):
         # RFC 2578 section 7.7 allows IMPLIED only on the last index column, so
@@ -312,7 +345,9 @@ class MultiColumnTestCase(unittest.TestCase):
 
     def testTheDocumentKeepsClauseOrderNotOidOrder(self):
         doc = render_json(MULTI_MIB % "")
-        self.assertEqual([i["object"] for i in doc["testEntry"]["indices"]], ["testInt", "testStr"])
+        self.assertEqual(
+            [i["object"] for i in doc["testEntry"]["indices"]], ["testInt", "testStr"]
+        )
 
     def testTheEmittedSourceKeepsClauseOrder(self):
         source = render_source(MULTI_MIB % "")
@@ -343,7 +378,9 @@ class AugmentsTestCase(unittest.TestCase):
         self.assertEqual(self.doc["baseEntry"]["indices"][0]["object"], "baseIndex")
 
     def testTheEmittedSourceRegistersTheAugmentation(self):
-        self.assertIn('baseEntry.registerAugmentions(("TEST-MIB", "augEntry"))', self.source)
+        self.assertIn(
+            'baseEntry.registerAugmentions(("TEST-MIB", "augEntry"))', self.source
+        )
         self.assertIn("augEntry.setIndexNames(*baseEntry.getIndexNames())", self.source)
 
     def testTheAugmentingRowEncodesLikeItsBase(self):
@@ -358,7 +395,9 @@ class ForeignIndexTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        mib = AUGMENTS_MIB.replace("AUGMENTS    { baseEntry }", "INDEX       { baseIndex }")
+        mib = AUGMENTS_MIB.replace(
+            "AUGMENTS    { baseEntry }", "INDEX       { baseIndex }"
+        )
         cls.doc = render_json(mib)
         cls.source = render_source(mib)
 
@@ -392,7 +431,11 @@ class IndexAccessTestCase(unittest.TestCase):
         # written out rather than left to the class. See pysnmp/pysmi#128.
         for symbol in ("testTable", "testEntry", "testInt", "testStr"):
             with self.subTest(symbol=symbol):
-                line = next(text for text in self.source.splitlines() if text.startswith(f"{symbol} = "))
+                line = next(
+                    text
+                    for text in self.source.splitlines()
+                    if text.startswith(f"{symbol} = ")
+                )
                 self.assertIn('.setMaxAccess("notaccessible")', line)
 
 
@@ -404,8 +447,22 @@ class EncodingModelTestCase(unittest.TestCase):
             encode_column({"type": "Opaque"}, b"x", False)
 
     def testAFixedLengthRangeIsNotMistakenForASingleSize(self):
-        self.assertFalse(fixed_length({"type": "OCTET STRING", "constraints": {"size": [{"min": 0, "max": 4}]}}))
-        self.assertTrue(fixed_length({"type": "OCTET STRING", "constraints": {"size": [{"min": 4, "max": 4}]}}))
+        self.assertFalse(
+            fixed_length(
+                {
+                    "type": "OCTET STRING",
+                    "constraints": {"size": [{"min": 0, "max": 4}]},
+                }
+            )
+        )
+        self.assertTrue(
+            fixed_length(
+                {
+                    "type": "OCTET STRING",
+                    "constraints": {"size": [{"min": 4, "max": 4}]},
+                }
+            )
+        )
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

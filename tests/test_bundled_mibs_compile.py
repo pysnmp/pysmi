@@ -34,7 +34,10 @@ RFC_REVISIONS = {
 class BundledMibsCompileTestCase(unittest.TestCase):
     def setUp(self):
         self.compiler = MibCompiler(
-            SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None), useBundledMibs=False
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *a: None),
+            useBundledMibs=False,
         )
         self.compiler.add_sources(PackageReader("pysmi.mibs.asn1"))
 
@@ -77,7 +80,11 @@ class BundledMibsCompileTestCase(unittest.TestCase):
             with self.subTest(mib=mibname):
                 self.assertIn(mibname, RFC_SOURCES)
 
-                text = resources.files("pysmi.mibs.asn1").joinpath(mibname).read_text(errors="replace")
+                text = (
+                    resources.files("pysmi.mibs.asn1")
+                    .joinpath(mibname)
+                    .read_text(errors="replace")
+                )
                 found = re.search(r'LAST-UPDATED\s+"([0-9]+Z)"', text)
 
                 self.assertIsNotNone(found, f"{mibname} has no LAST-UPDATED")

@@ -49,7 +49,13 @@ class PyFileWriter(AbstractWriter):
         """Identify this writer by the directory it stores modules in."""
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+    def put_data(
+        self,
+        mibname: str,
+        data: str,
+        comments: tuple[str, ...] = (),
+        dryRun: bool = False,
+    ) -> None:
         """Write the generated MIB as a Python module.
 
         Comments are rendered as a module docstring. The module is also
@@ -69,7 +75,8 @@ class PyFileWriter(AbstractWriter):
 
             except OSError as exc:
                 raise error.PySmiWriterError(
-                    f"failure creating destination directory {self._path}: {exc}", writer=self
+                    f"failure creating destination directory {self._path}: {exc}",
+                    writer=self,
                 ) from exc
 
         if comments:
@@ -91,13 +98,17 @@ class PyFileWriter(AbstractWriter):
                 with contextlib.suppress(OSError):
                     os.unlink(tfile)
 
-            raise error.PySmiWriterError(f"failure writing file {pyfile}: {exc}", file=pyfile, writer=self) from exc
+            raise error.PySmiWriterError(
+                f"failure writing file {pyfile}: {exc}", file=pyfile, writer=self
+            ) from exc
 
         logger.debug("created file %s", pyfile, extra={"mib": mibname, "path": pyfile})
 
         if self.pyCompile:
             try:
-                py_compile.compile(pyfile, doraise=True, optimize=self.pyOptimizationLevel)
+                py_compile.compile(
+                    pyfile, doraise=True, optimize=self.pyOptimizationLevel
+                )
 
             except (SyntaxError, py_compile.PyCompileError):
                 pass  # XXX
@@ -107,7 +118,9 @@ class PyFileWriter(AbstractWriter):
                 with contextlib.suppress(OSError):
                     os.unlink(pyfile)
 
-                raise error.PySmiWriterError(f"failure compiling {pyfile}: {exc}", file=mibname, writer=self) from exc
+                raise error.PySmiWriterError(
+                    f"failure compiling {pyfile}: {exc}", file=mibname, writer=self
+                ) from exc
 
         logger.debug("%s stored", mibname, extra={"mib": mibname})
 
@@ -157,7 +170,11 @@ class PyFileWriter(AbstractWriter):
         pyfile = os.path.join(self._path, decode(mibname)) + SOURCE_SUFFIXES[0]
 
         if dryRun:
-            logger.debug("dry run mode, not removing %s", pyfile, extra={"mib": mibname, "path": pyfile})
+            logger.debug(
+                "dry run mode, not removing %s",
+                pyfile,
+                extra={"mib": mibname, "path": pyfile},
+            )
             return
 
         try:
@@ -167,7 +184,9 @@ class PyFileWriter(AbstractWriter):
             return
 
         except OSError as exc:
-            raise error.PySmiWriterError(f"failure removing file {pyfile}: {exc}", file=pyfile, writer=self) from exc
+            raise error.PySmiWriterError(
+                f"failure removing file {pyfile}: {exc}", file=pyfile, writer=self
+            ) from exc
 
         cacheDir = os.path.join(self._path, "__pycache__")
 

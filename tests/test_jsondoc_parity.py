@@ -106,7 +106,10 @@ class NotificationTypeJsonTestCase(unittest.TestCase):
         )
 
     def testObjectsAgreeWithTheEmittedSource(self):
-        emitted = "".join(f'("{o["module"]}", "{o["object"]}"), ' for o in self.doc["testNotify"]["objects"])
+        emitted = "".join(
+            f'("{o["module"]}", "{o["object"]}"), '
+            for o in self.doc["testNotify"]["objects"]
+        )
         self.assertIn(f".setObjects({emitted[:-2]})", self.source)
 
 
@@ -130,7 +133,10 @@ class NotificationGroupJsonTestCase(unittest.TestCase):
         )
 
     def testObjectsAgreeWithTheEmittedSource(self):
-        emitted = "".join(f'("{o["module"]}", "{o["object"]}"), ' for o in self.doc["testNotifyGroup"]["objects"])
+        emitted = "".join(
+            f'("{o["module"]}", "{o["object"]}"), '
+            for o in self.doc["testNotifyGroup"]["objects"]
+        )
         self.assertIn(f".setObjects({emitted[:-2]})", self.source)
 
     def testReferenceSurvivesWhereTheGeneratedSourceCannotTakeIt(self):
@@ -195,7 +201,10 @@ class TrapTypeJsonTestCase(unittest.TestCase):
     def testBothBackendsAgreeOnTheConvertedOid(self):
         # The generated source keeps the enterprise and the trap number as two
         # terms, so the sum rather than the spelling is what has to agree.
-        self.assertIn("testTrap = NotificationType((1, 3, 6, 1, 4, 1, 20408) + (0,7))", self.source)
+        self.assertIn(
+            "testTrap = NotificationType((1, 3, 6, 1, 4, 1, 20408) + (0,7))",
+            self.source,
+        )
 
     def testTheBracedEnterpriseFormGivesTheSameOid(self):
         # curlyBracesAroundEnterpriseInTrap is a spelling relaxation, not a
@@ -204,7 +213,9 @@ class TrapTypeJsonTestCase(unittest.TestCase):
         doc = render_json(braced, curlyBracesAroundEnterpriseInTrap=True)
         source = render_source(braced, curlyBracesAroundEnterpriseInTrap=True)
         self.assertEqual(doc["testTrap"]["oid"], self.doc["testTrap"]["oid"])
-        self.assertIn("testTrap = NotificationType((1, 3, 6, 1, 4, 1, 20408) + (0,7))", source)
+        self.assertIn(
+            "testTrap = NotificationType((1, 3, 6, 1, 4, 1, 20408) + (0,7))", source
+        )
 
     def testTrapBecomesANotificationType(self):
         self.assertEqual(self.doc["testTrap"]["class"], "notificationtype")
@@ -248,9 +259,14 @@ class GenericTrapTestCase(unittest.TestCase):
         self.assertEqual(render_json(mib)["testTrap"]["oid"], oid)
         # The emitted OID is written as a prefix plus the trap suffix, so it is
         # compared as the sub-identifiers it evaluates to.
-        emitted = next(x for x in render_source(mib).splitlines() if x.startswith("testTrap ="))
+        emitted = next(
+            x for x in render_source(mib).splitlines() if x.startswith("testTrap =")
+        )
         subids = tuple(
-            int(n) for n in re.findall(r"-?\d+", emitted.split("NotificationType(", 1)[1].split(")).", 1)[0])
+            int(n)
+            for n in re.findall(
+                r"-?\d+", emitted.split("NotificationType(", 1)[1].split(")).", 1)[0]
+            )
         )
         self.assertEqual(subids, tuple(int(subId) for subId in oid.split(".")))
 
@@ -283,7 +299,10 @@ class WithoutTextsTestCase(unittest.TestCase):
     def testStructuralClausesSurviveWithoutTexts(self):
         doc = render_json(NOTIFICATION_MIB, genTexts=False)
         self.assertEqual(doc["testNotify"]["oid"], "1.3.3")
-        self.assertEqual(doc["testNotify"]["objects"], [{"module": "TEST-MIB", "object": "testObject"}])
+        self.assertEqual(
+            doc["testNotify"]["objects"],
+            [{"module": "TEST-MIB", "object": "testObject"}],
+        )
 
     def testTrapTextsAreOmitted(self):
         doc = render_json(TRAP_MIB, genTexts=False)

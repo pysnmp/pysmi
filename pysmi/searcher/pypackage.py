@@ -85,7 +85,13 @@ class PyPackageSearcher(AbstractSearcher):
         )  # dst
         return time.mktime(t)
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
+    def file_exists(
+        self,
+        mibname: str,
+        mtime: float,
+        rebuild: bool = False,
+        digest: str | None = None,
+    ) -> None:
         """Look for a compiled MIB inside an importable Python package.
 
         Handles both packages on the filesystem and packages inside a zipped
@@ -117,7 +123,11 @@ class PyPackageSearcher(AbstractSearcher):
                     "%s is an importable egg at %s",
                     self._package,
                     packageDir,
-                    extra={"mib": mibname, "package": self._package, "path": packageDir},
+                    extra={
+                        "mib": mibname,
+                        "package": self._package,
+                        "path": packageDir,
+                    },
                 )
 
             elif packageFile is not None:
@@ -131,7 +141,9 @@ class PyPackageSearcher(AbstractSearcher):
                 )
 
             else:
-                raise error.PySmiFileNotFoundError(f"{self._package} is neither importable nor a file", searcher=self)
+                raise error.PySmiFileNotFoundError(
+                    f"{self._package} is neither importable nor a file", searcher=self
+                )
 
         except ImportError as exc:
             raise error.PySmiFileNotFoundError(
@@ -139,14 +151,19 @@ class PyPackageSearcher(AbstractSearcher):
             ) from exc
 
         if loader is None:
-            raise error.PySmiFileNotFoundError(f"{self._package} is not an egg", searcher=self)
+            raise error.PySmiFileNotFoundError(
+                f"{self._package} is not an egg", searcher=self
+            )
 
         for pySfx in BYTECODE_SUFFIXES:
             f = os.path.join(self._package, mibname.upper()) + pySfx
 
             if f not in loader._files:
                 logger.debug(
-                    "%s is not in %s", f, self._package, extra={"mib": mibname, "path": f, "package": self._package}
+                    "%s is not in %s",
+                    f,
+                    self._package,
+                    extra={"mib": mibname, "path": f, "package": self._package},
                 )
                 continue
 
@@ -163,7 +180,9 @@ class PyPackageSearcher(AbstractSearcher):
                 if pyTime >= mtime:
                     raise error.PySmiFileNotModifiedError()
                 else:
-                    raise error.PySmiFileNotFoundError(f"older file {mibname} exists", searcher=self)
+                    raise error.PySmiFileNotFoundError(
+                        f"older file {mibname} exists", searcher=self
+                    )
 
             else:
                 logger.debug("bad magic in %s", f, extra={"mib": mibname, "path": f})
@@ -174,7 +193,10 @@ class PyPackageSearcher(AbstractSearcher):
 
             if f not in loader._files:
                 logger.debug(
-                    "%s is not in %s", f, self._package, extra={"mib": mibname, "path": f, "package": self._package}
+                    "%s is not in %s",
+                    f,
+                    self._package,
+                    extra={"mib": mibname, "path": f, "package": self._package},
                 )
                 continue
 
@@ -189,6 +211,8 @@ class PyPackageSearcher(AbstractSearcher):
             if pyTime >= mtime:
                 raise error.PySmiFileNotModifiedError()
             else:
-                raise error.PySmiFileNotFoundError(f"older file {mibname} exists", searcher=self)
+                raise error.PySmiFileNotFoundError(
+                    f"older file {mibname} exists", searcher=self
+                )
 
         raise error.PySmiFileNotFoundError(f"no file {mibname} found", searcher=self)

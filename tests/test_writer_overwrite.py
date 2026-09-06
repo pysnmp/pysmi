@@ -30,8 +30,12 @@ class FileWriterOverwriteTestCase(unittest.TestCase):
         self._tmp.cleanup()
 
     def testPutDataOverwritesAnExistingFile(self):
-        self.writer.put_data("IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}')
-        self.writer.put_data("IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.1"]}}')
+        self.writer.put_data(
+            "IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}'
+        )
+        self.writer.put_data(
+            "IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.1"]}}'
+        )
 
         with open(os.path.join(self.dst, "IF-MIB.json")) as fp:
             self.assertIn("2.0.1", fp.read())
@@ -50,8 +54,12 @@ class PyFileWriterOverwriteTestCase(unittest.TestCase):
         self._tmp.cleanup()
 
     def testPutDataOverwritesAnExistingFile(self):
-        self.writer.put_data("IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"])
-        self.writer.put_data("IF-MIB", "out = 2\n", comments=["Produced by pysmi-2.0.1"])
+        self.writer.put_data(
+            "IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"]
+        )
+        self.writer.put_data(
+            "IF-MIB", "out = 2\n", comments=["Produced by pysmi-2.0.1"]
+        )
 
         with open(os.path.join(self.dst, "IF-MIB.py")) as fp:
             self.assertIn("out = 2", fp.read())

@@ -189,6 +189,7 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
   ```python
   from tests.harness import render_json, render_source
 
+
   class ClauseTestCase(unittest.TestCase):
       """RFC 2578 section 7: OBJECT-TYPE."""
 
@@ -254,7 +255,9 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
 - Raise the most specific exception class, passing context as kwargs:
   ```python
   raise error.PySmiReaderFileNotFoundError(mibname=mibname, reader=self._reader)
-  raise error.PySmiWriterError(f"failure writing file {pyfile}: {exc[1]}", file=pyfile, writer=self)
+  raise error.PySmiWriterError(
+      f"failure writing file {pyfile}: {exc[1]}", file=pyfile, writer=self
+  )
   ```
 - Use the modern `except ... as exc` form and interpolate `exc` (or `exc[1]` from a caught tuple) into a new error. The legacy `sys.exc_info()[1]` pattern has been removed; do not reintroduce it.
 - `try/except` blocks commonly catch `(OSError, UnicodeEncodeError)` for file I/O.

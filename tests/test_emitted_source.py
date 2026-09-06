@@ -134,10 +134,19 @@ NARRATIVE_SETTERS = (
 #: it: their classes have no ``setReference``. pysmi carries the text to the JSON
 #: document instead of emitting a call that would fail on load. See
 #: pysnmp/pysmi#101 and pysnmp/pysnmp#133.
-WITHOUT_SET_REFERENCE = ("testObjectGroup", "testNotificationGroup", "testModuleCompliance")
+WITHOUT_SET_REFERENCE = (
+    "testObjectGroup",
+    "testNotificationGroup",
+    "testModuleCompliance",
+)
 
 #: The macros whose pysnmp classes do take a REFERENCE.
-WITH_SET_REFERENCE = ("testObjectIdentity", "testObjectType", "testNotificationType", "testAgentCapabilities")
+WITH_SET_REFERENCE = (
+    "testObjectIdentity",
+    "testObjectType",
+    "testNotificationType",
+    "testAgentCapabilities",
+)
 
 
 def setter_lines(pycode, setter):
@@ -162,19 +171,25 @@ class NarrativeGuardTestCase(unittest.TestCase):
         emitted = set()
         for mib in (MACROS_MIB, MODULE_IDENTITY_MIB):
             pycode = render_source(mib)
-            emitted.update(setter for setter in NARRATIVE_SETTERS if setter_lines(pycode, setter))
+            emitted.update(
+                setter for setter in NARRATIVE_SETTERS if setter_lines(pycode, setter)
+            )
 
         self.assertEqual(emitted, set(NARRATIVE_SETTERS))
 
     def testNarrativeSettersVanishWithoutTexts(self):
         for setter in ("setDescription", "setReference"):
             with self.subTest(setter=setter):
-                self.assertEqual(setter_lines(render_source(MACROS_MIB, genTexts=False), setter), [])
+                self.assertEqual(
+                    setter_lines(render_source(MACROS_MIB, genTexts=False), setter), []
+                )
 
     def testStatusSurvivesWithoutTexts(self):
         # STATUS says whether an object may still be used, which is not
         # narrative. It is emitted either way.
-        self.assertNotEqual(setter_lines(render_source(MACROS_MIB, genTexts=False), "setStatus"), [])
+        self.assertNotEqual(
+            setter_lines(render_source(MACROS_MIB, genTexts=False), "setStatus"), []
+        )
 
 
 class ConformanceReferenceTestCase(unittest.TestCase):
@@ -205,7 +220,9 @@ class ConstructTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.pycode = render_source(CONSTRUCTS_MIB)
         cls.lines = {
-            line.split(" = ", 1)[0]: line for line in cls.pycode.splitlines() if " = " in line and "import" not in line
+            line.split(" = ", 1)[0]: line
+            for line in cls.pycode.splitlines()
+            if " = " in line and "import" not in line
         }
 
     def line(self, symbol):
@@ -263,17 +280,29 @@ class ConstructTestCase(unittest.TestCase):
         )
 
     def testAnImpliedIndexIsFlaggedInTheIndexNames(self):
-        self.assertIn('.setIndexNames((1, "TEST-MIB", "testIndex"))', self.line("testEntry"))
+        self.assertIn(
+            '.setIndexNames((1, "TEST-MIB", "testIndex"))', self.line("testEntry")
+        )
 
     def testATextualConventionIsAClassAheadOfItsBaseType(self):
         # TextualConvention has to come first, or its display hint loses to the
         # base type's rendering.
         self.assertIn("class TestTC(TextualConvention, OctetString):", self.pycode)
-        self.assertIn("subtypeSpec = OctetString.subtypeSpec + ValueSizeConstraint(0, 255)", self.pycode)
+        self.assertIn(
+            "subtypeSpec = OctetString.subtypeSpec + ValueSizeConstraint(0, 255)",
+            self.pycode,
+        )
 
     def testEverySymbolDefinedIsAlsoExported(self):
         exported = self.pycode.rsplit("exportSymbols(", 1)[1]
-        for symbol in ("TestTC", "testEntry", "testIdentity", "testIndex", "testNotification", "testScalar"):
+        for symbol in (
+            "TestTC",
+            "testEntry",
+            "testIdentity",
+            "testIndex",
+            "testNotification",
+            "testScalar",
+        ):
             with self.subTest(symbol=symbol):
                 self.assertIn(f"{symbol}=", exported)
 

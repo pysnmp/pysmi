@@ -55,7 +55,13 @@ class FileWriter(AbstractWriter):
         except (OSError, UnicodeEncodeError):
             return ""
 
-    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+    def put_data(
+        self,
+        mibname: str,
+        data: str,
+        comments: tuple[str, ...] = (),
+        dryRun: bool = False,
+    ) -> None:
         """Write the generated MIB into the destination directory.
 
         The file is written under a temporary name and moved into place, so a
@@ -74,7 +80,8 @@ class FileWriter(AbstractWriter):
 
             except OSError as exc:
                 raise error.PySmiWriterError(
-                    f"failure creating destination directory {self._path}: {exc}", writer=self
+                    f"failure creating destination directory {self._path}: {exc}",
+                    writer=self,
                 ) from exc
 
         if comments:
@@ -95,9 +102,16 @@ class FileWriter(AbstractWriter):
                 with contextlib.suppress(OSError):
                     os.unlink(tfile)
 
-            raise error.PySmiWriterError(f"failure writing file {filename}: {exc}", file=filename, writer=self) from exc
+            raise error.PySmiWriterError(
+                f"failure writing file {filename}: {exc}", file=filename, writer=self
+            ) from exc
 
-        logger.debug("%s stored in %s", mibname, filename, extra={"mib": mibname, "path": filename})
+        logger.debug(
+            "%s stored in %s",
+            mibname,
+            filename,
+            extra={"mib": mibname, "path": filename},
+        )
 
     def list_data(self) -> Iterable[str]:
         """List the MIB modules stored in the destination directory.
@@ -140,7 +154,11 @@ class FileWriter(AbstractWriter):
         filename = os.path.join(self._path, decode(mibname)) + self.suffix
 
         if dryRun:
-            logger.debug("dry run mode, not removing %s", filename, extra={"mib": mibname, "path": filename})
+            logger.debug(
+                "dry run mode, not removing %s",
+                filename,
+                extra={"mib": mibname, "path": filename},
+            )
             return
 
         try:

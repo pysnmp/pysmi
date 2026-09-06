@@ -56,7 +56,9 @@ class NameConversionTestCase(unittest.TestCase):
 
     def testKnowsTheIrregularAcronym(self):
         """A name ending in an acronym cannot be derived, so it is listed."""
-        self.assertEqual(to_camel_case("gen_type_declaration_rhs"), "genTypeDeclarationRHS")
+        self.assertEqual(
+            to_camel_case("gen_type_declaration_rhs"), "genTypeDeclarationRHS"
+        )
 
 
 class AliasCoverageTestCase(unittest.TestCase):

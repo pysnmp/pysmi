@@ -126,7 +126,11 @@ class ReproducibleOutputTestCase(unittest.TestCase):
         # MibTable, MibTableRow and MibTableColumn at the position OBJECT-TYPE
         # sorted to. What matters is that the order is the same every time.
         def importLines(seed):
-            return [line for line in compileUnderSeed("pysnmp", seed).splitlines() if "importSymbols(" in line]
+            return [
+                line
+                for line in compileUnderSeed("pysnmp", seed).splitlines()
+                if "importSymbols(" in line
+            ]
 
         reference = importLines(0)
         self.assertTrue(reference)
@@ -158,7 +162,9 @@ class HeaderTestCase(unittest.TestCase):
         self.assertNotIn(" at ", produced[0])
 
     def testHeaderHasNoInterpreterVersion(self):
-        self.assertFalse([line for line in self.header if "Using Python version" in line])
+        self.assertFalse(
+            [line for line in self.header if "Using Python version" in line]
+        )
 
     def testDigestFollowsTheSource(self):
         changed = MIB.replace('DESCRIPTION "alpha"', 'DESCRIPTION "altered"')

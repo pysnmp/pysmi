@@ -39,7 +39,9 @@ mibCompiler.add_searchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 mibCompiler.add_searchers(PyFileSearcher(dstDirectory))
 
 # search for compiled MIBs at Web sites if source is not available or broken
-mibCompiler.add_borrowers(*[PyFileBorrower(HttpReader("https://pysnmp.github.io/mibs/notexts/@mib@"))])
+mibCompiler.add_borrowers(
+    *[PyFileBorrower(HttpReader("https://pysnmp.github.io/mibs/notexts/@mib@"))]
+)
 
 # run non-recursive MIB compilation
 results = mibCompiler.compile(*inputMibs)

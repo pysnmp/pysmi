@@ -89,13 +89,17 @@ class WindowsCompatTestCase(unittest.TestCase):
         """Importing the compiler does not need ``pwd``."""
         result = runWithoutPwd("import pysmi.compiler")
 
-        self.assertEqual(result.returncode, 0, f"import failed without pwd:\n{result.stderr}")
+        self.assertEqual(
+            result.returncode, 0, f"import failed without pwd:\n{result.stderr}"
+        )
 
     def testScriptsImportWithoutPwd(self):
         """Both console scripts import without ``pwd``."""
         result = runWithoutPwd("import pysmi.scripts.mibdump, pysmi.scripts.mibcopy")
 
-        self.assertEqual(result.returncode, 0, f"console scripts failed to import:\n{result.stderr}")
+        self.assertEqual(
+            result.returncode, 0, f"console scripts failed to import:\n{result.stderr}"
+        )
 
     def testMibdumpRunsWithoutPwd(self):
         """The mibdump entry point runs without ``pwd``."""
@@ -109,7 +113,9 @@ class WindowsCompatTestCase(unittest.TestCase):
             "    pass\n"
         )
 
-        self.assertEqual(result.returncode, 0, f"mibdump failed without pwd:\n{result.stderr}")
+        self.assertEqual(
+            result.returncode, 0, f"mibdump failed without pwd:\n{result.stderr}"
+        )
 
 
 class GeneratedHeaderTestCase(unittest.TestCase):

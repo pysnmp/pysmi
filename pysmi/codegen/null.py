@@ -23,9 +23,15 @@ class NullCodeGen(AbstractCodeGen):
     Could be used for disabling code generation at *MibCompiler*.
     """
 
-    def gen_code(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
+    def gen_code(
+        self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any
+    ) -> tuple[MibInfo, str]:
         """Discard the module and return an empty result."""
-        logger.debug("%s invoked", self.__class__.__name__, extra={"codegen": self.__class__.__name__})
+        logger.debug(
+            "%s invoked",
+            self.__class__.__name__,
+            extra={"codegen": self.__class__.__name__},
+        )
         return MibInfo(oid=None, name="", imported=[]), ""
 
     def gen_index(self, processed: dict[str, Any], **kwargs: Any) -> str:

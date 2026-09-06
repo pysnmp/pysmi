@@ -50,13 +50,21 @@ def pysnmp_references(tree):
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            found.update(alias.name for alias in node.names if alias.name.split(".")[0] == "pysnmp")
+            found.update(
+                alias.name
+                for alias in node.names
+                if alias.name.split(".")[0] == "pysnmp"
+            )
 
         elif isinstance(node, ast.ImportFrom):
             if (node.module or "").split(".")[0] == "pysnmp":
                 found.add(node.module)
             elif node.module in ("tests.harness", "harness"):
-                found.update(alias.name for alias in node.names if alias.name in PYSNMP_HARNESS_ENTRY_POINTS)
+                found.update(
+                    alias.name
+                    for alias in node.names
+                    if alias.name in PYSNMP_HARNESS_ENTRY_POINTS
+                )
 
     return found
 
@@ -80,7 +88,9 @@ class ImportGraphTestCase(unittest.TestCase):
         # A module-scope import would put pysnmp back on the import path of
         # every test that only wants render_json or render_source.
         tree = ast.parse((TESTS / "harness.py").read_text())
-        top_level = [n for n in tree.body if isinstance(n, (ast.Import, ast.ImportFrom))]
+        top_level = [
+            n for n in tree.body if isinstance(n, (ast.Import, ast.ImportFrom))
+        ]
         self.assertTrue(top_level, "harness.py imports nothing at all")
         for node in top_level:
             with self.subTest(statement=ast.unparse(node)):

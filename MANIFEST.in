@@ -1,4 +1,0 @@
-include *.txt *.rst *.md
-recursive-include tests *.py
-recursive-include examples *.py
-recursive-include docs *.txt *.rst *.svg *.py Makefile

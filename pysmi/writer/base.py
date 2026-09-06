@@ -34,7 +34,13 @@ class AbstractWriter:
             setattr(self, k, kwargs[k])
         return self
 
-    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+    def put_data(
+        self,
+        mibname: str,
+        data: str,
+        comments: tuple[str, ...] = (),
+        dryRun: bool = False,
+    ) -> None:
         """Store the generated form of a MIB module.
 
         Args:

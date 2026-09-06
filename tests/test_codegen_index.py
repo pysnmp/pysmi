@@ -64,11 +64,17 @@ class JsonIndexTestCase(unittest.TestCase):
 
     def testNotificationIsNotCollapsedByPrefix(self):
         """Unlike ``oids``, every notification stays addressable on its own."""
-        out = self.index({"A-MIB": status(notification=("1.3.6.1.4.1.9.0.1", "1.3.6.1.4.1.9.0.2"))})
-        self.assertEqual(sorted(out["notification"]), ["1.3.6.1.4.1.9.0.1", "1.3.6.1.4.1.9.0.2"])
+        out = self.index(
+            {"A-MIB": status(notification=("1.3.6.1.4.1.9.0.1", "1.3.6.1.4.1.9.0.2"))}
+        )
+        self.assertEqual(
+            sorted(out["notification"]), ["1.3.6.1.4.1.9.0.1", "1.3.6.1.4.1.9.0.2"]
+        )
 
     def testComplianceMapsEveryOidToModule(self):
-        out = self.index({"A-MIB": status(compliance=("1.3.6.1.4.1.9.1", "1.3.6.1.4.1.9.2"))})
+        out = self.index(
+            {"A-MIB": status(compliance=("1.3.6.1.4.1.9.1", "1.3.6.1.4.1.9.2"))}
+        )
         self.assertEqual(
             out["compliance"],
             {"1.3.6.1.4.1.9.1": ["A-MIB"], "1.3.6.1.4.1.9.2": ["A-MIB"]},
@@ -112,7 +118,13 @@ class JsonIndexOidsTestCase(unittest.TestCase):
         )
 
     def testChildOidsCollapseIntoTheirPrefix(self):
-        out = self.index({"A-MIB": status(oids=("1.3.6.1.4.1.9", "1.3.6.1.4.1.9.1", "1.3.6.1.4.1.9.1.2"))})
+        out = self.index(
+            {
+                "A-MIB": status(
+                    oids=("1.3.6.1.4.1.9", "1.3.6.1.4.1.9.1", "1.3.6.1.4.1.9.1.2")
+                )
+            }
+        )
         self.assertEqual(out["oids"], {"1.3.6.1.4.1.9": ["A-MIB"]})
 
     def testChildOidOfAnotherModuleIsKept(self):
@@ -153,7 +165,9 @@ class JsonIndexOrderingTestCase(unittest.TestCase):
     def testOidKeysSortNumericallyNotLexicographically(self):
         out = JsonCodeGen().gen_index(
             {
-                "A-MIB": status(compliance=("1.3.6.1.4.1.10", "1.3.6.1.4.1.9", "1.3.6.1.4.1.100")),
+                "A-MIB": status(
+                    compliance=("1.3.6.1.4.1.10", "1.3.6.1.4.1.9", "1.3.6.1.4.1.100")
+                ),
             }
         )
         keys = list(json.loads(out)["compliance"])
@@ -171,7 +185,10 @@ class JsonIndexOrderingTestCase(unittest.TestCase):
 
     def testTopLevelSectionsAreSorted(self):
         out = json.loads(JsonCodeGen().gen_index({}))
-        self.assertEqual(list(out), ["compliance", "enterprise", "identity", "meta", "notification", "oids"])
+        self.assertEqual(
+            list(out),
+            ["compliance", "enterprise", "identity", "meta", "notification", "oids"],
+        )
 
     def testSameInputRendersByteIdentically(self):
         processed = {
@@ -193,7 +210,11 @@ class JsonIndexMergeTestCase(unittest.TestCase):
 
     def testNewModuleJoinsAnExistingOid(self):
         old = json.dumps({"identity": {"1.3.6.1.4.1.9": ["A-MIB"]}})
-        out = json.loads(JsonCodeGen().gen_index({"B-MIB": status(identity="1.3.6.1.4.1.9")}, old_index_data=old))
+        out = json.loads(
+            JsonCodeGen().gen_index(
+                {"B-MIB": status(identity="1.3.6.1.4.1.9")}, old_index_data=old
+            )
+        )
         self.assertEqual(out["identity"]["1.3.6.1.4.1.9"], ["A-MIB", "B-MIB"])
 
     def testUnknownSectionsInAnOldIndexAreCarried(self):
@@ -343,7 +364,9 @@ class NotificationsReachTheIndexTestCase(unittest.TestCase):
     def testTheIndexPlacesTheNotificationUnderItsSection(self):
         info = self.info(NOTIFICATION_MIB)
         out = json.loads(
-            JsonCodeGen().gen_index({"NOTIFY-MIB": status(notification=info.notification, oids=info.oids)})
+            JsonCodeGen().gen_index(
+                {"NOTIFY-MIB": status(notification=info.notification, oids=info.oids)}
+            )
         )
         self.assertEqual(out["notification"], {"1.3.6.1.4.1.99.2": ["NOTIFY-MIB"]})
 

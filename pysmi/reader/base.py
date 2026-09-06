@@ -40,7 +40,12 @@ class AbstractReader:
     maxMibSize = 10000000  # MIBs can't be that large
     fuzzyMatching = True  # try different file names while searching for MIB
     originalMatching = uppercaseMatching = lowcaseMatching = True
-    exts: list[str] = ["", os.path.extsep + "txt", os.path.extsep + "mib", os.path.extsep + "my"]  # noqa: RUF012
+    exts: list[str] = [  # noqa: RUF012
+        "",
+        os.path.extsep + "txt",
+        os.path.extsep + "mib",
+        os.path.extsep + "my",
+    ]
     exts.extend([x.upper() for x in exts if x])
 
     def set_options(self, **kwargs: Any) -> "AbstractReader":
@@ -56,7 +61,9 @@ class AbstractReader:
             setattr(self, k, kwargs[k])
         return self
 
-    def get_mib_variants(self, mibname: str, **options: Any) -> Iterable[tuple[str, str]]:
+    def get_mib_variants(
+        self, mibname: str, **options: Any
+    ) -> Iterable[tuple[str, str]]:
         """Guess the file names a MIB module might be stored under.
 
         A module is named inside the file, not by it, so the same MIB turns up
