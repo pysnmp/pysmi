@@ -49,16 +49,27 @@ class LexerRejectionTestCase(unittest.TestCase):
                 self.assertIn("is forbidden", self.rejects(f"{word} ::= INTEGER"))
 
     def testUppercaseIdentifierEndingInAHyphenIsRejected(self):
-        self.assertIn("should not end with '-': Test-", self.rejects("Test- ::= INTEGER"))
+        self.assertIn(
+            "should not end with '-': Test-", self.rejects("Test- ::= INTEGER")
+        )
 
     def testLowercaseIdentifierEndingInAHyphenIsRejected(self):
-        self.assertIn("should not end with '-': test-", self.rejects("test- OBJECT IDENTIFIER ::= { 1 3 1 }"))
+        self.assertIn(
+            "should not end with '-': test-",
+            self.rejects("test- OBJECT IDENTIFIER ::= { 1 3 1 }"),
+        )
 
     def testNumberWiderThanSixtyFourBitsIsRejected(self):
-        self.assertIn("is too big", self.rejects("testId OBJECT IDENTIFIER ::= { 1 3 184467440737095516150 }"))
+        self.assertIn(
+            "is too big",
+            self.rejects("testId OBJECT IDENTIFIER ::= { 1 3 184467440737095516150 }"),
+        )
 
     def testIllegalCharacterIsRejected(self):
-        self.assertIn("Illegal character '$'", self.rejects("testId OBJECT IDENTIFIER ::= { 1 3 1 }\n$$$"))
+        self.assertIn(
+            "Illegal character '$'",
+            self.rejects("testId OBJECT IDENTIFIER ::= { 1 3 1 }\n$$$"),
+        )
 
 
 class RelaxedAcceptanceTestCase(unittest.TestCase):

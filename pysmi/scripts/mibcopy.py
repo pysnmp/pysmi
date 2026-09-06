@@ -132,16 +132,23 @@ def start() -> None:
             ignoreErrorsFlag = True
 
     if not mibSources:
-        mibSources = ["file:///usr/share/snmp/mibs", "https://pysnmp.github.io:443/mibs/asn1/@mib@"]
+        mibSources = [
+            "file:///usr/share/snmp/mibs",
+            "https://pysnmp.github.io:443/mibs/asn1/@mib@",
+        ]
 
     if len(inputMibs) < 2:
-        sys.stderr.write(f"ERROR: MIB source and/or destination arguments not given\r\n{helpMessage}\r\n")
+        sys.stderr.write(
+            f"ERROR: MIB source and/or destination arguments not given\r\n{helpMessage}\r\n"
+        )
         sys.exit(EX_USAGE)
 
     dstDirectory = inputMibs.pop()
 
     if os.path.exists(dstDirectory) and not os.path.isdir(dstDirectory):
-        sys.stderr.write(f"ERROR: given destination is not a directory\r\n{helpMessage}\r\n")
+        sys.stderr.write(
+            f"ERROR: given destination is not a directory\r\n{helpMessage}\r\n"
+        )
         sys.exit(EX_USAGE)
 
     with contextlib.suppress(OSError):
@@ -176,12 +183,19 @@ def start() -> None:
         mibCompiler = MibCompiler(mibParser, codeGenerator, fileWriter)
 
         mibCompiler.add_sources(
-            FileReader(mibDir, recursive=False, ignoreErrors=ignoreErrorsFlag), *getReadersFromUrls(*mibSources)
+            FileReader(mibDir, recursive=False, ignoreErrors=ignoreErrorsFlag),
+            *getReadersFromUrls(*mibSources),
         )
 
         try:
             processed = mibCompiler.compile(
-                mibFile, **dict(noDeps=True, rebuild=True, fuzzyMatching=False, ignoreErrors=ignoreErrorsFlag)
+                mibFile,
+                **dict(
+                    noDeps=True,
+                    rebuild=True,
+                    fuzzyMatching=False,
+                    ignoreErrors=ignoreErrorsFlag,
+                ),
             )
 
         except error.PySmiError as exc:
@@ -195,7 +209,9 @@ def start() -> None:
                 canonicalMibName
             ].path == "file://" + os.path.join(mibDir, mibFile):
                 try:
-                    revision = datetime.strptime(processed[canonicalMibName].revision, "%Y-%m-%d %H:%M")
+                    revision = datetime.strptime(
+                        processed[canonicalMibName].revision, "%Y-%m-%d %H:%M"
+                    )
 
                 except (TypeError, ValueError):
                     # Missing or unparsable revision date.
@@ -204,7 +220,9 @@ def start() -> None:
                 revisions[canonicalMibName] = revision
 
         if not revisions:
-            raise error.PySmiError(f'Can\'t read or parse MIB "{os.path.join(mibDir, mibFile)}"')
+            raise error.PySmiError(
+                f'Can\'t read or parse MIB "{os.path.join(mibDir, mibFile)}"'
+            )
 
         return revisions
 
@@ -226,7 +244,12 @@ def start() -> None:
             sys.stderr.write(f'Reading "{srcDirectory}"...\r\n')
 
         if os.path.isfile(srcDirectory):
-            mibFiles = [(os.path.abspath(os.path.dirname(srcDirectory)), os.path.basename(srcDirectory))]
+            mibFiles = [
+                (
+                    os.path.abspath(os.path.dirname(srcDirectory)),
+                    os.path.basename(srcDirectory),
+                )
+            ]
 
         else:
             mibFiles = [
@@ -245,10 +268,14 @@ def start() -> None:
 
             except error.PySmiError as ex:
                 if verboseFlag:
-                    sys.stderr.write(f'Failed to read source MIB "{os.path.join(mibDir, mibFile)}": {ex}\r\n')
+                    sys.stderr.write(
+                        f'Failed to read source MIB "{os.path.join(mibDir, mibFile)}": {ex}\r\n'
+                    )
 
                 if not quietFlag:
-                    sys.stderr.write(f"FAILED {shortenPath(os.path.join(mibDir, mibFile))}\r\n")
+                    sys.stderr.write(
+                        f"FAILED {shortenPath(os.path.join(mibDir, mibFile))}\r\n"
+                    )
 
                 mibsFailed += 1
 
@@ -282,7 +309,9 @@ def start() -> None:
                             f'source MIB "{os.path.join(mibDir, mibFile)}"\r\n'
                         )
                     if not quietFlag:
-                        sys.stderr.write(f"NOT COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
+                        sys.stderr.write(
+                            f"NOT COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n"
+                        )
 
                     continue
 
@@ -292,7 +321,10 @@ def start() -> None:
                     )
 
                 try:
-                    shutil.copy(os.path.join(mibDir, mibFile), os.path.join(dstDirectory, mibName))
+                    shutil.copy(
+                        os.path.join(mibDir, mibFile),
+                        os.path.join(dstDirectory, mibName),
+                    )
 
                 except OSError as ex:
                     if verboseFlag:
@@ -301,7 +333,9 @@ def start() -> None:
                         )
 
                     if not quietFlag:
-                        sys.stderr.write(f"FAILED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
+                        sys.stderr.write(
+                            f"FAILED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n"
+                        )
 
                     mibsFailed += 1
 
@@ -311,11 +345,15 @@ def start() -> None:
                     mibsRevisions[mibName] = srcMibRevision
 
                     if not quietFlag:
-                        sys.stderr.write(f"COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n")
+                        sys.stderr.write(
+                            f"COPIED {shortenPath(os.path.join(mibDir, mibFile))} ({mibName})\r\n"
+                        )
 
                     mibsCopied += 1
 
     if not quietFlag:
-        sys.stderr.write(f"MIBs seen: {mibsSeen}, copied: {mibsCopied}, failed: {mibsFailed}\r\n")
+        sys.stderr.write(
+            f"MIBs seen: {mibsSeen}, copied: {mibsCopied}, failed: {mibsFailed}\r\n"
+        )
 
     sys.exit(EX_OK)

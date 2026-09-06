@@ -34,7 +34,9 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
             (self.dest / mibname).write_bytes(VALID_MIB.encode())
 
         self._destPatch = mock.patch.object(update_bundled_mibs, "DEST", self.dest)
-        self._bundledPatch = mock.patch.object(update_bundled_mibs, "BUNDLED", self.bundled)
+        self._bundledPatch = mock.patch.object(
+            update_bundled_mibs, "BUNDLED", self.bundled
+        )
         self._destPatch.start()
         self._bundledPatch.start()
 
@@ -47,9 +49,14 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         return {mibname: (self.dest / mibname).read_bytes() for mibname in self.bundled}
 
     def testASuccessfulUpdateReplacesEveryFile(self):
-        fresh = {mibname: f"-- fresh {mibname}\n{VALID_MIB}".encode() for mibname in self.bundled}
+        fresh = {
+            mibname: f"-- fresh {mibname}\n{VALID_MIB}".encode()
+            for mibname in self.bundled
+        }
 
-        with mock.patch.object(update_bundled_mibs, "fetch", side_effect=lambda name: fresh[name]):
+        with mock.patch.object(
+            update_bundled_mibs, "fetch", side_effect=lambda name: fresh[name]
+        ):
             code = update_bundled_mibs.update()
 
         self.assertEqual(0, code)
@@ -79,7 +86,9 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
             self.bundled[1]: VALID_MIB.encode(),
         }
 
-        with mock.patch.object(update_bundled_mibs, "fetch", side_effect=lambda name: broken[name]):
+        with mock.patch.object(
+            update_bundled_mibs, "fetch", side_effect=lambda name: broken[name]
+        ):
             code = update_bundled_mibs.update()
 
         self.assertEqual(1, code)

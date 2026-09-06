@@ -167,7 +167,9 @@ class ModuleComplianceTestCase(unittest.TestCase):
         self.assertEqual(self.doc["class"], "modulecompliance")
         self.assertEqual(self.doc["oid"], "1.3.7")
         self.assertEqual(self.doc["status"], "current")
-        self.assertEqual(self.doc["description"], "This is the MIB compliance statement")
+        self.assertEqual(
+            self.doc["description"], "This is the MIB compliance statement"
+        )
         self.assertEqual(self.doc["reference"], "Compliance reference")
 
     def testMandatoryAndConditionalGroupsAreBothRecorded(self):
@@ -230,18 +232,33 @@ class AgentCapabilitiesTestCase(unittest.TestCase):
         self.assertEqual([c["module"] for c in self.capabilities], ["TEST-MIB"])
 
     def testIncludesNamesEveryGroup(self):
-        self.assertEqual(self.capabilities[0]["includes"], ["testObjectGroup", "testNotificationGroup"])
+        self.assertEqual(
+            self.capabilities[0]["includes"],
+            ["testObjectGroup", "testNotificationGroup"],
+        )
 
     def testEachVariationIsReportedInClauseOrder(self):
         variations = self.capabilities[0]["variations"]
-        self.assertEqual([v["object"] for v in variations], ["testStorageType", "testRowStatus"])
+        self.assertEqual(
+            [v["object"] for v in variations], ["testStorageType", "testRowStatus"]
+        )
         self.assertEqual([v["access"] for v in variations], ["read-only", "read-only"])
-        self.assertEqual([v["description"] for v in variations], ["Not supported.", "Supported."])
+        self.assertEqual(
+            [v["description"] for v in variations], ["Not supported.", "Supported."]
+        )
 
     def testTheDocumentCarriesNothingElse(self):
         self.assertEqual(
             set(self.doc),
-            {"name", "oid", "class", "productrelease", "status", "description", "capabilities"},
+            {
+                "name",
+                "oid",
+                "class",
+                "productrelease",
+                "status",
+                "description",
+                "capabilities",
+            },
         )
 
     def testTheEmittedObjectGuardsTheClausesOlderPysnmpLacks(self):

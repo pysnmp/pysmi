@@ -46,7 +46,13 @@ class PyFileSearcher(AbstractSearcher):
         """Identify this searcher by the directory it looks in."""
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
+    def file_exists(
+        self,
+        mibname: str,
+        mtime: float,
+        rebuild: bool = False,
+        digest: str | None = None,
+    ) -> None:
         """Compare a compiled Python module's timestamp against the MIB source.
 
         The timestamp is read out of the bytecode header rather than from the
@@ -74,7 +80,9 @@ class PyFileSearcher(AbstractSearcher):
             f = pyfile + pySfx
 
             if not os.path.exists(f) or not os.path.isfile(f):
-                logger.debug("%s not present or not a file", f, extra={"mib": mibname, "path": f})
+                logger.debug(
+                    "%s not present or not a file", f, extra={"mib": mibname, "path": f}
+                )
                 continue
 
             try:
@@ -82,7 +90,9 @@ class PyFileSearcher(AbstractSearcher):
                     pyData = fp.read(8)
 
             except OSError as exc:
-                raise error.PySmiSearcherError(f"failure opening compiled file {f}: {exc}", searcher=self) from exc
+                raise error.PySmiSearcherError(
+                    f"failure opening compiled file {f}: {exc}", searcher=self
+                ) from exc
             if pyData[:4] == importlib.util.MAGIC_NUMBER:
                 pyData = pyData[4:]
                 pyTime = struct.unpack("<L", pyData[:4])[0]
@@ -96,7 +106,9 @@ class PyFileSearcher(AbstractSearcher):
                     raise error.PySmiFileNotModifiedError()
 
                 else:
-                    raise error.PySmiFileNotFoundError(f"older file {mibname} exists", searcher=self)
+                    raise error.PySmiFileNotFoundError(
+                        f"older file {mibname} exists", searcher=self
+                    )
 
             else:
                 logger.debug("bad magic in %s", f, extra={"mib": mibname, "path": f})
@@ -106,14 +118,18 @@ class PyFileSearcher(AbstractSearcher):
             f = pyfile + pySfx
 
             if not os.path.exists(f) or not os.path.isfile(f):
-                logger.debug("%s not present or not a file", f, extra={"mib": mibname, "path": f})
+                logger.debug(
+                    "%s not present or not a file", f, extra={"mib": mibname, "path": f}
+                )
                 continue
 
             try:
                 pyTime = os.stat(f).st_mtime
 
             except OSError as exc:
-                raise error.PySmiSearcherError(f"failure opening compiled file {f}: {exc}", searcher=self) from exc
+                raise error.PySmiSearcherError(
+                    f"failure opening compiled file {f}: {exc}", searcher=self
+                ) from exc
 
             logger.debug(
                 "found %s, mtime %s",
@@ -130,7 +146,9 @@ class PyFileSearcher(AbstractSearcher):
                     sourceText = decode(fp.read())
 
             except (OSError, UnicodeDecodeError) as exc:
-                raise error.PySmiSearcherError(f"failure opening compiled file {f}: {exc}", searcher=self) from exc
+                raise error.PySmiSearcherError(
+                    f"failure opening compiled file {f}: {exc}", searcher=self
+                ) from exc
 
             producer = producer_of(sourceText)
 
@@ -147,16 +165,27 @@ class PyFileSearcher(AbstractSearcher):
 
             storedDigest = digest_of(sourceText)
 
-            if digest is not None and storedDigest is not None and storedDigest != digest:
+            if (
+                digest is not None
+                and storedDigest is not None
+                and storedDigest != digest
+            ):
                 logger.debug(
                     "%s was produced from %s, this is %s, will rebuild",
                     f,
                     storedDigest,
                     digest,
-                    extra={"mib": mibname, "path": f, "storedDigest": storedDigest, "digest": digest},
+                    extra={
+                        "mib": mibname,
+                        "path": f,
+                        "storedDigest": storedDigest,
+                        "digest": digest,
+                    },
                 )
                 continue
 
             raise error.PySmiFileNotModifiedError()
 
-        raise error.PySmiFileNotFoundError(f"no compiled file {mibname} found", searcher=self)
+        raise error.PySmiFileNotFoundError(
+            f"no compiled file {mibname} found", searcher=self
+        )

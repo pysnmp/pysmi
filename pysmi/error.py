@@ -78,7 +78,13 @@ class PySmiError(Exception):
 
     def __repr__(self) -> str:
         """Spell out every context attribute that was actually set."""
-        attrs = ", ".join([f"{k}={getattr(self, k)!r}" for k in dir(self) if k[0] != "_" and k != "args"])
+        attrs = ", ".join(
+            [
+                f"{k}={getattr(self, k)!r}"
+                for k in dir(self)
+                if k[0] != "_" and k != "args"
+            ]
+        )
         return f"{self.__class__.__name__}({attrs})"
 
     def __str__(self) -> str:

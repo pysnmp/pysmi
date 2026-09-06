@@ -129,7 +129,9 @@ class ApplicationTypeTestCase(unittest.TestCase):
     def testNetworkAddressBecomesAnIpAddress(self):
         # RFC 1155 section 3.2.3.1 defines NetworkAddress as a CHOICE with
         # IpAddress as its only alternative, so the two are the same type.
-        self.assertEqual(self.doc["TestTypeNetworkAddress"]["type"]["type"], "IpAddress")
+        self.assertEqual(
+            self.doc["TestTypeNetworkAddress"]["type"]["type"], "IpAddress"
+        )
         self.assertIn("class TestTypeNetworkAddress(IpAddress):", self.source)
 
     def testTheThirtyTwoBitWidthIsMadeExplicit(self):
@@ -151,7 +153,10 @@ class ObjectTypeTestCase(unittest.TestCase):
         # RFC 1212 writes ACCESS where RFC 2578 section 7.3 writes MAX-ACCESS.
         # They are the same clause, so the document uses the one key.
         self.assertEqual(self.doc["maxaccess"], "read-only")
-        self.assertIn('testObject = MibScalar((1, 4), Integer32()).setMaxAccess("readonly")', self.source)
+        self.assertIn(
+            'testObject = MibScalar((1, 4), Integer32()).setMaxAccess("readonly")',
+            self.source,
+        )
 
     def testTheSmiV1StatusIsKeptRatherThanTranslated(self):
         # RFC 1212 has "mandatory", which RFC 2578 section 7.4 does not. RFC
@@ -184,12 +189,16 @@ class TrapTypeTestCase(unittest.TestCase):
     def testVariablesBecomeTheNotificationObjects(self):
         # RFC 1215 calls them VARIABLES; RFC 2578 section 8 calls the same list
         # OBJECTS.
-        self.assertEqual(self.doc["objects"], [{"module": "TEST-MIB", "object": "testObject"}])
+        self.assertEqual(
+            self.doc["objects"], [{"module": "TEST-MIB", "object": "testObject"}]
+        )
         self.assertIn('.setObjects(("TEST-MIB", "testObject"))', self.source)
 
     def testTheDescriptionSurvivesTheTranslation(self):
         self.assertEqual(self.doc["description"], "Test trap")
-        self.assertIn("if mibBuilder.loadTexts: testTrap.setDescription('Test trap')", self.source)
+        self.assertIn(
+            "if mibBuilder.loadTexts: testTrap.setDescription('Test trap')", self.source
+        )
 
 
 class MixedDialectTestCase(unittest.TestCase):

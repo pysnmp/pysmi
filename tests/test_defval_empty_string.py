@@ -84,7 +84,9 @@ class DefValEmptyStringTestCase(unittest.TestCase):
         _, jsoncode = JsonCodeGen().gen_code(self.ast, self.symtable)
         doc = json.loads(jsoncode)
 
-        self.assertNotIn("default", doc["testEmptyInteger"], "empty DEFVAL kept for Integer32")
+        self.assertNotIn(
+            "default", doc["testEmptyInteger"], "empty DEFVAL kept for Integer32"
+        )
 
 
 if __name__ == "__main__":

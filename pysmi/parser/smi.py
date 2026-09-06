@@ -110,7 +110,9 @@ class SmiV2Parser(AbstractParser):
                 os.makedirs(tempdir)
             except OSError as exc:
                 if exc.errno != 17:
-                    raise error.PySmiError(f"Failed to create cache directory {tempdir}: {exc}") from exc
+                    raise error.PySmiError(
+                        f"Failed to create cache directory {tempdir}: {exc}"
+                    ) from exc
 
         self.lexer = self.defaultLexer(tempdir=tempdir)
 
@@ -119,13 +121,21 @@ class SmiV2Parser(AbstractParser):
 
         if YACC_VERSION < [3, 0]:
             self.parser = yacc.yacc(
-                module=self, start=startSym, write_tables=bool(tempdir), debug=False, outputdir=tempdir
+                module=self,
+                start=startSym,
+                write_tables=bool(tempdir),
+                debug=False,
+                outputdir=tempdir,
             )
         else:
-            errorlog = logger if logger.isEnabledFor(logging.DEBUG) else yacc.NullLogger()
+            errorlog = (
+                logger if logger.isEnabledFor(logging.DEBUG) else yacc.NullLogger()
+            )
 
             grammarLogger = logging.getLogger(debug.GRAMMAR_LOGGER)
-            debuglog = grammarLogger if grammarLogger.isEnabledFor(logging.DEBUG) else None
+            debuglog = (
+                grammarLogger if grammarLogger.isEnabledFor(logging.DEBUG) else None
+            )
 
             self.parser = yacc.yacc(
                 module=self,
@@ -664,7 +674,11 @@ class SmiV2Parser(AbstractParser):
                 p[0] = ("SimpleSyntax", p[1], _resolve_max_bound(p[1], p[2]))
 
         elif n == 4:
-            p[0] = ("SimpleSyntax", p[1] + " " + p[2], _resolve_max_bound(p[1] + " " + p[2], p[3]))
+            p[0] = (
+                "SimpleSyntax",
+                p[1] + " " + p[2],
+                _resolve_max_bound(p[1] + " " + p[2], p[3]),
+            )
 
     def p_valueofSimpleSyntax(self, p: YaccProduction) -> None:
         """valueofSimpleSyntax : NUMBER
@@ -1307,7 +1321,10 @@ class SmiV2Parser(AbstractParser):
             PySmiParserError: a token was rejected mid-module.
         """
         if p:
-            raise error.PySmiParserError(f"Bad grammar near token type {p.type}, value {p.value}", lineno=p.lineno)
+            raise error.PySmiParserError(
+                f"Bad grammar near token type {p.type}, value {p.value}",
+                lineno=p.lineno,
+            )
 
 
 #
@@ -1662,7 +1679,11 @@ def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
         if option not in relaxedGrammar:
             raise error.PySmiError(f"Unknown parser relaxation option: {option}")
 
-        missing = [dep for dep in relaxedGrammarDependencies.get(option, ()) if dep not in enabled]
+        missing = [
+            dep
+            for dep in relaxedGrammarDependencies.get(option, ())
+            if dep not in enabled
+        ]
         if missing:
             raise error.PySmiError(
                 f"Parser relaxation option {option} requires {', '.join(sorted(missing))} to be enabled as well"

@@ -46,7 +46,11 @@ END
 def default(syntax, defval):
     """Return the JSON default and the emitted syntax expression for one DEFVAL."""
     mib = MIB % (syntax, defval)
-    line = next(x for x in render_source(mib, deps=DEPS).splitlines() if x.startswith("testObject ="))
+    line = next(
+        x
+        for x in render_source(mib, deps=DEPS).splitlines()
+        if x.startswith("testObject =")
+    )
     return render_json(mib, deps=DEPS)["testObject"].get("default"), line
 
 
@@ -127,7 +131,9 @@ class BitsDefValTestCase(unittest.TestCase):
     def testTheTypeKeepsEveryBitItDeclared(self):
         # The default selects bits; it must not redefine the enumeration.
         _, emitted = self.bits("{ first }")
-        self.assertIn('NamedValues(("first", 0), ("second", 1), ("fourth", 3))', emitted)
+        self.assertIn(
+            'NamedValues(("first", 0), ("second", 1), ("fourth", 3))', emitted
+        )
 
 
 class OidDefValTestCase(unittest.TestCase):

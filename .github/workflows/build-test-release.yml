@@ -172,12 +172,9 @@ jobs:
       - docs
       - run-unit-tests
     runs-on: ubuntu-latest
-    # PyPI knows this workflow, in this repository, in this environment. Nothing
-    # here holds a credential: the OIDC token is minted per run and expires.
-    environment: release
-    permissions:
-      id-token: write
-      contents: read
+    # Nothing here reaches PyPI: this job cuts the version, the tag and the
+    # GitHub release and stops. publish-to-pypi.yml uploads off that tag, so a
+    # failed upload is re-runnable without re-running the release.
     env:
       # Releasing is a deliberate act on both branches. Every push — to next as
       # much as to main — rehearses the release and stops; only a dispatch cuts
@@ -209,14 +206,6 @@ jobs:
             @semantic-release/git
             @google/semantic-release-replace-plugin
             conventional-changelog-conventionalcommits@8.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
-      - name: Publish to PyPI
-        if: env.DRY != 'true' && steps.semantic.outputs.new_release_published == 'true'
-        uses: pypa/gh-action-pypi-publish@release/v1
-      - name: Move repository semver tags
-        if: env.DRY != 'true' && steps.semantic.outputs.new_release_published == 'true'
-        uses: haya14busa/action-update-semver@v1
         env:
           GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
       # A dry run tags nothing and builds nothing, so the version the branch

@@ -22,7 +22,12 @@ from pysmi.codegen.base import AbstractCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import getReadersFromUrls
-from pysmi.searcher import AnyFileSearcher, PyFileSearcher, PyPackageSearcher, StubSearcher
+from pysmi.searcher import (
+    AnyFileSearcher,
+    PyFileSearcher,
+    PyPackageSearcher,
+    StubSearcher,
+)
 from pysmi.searcher.base import AbstractSearcher
 from pysmi.writer import CallbackWriter, FileWriter, PyFileWriter
 
@@ -64,6 +69,8 @@ def start() -> None:
     ignoreErrorsFlag = False
     buildIndexFlag = False
     writeMibsFlag = True
+    repairImportsFlag = False
+    strictSourcesFlag = False
 
     helpMessage = """\
     Usage: {} [--help]
@@ -90,6 +97,8 @@ def start() -> None:
         [--no-mib-writes]
         [--generate-mib-texts]
         [--keep-texts-layout]
+        [--repair-imports]
+        [--strict-sources]
         <MIB-NAME> [MIB-NAME [...]]]
     Where:
         URI      - file, zip, http, https, ftp, sftp schemes are supported.
@@ -106,7 +115,17 @@ def start() -> None:
                 none of --mib-source has them. Without this, a compile
                 that would once have failed on a missing base MIB now
                 silently succeeds from the bundled copy; pass this to make
-                a misconfigured --mib-source fail loudly instead.""".format(
+                a misconfigured --mib-source fail loudly instead.
+        --repair-imports - supply the import a MIB should have carried for
+                any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
+                without naming it in IMPORTS, which RFC 2578 Section 3.2
+                does not allow. Off by default, so a MIB broken this way
+                fails rather than being silently patched; what was
+                repaired is listed in the report.
+        --strict-sources - fail a MIB that more than one --mib-source has a
+                different copy of. Without this the first one wins, by the
+                rule mibdump's documentation states, and the copies passed
+                over are named on the shadowed line of the report.""".format(
         os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES))
     )
 
@@ -139,6 +158,8 @@ def start() -> None:
                 "generate-mib-texts",
                 "disable-fuzzy-source",
                 "keep-texts-layout",
+                "repair-imports",
+                "strict-sources",
             ],
         )
 
@@ -211,7 +232,9 @@ def start() -> None:
                 pyOptimizationLevel = int(opt[1])
 
             except ValueError:
-                sys.stderr.write(f"ERROR: known Python optimization levels: -1, 0, 1, 2\r\n{helpMessage}\r\n")
+                sys.stderr.write(
+                    f"ERROR: known Python optimization levels: -1, 0, 1, 2\r\n{helpMessage}\r\n"
+                )
                 sys.exit(EX_USAGE)
 
         if opt[0] == "--ignore-errors":
@@ -241,11 +264,26 @@ def start() -> None:
         if opt[0] == "--keep-texts-layout":
             keepTextsLayout = True
 
+        if opt[0] == "--repair-imports":
+            repairImportsFlag = True
+
+        if opt[0] == "--strict-sources":
+            strictSourcesFlag = True
+
     if not mibSources:
         mibSources = ["https://pysnmp.github.io:443/mibs/asn1/@mib@"]
 
     if inputMibs:
-        mibSources = sorted({os.path.abspath(os.path.dirname(x)) for x in inputMibs if os.path.sep in x}) + mibSources
+        mibSources = (
+            sorted(
+                {
+                    os.path.abspath(os.path.dirname(x))
+                    for x in inputMibs
+                    if os.path.sep in x
+                }
+            )
+            + mibSources
+        )
 
         inputMibs = [os.path.basename(os.path.splitext(x)[0]) for x in inputMibs]
 
@@ -261,7 +299,9 @@ def start() -> None:
             mibSearchers = list(PySnmpCodeGen.defaultMibPackages)
 
         if not mibStubs:
-            mibStubs = [x for x in PySnmpCodeGen.baseMibs if x not in PySnmpCodeGen.fakeMibs]
+            mibStubs = [
+                x for x in PySnmpCodeGen.baseMibs if x not in PySnmpCodeGen.fakeMibs
+            ]
 
         if not mibBorrowers:
             mibBorrowers = [
@@ -272,7 +312,9 @@ def start() -> None:
         if not dstDirectory:
             dstDirectory = os.path.expanduser("~")
             if sys.platform[:3] == "win":
-                dstDirectory = os.path.join(dstDirectory, "PySNMP Configuration", "mibs")
+                dstDirectory = os.path.join(
+                    dstDirectory, "PySNMP Configuration", "mibs"
+                )
             else:
                 dstDirectory = os.path.join(dstDirectory, ".pysnmp", "mibs")
 
@@ -280,7 +322,11 @@ def start() -> None:
 
         borrowers: list[AbstractBorrower] = [
             PyFileBorrower(x[1], genTexts=mibBorrowers[x[0]][1])
-            for x in enumerate(getReadersFromUrls(*[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)))
+            for x in enumerate(
+                getReadersFromUrls(
+                    *[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)
+                )
+            )
         ]
 
         searchers: list[AbstractSearcher] = [PyFileSearcher(dstDirectory)]
@@ -312,11 +358,20 @@ def start() -> None:
         # Compiler infrastructure
 
         borrowers = [
-            AnyFileBorrower(x[1], genTexts=mibBorrowers[x[0]][1]).set_options(exts=[_JSON_EXT])
-            for x in enumerate(getReadersFromUrls(*[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)))
+            AnyFileBorrower(x[1], genTexts=mibBorrowers[x[0]][1]).set_options(
+                exts=[_JSON_EXT]
+            )
+            for x in enumerate(
+                getReadersFromUrls(
+                    *[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)
+                )
+            )
         ]
 
-        searchers = [AnyFileSearcher(dstDirectory).set_options(exts=[_JSON_EXT]), StubSearcher(*mibStubs)]
+        searchers = [
+            AnyFileSearcher(dstDirectory).set_options(exts=[_JSON_EXT]),
+            StubSearcher(*mibStubs),
+        ]
 
         codeGenerator = JsonCodeGen()
 
@@ -343,13 +398,19 @@ def start() -> None:
 
         borrowers = [
             AnyFileBorrower(x[1], genTexts=mibBorrowers[x[0]][1])
-            for x in enumerate(getReadersFromUrls(*[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)))
+            for x in enumerate(
+                getReadersFromUrls(
+                    *[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)
+                )
+            )
         ]
 
         fileWriter = CallbackWriter(lambda *x: None)
 
     else:
-        sys.stderr.write(f"ERROR: unknown destination format: {dstFormat}\r\n{helpMessage}\r\n")
+        sys.stderr.write(
+            f"ERROR: unknown destination format: {dstFormat}\r\n{helpMessage}\r\n"
+        )
         sys.exit(EX_USAGE)
 
     if verboseFlag:
@@ -402,13 +463,18 @@ def start() -> None:
     # Initialize compiler infrastructure
 
     mibCompiler = MibCompiler(
-        SmiV1CompatParser(tempdir=cacheDirectory), codeGenerator, fileWriter, useBundledMibs=bundledMibsFlag
+        SmiV1CompatParser(tempdir=cacheDirectory),
+        codeGenerator,
+        fileWriter,
+        useBundledMibs=bundledMibsFlag,
     )
 
     pruned = {}
 
     try:
-        mibCompiler.add_sources(*getReadersFromUrls(*mibSources, **dict(fuzzyMatching=doFuzzyMatchingFlag)))
+        mibCompiler.add_sources(
+            *getReadersFromUrls(*mibSources, **dict(fuzzyMatching=doFuzzyMatchingFlag))
+        )
 
         mibCompiler.add_searchers(*searchers)
 
@@ -424,6 +490,8 @@ def start() -> None:
                 textFilter=(lambda symbol, text: text) if keepTextsLayout else None,
                 writeMibs=writeMibsFlag,
                 ignoreErrors=ignoreErrorsFlag,
+                repairImports=repairImportsFlag,
+                strictSources=strictSourcesFlag,
             ),
         )
 
@@ -456,24 +524,58 @@ def start() -> None:
 
             borrowedVerb = "Would be " if dryrunFlag else ""
             borrowedMibs = ", ".join(
-                [f"{x} ({processed[x].path})" for x in sorted(processed) if processed[x] == "borrowed"]
+                [
+                    f"{x} ({processed[x].path})"
+                    for x in sorted(processed)
+                    if processed[x] == "borrowed"
+                ]
             )
-            sys.stdout.write(f"Pre-compiled MIBs {borrowedVerb}borrowed: {borrowedMibs}\r\n")
+            sys.stdout.write(
+                f"Pre-compiled MIBs {borrowedVerb}borrowed: {borrowedMibs}\r\n"
+            )
 
             sys.stdout.write(
-                "Up to date MIBs: " + ", ".join(sorted(x for x in processed if processed[x] == "untouched")) + "\r\n"
+                "Up to date MIBs: "
+                + ", ".join(sorted(x for x in processed if processed[x] == "untouched"))
+                + "\r\n"
             )
             sys.stderr.write(
-                "Missing source MIBs: " + "\n ".join(sorted(x for x in processed if processed[x] == "missing")) + "\n"
+                "Missing source MIBs: "
+                + "\n ".join(sorted(x for x in processed if processed[x] == "missing"))
+                + "\n"
             )
 
             sys.stderr.write(
-                "Ignored MIBs: " + ", ".join(sorted(x for x in processed if processed[x] == "unprocessed")) + "\r\n"
+                "Ignored MIBs: "
+                + ", ".join(
+                    sorted(x for x in processed if processed[x] == "unprocessed")
+                )
+                + "\r\n"
             )
+
+            repairedMibs = "\n ".join(
+                f"{x} ({', '.join(f'{s} from {m}' for s, m in sorted(getattr(processed[x], 'repaired', {}).items()))})"
+                for x in sorted(processed)
+                if getattr(processed[x], "repaired", None)
+            )
+            sys.stderr.write(f"Repaired MIBs: {repairedMibs}\n")
+
+            shadowedMibs = ", ".join(
+                f"{x} (used {processed[x].path}, passed over {', '.join(processed[x].shadowed)})"
+                for x in sorted(processed)
+                if getattr(processed[x], "shadowed", None)
+            )
+            sys.stderr.write(f"MIBs found in more than one source: {shadowedMibs}\n")
 
             sys.stderr.write(
                 "Failed MIBs: "
-                + "\n ".join([f"{x} ({processed[x].error})" for x in sorted(processed) if processed[x] == "failed"])
+                + "\n ".join(
+                    [
+                        f"{x} ({processed[x].error})"
+                        for x in sorted(processed)
+                        if processed[x] == "failed"
+                    ]
+                )
                 + "\n"
             )
 
@@ -486,7 +588,13 @@ def start() -> None:
                 )
                 sys.stderr.write(
                     "Failed to prune: "
-                    + "\n ".join([f"{x} ({pruned[x].error})" for x in sorted(pruned) if pruned[x] == "failed"])
+                    + "\n ".join(
+                        [
+                            f"{x} ({pruned[x].error})"
+                            for x in sorted(pruned)
+                            if pruned[x] == "failed"
+                        ]
+                    )
                     + "\n"
                 )
 
@@ -495,7 +603,9 @@ def start() -> None:
         if any(x for x in processed.values() if x == "missing"):
             exitCode = EX_MIB_MISSING
 
-        if any(x for x in processed.values() if x == "failed") or any(x for x in pruned.values() if x == "failed"):
+        if any(x for x in processed.values() if x == "failed") or any(
+            x for x in pruned.values() if x == "failed"
+        ):
             exitCode = EX_MIB_FAILED
 
         sys.exit(exitCode)

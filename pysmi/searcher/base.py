@@ -33,7 +33,13 @@ class AbstractSearcher:
             setattr(self, k, kwargs[k])
         return self
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
+    def file_exists(
+        self,
+        mibname: str,
+        mtime: float,
+        rebuild: bool = False,
+        digest: str | None = None,
+    ) -> None:
         """Report whether a compiled MIB is current, by raising.
 
         Args:

@@ -30,7 +30,9 @@ class ProducerOfTestCase(unittest.TestCase):
         # The version itself contains a hyphen -- pysmi-2.0.0-rc.11 -- so a
         # naive split (first hyphen, or last hyphen) gets this wrong in one
         # direction or the other.
-        text = "#\n# ASN.1 source IF-MIB\n# Produced by pysmi-2.0.0-rc.11\n#\n\nout = 1\n"
+        text = (
+            "#\n# ASN.1 source IF-MIB\n# Produced by pysmi-2.0.0-rc.11\n#\n\nout = 1\n"
+        )
         self.assertEqual(("pysmi", "2.0.0-rc.11"), producer_of(text))
 
     def testMarkerAmongOtherCommentLines(self):
@@ -70,7 +72,10 @@ class ProducerOfTestCase(unittest.TestCase):
     def testMarkerFromADifferentPackage(self):
         # Not this package's marker -- callers compare the returned name
         # against their own, this function does not filter by it.
-        self.assertEqual(("somethingelse", "9.9.9"), producer_of("# Produced by somethingelse-9.9.9\n"))
+        self.assertEqual(
+            ("somethingelse", "9.9.9"),
+            producer_of("# Produced by somethingelse-9.9.9\n"),
+        )
 
     def testMalformedJsonFallsBackToRawTextSearch(self):
         # Not valid JSON (trailing comma), but still has the marker as plain

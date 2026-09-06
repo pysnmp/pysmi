@@ -77,7 +77,9 @@ GRAMMAR_LOGGER: Final = DEBUG_CATEGORIES["grammar"]
 _DEFAULT_HANDLER_NAME: Final = "pysmi-debug-console"
 
 
-def enableDebugLogging(*categories: str, handler: logging.Handler | None = None) -> None:
+def enableDebugLogging(
+    *categories: str, handler: logging.Handler | None = None
+) -> None:
     """Turn on debug logging for the given categories.
 
     Args:
@@ -98,7 +100,11 @@ def enableDebugLogging(*categories: str, handler: logging.Handler | None = None)
         # Calling this twice should not make every record appear twice.
         handler.set_name(_DEFAULT_HANDLER_NAME)
         if any(h.get_name() == _DEFAULT_HANDLER_NAME for h in packageLogger.handlers):
-            handler = next(h for h in packageLogger.handlers if h.get_name() == _DEFAULT_HANDLER_NAME)
+            handler = next(
+                h
+                for h in packageLogger.handlers
+                if h.get_name() == _DEFAULT_HANDLER_NAME
+            )
 
     handler.setLevel(logging.DEBUG)
     if handler not in packageLogger.handlers:
@@ -122,7 +128,9 @@ def enableDebugLogging(*categories: str, handler: logging.Handler | None = None)
         except KeyError as exc:
             raise error.PySmiError(f"bad debug flag {name}") from exc
 
-        logging.getLogger(loggerName).setLevel(logging.WARNING if disable else logging.DEBUG)
+        logging.getLogger(loggerName).setLevel(
+            logging.WARNING if disable else logging.DEBUG
+        )
 
         logging.getLogger(__name__).debug(
             "debug category %s %s",
@@ -131,7 +139,9 @@ def enableDebugLogging(*categories: str, handler: logging.Handler | None = None)
             extra={"category": name, "enabled": not disable},
         )
 
-    logging.getLogger(__name__).debug("running pysmi version %s", __version__, extra={"version": __version__})
+    logging.getLogger(__name__).debug(
+        "running pysmi version %s", __version__, extra={"version": __version__}
+    )
 
 
 @deprecated_camel_case
@@ -214,7 +224,10 @@ class Debug:
         else:
             if "loggerName" in options:
                 # route our logs to parent logger
-                self._printer = Printer(logger=logging.getLogger(options["loggerName"]), handler=NullHandler())
+                self._printer = Printer(
+                    logger=logging.getLogger(options["loggerName"]),
+                    handler=NullHandler(),
+                )
             else:
                 self._printer = Printer()
 
@@ -240,7 +253,9 @@ class Debug:
             # Modules log through their own loggers now, so the flags have to be
             # reflected onto those for this switch to have any effect.
             loggerName = DEBUG_CATEGORIES[name]
-            logging.getLogger(loggerName).setLevel(logging.WARNING if inverse else logging.DEBUG)
+            logging.getLogger(loggerName).setLevel(
+                logging.WARNING if inverse else logging.DEBUG
+            )
 
             if inverse:
                 enabled.discard(loggerName)

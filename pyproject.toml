@@ -51,9 +51,28 @@ path = "pysmi/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["pysmi"]
 
+[tool.hatch.build.targets.sdist]
+# An explicit include is an allowlist: anything not named here is left out,
+# whatever else is in the tree. That keeps repository plumbing -- pre-commit,
+# release and CI configuration -- out of the distribution, and makes what a
+# packager receives the same set every time rather than whatever happens to be
+# untracked-but-present. semantic-release generates CHANGELOG.md during prepare,
+# before this builds, so the release being cut is described by the changelog
+# shipped beside it.
+include = [
+    "pysmi",
+    "docs",
+    "tests",
+    "examples",
+    "scripts",
+    "CHANGELOG.md",
+    "CHANGES.rst",
+    "THANKS.txt",
+]
+
 [tool.ruff]
 target-version = "py310"
-line-length = 120
+line-length = 88
 
 [tool.ruff.lint]
 select = [

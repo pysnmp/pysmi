@@ -99,7 +99,9 @@ class PyFileSearcherVersionTestCase(unittest.TestCase):
             searcher.file_exists("IF-MIB", time.time() + 1000)
 
     def testMatchingDigestIsReportedAsUnmodified(self):
-        self._write(f"# Source digest sha256:abc\n# Produced by {packageName}-{packageVersion}\n")
+        self._write(
+            f"# Source digest sha256:abc\n# Produced by {packageName}-{packageVersion}\n"
+        )
 
         searcher = PyFileSearcher(self.dst)
         with self.assertRaises(error.PySmiFileNotModifiedError):
@@ -113,7 +115,9 @@ class PyFileSearcherVersionTestCase(unittest.TestCase):
         # primary source's is whatever a checkout or a vendor left it at.
         # Without a digest check, only the mtime is compared, and the new
         # source is silently ignored forever.
-        self._write(f"# Source digest sha256:abc\n# Produced by {packageName}-{packageVersion}\n")
+        self._write(
+            f"# Source digest sha256:abc\n# Produced by {packageName}-{packageVersion}\n"
+        )
 
         searcher = PyFileSearcher(self.dst)
         with self.assertRaises(error.PySmiFileNotFoundError):
@@ -123,7 +127,9 @@ class PyFileSearcherVersionTestCase(unittest.TestCase):
         # A caller with nothing to compare against -- the borrowed-MIB path
         # in the compiler, which never sets a digest -- gets the old,
         # mtime-only behaviour, not a forced rebuild.
-        self._write(f"# Source digest sha256:abc\n# Produced by {packageName}-{packageVersion}\n")
+        self._write(
+            f"# Source digest sha256:abc\n# Produced by {packageName}-{packageVersion}\n"
+        )
 
         searcher = PyFileSearcher(self.dst)
         with self.assertRaises(error.PySmiFileNotModifiedError):

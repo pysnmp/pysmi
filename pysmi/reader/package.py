@@ -36,6 +36,8 @@ class PackageReader(AbstractReader):
     on the compiled output, mtime aside.
     """
 
+    isLocal = True
+
     def __init__(self, package: str) -> None:
         """Create an instance of *PackageReader* serving *package*'s resources.
 
@@ -56,7 +58,12 @@ class PackageReader(AbstractReader):
         Raises:
             PySmiReaderFileNotFoundError: no bundled file holds the module.
         """
-        logger.debug("looking for MIB %s in package %s", mibname, self._package, extra={"mib": mibname})
+        logger.debug(
+            "looking for MIB %s in package %s",
+            mibname,
+            self._package,
+            extra={"mib": mibname},
+        )
 
         try:
             root = importlib.resources.files(self._package)
@@ -72,7 +79,12 @@ class PackageReader(AbstractReader):
             if not candidate.is_file():
                 continue
 
-            logger.debug("trying MIB %s in package %s", mibfile, self._package, extra={"mib": mibname})
+            logger.debug(
+                "trying MIB %s in package %s",
+                mibfile,
+                self._package,
+                extra={"mib": mibname},
+            )
 
             try:
                 mibData = candidate.read_bytes()
@@ -87,8 +99,14 @@ class PackageReader(AbstractReader):
                 continue
 
             return (
-                MibInfo(path=f"package://{self._package}/{mibfile}", file=mibfile, name=mibalias),
+                MibInfo(
+                    path=f"package://{self._package}/{mibfile}",
+                    file=mibfile,
+                    name=mibalias,
+                ),
                 decode(mibData),
             )
 
-        raise error.PySmiReaderFileNotFoundError(f"MIB {mibname} not found in package {self._package}", reader=self)
+        raise error.PySmiReaderFileNotFoundError(
+            f"MIB {mibname} not found in package {self._package}", reader=self
+        )

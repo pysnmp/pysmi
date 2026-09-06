@@ -173,13 +173,24 @@ class RefinementTestCase(unittest.TestCase):
     def testANegativeEnumerationValueSurvives(self):
         # RFC 2578 section 7.1.1 permits negative labelled values, and a sign
         # dropped here would silently move the value.
-        self.assertEqual(self.doc["TestTypeEnum"]["type"]["constraints"]["enumeration"]["noResponse"], -1)
+        self.assertEqual(
+            self.doc["TestTypeEnum"]["type"]["constraints"]["enumeration"][
+                "noResponse"
+            ],
+            -1,
+        )
 
     def testBitsCarryTheirPositionsInOrder(self):
         # RFC 2578 section 7.1.4 numbers bits from zero, and the position is
         # the value -- not the order of declaration.
-        self.assertIn('namedValues = NamedValues(("sunday", 0), ("monday", 1), ("tuesday", 2))', self.source)
-        self.assertEqual(self.doc["TestTypeBits"]["type"]["bits"], {"sunday": 0, "monday": 1, "tuesday": 2})
+        self.assertIn(
+            'namedValues = NamedValues(("sunday", 0), ("monday", 1), ("tuesday", 2))',
+            self.source,
+        )
+        self.assertEqual(
+            self.doc["TestTypeBits"]["type"]["bits"],
+            {"sunday": 0, "monday": 1, "tuesday": 2},
+        )
 
 
 class TextualConventionTestCase(unittest.TestCase):
@@ -206,7 +217,9 @@ class TextualConventionTestCase(unittest.TestCase):
     def testTextualConventionComesAheadOfTheBaseType(self):
         # Python resolves the display hint along the MRO, so TextualConvention
         # has to be first or the base type's rendering wins.
-        self.assertIn("class TestTextualConvention(TextualConvention, OctetString):", self.source)
+        self.assertIn(
+            "class TestTextualConvention(TextualConvention, OctetString):", self.source
+        )
 
     def testTheDisplayHintIsEmittedAsAClassAttribute(self):
         # RFC 2579 section 3.1: DISPLAY-HINT says how a value is rendered, so it

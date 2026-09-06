@@ -54,7 +54,10 @@ class RevisionDateTestCase(unittest.TestCase):
 
     def testThirteenCharacterForm(self):
         doc, source = module(revisions=[("202401011200Z", "recent")])
-        self.assertEqual(doc["revisions"], [{"revision": "2024-01-01 12:00", "description": "recent"}])
+        self.assertEqual(
+            doc["revisions"],
+            [{"revision": "2024-01-01 12:00", "description": "recent"}],
+        )
         self.assertIn("testModule.setRevisions(('2024-01-01 12:00',))", source)
 
     def testElevenCharacterFormExpandsToTheNineteenHundreds(self):
@@ -63,7 +66,11 @@ class RevisionDateTestCase(unittest.TestCase):
 
     def testEveryRevisionIsKeptInSourceOrder(self):
         doc, source = module(
-            revisions=[("202401011200Z", "third"), ("200001010000Z", "second"), ("9901010000Z", "first")]
+            revisions=[
+                ("202401011200Z", "third"),
+                ("200001010000Z", "second"),
+                ("9901010000Z", "first"),
+            ]
         )
         self.assertEqual(
             [r["revision"] for r in doc["revisions"]],
@@ -75,8 +82,12 @@ class RevisionDateTestCase(unittest.TestCase):
         )
 
     def testDescriptionTravelsWithItsRevision(self):
-        doc, _ = module(revisions=[("202401011200Z", "newer"), ("200001010000Z", "older")])
-        self.assertEqual([r["description"] for r in doc["revisions"]], ["newer", "older"])
+        doc, _ = module(
+            revisions=[("202401011200Z", "newer"), ("200001010000Z", "older")]
+        )
+        self.assertEqual(
+            [r["description"] for r in doc["revisions"]], ["newer", "older"]
+        )
 
 
 class MalformedDateTestCase(unittest.TestCase):
@@ -116,7 +127,9 @@ class LastUpdatedTestCase(unittest.TestCase):
         self.assertEqual(doc["lastupdated"], "1970-01-01 00:00")
 
     def testItAgreesWithARevisionCarryingTheSameValue(self):
-        doc, _ = module(lastUpdated="202401011200Z", revisions=[("202401011200Z", "same instant")])
+        doc, _ = module(
+            lastUpdated="202401011200Z", revisions=[("202401011200Z", "same instant")]
+        )
         self.assertEqual(doc["lastupdated"], doc["revisions"][0]["revision"])
 
 
@@ -127,13 +140,17 @@ class MalformedDateIsReportedTestCase(unittest.TestCase):
         with self.assertLogs("pysmi.codegen", level="WARNING") as caught:
             module(revisions=[("202302301200Z", "february the thirtieth")])
 
-        self.assertTrue(any("202302301200Z" in line for line in caught.output), caught.output)
+        self.assertTrue(
+            any("202302301200Z" in line for line in caught.output), caught.output
+        )
 
     def testLastUpdatedIsReportedToo(self):
         with self.assertLogs("pysmi.codegen", level="WARNING") as caught:
             module(lastUpdated="nonsense")
 
-        self.assertTrue(any("nonsense" in line for line in caught.output), caught.output)
+        self.assertTrue(
+            any("nonsense" in line for line in caught.output), caught.output
+        )
 
     def testAReadableDateSaysNothing(self):
         logger = logging.getLogger("pysmi.codegen")

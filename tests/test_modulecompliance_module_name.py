@@ -55,11 +55,17 @@ END
 class ComplianceModuleNameTestCase(unittest.TestCase):
     def testTheNameOnlyFormParses(self):
         doc = render_json(MIB % "")
-        self.assertEqual(doc["testCompliance"]["modulecompliance"], [{"module": "TEST-MIB", "object": "testGroup"}])
+        self.assertEqual(
+            doc["testCompliance"]["modulecompliance"],
+            [{"module": "TEST-MIB", "object": "testGroup"}],
+        )
 
     def testTheNameAndOidFormParses(self):
         doc = render_json(MIB % " { 1 3 6 1 2 1 1 }")
-        self.assertEqual(doc["testCompliance"]["modulecompliance"], [{"module": "TEST-MIB", "object": "testGroup"}])
+        self.assertEqual(
+            doc["testCompliance"]["modulecompliance"],
+            [{"module": "TEST-MIB", "object": "testGroup"}],
+        )
 
     def testBothFormsProduceTheSameDocument(self):
         # The name identifies the module; the OID adds nothing the compiler

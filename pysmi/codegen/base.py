@@ -9,7 +9,7 @@
 import logging
 from collections.abc import Sequence
 from time import strftime, strptime
-from typing import Any, ClassVar, Final, TypeAlias, TypeGuard
+from typing import Any, ClassVar, Final, NamedTuple, TypeAlias, TypeGuard
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
@@ -78,7 +78,9 @@ ComplianceRefinement: TypeAlias = tuple[Any, ...]
 #: ``groups`` holds the names from MANDATORY-GROUPS and GROUP, which is what a
 #: compliance requires. The third element carries the detail those names lose:
 #: which of them were mandatory, and the GROUP and OBJECT sub-clauses in full.
-ComplianceClause: TypeAlias = Sequence[list[tuple[str | None, list[str], tuple[list[str], list[ComplianceRefinement]]]]]
+ComplianceClause: TypeAlias = Sequence[
+    list[tuple[str | None, list[str], tuple[list[str], list[ComplianceRefinement]]]]
+]
 
 #: A VARIATION sub-clause of an AGENT-CAPABILITIES SUPPORTS clause, as
 #: ``(name, syntax, writeSyntax, access, creationRequires, defVal,
@@ -90,7 +92,9 @@ CapabilitiesVariation: TypeAlias = tuple[Any, ...]
 #: The SUPPORTS clauses of an AGENT-CAPABILITIES. Each entry is
 #: ``(module, groups, variations)``: the module named by SUPPORTS, the group
 #: names its INCLUDES lists, and the VARIATION sub-clauses that qualify them.
-CapabilitiesClause: TypeAlias = Sequence[list[tuple[str, list[str], list[CapabilitiesVariation]]]]
+CapabilitiesClause: TypeAlias = Sequence[
+    list[tuple[str, list[str], list[CapabilitiesVariation]]]
+]
 
 #: The clauses below are the top-level ones: what a handler registered in
 #: ``handlersTable`` against a whole macro receives. Every backend gets the
@@ -103,19 +107,27 @@ CapabilitiesClause: TypeAlias = Sequence[list[tuple[str, list[str], list[Capabil
 #: that is not there. See https://github.com/pysnmp/pysmi/issues/47.
 
 #: ``(name, productRelease, status, description, reference, capabilities, oid)``
-AgentCapabilitiesClause: TypeAlias = tuple[str, str, str, str, str | None, Any, tuple[Any, ...]]
+AgentCapabilitiesClause: TypeAlias = tuple[
+    str, str, str, str, str | None, Any, tuple[Any, ...]
+]
 
 #: ``(name, lastUpdated, organization, contactInfo, description, revisions, oid)``
 ModuleIdentityClause: TypeAlias = tuple[str, str, str, str, str, Any, tuple[Any, ...]]
 
 #: ``(name, status, description, reference, compliances, oid)``
-ModuleComplianceClause: TypeAlias = tuple[str, str, str, str | None, Any, tuple[Any, ...]]
+ModuleComplianceClause: TypeAlias = tuple[
+    str, str, str, str | None, Any, tuple[Any, ...]
+]
 
 #: ``(name, objects, status, description, reference, oid)``
-NotificationGroupClause: TypeAlias = tuple[str, Any, str, str, str | None, tuple[Any, ...]]
+NotificationGroupClause: TypeAlias = tuple[
+    str, Any, str, str, str | None, tuple[Any, ...]
+]
 
 #: ``(name, objects, status, description, reference, oid)``
-NotificationTypeClause: TypeAlias = tuple[str, Any, str, str, str | None, tuple[Any, ...]]
+NotificationTypeClause: TypeAlias = tuple[
+    str, Any, str, str, str | None, tuple[Any, ...]
+]
 
 #: ``(name, objects, status, description, reference, oid)``
 ObjectGroupClause: TypeAlias = tuple[str, Any, str, str, str | None, tuple[Any, ...]]
@@ -127,12 +139,24 @@ ObjectIdentityClause: TypeAlias = tuple[str, str, str, str | None, tuple[Any, ..
 #: augmentation, index, defval, oid)``. SMIv1 leaves DESCRIPTION optional, so
 #: the description is ``None`` for an SMIv1 object that omits it.
 ObjectTypeClause: TypeAlias = tuple[
-    str, tuple[Any, ...], str | None, str, str, str | None, str | None, Any, Any, Any, tuple[Any, ...]
+    str,
+    tuple[Any, ...],
+    str | None,
+    str,
+    str,
+    str | None,
+    str | None,
+    Any,
+    Any,
+    Any,
+    tuple[Any, ...],
 ]
 
 #: ``(name, enterprise, variables, description, reference, value)``. RFC 1215
 #: leaves DESCRIPTION and REFERENCE optional.
-TrapTypeClause: TypeAlias = tuple[str, tuple[Any, ...], Any, str | None, str | None, int]
+TrapTypeClause: TypeAlias = tuple[
+    str, tuple[Any, ...], Any, str | None, str | None, int
+]
 
 #: ``(name, declaration)``, where the declaration is the converted right-hand
 #: side of the type assignment, or ``None`` for a bare type reference.
@@ -243,6 +267,187 @@ def format_ext_utc_time(timeStr: str, module: str = "") -> str:
 RangesClause: TypeAlias = Sequence[list[tuple[Bound] | tuple[Bound, Bound]]]
 
 
+class ValueRanges(NamedTuple):
+    """A SIZE or range restriction, kept as the bounds it was written with.
+
+    The symbol table used to discard these. ``get_base_type`` describes itself
+    as "gathering the restrictions imposed along the way", and for enumerations
+    and BITS it does, but a SIZE or a numeric range reached it as an empty
+    string -- so a DEFVAL was rendered against constraints nobody had read.
+    See pysnmp/pysmi#134.
+
+    Attributes:
+        kind: ``"size"`` for a SIZE restriction, ``"range"`` for a numeric one
+        bounds: the permitted spans, each an inclusive ``(low, high)`` pair
+    """
+
+    kind: str
+    bounds: tuple[tuple[int, int], ...]
+
+    def permits(self, value: int) -> bool:
+        """Tell whether *value* falls inside any one of the spans."""
+        return any(low <= value <= high for low, high in self.bounds)
+
+    def __str__(self) -> str:
+        """Render the restriction the way the MIB would have written it."""
+        spans = ", ".join(
+            f"{low}..{high}" if low != high else str(low) for low, high in self.bounds
+        )
+        return f"SIZE ({spans})" if self.kind == "size" else f"({spans})"
+
+
+#: Every symbol the SMIv2 base modules export, mapped to the module that
+#: exports it.
+#:
+#: Taken from the module definitions themselves: SNMPv2-SMI in RFC 2578
+#: Section 2, SNMPv2-TC in RFC 2579 Section 2, SNMPv2-CONF in RFC 2580
+#: Section 2. RFC 2578 Section 3.2 requires a module to name in IMPORTS every
+#: symbol it refers to and does not define; many vendor MIBs do not, and this
+#: is the table :py:meth:`~pysmi.codegen.symtable.SymtableCodeGen.gen_code`
+#: repairs such a module from when asked to.
+#:
+#: SNMPv2-MIB (RFC 3418) is here too, but only for the symbols it alone
+#: defines. Its system and snmp groups restate what RFC1213-MIB and RFC1158-MIB
+#: already define under the same names, so an unimported ``sysUpTime`` could
+#: have been meant to come from any of the three and there is nothing to repair
+#: it from. ``snmpTrapOID`` -- the one most often left out, in the OBJECTS
+#: clause of a NOTIFICATION-TYPE -- is unambiguous, and is repaired.
+#:
+#: Every module named here is bundled in ``pysmi/mibs/asn1/``, so a repaired
+#: import resolves even when the MIB source the user configured has only the
+#: broken module.
+SMI_BASE_EXPORTS: Final[dict[str, str]] = {
+    # RFC 2578 -- macros
+    "MODULE-IDENTITY": "SNMPv2-SMI",
+    "OBJECT-IDENTITY": "SNMPv2-SMI",
+    "OBJECT-TYPE": "SNMPv2-SMI",
+    "NOTIFICATION-TYPE": "SNMPv2-SMI",
+    # RFC 2578 -- types
+    "Integer32": "SNMPv2-SMI",
+    "IpAddress": "SNMPv2-SMI",
+    "Counter32": "SNMPv2-SMI",
+    "Gauge32": "SNMPv2-SMI",
+    "Unsigned32": "SNMPv2-SMI",
+    "TimeTicks": "SNMPv2-SMI",
+    "Opaque": "SNMPv2-SMI",
+    "Counter64": "SNMPv2-SMI",
+    "ObjectName": "SNMPv2-SMI",
+    "NotificationName": "SNMPv2-SMI",
+    "ObjectSyntax": "SNMPv2-SMI",
+    "SimpleSyntax": "SNMPv2-SMI",
+    "ApplicationSyntax": "SNMPv2-SMI",
+    # RFC 2578 -- the registration tree
+    "org": "SNMPv2-SMI",
+    "dod": "SNMPv2-SMI",
+    "internet": "SNMPv2-SMI",
+    "directory": "SNMPv2-SMI",
+    "mgmt": "SNMPv2-SMI",
+    "mib-2": "SNMPv2-SMI",
+    "transmission": "SNMPv2-SMI",
+    "experimental": "SNMPv2-SMI",
+    "private": "SNMPv2-SMI",
+    "enterprises": "SNMPv2-SMI",
+    "security": "SNMPv2-SMI",
+    "snmpV2": "SNMPv2-SMI",
+    "snmpDomains": "SNMPv2-SMI",
+    "snmpProxys": "SNMPv2-SMI",
+    "snmpModules": "SNMPv2-SMI",
+    "zeroDotZero": "SNMPv2-SMI",
+    # RFC 2579
+    "TEXTUAL-CONVENTION": "SNMPv2-TC",
+    "DisplayString": "SNMPv2-TC",
+    "PhysAddress": "SNMPv2-TC",
+    "MacAddress": "SNMPv2-TC",
+    "TruthValue": "SNMPv2-TC",
+    "TestAndIncr": "SNMPv2-TC",
+    "AutonomousType": "SNMPv2-TC",
+    "InstancePointer": "SNMPv2-TC",
+    "VariablePointer": "SNMPv2-TC",
+    "RowPointer": "SNMPv2-TC",
+    "RowStatus": "SNMPv2-TC",
+    "TimeStamp": "SNMPv2-TC",
+    "TimeInterval": "SNMPv2-TC",
+    "DateAndTime": "SNMPv2-TC",
+    "StorageType": "SNMPv2-TC",
+    "TDomain": "SNMPv2-TC",
+    "TAddress": "SNMPv2-TC",
+    # RFC 2580
+    "OBJECT-GROUP": "SNMPv2-CONF",
+    "NOTIFICATION-GROUP": "SNMPv2-CONF",
+    "MODULE-COMPLIANCE": "SNMPv2-CONF",
+    "AGENT-CAPABILITIES": "SNMPv2-CONF",
+    # RFC 3418 -- only what SNMPv2-MIB alone defines; see above
+    "snmpMIB": "SNMPv2-MIB",
+    "snmpMIBObjects": "SNMPv2-MIB",
+    "snmpMIBConformance": "SNMPv2-MIB",
+    "snmpMIBCompliances": "SNMPv2-MIB",
+    "snmpMIBGroups": "SNMPv2-MIB",
+    "sysORLastChange": "SNMPv2-MIB",
+    "sysORTable": "SNMPv2-MIB",
+    "sysOREntry": "SNMPv2-MIB",
+    "sysORIndex": "SNMPv2-MIB",
+    "sysORID": "SNMPv2-MIB",
+    "sysORDescr": "SNMPv2-MIB",
+    "sysORUpTime": "SNMPv2-MIB",
+    "snmpTrap": "SNMPv2-MIB",
+    "snmpTrapOID": "SNMPv2-MIB",
+    "snmpTrapEnterprise": "SNMPv2-MIB",
+    "snmpTraps": "SNMPv2-MIB",
+    "coldStart": "SNMPv2-MIB",
+    "warmStart": "SNMPv2-MIB",
+    "authenticationFailure": "SNMPv2-MIB",
+    "snmpSet": "SNMPv2-MIB",
+    "snmpSetSerialNo": "SNMPv2-MIB",
+    "snmpSilentDrops": "SNMPv2-MIB",
+    "snmpProxyDrops": "SNMPv2-MIB",
+    "snmpBasicCompliance": "SNMPv2-MIB",
+    "snmpBasicComplianceRev2": "SNMPv2-MIB",
+    "snmpGroup": "SNMPv2-MIB",
+    "snmpSetGroup": "SNMPv2-MIB",
+    "systemGroup": "SNMPv2-MIB",
+    "snmpCommunityGroup": "SNMPv2-MIB",
+    "snmpObsoleteGroup": "SNMPv2-MIB",
+    "snmpBasicNotificationsGroup": "SNMPv2-MIB",
+    "snmpNotificationGroup": "SNMPv2-MIB",
+    "snmpWarmStartNotificationGroup": "SNMPv2-MIB",
+}
+
+#: Key under which the symbol table records what
+#: :py:meth:`~pysmi.codegen.symtable.SymtableCodeGen.gen_code` repaired, so
+#: that the backend rendering the same module imports the symbols too.
+REPAIRED_IMPORTS_KEY: Final = "_symtable_repaired"
+
+
+def with_repaired_imports(
+    imports: Any, symbolTable: dict[str, Any], moduleName: str
+) -> dict[str, list[str]]:
+    """Copy *imports*, adding back whatever the symbol table had to repair.
+
+    The symbol table is built first and is where a missing IMPORTS entry is
+    detected, but the backend that renders the module resolves imports again
+    from the same parse tree. Without this the repair would be invisible to it
+    and the rendered module would refer to a symbol it never imported.
+
+    Args:
+        imports: the module's IMPORTS clause, as parsed; may be ``None``
+        symbolTable: symbols of this module and everything it imports
+        moduleName: the module being rendered
+
+    Returns:
+        A fresh imports mapping, safe to mutate.
+    """
+    repaired = dict(imports or {})
+    for module, symbols in repaired.items():
+        repaired[module] = list(symbols)
+
+    for symbol, module in (
+        symbolTable.get(moduleName, {}).get(REPAIRED_IMPORTS_KEY, {}).items()
+    ):
+        repaired.setdefault(module, []).append(symbol)
+
+    return repaired
+
+
 def dorepr(s: Any) -> str:
     """Render a value as a Python literal for embedding in generated code."""
     return repr(s)
@@ -269,6 +474,19 @@ class AbstractCodeGen:
 
     Subclasses implement :py:meth:`gen_code` and :py:meth:`gen_index`.
     """
+
+    #: Symbols of the module being rendered and of everything it imports, as
+    #: built by :py:class:`~pysmi.codegen.symtable.SymtableCodeGen`.
+    symbolTable: dict[str, Any]
+
+    #: The SMI base types a derived type is ultimately resolved down to.
+    baseTypes: ClassVar[list[str]] = [
+        "Integer",
+        "Integer32",
+        "Bits",
+        "ObjectIdentifier",
+        "OctetString",
+    ]
 
     # never compile these, they either:
     # - define MACROs (implementation supplies them)
@@ -518,12 +736,15 @@ class AbstractCodeGen:
         "RFC-1212": {"OBJECT-TYPE": [("SNMPv2-SMI", "OBJECT-TYPE")]},
         # XXX 'IndexSyntax': ???
         "RFC1213-MIB": updateDict(
-            dict(commonSyms["RFC1158-MIB/RFC1213-MIB"]), (("PhysAddress", [("SNMPv2-TC", "PhysAddress")]),)
+            dict(commonSyms["RFC1158-MIB/RFC1213-MIB"]),
+            (("PhysAddress", [("SNMPv2-TC", "PhysAddress")]),),
         ),
         "RFC-1215": {"TRAP-TYPE": [("SNMPv2-SMI", "TRAP-TYPE")]},
     }
 
-    def gen_code(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, Any]:
+    def gen_code(
+        self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any
+    ) -> tuple[MibInfo, Any]:
         """Render one parsed MIB module.
 
         Args:
@@ -597,3 +818,113 @@ class AbstractCodeGen:
                 raise error.PySmiSemanticError("empty hex string to int conversion")
         else:
             return int(s)
+
+    def value_ranges(self, kind: str, data: RangesClause) -> "ValueRanges | str":
+        """Read a SIZE or numeric range restriction as the bounds it permits.
+
+        Args:
+            kind: ``"size"`` for a SIZE restriction, ``"range"`` for a numeric one
+            data: converted clause values
+
+        Returns:
+            The restriction, or an empty string when it carries no bound this
+            can read. A malformed bound is left for the renderer to reject
+            rather than turned into a constraint nothing could satisfy.
+        """
+        bounds: list[tuple[int, int]] = []
+
+        for rng in data[0]:
+            vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
+
+            try:
+                bounds.append((self.str2int(vmin), self.str2int(vmax)))
+            except (error.PySmiError, TypeError, ValueError):
+                return ""
+
+        return (bounds and ValueRanges(kind, tuple(bounds))) or ""
+
+    def get_value_ranges(self, symName: str, module: str) -> list[ValueRanges]:
+        """Collect every SIZE or range restriction a symbol is subject to.
+
+        A refinement written on the object is only the innermost one: the
+        textual convention it names may carry its own, and so may whatever that
+        convention was derived from. RFC 2578 Section 9 makes each refinement a
+        subset of the one it narrows, so a value has to satisfy all of them.
+
+        Args:
+            symName: symbol to resolve
+            module: module that defines it
+
+        Returns:
+            The restrictions found, innermost first. Empty when the chain
+            carries none, or when it leaves the symbol table before reaching a
+            base type -- a type that cannot be resolved restricts nothing that
+            can be checked here.
+        """
+        ranges: list[ValueRanges] = []
+        seen: set[tuple[str, str]] = set()
+
+        # A MIB whose types derive from each other in a circle is broken, but it
+        # must not be walked forever while being told so.
+        while (module, symName) not in seen:
+            seen.add((module, symName))
+
+            if (
+                module not in self.symbolTable
+                or symName not in self.symbolTable[module]
+            ):
+                break
+
+            symType, symSubtype = self.symbolTable[module][symName].get(
+                "syntax", (("", ""), "")
+            )
+
+            if isinstance(symSubtype, ValueRanges):
+                ranges.append(symSubtype)
+
+            if not symType[0] or symType[0] in self.baseTypes:
+                break
+
+            symName, module = symType
+
+        return ranges
+
+    def defval_violates_syntax(
+        self, objname: str, module: str, kind: str, measure: int, shown: object
+    ) -> bool:
+        """Tell whether a DEFVAL contradicts the SYNTAX of the object it is on.
+
+        MIBs in the wild write defaults their own SYNTAX forbids -- an empty
+        string against ``SIZE (1..31)``, a zero against ``(1..255)``. pysnmp
+        renders the default as a ``clone()`` on the constrained type, so pyasn1
+        raises while the module is being imported and the whole module, along
+        with everything importing it, fails to load. See pysnmp/pysmi#134.
+
+        The default is dropped rather than clamped: a value moved into range is
+        one the MIB never stated.
+
+        Args:
+            objname: object the default belongs to
+            module: module that defines it
+            kind: ``"size"`` when *measure* is a length in octets, ``"range"``
+                when it is the value itself
+            measure: what the restriction is checked against
+            shown: the default as written, for the warning alone
+
+        Returns:
+            True when a restriction rejects the value, having said so.
+        """
+        for ranges in self.get_value_ranges(objname, module):
+            if ranges.kind != kind or ranges.permits(measure):
+                continue
+
+            logger.warning(
+                'ignoring DEFVAL %s of object "%s" in module "%s": it violates the object\'s own SYNTAX %s',
+                shown,
+                objname,
+                module,
+                ranges,
+            )
+            return True
+
+        return False

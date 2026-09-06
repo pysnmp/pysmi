@@ -202,10 +202,14 @@ class PublicApiTestCase(unittest.TestCase):
     def testTheRowEncodesAnInstanceIdentifier(self):
         # The encoding itself belongs to pysnmp; that it agrees with the
         # section 7.7 model in test_spec_index is what this checks.
-        self.assertEqual(self.ctx["testEntry"].getInstIdFromIndices(7, b"ab"), (7, 97, 98))
+        self.assertEqual(
+            self.ctx["testEntry"].getInstIdFromIndices(7, b"ab"), (7, 97, 98)
+        )
 
     def testANotificationKnowsItsObjects(self):
-        self.assertEqual(self.ctx["testNotification"].getObjects(), (("TEST-MIB", "testScalar"),))
+        self.assertEqual(
+            self.ctx["testNotification"].getObjects(), (("TEST-MIB", "testScalar"),)
+        )
 
     def testTheModuleIdentityCarriesItsRevisions(self):
         self.assertEqual(self.ctx["testModule"].getRevisions(), ("2000-01-10 00:00",))
@@ -288,7 +292,9 @@ class CorpusLoadTestCase(unittest.TestCase):
                 if built is None or not hasattr(built, "getName"):
                     continue
                 with self.subTest(module=name, symbol=symbol):
-                    self.assertEqual(".".join(str(x) for x in built.getName()), node["oid"])
+                    self.assertEqual(
+                        ".".join(str(x) for x in built.getName()), node["oid"]
+                    )
                 compared += 1
 
         self.assertGreater(compared, 200)

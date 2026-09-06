@@ -12,7 +12,10 @@ name: Bundled MIBs freshness
 
 on:
   schedule:
-    - cron: "17 6 * * 1" # Monday, 06:17 UTC -- an arbitrary off-peak time
+    # Monthly. Everything bundled is either RFC-frozen or, in IANAifType-MIB's
+    # case, revised a couple of times a year to register ifTypes that take far
+    # longer than a month to reach shipping hardware.
+    - cron: "17 6 1 * *" # the 1st, 06:17 UTC -- an arbitrary off-peak time
   workflow_dispatch:
 
 jobs:

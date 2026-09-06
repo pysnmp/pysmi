@@ -31,7 +31,9 @@ mibCompiler = MibCompiler(NullParser(), NullCodeGen(), PyFileWriter(dstDirectory
 mibCompiler.add_searchers(PyFileSearcher(dstDirectory))
 
 # search for precompiled MIBs at Web sites
-mibCompiler.add_borrowers(*[PyFileBorrower(HttpReader("https://pysnmp.github.io/mibs/notexts/@mib@"))])
+mibCompiler.add_borrowers(
+    *[PyFileBorrower(HttpReader("https://pysnmp.github.io/mibs/notexts/@mib@"))]
+)
 
 # run MIB compilation
 results = mibCompiler.compile(*inputMibs)

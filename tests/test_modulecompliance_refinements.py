@@ -159,7 +159,9 @@ class RefinementTestCase(unittest.TestCase):
         )
 
     def testTheTwoKindsAreDistinguishable(self):
-        self.assertEqual([r["kind"] for r in self.refinements], ["group", "object", "object"])
+        self.assertEqual(
+            [r["kind"] for r in self.refinements], ["group", "object", "object"]
+        )
 
     def testTheGeneratedSourceStillCarriesOnlyTheNames(self):
         # pysnmp's ModuleCompliance has no attribute for any of this, so the
@@ -195,7 +197,10 @@ class WithoutTextsTestCase(unittest.TestCase):
     def testAnObjectSurvivesBecauseItsRefinementIsStructural(self):
         self.assertEqual(self.refinements[0]["object"], "testObject")
         self.assertEqual(self.refinements[0]["minaccess"], "read-only")
-        self.assertEqual(self.refinements[0]["syntax"]["constraints"], {"range": [{"min": 0, "max": 7}]})
+        self.assertEqual(
+            self.refinements[0]["syntax"]["constraints"],
+            {"range": [{"min": 0, "max": 7}]},
+        )
 
     def testNoDescriptionSurvives(self):
         for refinement in self.refinements:

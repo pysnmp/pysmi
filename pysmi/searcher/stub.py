@@ -32,18 +32,30 @@ class StubSearcher(AbstractSearcher):
         """Identify this searcher by class alone; it holds no location."""
         return f"{self.__class__.__name__}"
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
+    def file_exists(
+        self,
+        mibname: str,
+        mtime: float,
+        rebuild: bool = False,
+        digest: str | None = None,
+    ) -> None:
         """Report the configured modules as permanently up to date.
 
         These MIBs are supplied by the target implementation, so they must
         never be compiled regardless of ``rebuild``.
         """
         if mibname in self._mibnames:
-            logger.debug("pretend compiled %s exists and is very new", mibname, extra={"mib": mibname})
+            logger.debug(
+                "pretend compiled %s exists and is very new",
+                mibname,
+                extra={"mib": mibname},
+            )
             raise error.PySmiFileNotModifiedError(
-                f"compiled file {mibname} is among {', '.join(self._mibnames)}", searcher=self
+                f"compiled file {mibname} is among {', '.join(self._mibnames)}",
+                searcher=self,
             )
 
         raise error.PySmiFileNotFoundError(
-            f"no compiled file {mibname} found among {', '.join(self._mibnames)}", searcher=self
+            f"no compiled file {mibname} found among {', '.join(self._mibnames)}",
+            searcher=self,
         )
