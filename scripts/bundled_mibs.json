@@ -99,6 +99,8 @@
       "source": "rfc"
     },
     "CLNS-MIB": {
+      "patch": "CLNS-MIB.patch",
+      "reason": "RFC 1238 imports PhysAddress ``FROM RFC-1213``, a module name nothing publishes; the same IMPORTS clause spells RFC1155-SMI correctly.",
       "rfc": 1238,
       "source": "rfc"
     },
@@ -367,6 +369,10 @@
     "IANA-ENTITY-MIB": {
       "source": "iana",
       "url": "https://www.iana.org/assignments/ianaentity-mib/ianaentity-mib"
+    },
+    "IANA-GBOND-TC-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianagbondtc-mib/ianagbondtc-mib"
     },
     "IANA-GMPLS-TC-MIB": {
       "source": "iana",
@@ -940,6 +946,8 @@
       "source": "rfc"
     },
     "RFC1315-MIB": {
+      "patch": "RFC1315-MIB.patch",
+      "reason": "RFC 1315 imports TimeTicks ``FROM RFC-1155``, a module name nothing publishes; the same IMPORTS clause spells RFC1213-MIB correctly.",
       "rfc": 1315,
       "source": "rfc",
       "successors_reviewed": {
@@ -1028,6 +1036,8 @@
       "source": "rfc"
     },
     "SMUX-MIB": {
+      "patch": "SMUX-MIB.patch",
+      "reason": "RFC 1227 imports OBJECT-TYPE ``FROM RFC1212``, a module name nothing publishes -- the bundled compat module is RFC-1212.",
       "rfc": 1227,
       "source": "rfc"
     },

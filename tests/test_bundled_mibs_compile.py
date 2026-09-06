@@ -22,6 +22,7 @@ import unittest
 from importlib import resources
 
 from pysmi.codegen import JsonCodeGen, PySnmpCodeGen
+from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import PackageReader
@@ -61,9 +62,44 @@ class BundledMibsCompileTestCase(unittest.TestCase):
     def testEveryBundledMibCompilesAgainstTheBundleAlone(self):
         processed = self.compiler.compile(*BUNDLED, ignoreErrors=True)
 
-        for mibname in BUNDLED:
+        # Every name the compile touched, not only the ones asked for. A
+        # bundled module importing something the bundle does not carry leaves
+        # that name "missing" while the module importing it still reports
+        # "compiled", so asserting only over BUNDLED would pass a bundle with a
+        # dangling import in it -- which is how GBOND-MIB came to be bundled
+        # needing an IANA-GBOND-TC-MIB nothing provided.
+        for mibname, status in sorted(processed.items()):
             with self.subTest(mib=mibname):
-                self.assertEqual("compiled", processed[mibname])
+                self.assertEqual("compiled", status)
+
+    def testTheBundleIsImportClosed(self):
+        """No bundled module may import one the bundle does not carry.
+
+        The compile above catches this too, but only once something fails to
+        resolve at code-generation time. Reading the IMPORTS clauses through
+        pysmi's own parser says it directly, and names the importer -- which is
+        what someone adding a module to the manifest needs to see.
+        """
+        parser = SmiV1CompatParser()
+        outside = {}
+
+        for mibname in BUNDLED:
+            text = (
+                resources.files("pysmi.mibs.asn1")
+                .joinpath(mibname)
+                .read_text(errors="replace")
+            )
+            _info, symtable = SymtableCodeGen().gen_code(parser.parse(text)[0], {})
+
+            for imported in symtable.get("imports", {}):
+                if imported not in set(BUNDLED):
+                    outside.setdefault(imported, []).append(mibname)
+
+        self.assertEqual(
+            {},
+            outside,
+            "bundled modules import these, which the bundle does not carry",
+        )
 
     def testTheManifestAndThePackageHoldTheSameModules(self):
         onDisk = {

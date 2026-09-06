@@ -609,22 +609,34 @@ def verify(source: pathlib.Path | None = None) -> int:
     # MIB that caused it. Deep is normal here; unbounded is the bug.
     sys.setrecursionlimit(20000)
 
+    # useBundledMibs=False or this verifies the wrong thing: the compiler
+    # registers the *installed* pysmi.mibs.asn1 as a priority source, which
+    # would shadow the staging directory update() passes here and quietly
+    # re-verify the bundle already on disk.
     compiler = MibCompiler(
-        SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None)
+        SmiV1CompatParser(),
+        JsonCodeGen(),
+        CallbackWriter(lambda *a: None),
+        useBundledMibs=False,
     )
     compiler.add_sources(FileReader(str(source if source is not None else DEST)))
     processed = compiler.compile(*names, ignoreErrors=True)
 
+    # Every name the compile touched, not just the ones asked for. A bundled
+    # module importing something the bundle does not carry shows up here as a
+    # name that is "missing" while the module importing it still reports
+    # "compiled" -- so filtering to the manifest would report a clean bundle
+    # with a dangling import in it, which is how GBOND-MIB shipped needing an
+    # IANA-GBOND-TC-MIB nothing provided.
     failed = {
-        name: status
-        for name, status in processed.items()
-        if name in names and status != "compiled"
+        name: status for name, status in processed.items() if status != "compiled"
     }
 
     if failed:
         sys.stderr.write("Bundled MIBs failed to compile:\n")
         for name, status in sorted(failed.items()):
-            sys.stderr.write(f"  {name}: {status}\n")
+            note = "" if name in names else "  (imported by the bundle, not in it)"
+            sys.stderr.write(f"  {name}: {status}{note}\n")
         return 1
 
     sys.stdout.write(f"All {len(names)} bundled MIBs compile.\n")

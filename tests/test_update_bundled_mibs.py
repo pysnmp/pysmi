@@ -28,6 +28,26 @@ VALID_MIB = "TEST-MIB DEFINITIONS ::= BEGIN\nEND\n"
 UNCOMPILABLE_MIB = "this is not valid ASN.1\n"
 
 
+def _addBaseMibs(dest, manifest):
+    """Copy the modules every compile pulls in into a fixture bundle.
+
+    Taken from the real bundle rather than stubbed: the point is that verify()
+    now demands a bundle nothing dangles out of, and faking these would just
+    move the dangle somewhere else.
+    """
+    from importlib import resources
+
+    from pysmi.codegen import JsonCodeGen
+
+    installed = resources.files("pysmi.mibs.asn1")
+
+    for mibname in sorted(set(JsonCodeGen.baseMibs)):
+        candidate = installed.joinpath(mibname)
+        if candidate.is_file():
+            (dest / mibname).write_bytes(candidate.read_bytes())
+            manifest[mibname] = {"source": "rfc", "rfc": 0}
+
+
 class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -60,10 +80,24 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
             patch.stop()
         self._tmp.cleanup()
 
+    def _stubVerify(self, code):
+        """Make verify() return *code* without compiling anything.
+
+        These four tests are about what ends up on disk -- that a partway
+        failure leaves the old bundle intact, that a dropped manifest entry
+        takes its file with it. Compiling a real bundle for each would be slow
+        and would test verify() over again, which the two tests below do
+        directly.
+        """
+        patch = mock.patch.object(update_bundled_mibs, "verify", return_value=code)
+        patch.start()
+        self.addCleanup(patch.stop)
+
     def _existingBundleContents(self):
         return {mibname: (self.dest / mibname).read_bytes() for mibname in self.bundled}
 
     def testASuccessfulUpdateReplacesEveryFile(self):
+        self._stubVerify(0)
         fresh = {
             mibname: f"-- fresh {mibname}\n{VALID_MIB}".encode()
             for mibname in self.bundled
@@ -78,6 +112,7 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertEqual(fresh, self._existingBundleContents())
 
     def testAFetchFailurePartwayLeavesTheExistingBundleUntouched(self):
+        self._stubVerify(0)
         before = self._existingBundleContents()
 
         def flakyFetch(mibname, _entry):
@@ -94,6 +129,7 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertEqual(before, self._existingBundleContents())
 
     def testAnUncompilableRefreshLeavesTheExistingBundleUntouched(self):
+        self._stubVerify(1)
         before = self._existingBundleContents()
 
         broken = {
@@ -110,6 +146,7 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertEqual(before, self._existingBundleContents())
 
     def testAModuleDroppedFromTheManifestIsDroppedFromTheBundle(self):
+        self._stubVerify(0)
         """Otherwise a removed entry leaves a file nothing re-checks any more."""
         (self.dest / "GAMMA-MIB").write_bytes(VALID_MIB.encode())
 
@@ -123,13 +160,18 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertFalse((self.dest / "GAMMA-MIB").exists())
 
     def testVerifyDefaultsToCheckingDestInPlace(self):
+        _addBaseMibs(self.dest, self.bundled)
+
         self.assertEqual(0, update_bundled_mibs.verify())
 
     def testVerifyChecksTheGivenDirectoryNotDest(self):
+        _addBaseMibs(self.dest, self.bundled)
+
         staging = pathlib.Path(self._tmp.name) / "staging"
         staging.mkdir()
         (staging / "ALPHA-MIB").write_bytes(UNCOMPILABLE_MIB.encode())
         (staging / "BETA-MIB").write_bytes(VALID_MIB.encode())
+        _addBaseMibs(staging, dict(self.bundled))
 
         self.assertEqual(1, update_bundled_mibs.verify(staging))
         # DEST's own (valid) copies are untouched by checking a different directory.
