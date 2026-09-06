@@ -248,7 +248,9 @@ def conforms(value, hint):
         args = typing.get_args(hint)
         if len(args) == 2 and args[1] is Ellipsis:
             return all(conforms(v, args[0]) for v in value)
-        return len(value) == len(args) and all(conforms(v, a) for v, a in zip(value, args, strict=True))
+        return len(value) == len(args) and all(
+            conforms(v, a) for v, a in zip(value, args, strict=True)
+        )
 
     if origin in (typing.Union, types.UnionType):
         return any(conforms(value, a) for a in typing.get_args(hint))
@@ -300,7 +302,9 @@ def compileWatching(backend, seen, violations):
     # handlersTable holds the functions themselves, so it must be rebuilt to
     # route through the wrappers
     originalTable = backend.handlersTable
-    backend.handlersTable = {tag: getattr(backend, fn.__name__) for tag, fn in originalTable.items()}
+    backend.handlersTable = {
+        tag: getattr(backend, fn.__name__) for tag, fn in originalTable.items()
+    }
 
     try:
         for source in (MIB, V1_MIB):
@@ -337,7 +341,11 @@ class ClauseTypeTestCase(unittest.TestCase):
             with self.subTest(backend=backend.__name__):
                 seen, violations = set(), []
                 hints = compileWatching(backend, seen, violations)
-                unreached = {n for n in set(hints) - seen if (backend.__name__, n) not in UNREACHABLE}
+                unreached = {
+                    n
+                    for n in set(hints) - seen
+                    if (backend.__name__, n) not in UNREACHABLE
+                }
                 self.assertEqual(sorted(unreached), [])
 
     def testBackendsAgreeOnClauseShape(self):
@@ -385,14 +393,20 @@ class ClauseTypeTestCase(unittest.TestCase):
         self.assertFalse(conforms([[(0, 1, 2)]], RangesClause))
         self.assertFalse(conforms([[[0, 1]]], RangesClause))
 
-        self.assertTrue(conforms([[("202601010000Z", ("DESCRIPTION", "text"))]], RevisionsClause))
+        self.assertTrue(
+            conforms([[("202601010000Z", ("DESCRIPTION", "text"))]], RevisionsClause)
+        )
         self.assertFalse(conforms([[("202601010000Z", "text")]], RevisionsClause))
 
         # The module name is absent when the clause means the current module.
         # The third element carries the sub-clause detail the name list drops.
         group = ("ComplianceGroup", "aGroup", "applies when...")
-        self.assertTrue(conforms([[(None, ["aGroup"], (["aGroup"], []))]], ComplianceClause))
-        self.assertTrue(conforms([[("SNMPv2-MIB", ["aGroup"], ([], [group]))]], ComplianceClause))
+        self.assertTrue(
+            conforms([[(None, ["aGroup"], (["aGroup"], []))]], ComplianceClause)
+        )
+        self.assertTrue(
+            conforms([[("SNMPv2-MIB", ["aGroup"], ([], [group]))]], ComplianceClause)
+        )
         self.assertFalse(conforms([[(None, "aGroup", ([], []))]], ComplianceClause))
         self.assertFalse(conforms([[(None, ["aGroup"])]], ComplianceClause))
 

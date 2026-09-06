@@ -91,7 +91,9 @@ class FileReaderCachingTestCase(unittest.TestCase):
         with mock.patch("os.scandir", side_effect=counting):
             self.reader.get_data("NESTED-MIB")
 
-        self.assertEqual(len(seen), len(set(seen)), "a directory was scanned more than once")
+        self.assertEqual(
+            len(seen), len(set(seen)), "a directory was scanned more than once"
+        )
 
     def testMibNotFoundStillRaises(self):
         with self.assertRaises(error.PySmiReaderFileNotFoundError):

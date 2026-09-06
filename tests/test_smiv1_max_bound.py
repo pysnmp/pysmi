@@ -55,7 +55,12 @@ def scalar(name, syntax, index=1):
 def syntaxOf(parsed, name):
     """Return the SYNTAX value the parser produced for *name*."""
     for clause in parsed[0][3]:
-        if isinstance(clause, tuple) and clause and clause[0] == "objectTypeClause" and clause[1] == name:
+        if (
+            isinstance(clause, tuple)
+            and clause
+            and clause[0] == "objectTypeClause"
+            and clause[1] == name
+        ):
             return clause[2]
     raise AssertionError(f"no objectTypeClause for {name}")
 

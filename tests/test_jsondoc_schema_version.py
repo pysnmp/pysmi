@@ -45,7 +45,9 @@ class ModuleDocumentTestCase(unittest.TestCase):
 
     def testTheSchemaIsDeclaredAlongsideComments(self):
         ast, _, table = symbol_table(MIB)
-        _, doc = JsonCodeGen().gen_code(ast, table, genTexts=True, comments=["Produced by pysmi"])
+        _, doc = JsonCodeGen().gen_code(
+            ast, table, genTexts=True, comments=["Produced by pysmi"]
+        )
         meta = json.loads(doc)["meta"]
 
         self.assertEqual(meta["schema"], JsonCodeGen.SCHEMA_VERSION)
@@ -78,9 +80,20 @@ class IndexDocumentTestCase(unittest.TestCase):
         self.assertEqual(self.index()["meta"]["schema"], JsonCodeGen.SCHEMA_VERSION)
 
     def testAMergedIndexDeclaresThisRunsSchema(self):
-        stale = json.dumps({"meta": {"schema": 0}, "identity": {}, "enterprise": {}, "compliance": {}, "oids": {}})
+        stale = json.dumps(
+            {
+                "meta": {"schema": 0},
+                "identity": {},
+                "enterprise": {},
+                "compliance": {},
+                "oids": {},
+            }
+        )
 
-        self.assertEqual(self.index(old_index_data=stale)["meta"]["schema"], JsonCodeGen.SCHEMA_VERSION)
+        self.assertEqual(
+            self.index(old_index_data=stale)["meta"]["schema"],
+            JsonCodeGen.SCHEMA_VERSION,
+        )
 
     def testAnUnknownSchemaIsRefused(self):
         with self.assertRaises(error.PySmiCodegenError):

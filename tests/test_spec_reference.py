@@ -156,7 +156,10 @@ class DocumentTestCase(unittest.TestCase):
     def testEveryMacroKeepsItsReference(self):
         # What one consumer cannot hold is not a reason to drop the clause from
         # the interchange format, which every other consumer reads.
-        for symbol, reference in {**WITH_SET_REFERENCE, **WITHOUT_SET_REFERENCE}.items():
+        for symbol, reference in {
+            **WITH_SET_REFERENCE,
+            **WITHOUT_SET_REFERENCE,
+        }.items():
             with self.subTest(symbol=symbol):
                 self.assertEqual(self.doc[symbol]["reference"], reference)
 
@@ -165,8 +168,12 @@ class DocumentTestCase(unittest.TestCase):
 
     def testATextualConventionKeepsItsReference(self):
         # RFC 2579 section 3.4 permits REFERENCE on a TEXTUAL-CONVENTION.
-        self.assertEqual(render_json(TC_MIB)["TestConvention"]["reference"], "RFC 2579 Section 3")
-        self.assertNotIn("reference", render_json(TC_MIB, genTexts=False)["TestConvention"])
+        self.assertEqual(
+            render_json(TC_MIB)["TestConvention"]["reference"], "RFC 2579 Section 3"
+        )
+        self.assertNotIn(
+            "reference", render_json(TC_MIB, genTexts=False)["TestConvention"]
+        )
 
     def testTheDocumentIsTheOnlyArtifactThatKeepsTheRestOfThem(self):
         # ObjectGroup, NotificationGroup and ModuleCompliance have no setter, so
@@ -208,7 +215,9 @@ class EmittedCallTestCase(unittest.TestCase):
     def testNoOtherCallIsEmitted(self):
         # Counting pins the two lists together: a new macro that starts
         # emitting a call has to be classified rather than silently added.
-        self.assertEqual(len(re.findall(r"\.setReference\(", self.source)), len(WITH_SET_REFERENCE))
+        self.assertEqual(
+            len(re.findall(r"\.setReference\(", self.source)), len(WITH_SET_REFERENCE)
+        )
 
     def testEveryCallIsGuarded(self):
         for line in self.source.splitlines():
@@ -217,11 +226,20 @@ class EmittedCallTestCase(unittest.TestCase):
                     self.assertTrue(line.startswith("if mibBuilder.loadTexts: "))
 
     def testNoCallSurvivesWithoutTexts(self):
-        self.assertEqual(len(re.findall(r"\.setReference\(", render_source(MACROS_MIB, genTexts=False))), 0)
+        self.assertEqual(
+            len(
+                re.findall(
+                    r"\.setReference\(", render_source(MACROS_MIB, genTexts=False)
+                )
+            ),
+            0,
+        )
 
     def testATrapTypeGetsAGuardedCall(self):
         source = render_source(TRAP_MIB)
-        self.assertIn("if mibBuilder.loadTexts: testTrap.setReference('RFC 1215')", source)
+        self.assertIn(
+            "if mibBuilder.loadTexts: testTrap.setReference('RFC 1215')", source
+        )
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

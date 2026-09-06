@@ -59,6 +59,8 @@ class CallbackReader(AbstractReader):
 
         res = self._cbFun(mibname, self._cbCtx)
         if res:
-            return MibInfo(path="file:///dev/stdin", file="", name=mibname, mtime=time.time()), res
+            return MibInfo(
+                path="file:///dev/stdin", file="", name=mibname, mtime=time.time()
+            ), res
 
         raise error.PySmiReaderFileNotFoundError(mibname=mibname, reader=self)

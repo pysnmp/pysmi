@@ -78,7 +78,9 @@ ComplianceRefinement: TypeAlias = tuple[Any, ...]
 #: ``groups`` holds the names from MANDATORY-GROUPS and GROUP, which is what a
 #: compliance requires. The third element carries the detail those names lose:
 #: which of them were mandatory, and the GROUP and OBJECT sub-clauses in full.
-ComplianceClause: TypeAlias = Sequence[list[tuple[str | None, list[str], tuple[list[str], list[ComplianceRefinement]]]]]
+ComplianceClause: TypeAlias = Sequence[
+    list[tuple[str | None, list[str], tuple[list[str], list[ComplianceRefinement]]]]
+]
 
 #: A VARIATION sub-clause of an AGENT-CAPABILITIES SUPPORTS clause, as
 #: ``(name, syntax, writeSyntax, access, creationRequires, defVal,
@@ -90,7 +92,9 @@ CapabilitiesVariation: TypeAlias = tuple[Any, ...]
 #: The SUPPORTS clauses of an AGENT-CAPABILITIES. Each entry is
 #: ``(module, groups, variations)``: the module named by SUPPORTS, the group
 #: names its INCLUDES lists, and the VARIATION sub-clauses that qualify them.
-CapabilitiesClause: TypeAlias = Sequence[list[tuple[str, list[str], list[CapabilitiesVariation]]]]
+CapabilitiesClause: TypeAlias = Sequence[
+    list[tuple[str, list[str], list[CapabilitiesVariation]]]
+]
 
 #: The clauses below are the top-level ones: what a handler registered in
 #: ``handlersTable`` against a whole macro receives. Every backend gets the
@@ -103,19 +107,27 @@ CapabilitiesClause: TypeAlias = Sequence[list[tuple[str, list[str], list[Capabil
 #: that is not there. See https://github.com/pysnmp/pysmi/issues/47.
 
 #: ``(name, productRelease, status, description, reference, capabilities, oid)``
-AgentCapabilitiesClause: TypeAlias = tuple[str, str, str, str, str | None, Any, tuple[Any, ...]]
+AgentCapabilitiesClause: TypeAlias = tuple[
+    str, str, str, str, str | None, Any, tuple[Any, ...]
+]
 
 #: ``(name, lastUpdated, organization, contactInfo, description, revisions, oid)``
 ModuleIdentityClause: TypeAlias = tuple[str, str, str, str, str, Any, tuple[Any, ...]]
 
 #: ``(name, status, description, reference, compliances, oid)``
-ModuleComplianceClause: TypeAlias = tuple[str, str, str, str | None, Any, tuple[Any, ...]]
+ModuleComplianceClause: TypeAlias = tuple[
+    str, str, str, str | None, Any, tuple[Any, ...]
+]
 
 #: ``(name, objects, status, description, reference, oid)``
-NotificationGroupClause: TypeAlias = tuple[str, Any, str, str, str | None, tuple[Any, ...]]
+NotificationGroupClause: TypeAlias = tuple[
+    str, Any, str, str, str | None, tuple[Any, ...]
+]
 
 #: ``(name, objects, status, description, reference, oid)``
-NotificationTypeClause: TypeAlias = tuple[str, Any, str, str, str | None, tuple[Any, ...]]
+NotificationTypeClause: TypeAlias = tuple[
+    str, Any, str, str, str | None, tuple[Any, ...]
+]
 
 #: ``(name, objects, status, description, reference, oid)``
 ObjectGroupClause: TypeAlias = tuple[str, Any, str, str, str | None, tuple[Any, ...]]
@@ -127,12 +139,24 @@ ObjectIdentityClause: TypeAlias = tuple[str, str, str, str | None, tuple[Any, ..
 #: augmentation, index, defval, oid)``. SMIv1 leaves DESCRIPTION optional, so
 #: the description is ``None`` for an SMIv1 object that omits it.
 ObjectTypeClause: TypeAlias = tuple[
-    str, tuple[Any, ...], str | None, str, str, str | None, str | None, Any, Any, Any, tuple[Any, ...]
+    str,
+    tuple[Any, ...],
+    str | None,
+    str,
+    str,
+    str | None,
+    str | None,
+    Any,
+    Any,
+    Any,
+    tuple[Any, ...],
 ]
 
 #: ``(name, enterprise, variables, description, reference, value)``. RFC 1215
 #: leaves DESCRIPTION and REFERENCE optional.
-TrapTypeClause: TypeAlias = tuple[str, tuple[Any, ...], Any, str | None, str | None, int]
+TrapTypeClause: TypeAlias = tuple[
+    str, tuple[Any, ...], Any, str | None, str | None, int
+]
 
 #: ``(name, declaration)``, where the declaration is the converted right-hand
 #: side of the type assignment, or ``None`` for a bare type reference.
@@ -266,7 +290,9 @@ class ValueRanges(NamedTuple):
 
     def __str__(self) -> str:
         """Render the restriction the way the MIB would have written it."""
-        spans = ", ".join(f"{low}..{high}" if low != high else str(low) for low, high in self.bounds)
+        spans = ", ".join(
+            f"{low}..{high}" if low != high else str(low) for low, high in self.bounds
+        )
         return f"SIZE ({spans})" if self.kind == "size" else f"({spans})"
 
 
@@ -392,7 +418,9 @@ SMI_BASE_EXPORTS: Final[dict[str, str]] = {
 REPAIRED_IMPORTS_KEY: Final = "_symtable_repaired"
 
 
-def with_repaired_imports(imports: Any, symbolTable: dict[str, Any], moduleName: str) -> dict[str, list[str]]:
+def with_repaired_imports(
+    imports: Any, symbolTable: dict[str, Any], moduleName: str
+) -> dict[str, list[str]]:
     """Copy *imports*, adding back whatever the symbol table had to repair.
 
     The symbol table is built first and is where a missing IMPORTS entry is
@@ -412,7 +440,9 @@ def with_repaired_imports(imports: Any, symbolTable: dict[str, Any], moduleName:
     for module, symbols in repaired.items():
         repaired[module] = list(symbols)
 
-    for symbol, module in symbolTable.get(moduleName, {}).get(REPAIRED_IMPORTS_KEY, {}).items():
+    for symbol, module in (
+        symbolTable.get(moduleName, {}).get(REPAIRED_IMPORTS_KEY, {}).items()
+    ):
         repaired.setdefault(module, []).append(symbol)
 
     return repaired
@@ -450,7 +480,13 @@ class AbstractCodeGen:
     symbolTable: dict[str, Any]
 
     #: The SMI base types a derived type is ultimately resolved down to.
-    baseTypes: ClassVar[list[str]] = ["Integer", "Integer32", "Bits", "ObjectIdentifier", "OctetString"]
+    baseTypes: ClassVar[list[str]] = [
+        "Integer",
+        "Integer32",
+        "Bits",
+        "ObjectIdentifier",
+        "OctetString",
+    ]
 
     # never compile these, they either:
     # - define MACROs (implementation supplies them)
@@ -700,12 +736,15 @@ class AbstractCodeGen:
         "RFC-1212": {"OBJECT-TYPE": [("SNMPv2-SMI", "OBJECT-TYPE")]},
         # XXX 'IndexSyntax': ???
         "RFC1213-MIB": updateDict(
-            dict(commonSyms["RFC1158-MIB/RFC1213-MIB"]), (("PhysAddress", [("SNMPv2-TC", "PhysAddress")]),)
+            dict(commonSyms["RFC1158-MIB/RFC1213-MIB"]),
+            (("PhysAddress", [("SNMPv2-TC", "PhysAddress")]),),
         ),
         "RFC-1215": {"TRAP-TYPE": [("SNMPv2-SMI", "TRAP-TYPE")]},
     }
 
-    def gen_code(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, Any]:
+    def gen_code(
+        self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any
+    ) -> tuple[MibInfo, Any]:
         """Render one parsed MIB module.
 
         Args:
@@ -830,10 +869,15 @@ class AbstractCodeGen:
         while (module, symName) not in seen:
             seen.add((module, symName))
 
-            if module not in self.symbolTable or symName not in self.symbolTable[module]:
+            if (
+                module not in self.symbolTable
+                or symName not in self.symbolTable[module]
+            ):
                 break
 
-            symType, symSubtype = self.symbolTable[module][symName].get("syntax", (("", ""), ""))
+            symType, symSubtype = self.symbolTable[module][symName].get(
+                "syntax", (("", ""), "")
+            )
 
             if isinstance(symSubtype, ValueRanges):
                 ranges.append(symSubtype)
@@ -845,7 +889,9 @@ class AbstractCodeGen:
 
         return ranges
 
-    def defval_violates_syntax(self, objname: str, module: str, kind: str, measure: int, shown: object) -> bool:
+    def defval_violates_syntax(
+        self, objname: str, module: str, kind: str, measure: int, shown: object
+    ) -> bool:
         """Tell whether a DEFVAL contradicts the SYNTAX of the object it is on.
 
         MIBs in the wild write defaults their own SYNTAX forbids -- an empty

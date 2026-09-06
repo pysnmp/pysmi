@@ -29,11 +29,15 @@ class FileWriterPruneTestCase(unittest.TestCase):
         self._tmp.cleanup()
 
     def testListDataReportsWhatWasWritten(self):
-        self.writer.put_data("IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}')
+        self.writer.put_data(
+            "IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}'
+        )
         self.assertEqual(["IF-MIB"], list(self.writer.list_data()))
 
     def testListDataIgnoresAFileItDidNotWrite(self):
-        self.writer.put_data("IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}')
+        self.writer.put_data(
+            "IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}'
+        )
 
         with open(os.path.join(self.dst, "HAND-WRITTEN.json"), "w") as fp:
             fp.write('{"hand": "written"}')
@@ -44,16 +48,22 @@ class FileWriterPruneTestCase(unittest.TestCase):
         self.assertEqual([], list(self.writer.list_data()))
 
     def testListDataOnAMissingDirectory(self):
-        writer = FileWriter(os.path.join(self.dst, "does-not-exist")).set_options(suffix=".json")
+        writer = FileWriter(os.path.join(self.dst, "does-not-exist")).set_options(
+            suffix=".json"
+        )
         self.assertEqual([], list(writer.list_data()))
 
     def testDelDataRemovesTheFile(self):
-        self.writer.put_data("IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}')
+        self.writer.put_data(
+            "IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}'
+        )
         self.writer.del_data("IF-MIB")
         self.assertEqual([], os.listdir(self.dst))
 
     def testDelDataDryRunLeavesTheFileInPlace(self):
-        self.writer.put_data("IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}')
+        self.writer.put_data(
+            "IF-MIB", '{"meta": {"comments": ["Produced by pysmi-2.0.0"]}}'
+        )
         self.writer.del_data("IF-MIB", dryRun=True)
         self.assertEqual(["IF-MIB.json"], os.listdir(self.dst))
 
@@ -72,11 +82,15 @@ class PyFileWriterPruneTestCase(unittest.TestCase):
         self._tmp.cleanup()
 
     def testListDataReportsWhatWasWritten(self):
-        self.writer.put_data("IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"])
+        self.writer.put_data(
+            "IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"]
+        )
         self.assertEqual(["IF-MIB"], list(self.writer.list_data()))
 
     def testListDataIgnoresAFileItDidNotWrite(self):
-        self.writer.put_data("IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"])
+        self.writer.put_data(
+            "IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"]
+        )
 
         with open(os.path.join(self.dst, "HAND-WRITTEN.py"), "w") as fp:
             fp.write("# not from pysmi\n")
@@ -84,21 +98,29 @@ class PyFileWriterPruneTestCase(unittest.TestCase):
         self.assertEqual(["IF-MIB"], list(self.writer.list_data()))
 
     def testDelDataRemovesTheFile(self):
-        self.writer.put_data("IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"])
+        self.writer.put_data(
+            "IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"]
+        )
         self.writer.del_data("IF-MIB")
         self.assertEqual([], os.listdir(self.dst))
 
     def testDelDataDryRunLeavesTheFileInPlace(self):
-        self.writer.put_data("IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"])
+        self.writer.put_data(
+            "IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"]
+        )
         self.writer.del_data("IF-MIB", dryRun=True)
         self.assertEqual(["IF-MIB.py"], os.listdir(self.dst))
 
     def testDelDataRemovesCachedBytecodeToo(self):
         self.writer.pyCompile = True
-        self.writer.put_data("IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"])
+        self.writer.put_data(
+            "IF-MIB", "out = 1\n", comments=["Produced by pysmi-2.0.0"]
+        )
 
         cacheDir = os.path.join(self.dst, "__pycache__")
-        self.assertTrue(os.path.isdir(cacheDir), "py_compile should have populated __pycache__")
+        self.assertTrue(
+            os.path.isdir(cacheDir), "py_compile should have populated __pycache__"
+        )
         self.assertTrue(os.listdir(cacheDir))
 
         self.writer.del_data("IF-MIB")

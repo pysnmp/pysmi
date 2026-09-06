@@ -91,13 +91,20 @@ class ModuleIdentityTestCase(unittest.TestCase):
         # Two parallel lists would lose the pairing the moment one is filtered.
         self.assertEqual(
             self.doc["revisions"],
-            [{"revision": "2000-01-10 00:00", "description": "Initial version published as RFC 2742."}],
+            [
+                {
+                    "revision": "2000-01-10 00:00",
+                    "description": "Initial version published as RFC 2742.",
+                }
+            ],
         )
 
     def testTheModuleIdentityIsExportedUnderItsWellKnownAlias(self):
         # pysnmp finds the module's identity by this name rather than by
         # scanning for a ModuleIdentity instance.
-        self.assertIn("PYSNMP_MODULE_ID=testModule", self.source.rsplit("exportSymbols(", 1)[1])
+        self.assertIn(
+            "PYSNMP_MODULE_ID=testModule", self.source.rsplit("exportSymbols(", 1)[1]
+        )
 
     def testTheRevisionsAreNotGuardedButTheirDescriptionsAre(self):
         # A revision date says which version of the module this is, so it is
@@ -137,7 +144,9 @@ class ObjectIdentityTestCase(unittest.TestCase):
         self.assertIn("testIdentity = ObjectIdentity((1, 4))", self.source)
 
     def testItsReferenceIsEmittedBehindTheTextGuard(self):
-        self.assertIn("if mibBuilder.loadTexts: testIdentity.setReference('ABC')", self.source)
+        self.assertIn(
+            "if mibBuilder.loadTexts: testIdentity.setReference('ABC')", self.source
+        )
 
 
 class NotificationTypeTestCase(unittest.TestCase):
@@ -152,7 +161,9 @@ class NotificationTypeTestCase(unittest.TestCase):
         self.assertEqual(self.doc["class"], "notificationtype")
         self.assertEqual(self.doc["oid"], "1.7")
         self.assertEqual(self.doc["status"], "current")
-        self.assertEqual(self.doc["description"], "A collection of test notification types.")
+        self.assertEqual(
+            self.doc["description"], "A collection of test notification types."
+        )
         self.assertEqual(self.doc["reference"], "NT reference")
 
     def testTheObjectsAreNamedWithTheirModuleInClauseOrder(self):
@@ -176,7 +187,11 @@ class NotificationTypeTestCase(unittest.TestCase):
     def testSetObjectsIsNotGuarded(self):
         # The variable bindings are what the notification carries, so a module
         # loaded without texts still needs them.
-        line = next(line for line in self.source.splitlines() if line.startswith("testNotificationType ="))
+        line = next(
+            line
+            for line in self.source.splitlines()
+            if line.startswith("testNotificationType =")
+        )
         self.assertIn(".setObjects(", line)
 
 

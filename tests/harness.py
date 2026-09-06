@@ -33,11 +33,15 @@ def symbol_table(mib, deps=(), genTexts=True, repairImports=False, **dialect):
     """
     table = {}
     for dep in deps:
-        depInfo, depTable = SymtableCodeGen().gen_code(parse(dep, **dialect), dict(table), genTexts=genTexts)
+        depInfo, depTable = SymtableCodeGen().gen_code(
+            parse(dep, **dialect), dict(table), genTexts=genTexts
+        )
         table[depInfo.name] = depTable
 
     ast = parse(mib, **dialect)
-    mibInfo, symtable = SymtableCodeGen().gen_code(ast, dict(table), genTexts=genTexts, repairImports=repairImports)
+    mibInfo, symtable = SymtableCodeGen().gen_code(
+        ast, dict(table), genTexts=genTexts, repairImports=repairImports
+    )
     table[mibInfo.name] = symtable
 
     return ast, mibInfo.name, table
@@ -45,7 +49,9 @@ def symbol_table(mib, deps=(), genTexts=True, repairImports=False, **dialect):
 
 def render_json(mib, deps=(), genTexts=True, repairImports=False, **dialect):
     """Compile *mib* through the JSON backend and decode the document."""
-    ast, _, table = symbol_table(mib, deps=deps, genTexts=genTexts, repairImports=repairImports, **dialect)
+    ast, _, table = symbol_table(
+        mib, deps=deps, genTexts=genTexts, repairImports=repairImports, **dialect
+    )
     _, doc = JsonCodeGen().gen_code(ast, table, genTexts=genTexts)
     return json.loads(doc)
 
@@ -57,7 +63,9 @@ def render_source(mib, deps=(), genTexts=True, repairImports=False, **dialect):
     executing it built, which cannot show how a line was written -- whether a
     setter carries its ``mibBuilder.loadTexts`` guard, say.
     """
-    ast, _, table = symbol_table(mib, deps=deps, genTexts=genTexts, repairImports=repairImports, **dialect)
+    ast, _, table = symbol_table(
+        mib, deps=deps, genTexts=genTexts, repairImports=repairImports, **dialect
+    )
     _, pycode = PySnmpCodeGen().gen_code(ast, table, genTexts=genTexts)
     return pycode
 

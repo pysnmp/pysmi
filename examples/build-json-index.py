@@ -37,7 +37,9 @@ dstDirectory = os.path.join(os.path.expanduser("~"), ".pysnmp", "mibs", "json")
 
 # Initialize compiler infrastructure
 
-mibCompiler = MibCompiler(SmiStarParser(), JsonCodeGen(), FileWriter(dstDirectory).set_options(suffix=".json"))
+mibCompiler = MibCompiler(
+    SmiStarParser(), JsonCodeGen(), FileWriter(dstDirectory).set_options(suffix=".json")
+)
 
 # search for source MIBs here
 mibCompiler.add_sources(*[FileReader(x) for x in srcDirectories])

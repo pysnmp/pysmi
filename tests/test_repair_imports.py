@@ -82,8 +82,15 @@ END
 BROKEN = {
     "Opaque": module("REPAIR-SMI-TYPE-MIB", "OBJECT-TYPE", "Opaque", "1 3 1"),
     "TruthValue": module("REPAIR-TC-MIB", "OBJECT-TYPE", "TruthValue", "1 3 2"),
-    "enterprises": module("REPAIR-OID-MIB", "OBJECT-TYPE", "Integer32", "enterprises 99999 1"),
-    "snmpTrap": module("REPAIR-SNMPV2-MIB-MIB", "OBJECT-TYPE, Integer32", "Integer32", "snmpTrap 99999 1"),
+    "enterprises": module(
+        "REPAIR-OID-MIB", "OBJECT-TYPE", "Integer32", "enterprises 99999 1"
+    ),
+    "snmpTrap": module(
+        "REPAIR-SNMPV2-MIB-MIB",
+        "OBJECT-TYPE, Integer32",
+        "Integer32",
+        "snmpTrap 99999 1",
+    ),
 }
 
 #: A module with no IMPORTS clause at all -- the parse tree carries None there
@@ -107,7 +114,10 @@ class StrictByDefaultTestCase(unittest.TestCase):
 
     def testEveryBrokenModuleFailsToCompile(self):
         for symbol, source in BROKEN.items():
-            with self.subTest(symbol=symbol), self.assertRaises(error.PySmiSemanticError):
+            with (
+                self.subTest(symbol=symbol),
+                self.assertRaises(error.PySmiSemanticError),
+            ):
                 symbol_table(source, deps=DEPS)
 
     def testTheModuleWithNoImportsClauseFailsToCompile(self):
@@ -122,7 +132,10 @@ class RepairTestCase(unittest.TestCase):
         for symbol, source in BROKEN.items():
             with self.subTest(symbol=symbol):
                 _, name, table = symbol_table(source, deps=DEPS, repairImports=True)
-                self.assertEqual(table[name]["_symtable_repaired"], {symbol: SMI_BASE_EXPORTS[symbol]})
+                self.assertEqual(
+                    table[name]["_symtable_repaired"],
+                    {symbol: SMI_BASE_EXPORTS[symbol]},
+                )
 
     def testAModuleThatImportsEverythingItUsesIsNotTouched(self):
         source = module("REPAIR-CLEAN-MIB", "OBJECT-TYPE, Opaque", "Opaque", "1 3 3")
@@ -141,7 +154,9 @@ class RepairTestCase(unittest.TestCase):
         # repair that reaches into a module the MIB never named has to say so
         # here or the dependency is never fetched.
         _, _, table = symbol_table(NO_IMPORTS_CLAUSE, deps=DEPS, repairImports=True)
-        mibInfo, _ = SymtableCodeGen().gen_code(parse(NO_IMPORTS_CLAUSE), table, repairImports=True)
+        mibInfo, _ = SymtableCodeGen().gen_code(
+            parse(NO_IMPORTS_CLAUSE), table, repairImports=True
+        )
         self.assertEqual(mibInfo.imported, ("SNMPv2-CONF", "SNMPv2-SMI", "SNMPv2-TC"))
 
 
@@ -187,7 +202,12 @@ class SmiBaseExportsTestCase(unittest.TestCase):
         # RFC 2580 defines exactly these four macros and nothing else.
         self.assertEqual(
             {sym for sym, mod in SMI_BASE_EXPORTS.items() if mod == "SNMPv2-CONF"},
-            {"OBJECT-GROUP", "NOTIFICATION-GROUP", "MODULE-COMPLIANCE", "AGENT-CAPABILITIES"},
+            {
+                "OBJECT-GROUP",
+                "NOTIFICATION-GROUP",
+                "MODULE-COMPLIANCE",
+                "AGENT-CAPABILITIES",
+            },
         )
 
     def testEveryTextualConventionRfc2579DefinesIsThere(self):
@@ -256,7 +276,9 @@ class MibDumpRepairTestCase(unittest.TestCase):
         (self.src / "REPAIR-TC-MIB").write_text(BROKEN["TruthValue"])
         (self.src / "SNMPv2-SMI").write_text(mibs.SNMPV2_SMI)
         (self.src / "SNMPv2-TC").write_text(mibs.SNMPV2_TC)
-        (self.src / "SNMPv2-CONF").write_text("SNMPv2-CONF DEFINITIONS ::= BEGIN\nEND\n")
+        (self.src / "SNMPv2-CONF").write_text(
+            "SNMPv2-CONF DEFINITIONS ::= BEGIN\nEND\n"
+        )
 
     def tearDown(self):
         self._tmp.cleanup()
@@ -297,15 +319,21 @@ class MibDumpRepairTestCase(unittest.TestCase):
 
         self.assertEqual(0, code, output)
         self.assertIn("Created/updated MIBs: REPAIR-TC-MIB", output)
-        self.assertIn("Repaired MIBs: REPAIR-TC-MIB (TruthValue from SNMPv2-TC)", output)
+        self.assertIn(
+            "Repaired MIBs: REPAIR-TC-MIB (TruthValue from SNMPv2-TC)", output
+        )
 
     def testAnUnrepairedMibIsNotNamedOnTheRepairedLine(self):
-        (self.src / "REPAIR-CLEAN-MIB").write_text(module("REPAIR-CLEAN-MIB", "OBJECT-TYPE, Opaque", "Opaque", "1 3 3"))
+        (self.src / "REPAIR-CLEAN-MIB").write_text(
+            module("REPAIR-CLEAN-MIB", "OBJECT-TYPE, Opaque", "Opaque", "1 3 3")
+        )
         code, output = self._run("--repair-imports")
 
         self.assertEqual(0, code, output)
 
-        repaired = next(line for line in output.splitlines() if line.startswith("Repaired MIBs:"))
+        repaired = next(
+            line for line in output.splitlines() if line.startswith("Repaired MIBs:")
+        )
 
         self.assertNotIn("REPAIR-CLEAN-MIB", repaired)
 

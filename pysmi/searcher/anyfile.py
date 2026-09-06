@@ -39,7 +39,13 @@ class AnyFileSearcher(AbstractSearcher):
         """Identify this searcher by the directory it looks in."""
         return f'{self.__class__.__name__}{{"{self._path}"}}'
 
-    def file_exists(self, mibname: str, mtime: float, rebuild: bool = False, digest: str | None = None) -> None:
+    def file_exists(
+        self,
+        mibname: str,
+        mtime: float,
+        rebuild: bool = False,
+        digest: str | None = None,
+    ) -> None:
         """Compare a stored file's modification time against the MIB source.
 
         A file that is otherwise fresh is also checked against the
@@ -62,14 +68,18 @@ class AnyFileSearcher(AbstractSearcher):
         for sfx in self.exts:
             f = basename + sfx
             if not os.path.exists(f) or not os.path.isfile(f):
-                logger.debug("%s not present or not a file", f, extra={"mib": mibname, "path": f})
+                logger.debug(
+                    "%s not present or not a file", f, extra={"mib": mibname, "path": f}
+                )
                 continue
 
             try:
                 fileTime = os.stat(f).st_mtime
 
             except OSError as exc:
-                raise error.PySmiSearcherError(f"failure opening compiled file {f}: {exc}", searcher=self) from exc
+                raise error.PySmiSearcherError(
+                    f"failure opening compiled file {f}: {exc}", searcher=self
+                ) from exc
 
             logger.debug(
                 "found %s, mtime %s",
@@ -86,7 +96,9 @@ class AnyFileSearcher(AbstractSearcher):
                     text = decode(fp.read())
 
             except (OSError, UnicodeDecodeError) as exc:
-                raise error.PySmiSearcherError(f"failure opening compiled file {f}: {exc}", searcher=self) from exc
+                raise error.PySmiSearcherError(
+                    f"failure opening compiled file {f}: {exc}", searcher=self
+                ) from exc
 
             producer = producer_of(text)
 
@@ -103,16 +115,27 @@ class AnyFileSearcher(AbstractSearcher):
 
             storedDigest = digest_of(text)
 
-            if digest is not None and storedDigest is not None and storedDigest != digest:
+            if (
+                digest is not None
+                and storedDigest is not None
+                and storedDigest != digest
+            ):
                 logger.debug(
                     "%s was produced from %s, this is %s, will rebuild",
                     f,
                     storedDigest,
                     digest,
-                    extra={"mib": mibname, "path": f, "storedDigest": storedDigest, "digest": digest},
+                    extra={
+                        "mib": mibname,
+                        "path": f,
+                        "storedDigest": storedDigest,
+                        "digest": digest,
+                    },
                 )
                 continue
 
             raise error.PySmiFileNotModifiedError()
 
-        raise error.PySmiFileNotFoundError(f"no compiled file {mibname} found", searcher=self)
+        raise error.PySmiFileNotFoundError(
+            f"no compiled file {mibname} found", searcher=self
+        )

@@ -58,7 +58,11 @@ END
 def default(syntax, defval):
     """Return the JSON default and the emitted line for one SYNTAX/DEFVAL pair."""
     mib = MIB % (syntax, defval)
-    line = next(x for x in render_source(mib, deps=DEPS).splitlines() if x.startswith("testObject ="))
+    line = next(
+        x
+        for x in render_source(mib, deps=DEPS).splitlines()
+        if x.startswith("testObject =")
+    )
     return render_json(mib, deps=DEPS)["testObject"].get("default"), line
 
 
@@ -68,12 +72,16 @@ class DroppedDefaultTestCase(unittest.TestCase):
     def assertDropped(self, syntax, defval):
         json, emitted = default(syntax, defval)
         self.assertIsNone(json, f"JSON kept a default {syntax} forbids")
-        self.assertNotIn(".clone(", emitted, f"pysnmp source kept a default {syntax} forbids")
+        self.assertNotIn(
+            ".clone(", emitted, f"pysnmp source kept a default {syntax} forbids"
+        )
 
     def assertKept(self, syntax, defval, clone):
         json, emitted = default(syntax, defval)
         self.assertIsNotNone(json, f"JSON dropped a default {syntax} permits")
-        self.assertIn(clone, emitted, f"pysnmp source dropped a default {syntax} permits")
+        self.assertIn(
+            clone, emitted, f"pysnmp source dropped a default {syntax} permits"
+        )
 
 
 class SizeConflictTestCase(DroppedDefaultTestCase):
@@ -137,7 +145,9 @@ class ValueKindConflictTestCase(DroppedDefaultTestCase):
         self.assertDropped("OCTET STRING", "0")
 
     def testHexadecimalDefaultForIpAddressSurvives(self):
-        self.assertKept("IpAddress", "'C0000201'H", 'IpAddress().clone(hexValue="C0000201")')
+        self.assertKept(
+            "IpAddress", "'C0000201'H", 'IpAddress().clone(hexValue="C0000201")'
+        )
 
     def testHexadecimalDefaultOfTheWrongWidthIsDropped(self):
         # SNMPv2-SMI gives IpAddress SIZE (4); three octets is not an address.
@@ -193,7 +203,9 @@ class HexAndBinaryConflictTestCase(DroppedDefaultTestCase):
         self.assertDropped("OCTET STRING (SIZE (4))", "'1010'B")
 
     def testHexadecimalReadAsOctetsOfTheRightWidth(self):
-        self.assertKept("OCTET STRING (SIZE (4))", "'C0000201'H", '.clone(hexValue="C0000201")')
+        self.assertKept(
+            "OCTET STRING (SIZE (4))", "'C0000201'H", '.clone(hexValue="C0000201")'
+        )
 
     def testHexadecimalReadAsOctetsOfTheWrongWidth(self):
         self.assertDropped("OCTET STRING (SIZE (2))", "'C0000201'H")
@@ -255,7 +267,9 @@ class WarningTestCase(unittest.TestCase):
         message = "\n".join(captured.output)
         self.assertIn("testObject", message, "the warning does not name the object")
         self.assertIn("TEST-MIB", message, "the warning does not name the module")
-        self.assertIn("SIZE (1..31)", message, "the warning does not name the constraint")
+        self.assertIn(
+            "SIZE (1..31)", message, "the warning does not name the constraint"
+        )
 
     def testAConformingDefaultWarnsAboutNothing(self):
         logger = logging.getLogger("pysmi.codegen")

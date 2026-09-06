@@ -57,7 +57,9 @@ master_doc = "contents"
 
 # General information about the project.
 project = _PROJECT_NAME
-copyright = "2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers"
+copyright = (
+    "2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers"
+)
 author = "Ilya Etingof <etingof@gmail.com>"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -247,7 +249,13 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "PySMI.tex", _PROJECT_NAME, "Ilya Etingof \\textless{}etingof@gmail.com\\textgreater{}", "manual"),
+    (
+        master_doc,
+        "PySMI.tex",
+        _PROJECT_NAME,
+        "Ilya Etingof \\textless{}etingof@gmail.com\\textgreater{}",
+        "manual",
+    ),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -287,7 +295,15 @@ man_pages = [(master_doc, "pysmi", _PROJECT_NAME, [author], 1)]
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, "PySMI", _PROJECT_NAME, author, "PySMI", "One line description of project.", "Miscellaneous"),
+    (
+        master_doc,
+        "PySMI",
+        _PROJECT_NAME,
+        author,
+        "PySMI",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
 ]
 
 # Documents to append as an appendix to all manuals.

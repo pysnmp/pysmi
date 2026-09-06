@@ -107,7 +107,9 @@ class FakeIndexSymbolTestCase(unittest.TestCase):
         codegen = PySnmpCodeGen()
         codegen.moduleName = ["TEST-MIB"]
 
-        _indexStr, fakeStrlist, fakeSyms = codegen.gen_table_index(SMIV1_BARE_TYPE_INDEX)
+        _indexStr, fakeStrlist, fakeSyms = codegen.gen_table_index(
+            SMIV1_BARE_TYPE_INDEX
+        )
 
         self.assertEqual(fakeSyms, ["pysmiFakeCol1000"])
         self.assertIn("MibTableColumn", fakeStrlist[0])

@@ -209,15 +209,25 @@ class SmiV2Lexer(AbstractLexer):
     def reset(self) -> None:
         """Rebuild the lexer, so line numbering restarts for another module."""
         if LEX_VERSION < [3, 0]:
-            self.lexer = lex.lex(module=self, reflags=re.DOTALL, outputdir=self._tempdir, debug=False)
+            self.lexer = lex.lex(
+                module=self, reflags=re.DOTALL, outputdir=self._tempdir, debug=False
+            )
         else:
-            errorlog = logger if logger.isEnabledFor(logging.DEBUG) else lex.NullLogger()
+            errorlog = (
+                logger if logger.isEnabledFor(logging.DEBUG) else lex.NullLogger()
+            )
 
             grammarLogger = logging.getLogger(debug.GRAMMAR_LOGGER)
-            debuglog = grammarLogger if grammarLogger.isEnabledFor(logging.DEBUG) else None
+            debuglog = (
+                grammarLogger if grammarLogger.isEnabledFor(logging.DEBUG) else None
+            )
 
             self.lexer = lex.lex(
-                module=self, reflags=re.DOTALL, outputdir=self._tempdir, debuglog=debuglog, errorlog=errorlog
+                module=self,
+                reflags=re.DOTALL,
+                outputdir=self._tempdir,
+                debuglog=debuglog,
+                errorlog=errorlog,
             )
 
     def t_newline(self, t: LexToken) -> None:
@@ -303,7 +313,9 @@ class SmiV2Lexer(AbstractLexer):
             raise error.PySmiLexerError(f"{t.value} is forbidden", lineno=t.lineno)
 
         if t.value[-1] == "-":
-            raise error.PySmiLexerError(f"Identifier should not end with '-': {t.value}", lineno=t.lineno)
+            raise error.PySmiLexerError(
+                f"Identifier should not end with '-': {t.value}", lineno=t.lineno
+            )
 
         t.type = self.reserved.get(t.value, "UPPERCASE_IDENTIFIER")
 
@@ -312,7 +324,9 @@ class SmiV2Lexer(AbstractLexer):
     def t_LOWERCASE_IDENTIFIER(self, t: LexToken) -> LexToken:
         r"[0-9]*[a-z][-a-zA-z0-9]*"
         if t.value[-1] == "-":
-            raise error.PySmiLexerError(f"Identifier should not end with '-': {t.value}", lineno=t.lineno)
+            raise error.PySmiLexerError(
+                f"Identifier should not end with '-': {t.value}", lineno=t.lineno
+            )
         return t
 
     def t_NUMBER(self, t: LexToken) -> LexToken:

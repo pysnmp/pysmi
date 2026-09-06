@@ -78,9 +78,15 @@ class HttpReader(AbstractReader):
         logger.debug("looking for MIB %s", mibname, extra={"mib": mibname})
 
         for mibalias, mibfile in self.get_mib_variants(mibname, **options):
-            url = self._url.replace(self.MIB_MAGIC, mibfile) if self.MIB_MAGIC in self._url else self._url + mibfile
+            url = (
+                self._url.replace(self.MIB_MAGIC, mibfile)
+                if self.MIB_MAGIC in self._url
+                else self._url + mibfile
+            )
 
-            logger.debug("trying to fetch MIB from %s", url, extra={"mib": mibname, "url": url})
+            logger.debug(
+                "trying to fetch MIB from %s", url, extra={"mib": mibname, "url": url}
+            )
 
             try:
                 response = self.session.get(url, headers=headers)
@@ -102,12 +108,19 @@ class HttpReader(AbstractReader):
 
             if response.status_code == 200:
                 try:
-                    mtime = time.mktime(time.strptime(response.headers["Last-Modified"], "%a, %d %b %Y %H:%M:%S %Z"))
+                    mtime = time.mktime(
+                        time.strptime(
+                            response.headers["Last-Modified"],
+                            "%a, %d %b %Y %H:%M:%S %Z",
+                        )
+                    )
 
                 except (KeyError, ValueError, OverflowError) as exc:
                     # Header absent, unparsable, or outside the platform's time range.
                     logger.debug(
-                        "malformed HTTP headers: %s", exc, extra={"mib": mibname, "url": url, "error": str(exc)}
+                        "malformed HTTP headers: %s",
+                        exc,
+                        extra={"mib": mibname, "url": url, "error": str(exc)},
                     )
                     mtime = time.time()
 
@@ -120,6 +133,10 @@ class HttpReader(AbstractReader):
                     extra={"mib": mibname, "url": url, "mtime": mtime},
                 )
 
-                return MibInfo(path=url, file=mibfile, name=mibalias, mtime=mtime), response.content.decode("utf-8")
+                return MibInfo(
+                    path=url, file=mibfile, name=mibalias, mtime=mtime
+                ), response.content.decode("utf-8")
 
-        raise error.PySmiReaderFileNotFoundError(f"source MIB {mibname} not found", reader=self)
+        raise error.PySmiReaderFileNotFoundError(
+            f"source MIB {mibname} not found", reader=self
+        )

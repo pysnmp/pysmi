@@ -148,7 +148,13 @@ class CorpusSurfaceTestCase(unittest.TestCase):
         entry = self.docs["SNMP-TARGET-MIB"]["snmpTargetAddrEntry"]
         self.assertEqual(
             entry["indices"],
-            [{"module": "SNMP-TARGET-MIB", "object": "snmpTargetAddrName", "implied": 1}],
+            [
+                {
+                    "module": "SNMP-TARGET-MIB",
+                    "object": "snmpTargetAddrName",
+                    "implied": 1,
+                }
+            ],
         )
 
     def testAPlainIndexIsNotMarkedImplied(self):
@@ -157,7 +163,9 @@ class CorpusSurfaceTestCase(unittest.TestCase):
                 self.assertEqual(index["implied"], 0)
 
     def testCounter64SurvivesAsItself(self):
-        self.assertEqual(self.docs["IF-MIB"]["ifHCInOctets"]["syntax"]["type"], "Counter64")
+        self.assertEqual(
+            self.docs["IF-MIB"]["ifHCInOctets"]["syntax"]["type"], "Counter64"
+        )
 
     def testTheGenericTrapsSitWhereRfc3584PointsAtThem(self):
         """SNMPv2-MIB declares these directly, so this pins the mapping target.
@@ -195,7 +203,9 @@ class CorpusSurfaceTestCase(unittest.TestCase):
         self.assertEqual(inet["type"]["constraints"]["size"], [{"min": 0, "max": 255}])
 
     def testALargeEnumerationIsKeptWhole(self):
-        enumeration = self.docs["IANAifType-MIB"]["IANAifType"]["type"]["constraints"]["enumeration"]
+        enumeration = self.docs["IANAifType-MIB"]["IANAifType"]["type"]["constraints"][
+            "enumeration"
+        ]
         self.assertEqual(len(enumeration), 304)
         self.assertEqual(enumeration["ethernetCsmacd"], 6)
 

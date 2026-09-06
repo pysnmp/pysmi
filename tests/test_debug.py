@@ -49,7 +49,9 @@ class EnableDebugLoggingTestCase(LoggingStateTestCase):
     def testSubmodulesInheritTheirCategory(self):
         self.enable("reader")
 
-        self.assertTrue(logging.getLogger("pysmi.reader.localfile").isEnabledFor(logging.DEBUG))
+        self.assertTrue(
+            logging.getLogger("pysmi.reader.localfile").isEnabledFor(logging.DEBUG)
+        )
 
     def testAllEnablesEveryCategory(self):
         self.enable("all")
@@ -80,7 +82,9 @@ class StructuredLoggingTestCase(LoggingStateTestCase):
     def testMessageIsFormattedLazily(self):
         self.enable("compiler")
 
-        logging.getLogger("pysmi.compiler").debug("MIB %s already parsed", "IF-MIB", extra={"mib": "IF-MIB"})
+        logging.getLogger("pysmi.compiler").debug(
+            "MIB %s already parsed", "IF-MIB", extra={"mib": "IF-MIB"}
+        )
 
         (record,) = self.loggedBy("pysmi.compiler")
         # The message is still a template plus its arguments, so a handler that
@@ -92,7 +96,9 @@ class StructuredLoggingTestCase(LoggingStateTestCase):
     def testStructuredFieldsReachTheRecord(self):
         self.enable("compiler")
 
-        logging.getLogger("pysmi.compiler").debug("compiling %s", "IF-MIB", extra={"mib": "IF-MIB", "path": "/x"})
+        logging.getLogger("pysmi.compiler").debug(
+            "compiling %s", "IF-MIB", extra={"mib": "IF-MIB", "path": "/x"}
+        )
 
         (record,) = self.loggedBy("pysmi.compiler")
         self.assertEqual(record.mib, "IF-MIB")

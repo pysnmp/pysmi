@@ -215,7 +215,11 @@ class SymtableCodeGen(AbstractCodeGen):
 
             else:
                 data.append(
-                    self.handlersTable[el[0]](self, self.prep_data(el[1:], classmode=classmode), classmode=classmode)
+                    self.handlersTable[el[0]](
+                        self,
+                        self.prep_data(el[1:], classmode=classmode),
+                        classmode=classmode,
+                    )
                 )
 
         return tuple(data)
@@ -297,7 +301,9 @@ class SymtableCodeGen(AbstractCodeGen):
 
         return parentsExists
 
-    def reg_sym(self, symbol: str, symProps: dict[str, Any], parents: Sequence[Any] = ()) -> None:
+    def reg_sym(
+        self, symbol: str, symProps: dict[str, Any], parents: Sequence[Any] = ()
+    ) -> None:
         """Add a symbol to the table, or hold it until its parents are known.
 
         MIBs may define a symbol before the symbols it derives from. A symbol
@@ -312,7 +318,9 @@ class SymtableCodeGen(AbstractCodeGen):
         Raises:
             PySmiSemanticError: the module defines this symbol twice.
         """
-        if symbol in self._out or symbol in self._postponedSyms:  # add to strict mode - or symbol in self._importMap:
+        if (
+            symbol in self._out or symbol in self._postponedSyms
+        ):  # add to strict mode - or symbol in self._importMap:
             raise error.PySmiSemanticError(f"Duplicate symbol found: {symbol}")
 
         if self.all_parents_exists(parents):
@@ -362,18 +370,25 @@ class SymtableCodeGen(AbstractCodeGen):
 
         # The symbols are matched in the Python-safe form the parse tree
         # carries, but imported under the name the base module exports.
-        exports = {self.trans_opers(symbol): (symbol, module) for symbol, module in SMI_BASE_EXPORTS.items()}
+        exports = {
+            self.trans_opers(symbol): (symbol, module)
+            for symbol, module in SMI_BASE_EXPORTS.items()
+        }
 
         return dict(
             exports[symbol]
             for symbol in unresolved
-            if symbol in exports and symbol not in self._out and symbol not in self._importMap
+            if symbol in exports
+            and symbol not in self._out
+            and symbol not in self._importMap
         )
 
     # Clause handlers
 
     # noinspection PyUnusedLocal
-    def gen_agent_capabilities(self, data: AgentCapabilitiesClause, classmode: bool = False) -> None:
+    def gen_agent_capabilities(
+        self, data: AgentCapabilitiesClause, classmode: bool = False
+    ) -> None:
         """Record an AGENT-CAPABILITIES clause.
 
         Args:
@@ -389,14 +404,24 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_module_identity(self, data: ModuleIdentityClause, classmode: bool = False) -> None:
+    def gen_module_identity(
+        self, data: ModuleIdentityClause, classmode: bool = False
+    ) -> None:
         """Record a MODULE-IDENTITY clause and note the module's latest revision.
 
         Args:
             data: converted clause values
             classmode: unused; the clause never appears in a type declaration
         """
-        origName, _lastUpdated, _organization, _contactInfo, _description, revisions, oid = data
+        (
+            origName,
+            _lastUpdated,
+            _organization,
+            _contactInfo,
+            _description,
+            revisions,
+            oid,
+        ) = data
 
         pysmiName = self.trans_opers(origName)
 
@@ -408,7 +433,9 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_module_compliance(self, data: ModuleComplianceClause, classmode: bool = False) -> None:
+    def gen_module_compliance(
+        self, data: ModuleComplianceClause, classmode: bool = False
+    ) -> None:
         """Record a MODULE-COMPLIANCE clause.
 
         Args:
@@ -424,7 +451,9 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_notification_group(self, data: NotificationGroupClause, classmode: bool = False) -> None:
+    def gen_notification_group(
+        self, data: NotificationGroupClause, classmode: bool = False
+    ) -> None:
         """Record a NOTIFICATION-GROUP clause.
 
         Args:
@@ -440,7 +469,9 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_notification_type(self, data: NotificationTypeClause, classmode: bool = False) -> None:
+    def gen_notification_type(
+        self, data: NotificationTypeClause, classmode: bool = False
+    ) -> None:
         """Record a NOTIFICATION-TYPE clause.
 
         Args:
@@ -456,7 +487,9 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_object_group(self, data: ObjectGroupClause, classmode: bool = False) -> None:
+    def gen_object_group(
+        self, data: ObjectGroupClause, classmode: bool = False
+    ) -> None:
         """Record an OBJECT-GROUP clause.
 
         Args:
@@ -472,7 +505,9 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_object_identity(self, data: ObjectIdentityClause, classmode: bool = False) -> None:
+    def gen_object_identity(
+        self, data: ObjectIdentityClause, classmode: bool = False
+    ) -> None:
         """Record an OBJECT-IDENTITY clause.
 
         Args:
@@ -500,7 +535,19 @@ class SymtableCodeGen(AbstractCodeGen):
             data: converted clause values
             classmode: unused; the clause never appears in a type declaration
         """
-        origName, syntax, _units, _maxaccess, _status, _description, _reference, augmentation, index, defval, oid = data
+        (
+            origName,
+            syntax,
+            _units,
+            _maxaccess,
+            _status,
+            _description,
+            _reference,
+            augmentation,
+            index,
+            defval,
+            oid,
+        ) = data
 
         pysmiName = self.trans_opers(origName)
 
@@ -560,7 +607,9 @@ class SymtableCodeGen(AbstractCodeGen):
         self.reg_sym(pysmiName, symProps)
 
     # noinspection PyUnusedLocal
-    def gen_type_declaration(self, data: TypeDeclarationClause, classmode: bool = False) -> None:
+    def gen_type_declaration(
+        self, data: TypeDeclarationClause, classmode: bool = False
+    ) -> None:
         """Record a type declaration and the type it derives from.
 
         A declaration with no parent type is a SEQUENCE, which defines no symbol
@@ -586,7 +635,9 @@ class SymtableCodeGen(AbstractCodeGen):
                 self.reg_sym(pysmiName, symProps, [declaration[0][0]])
 
     # noinspection PyUnusedLocal
-    def gen_value_declaration(self, data: ValueDeclarationClause, classmode: bool = False) -> None:
+    def gen_value_declaration(
+        self, data: ValueDeclarationClause, classmode: bool = False
+    ) -> None:
         """Record a plain OID assignment.
 
         Args:
@@ -617,7 +668,9 @@ class SymtableCodeGen(AbstractCodeGen):
         return names
 
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
-    def gen_bits(self, data: NamedNumbersClause, classmode: bool = False) -> tuple[tuple[str, str], list[Any]]:
+    def gen_bits(
+        self, data: NamedNumbersClause, classmode: bool = False
+    ) -> tuple[tuple[str, str], list[Any]]:
         """Return the syntax of a BITS clause.
 
         Args:
@@ -641,7 +694,9 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
-    def gen_capabilities(self, data: CapabilitiesClause, classmode: bool = False) -> str:
+    def gen_capabilities(
+        self, data: CapabilitiesClause, classmode: bool = False
+    ) -> str:
         """Ignore an AGENT-CAPABILITIES body; it defines no symbols.
 
         Every name a SUPPORTS clause mentions belongs to the module it names,
@@ -653,7 +708,9 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal
-    def gen_conceptual_table(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_conceptual_table(
+        self, data: Any, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Note the row a table contains and return the table's syntax.
 
         The row name is remembered so that :py:meth:`gen_row` can recognise it
@@ -743,7 +800,9 @@ class SymtableCodeGen(AbstractCodeGen):
         """
         return ""
 
-    def gen_enum_spec(self, data: NamedNumbersClause, classmode: bool = False) -> list[Any]:
+    def gen_enum_spec(
+        self, data: NamedNumbersClause, classmode: bool = False
+    ) -> list[Any]:
         """Return the names of an enumeration's members.
 
         Args:
@@ -755,7 +814,9 @@ class SymtableCodeGen(AbstractCodeGen):
         """
         return self.gen_bits(data, classmode=classmode)[1]
 
-    def gen_index_clause(self, data: IndexClause, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_index_clause(
+        self, data: IndexClause, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Work out which INDEX entries need a synthetic column.
 
         SMIv1 allows an index to name a bare type instead of a column. Such an
@@ -790,7 +851,9 @@ class SymtableCodeGen(AbstractCodeGen):
         return fakeIdxName, fakeIndexes, fakeSymsSyntax
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_integer_sub_type(self, data: RangesClause, classmode: bool = False) -> "ValueRanges | str":
+    def gen_integer_sub_type(
+        self, data: RangesClause, classmode: bool = False
+    ) -> "ValueRanges | str":
         """Record an integer range restriction.
 
         The restriction is kept rather than dropped so that a DEFVAL can be
@@ -816,7 +879,9 @@ class SymtableCodeGen(AbstractCodeGen):
         return ""
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_octet_string_sub_type(self, data: RangesClause, classmode: bool = False) -> "ValueRanges | str":
+    def gen_octet_string_sub_type(
+        self, data: RangesClause, classmode: bool = False
+    ) -> "ValueRanges | str":
         """Record an octet string size restriction.
 
         The restriction is kept rather than dropped so that a DEFVAL can be
@@ -904,7 +969,9 @@ class SymtableCodeGen(AbstractCodeGen):
         return data[0]
 
     # noinspection PyUnusedLocal,PyUnusedLocal,PyMethodMayBeStatic
-    def gen_revisions(self, data: RevisionsClause, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_revisions(
+        self, data: RevisionsClause, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Return the module's most recent revision.
 
         Args:
@@ -933,10 +1000,14 @@ class SymtableCodeGen(AbstractCodeGen):
         """
         row = data[0]
         row = self.trans_opers(row)
-        return (row in self._rows and (("MibTableRow", ""), "")) or self.gen_simple_syntax(data, classmode=classmode)
+        return (
+            row in self._rows and (("MibTableRow", ""), "")
+        ) or self.gen_simple_syntax(data, classmode=classmode)
 
     # noinspection PyUnusedLocal
-    def gen_sequence(self, data: SequenceClause, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_sequence(
+        self, data: SequenceClause, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Record the columns of a SEQUENCE.
 
         Args:
@@ -980,7 +1051,9 @@ class SymtableCodeGen(AbstractCodeGen):
         return (objType, module), subtype
 
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
-    def gen_type_declaration_rhs(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_type_declaration_rhs(
+        self, data: Any, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Return the parent type and attributes of a type declaration.
 
         A textual convention carries display hint, status and text before its
@@ -1058,7 +1131,9 @@ class SymtableCodeGen(AbstractCodeGen):
         "VarTypes": gen_objects,
     }
 
-    def gen_code(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, dict[str, Any]]:
+    def gen_code(
+        self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any
+    ) -> tuple[MibInfo, dict[str, Any]]:
         """Build the symbol table for one parsed MIB module.
 
         Args:
@@ -1102,7 +1177,9 @@ class SymtableCodeGen(AbstractCodeGen):
 
         # Copied rather than used in place: gen_imports rewrites what it is
         # given, and a repair run walks the same clause once more.
-        moduleImports = {module: list(symbols) for module, symbols in (imports or {}).items()}
+        moduleImports = {
+            module: list(symbols) for module, symbols in (imports or {}).items()
+        }
         for symbol, module in repaired.items():
             moduleImports.setdefault(module, []).append(symbol)
 
@@ -1112,7 +1189,9 @@ class SymtableCodeGen(AbstractCodeGen):
             if declr:
                 clausetype = declr[0]
                 classmode = clausetype == "typeDeclaration"
-                self.handlersTable[declr[0]](self, self.prep_data(declr[1:], classmode), classmode)
+                self.handlersTable[declr[0]](
+                    self, self.prep_data(declr[1:], classmode), classmode
+                )
 
         if kwargs.get("repairImports") and not repaired:
             missing = self.missing_canonical_imports()
@@ -1120,13 +1199,20 @@ class SymtableCodeGen(AbstractCodeGen):
                 logger.info(
                     "repairing MIB %s: importing %s",
                     self.moduleName[0],
-                    ", ".join(f"{symbol} from {module}" for symbol, module in sorted(missing.items())),
+                    ", ".join(
+                        f"{symbol} from {module}"
+                        for symbol, module in sorted(missing.items())
+                    ),
                     extra={"mib": self.moduleName[0], "repaired": missing},
                 )
-                return self.gen_code(ast, symbolTable, **dict(kwargs, _repairedImports=missing))
+                return self.gen_code(
+                    ast, symbolTable, **dict(kwargs, _repairedImports=missing)
+                )
 
         if self._postponedSyms:
-            raise error.PySmiSemanticError(f"Unknown parents for symbols: {', '.join(self._postponedSyms)}")
+            raise error.PySmiSemanticError(
+                f"Unknown parents for symbols: {', '.join(self._postponedSyms)}"
+            )
 
         for sym in self._parentOids:
             if sym not in self._out and sym not in self._importMap:
@@ -1152,5 +1238,8 @@ class SymtableCodeGen(AbstractCodeGen):
         )
 
         return MibInfo(
-            oid=None, name=self.moduleName[0], revision=self._moduleRevision, imported=tuple(x for x in importedModules)
+            oid=None,
+            name=self.moduleName[0],
+            revision=self._moduleRevision,
+            imported=tuple(x for x in importedModules),
         ), self._out

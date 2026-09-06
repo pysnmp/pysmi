@@ -162,7 +162,9 @@ class PySnmpCodeGen(AbstractCodeGen):
     # REFERENCE on the conformance macros these back, but emitting the call
     # yields a module that raises AttributeError when loaded with
     # loadTexts=True. The text is still carried by the JSON codegen.
-    _NO_SET_REFERENCE = frozenset(("ModuleCompliance", "NotificationGroup", "ObjectGroup"))
+    _NO_SET_REFERENCE = frozenset(
+        ("ModuleCompliance", "NotificationGroup", "ObjectGroup")
+    )
 
     # Template for version-guarded status assignment (duplicated across many
     # codegen methods; extracted to satisfy SonarQube S1192).
@@ -283,7 +285,11 @@ for _%(name)s_obj in [%(objects)s]:
 
             else:
                 data.append(
-                    self.handlersTable[el[0]](self, self.prep_data(el[1:], classmode=classmode), classmode=classmode)
+                    self.handlersTable[el[0]](
+                        self,
+                        self.prep_data(el[1:], classmode=classmode),
+                        classmode=classmode,
+                    )
                 )
 
         return tuple(data)
@@ -390,7 +396,9 @@ for _%(name)s_obj in [%(objects)s]:
             translation unchanged.
         """
         if "-" in symbol or iskeyword(symbol):
-            return (classmode and 'label = "' + symbol + '"\n') or '.setLabel("' + symbol + '")'
+            return (
+                classmode and 'label = "' + symbol + '"\n'
+            ) or '.setLabel("' + symbol + '")'
 
         return ""
 
@@ -408,7 +416,9 @@ for _%(name)s_obj in [%(objects)s]:
         self._seenSyms.add(symbol)
 
     # noinspection PyUnusedLocal
-    def reg_sym(self, symbol: str, outStr: str, oidStr: str = "", moduleIdentity: bool = False) -> None:
+    def reg_sym(
+        self, symbol: str, outStr: str, oidStr: str = "", moduleIdentity: bool = False
+    ) -> None:
         """Record the source rendered for a symbol and mark it for export.
 
         Args:
@@ -461,12 +471,18 @@ for _%(name)s_obj in [%(objects)s]:
 
                 if module not in self.symbolTable:
                     # XXX do getname for possible future borrowed mibs
-                    raise error.PySmiSemanticError(f'no module "{module}" in symbolTable')
+                    raise error.PySmiSemanticError(
+                        f'no module "{module}" in symbolTable'
+                    )
 
                 if parent not in self.symbolTable[module]:
-                    raise error.PySmiSemanticError(f'no symbol "{parent}" in module "{module}"')
+                    raise error.PySmiSemanticError(
+                        f'no symbol "{parent}" in module "{module}"'
+                    )
 
-                numericOid += self.gen_numeric_oid(self.symbolTable[module][parent]["oid"])
+                numericOid += self.gen_numeric_oid(
+                    self.symbolTable[module][parent]["oid"]
+                )
 
             else:
                 numericOid += (part,)
@@ -495,9 +511,13 @@ for _%(name)s_obj in [%(objects)s]:
             raise error.PySmiSemanticError(f'no module "{module}" in symbolTable')
 
         if symName not in self.symbolTable[module]:
-            raise error.PySmiSemanticError(f'no symbol "{symName}" in module "{module}"')
+            raise error.PySmiSemanticError(
+                f'no symbol "{symName}" in module "{module}"'
+            )
 
-        symType, symSubtype = self.symbolTable[module][symName].get("syntax", (("", ""), ""))
+        symType, symSubtype = self.symbolTable[module][symName].get(
+            "syntax", (("", ""), "")
+        )
 
         if not symType[0]:
             raise error.PySmiSemanticError(f'unknown type for symbol "{symName}"')
@@ -516,7 +536,9 @@ for _%(name)s_obj in [%(objects)s]:
 
             return baseSymType, symSubtype
 
-    def _reference_line(self, name: str, reference: str | None, pysnmpClass: str | None = None) -> str:
+    def _reference_line(
+        self, name: str, reference: str | None, pysnmpClass: str | None = None
+    ) -> str:
         """Render the guarded ``setReference()`` assignment for a symbol.
 
         Args:
@@ -540,7 +562,9 @@ for _%(name)s_obj in [%(objects)s]:
     # Clause generation functions
 
     # noinspection PyUnusedLocal
-    def gen_agent_capabilities(self, data: AgentCapabilitiesClause, classmode: bool = False) -> Any:
+    def gen_agent_capabilities(
+        self, data: AgentCapabilitiesClause, classmode: bool = False
+    ) -> Any:
         """Render an AGENT-CAPABILITIES clause as an ``AgentCapabilities`` object.
 
         Args:
@@ -577,7 +601,9 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_module_identity(self, data: ModuleIdentityClause, classmode: bool = False) -> str:
+    def gen_module_identity(
+        self, data: ModuleIdentityClause, classmode: bool = False
+    ) -> str:
         """Render a MODULE-IDENTITY clause as a ``ModuleIdentity`` object.
 
         The revision descriptions are guarded, because older PySNMP versions
@@ -590,7 +616,15 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         Returns:
             Source for the object and its texts.
         """
-        name, lastUpdated, organization, contactInfo, description, revisionsAndDescrs, oid = data
+        (
+            name,
+            lastUpdated,
+            organization,
+            contactInfo,
+            description,
+            revisionsAndDescrs,
+            oid,
+        ) = data
 
         label = self.gen_label(name)
         name = self.trans_opers(name)
@@ -630,7 +664,9 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_module_compliance(self, data: ModuleComplianceClause, classmode: bool = False) -> str:
+    def gen_module_compliance(
+        self, data: ModuleComplianceClause, classmode: bool = False
+    ) -> str:
         """Render a MODULE-COMPLIANCE clause as a ``ModuleCompliance`` object.
 
         Args:
@@ -662,7 +698,9 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_notification_group(self, data: NotificationGroupClause, classmode: bool = False) -> str:
+    def gen_notification_group(
+        self, data: NotificationGroupClause, classmode: bool = False
+    ) -> str:
         """Render a NOTIFICATION-GROUP clause as a ``NotificationGroup`` object.
 
         The objects are set in batches when the group names more of them than
@@ -686,7 +724,11 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         if objects:
             objects = [
-                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.trans_opers(obj) + '")'
+                '("'
+                + self._importMap.get(obj, self.moduleName[0])
+                + '", "'
+                + self.trans_opers(obj)
+                + '")'
                 for obj in objects
             ]
 
@@ -696,9 +738,13 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                 objStrParts = []
 
                 for idx in range(numFuncCalls):
-                    objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
+                    objStrParts.append(
+                        "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
+                    )
 
-                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(name=name, objects=", ".join(objStrParts))
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(
+                    name=name, objects=", ".join(objStrParts)
+                )
 
             else:
                 outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
@@ -718,7 +764,9 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_notification_type(self, data: NotificationTypeClause, classmode: bool = False) -> str:
+    def gen_notification_type(
+        self, data: NotificationTypeClause, classmode: bool = False
+    ) -> str:
         """Render a NOTIFICATION-TYPE clause as a ``NotificationType`` object.
 
         Args:
@@ -739,7 +787,11 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         if objects:
             objects = [
-                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.trans_opers(obj) + '")'
+                '("'
+                + self._importMap.get(obj, self.moduleName[0])
+                + '", "'
+                + self.trans_opers(obj)
+                + '")'
                 for obj in objects
             ]
 
@@ -749,9 +801,13 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                 objStrParts = []
 
                 for idx in range(numFuncCalls):
-                    objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
+                    objStrParts.append(
+                        "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
+                    )
 
-                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(name=name, objects=", ".join(objStrParts))
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(
+                    name=name, objects=", ".join(objStrParts)
+                )
 
             else:
                 outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
@@ -792,7 +848,11 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
 
         if objects:
             objects = [
-                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.trans_opers(obj) + '")'
+                '("'
+                + self._importMap.get(obj, self.moduleName[0])
+                + '", "'
+                + self.trans_opers(obj)
+                + '")'
                 for obj in objects
             ]
 
@@ -802,7 +862,9 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                 objStrParts = []
 
                 for idx in range(numFuncCalls):
-                    objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
+                    objStrParts.append(
+                        "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
+                    )
 
                 outStr += """
 for _{name}_obj in [{objects}]:
@@ -831,7 +893,9 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_object_identity(self, data: ObjectIdentityClause, classmode: bool = False) -> Any:
+    def gen_object_identity(
+        self, data: ObjectIdentityClause, classmode: bool = False
+    ) -> Any:
         """Render an OBJECT-IDENTITY clause as an ``ObjectIdentity`` object.
 
         Args:
@@ -879,7 +943,19 @@ for _{name}_obj in [{objects}]:
         Returns:
             Source for the object and its texts.
         """
-        name, syntax, units, maxaccess, status, description, reference, augmentation, index, defval, oid = data
+        (
+            name,
+            syntax,
+            units,
+            maxaccess,
+            status,
+            description,
+            reference,
+            augmentation,
+            index,
+            defval,
+            oid,
+        ) = data
 
         label = self.gen_label(name)
         name = self.trans_opers(name)
@@ -887,7 +963,9 @@ for _{name}_obj in [{objects}]:
         oidStr, parentOid = oid
 
         indexStr, fakeStrlist, fakeSyms = index or ("", "", [])
-        subtype = (syntax[0] == "Bits" and "Bits()" + syntax[1]) or syntax[1]  # Bits hack #1
+        subtype = (syntax[0] == "Bits" and "Bits()" + syntax[1]) or syntax[
+            1
+        ]  # Bits hack #1
 
         # The first element of a SYNTAX clause is the type name. Saying so
         # keeps dict.get on the two-argument overload: with an Any default
@@ -896,11 +974,25 @@ for _{name}_obj in [{objects}]:
         classtype = self.typeClasses.get(syntax[0], cast("str", syntax[0]))
         classtype = self.trans_opers(classtype)
         classtype = (syntax[0] == "Bits" and "MibScalar") or classtype  # Bits hack #2
-        classtype = (name in self.symbolTable[self.moduleName[0]]["_symtable_cols"] and "MibTableColumn") or classtype
+        classtype = (
+            name in self.symbolTable[self.moduleName[0]]["_symtable_cols"]
+            and "MibTableColumn"
+        ) or classtype
 
         defval = self.gen_def_val(defval, objname=name)
 
-        outStr: str = name + " = " + classtype + "(" + oidStr + ", " + subtype + (defval or "") + ")" + label
+        outStr: str = (
+            name
+            + " = "
+            + classtype
+            + "("
+            + oidStr
+            + ", "
+            + subtype
+            + (defval or "")
+            + ")"
+            + label
+        )
         outStr += units or ""
         outStr += maxaccess or ""
         outStr += indexStr or ""
@@ -968,7 +1060,11 @@ for _{name}_obj in [{objects}]:
 
         if objects:
             objects = [
-                '("' + self._importMap.get(obj, self.moduleName[0]) + '", "' + self.trans_opers(obj) + '")'
+                '("'
+                + self._importMap.get(obj, self.moduleName[0])
+                + '", "'
+                + self.trans_opers(obj)
+                + '")'
                 for obj in objects
             ]
 
@@ -978,9 +1074,13 @@ for _{name}_obj in [{objects}]:
                 objStrParts = []
 
                 for idx in range(numFuncCalls):
-                    objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
+                    objStrParts.append(
+                        "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
+                    )
 
-                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(name=name, objects=", ".join(objStrParts))
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(
+                    name=name, objects=", ".join(objStrParts)
+                )
 
             else:
                 outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
@@ -997,7 +1097,9 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_type_declaration(self, data: TypeDeclarationClause, classmode: bool = False) -> str:
+    def gen_type_declaration(
+        self, data: TypeDeclarationClause, classmode: bool = False
+    ) -> str:
         """Render a type declaration as a Python class.
 
         A declaration with no parent type is a SEQUENCE, which PySNMP does not
@@ -1024,7 +1126,9 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_value_declaration(self, data: ValueDeclarationClause, classmode: bool = False) -> str:
+    def gen_value_declaration(
+        self, data: ValueDeclarationClause, classmode: bool = False
+    ) -> str:
         """Render a plain OID assignment as a ``MibIdentifier``.
 
         Args:
@@ -1074,7 +1178,9 @@ for _{name}_obj in [{objects}]:
         names = data[0]
         return names
 
-    def gen_bits(self, data: NamedNumbersClause, classmode: bool = False) -> tuple[str, str]:
+    def gen_bits(
+        self, data: NamedNumbersClause, classmode: bool = False
+    ) -> tuple[str, str]:
         """Render a BITS clause as named values.
 
         The values are built in batches when there are more of them than may be
@@ -1095,7 +1201,11 @@ for _{name}_obj in [{objects}]:
 
         funcCalls = ""
         for idx in range(numFuncCalls):
-            funcCalls += "NamedValues(" + ", ".join(namedval[255 * idx : 255 * (idx + 1)]) + ") + "
+            funcCalls += (
+                "NamedValues("
+                + ", ".join(namedval[255 * idx : 255 * (idx + 1)])
+                + ") + "
+            )
 
         funcCalls = funcCalls[:-3]
 
@@ -1126,7 +1236,10 @@ for _{name}_obj in [{objects}]:
 
         for complianceModule in data[0]:
             name = complianceModule[0] or self.moduleName[0]
-            objects += ['("' + name + '", "' + self.trans_opers(compl) + '")' for compl in complianceModule[1]]
+            objects += [
+                '("' + name + '", "' + self.trans_opers(compl) + '")'
+                for compl in complianceModule[1]
+            ]
 
         outStr = ""
 
@@ -1136,9 +1249,13 @@ for _{name}_obj in [{objects}]:
             objStrParts = []
 
             for idx in range(numFuncCalls):
-                objStrParts.append("[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]")
+                objStrParts.append(
+                    "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
+                )
 
-            outStr += self._SET_OBJECTS_LOOP_TEMPLATE_NL % dict(name=name, objects=", ".join(objStrParts))
+            outStr += self._SET_OBJECTS_LOOP_TEMPLATE_NL % dict(
+                name=name, objects=", ".join(objStrParts)
+            )
 
         else:
             outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")\n"
@@ -1146,7 +1263,9 @@ for _{name}_obj in [{objects}]:
         return outStr
 
     # noinspection PyUnusedLocal,PyMethodMayBeStatic
-    def gen_capabilities(self, data: CapabilitiesClause, classmode: bool = False) -> str:
+    def gen_capabilities(
+        self, data: CapabilitiesClause, classmode: bool = False
+    ) -> str:
         """Render nothing for an AGENT-CAPABILITIES body.
 
         pysnmp's ``AgentCapabilities`` has no setter for what a SUPPORTS
@@ -1164,7 +1283,9 @@ for _{name}_obj in [{objects}]:
         return ""
 
     # noinspection PyUnusedLocal
-    def gen_conceptual_table(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_conceptual_table(
+        self, data: Any, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Note the row a table contains and return the table's class.
 
         The row name is remembered so that :py:meth:`gen_row` can recognise it
@@ -1213,7 +1334,10 @@ for _{name}_obj in [{objects}]:
 
     # noinspection PyUnusedLocal
     def gen_def_val(
-        self, data: DefValClause | None, classmode: bool = False, objname: str | None = None
+        self,
+        data: DefValClause | None,
+        classmode: bool = False,
+        objname: str | None = None,
     ) -> "bool | list[Any] | str":
         """Render a DEFVAL as a value of the object's own type.
 
@@ -1268,7 +1392,9 @@ for _{name}_obj in [{objects}]:
                 )
                 return False
 
-            if self.defval_violates_syntax(objname, objModule, "range", defval, str(defval)):
+            if self.defval_violates_syntax(
+                objname, objModule, "range", defval, str(defval)
+            ):
                 return False
 
             val = str(defval)
@@ -1276,13 +1402,17 @@ for _{name}_obj in [{objects}]:
         elif self.is_hex(defval):  # hex
             if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
                 intval = int(defval[1:-2], 16)
-                if self.defval_violates_syntax(objname, objModule, "range", intval, defval):
+                if self.defval_violates_syntax(
+                    objname, objModule, "range", intval, defval
+                ):
                     return False
 
                 val = str(intval)
             else:
                 hexval = defval[1:-2]
-                if self.defval_violates_syntax(objname, objModule, "size", (len(hexval) + 1) // 2, defval):
+                if self.defval_violates_syntax(
+                    objname, objModule, "size", (len(hexval) + 1) // 2, defval
+                ):
                     return False
 
                 val = 'hexValue="' + hexval + '"'
@@ -1291,13 +1421,17 @@ for _{name}_obj in [{objects}]:
             binval = defval[1:-2]
             if defvalType[0][0] in ("Integer32", "Integer"):  # common bug in MIBs
                 intval = int(binval or "0", 2)
-                if self.defval_violates_syntax(objname, objModule, "range", intval, defval):
+                if self.defval_violates_syntax(
+                    objname, objModule, "range", intval, defval
+                ):
                     return False
 
                 val = str(intval)
             else:
                 hexval = (binval and hex(int(binval, 2))[2:]) or ""
-                if self.defval_violates_syntax(objname, objModule, "size", (len(hexval) + 1) // 2, defval):
+                if self.defval_violates_syntax(
+                    objname, objModule, "size", (len(hexval) + 1) // 2, defval
+                ):
                     return False
 
                 val = 'hexValue="' + hexval + '"'
@@ -1307,7 +1441,9 @@ for _{name}_obj in [{objects}]:
                 # a warning should be here
                 return False  # we will set no default value
 
-            if self.defval_violates_syntax(objname, objModule, "size", len(defval[1:-1]), defval):
+            if self.defval_violates_syntax(
+                objname, objModule, "size", len(defval[1:-1]), defval
+            ):
                 return False
 
             val = dorepr(defval[1:-1])
@@ -1319,18 +1455,27 @@ for _{name}_obj in [{objects}]:
             if (
                 defvalType[0][0] == "ObjectIdentifier"
                 and isinstance(defval, str)
-                and (defval in self.symbolTable[self.moduleName[0]] or defval in self._importMap)
+                and (
+                    defval in self.symbolTable[self.moduleName[0]]
+                    or defval in self._importMap
+                )
             ):  # oid
                 module = self._importMap.get(defval, self.moduleName[0])
 
                 try:
-                    val = str(self.gen_numeric_oid(self.symbolTable[module][defval]["oid"]))
+                    val = str(
+                        self.gen_numeric_oid(self.symbolTable[module][defval]["oid"])
+                    )
                 except (KeyError, error.PySmiSemanticError) as exc:
                     # or no module if it will be borrowed later
-                    raise error.PySmiSemanticError(f'no symbol "{defval}" in module "{module}"') from exc
+                    raise error.PySmiSemanticError(
+                        f'no symbol "{defval}" in module "{module}"'
+                    ) from exc
 
             # enumeration
-            elif defvalType[0][0] in ("Integer32", "Integer") and isinstance(defvalType[1], list):
+            elif defvalType[0][0] in ("Integer32", "Integer") and isinstance(
+                defvalType[1], list
+            ):
                 if isinstance(defval, list):  # buggy MIB: DEFVAL { { ... } }
                     defval = [dv for dv in defval if dv in dict(defvalType[1])]
                     val = (defval and dorepr(defval[0])) or ""
@@ -1351,9 +1496,15 @@ for _{name}_obj in [{objects}]:
                     if bitValue is not None:
                         defvalBits.append(bit)
                     else:
-                        raise error.PySmiSemanticError(f'no such bit as "{bit}" for symbol "{objname}"')
+                        raise error.PySmiSemanticError(
+                            f'no such bit as "{bit}" for symbol "{objname}"'
+                        )
 
-                val = "(" + ", ".join(dorepr(bit) for bit in defvalBits) + ",)" if defvalBits else "()"
+                val = (
+                    "(" + ", ".join(dorepr(bit) for bit in defvalBits) + ",)"
+                    if defvalBits
+                    else "()"
+                )
 
             else:
                 raise error.PySmiSemanticError(
@@ -1379,9 +1530,9 @@ for _{name}_obj in [{objects}]:
             The attribute assignment or setter call.
         """
         text = self.textFilter("description", data[0])
-        return (classmode and self.indent + "description = " + dorepr(text) + "\n") or ".setDescription(" + dorepr(
-            text
-        ) + ")"
+        return (
+            classmode and self.indent + "description = " + dorepr(text) + "\n"
+        ) or ".setDescription(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic
     def gen_reference(self, data: TextClause, classmode: bool = False) -> str:
@@ -1395,9 +1546,9 @@ for _{name}_obj in [{objects}]:
             The attribute assignment or setter call.
         """
         text = self.textFilter("reference", data[0])
-        return (classmode and self.indent + "reference = " + dorepr(text) + "\n") or ".setReference(" + dorepr(
-            text
-        ) + ")"
+        return (
+            classmode and self.indent + "reference = " + dorepr(text) + "\n"
+        ) or ".setReference(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic
     def gen_status(self, data: TextClause, classmode: bool = False) -> str:
@@ -1411,7 +1562,9 @@ for _{name}_obj in [{objects}]:
             The attribute assignment or setter call.
         """
         text = data[0]
-        return (classmode and self.indent + "status = " + dorepr(text) + "\n") or ".setStatus(" + dorepr(text) + ")"
+        return (
+            classmode and self.indent + "status = " + dorepr(text) + "\n"
+        ) or ".setStatus(" + dorepr(text) + ")"
 
     # noinspection PyMethodMayBeStatic
     def gen_product_release(self, data: TextClause, classmode: bool = False) -> Any:
@@ -1444,7 +1597,9 @@ for _{name}_obj in [{objects}]:
         """
         items = data[0]
         singleval = [str(item[1]) for item in items]
-        outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
+        outStr = (
+            classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE
+        ) or self._SUBTYPE_SPEC_CALL
         numFuncCalls = len(singleval) / 255 + 1
         singleCall = numFuncCalls == 1
         funcCalls = ""
@@ -1454,16 +1609,24 @@ for _{name}_obj in [{objects}]:
         for idx in range(int(numFuncCalls)):
             if funcCalls:
                 funcCalls += ", "
-            funcCalls += "SingleValueConstraint(" + ", ".join(singleval[255 * idx : 255 * (idx + 1)]) + ")"
+            funcCalls += (
+                "SingleValueConstraint("
+                + ", ".join(singleval[255 * idx : 255 * (idx + 1)])
+                + ")"
+            )
 
         outStr += funcCalls
-        outStr += (not singleCall and ((classmode and ")\n") or "))")) or ((not classmode and ")") or "\n")
+        outStr += (not singleCall and ((classmode and ")\n") or "))")) or (
+            (not classmode and ")") or "\n"
+        )
         outStr += self.gen_bits(data, classmode=classmode)[1]
 
         return outStr
 
     # noinspection PyUnusedLocal
-    def gen_table_index(self, data: IndexClause, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_table_index(
+        self, data: IndexClause, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Render an INDEX clause as the row's index names.
 
         SMIv1 allows an index to name a bare type instead of a column. Such an
@@ -1518,7 +1681,13 @@ for _{name}_obj in [{objects}]:
                 self.fakeidx += 1
 
             idxStrlist.append(
-                "(" + str(idx[0]) + ', "' + self._importMap.get(idxName, self.moduleName[0]) + '", "' + idxName + '")'
+                "("
+                + str(idx[0])
+                + ', "'
+                + self._importMap.get(idxName, self.moduleName[0])
+                + '", "'
+                + idxName
+                + '")'
             )
 
         return ".setIndexNames(" + ", ".join(idxStrlist) + ")", fakeStrlist, fakeSyms
@@ -1537,15 +1706,26 @@ for _{name}_obj in [{objects}]:
         """
         singleRange = len(data[0]) == 1
 
-        outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
+        outStr = (
+            classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE
+        ) or self._SUBTYPE_SPEC_CALL
         outStr += (not singleRange and self._CONSTRAINTS_UNION) or ""
 
         for rng in data[0]:
             vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
             vmin, vmax = str(self.str2int(vmin)), str(self.str2int(vmax))
-            outStr += "ValueRangeConstraint(" + vmin + ", " + vmax + ")" + ((not singleRange and ", ") or "")
+            outStr += (
+                "ValueRangeConstraint("
+                + vmin
+                + ", "
+                + vmax
+                + ")"
+                + ((not singleRange and ", ") or "")
+            )
 
-        outStr += (not singleRange and ((classmode and ")") or "))")) or ((not classmode and ")") or "\n")
+        outStr += (not singleRange and ((classmode and ")") or "))")) or (
+            (not classmode and ")") or "\n"
+        )
 
         return outStr
 
@@ -1564,7 +1744,9 @@ for _{name}_obj in [{objects}]:
         access = data[0].replace("-", "")
         return '.setMaxAccess("' + access + '")'
 
-    def gen_octet_string_sub_type(self, data: RangesClause, classmode: bool = False) -> str:
+    def gen_octet_string_sub_type(
+        self, data: RangesClause, classmode: bool = False
+    ) -> str:
         """Render an octet string size restriction.
 
         Several sizes are joined into a union, and a size that permits only one
@@ -1579,16 +1761,27 @@ for _{name}_obj in [{objects}]:
         """
         singleRange = len(data[0]) == 1
 
-        outStr = (classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE) or self._SUBTYPE_SPEC_CALL
+        outStr = (
+            classmode and self.indent + self._SUBTYPE_SPEC_CLASSMODE
+        ) or self._SUBTYPE_SPEC_CALL
         outStr += (not singleRange and self._CONSTRAINTS_UNION) or ""
 
         vminStr = vmaxStr = ""
         for rng in data[0]:
             vmin, vmax = (len(rng) == 1 and (rng[0], rng[0])) or rng
             vminStr, vmaxStr = str(self.str2int(vmin)), str(self.str2int(vmax))
-            outStr += "ValueSizeConstraint(" + vminStr + ", " + vmaxStr + ")" + ((not singleRange and ", ") or "")
+            outStr += (
+                "ValueSizeConstraint("
+                + vminStr
+                + ", "
+                + vmaxStr
+                + ")"
+                + ((not singleRange and ", ") or "")
+            )
 
-        outStr += (not singleRange and ((classmode and ")") or "))")) or ((not classmode and ")") or "\n")
+        outStr += (not singleRange and ((classmode and ")") or "))")) or (
+            (not classmode and ")") or "\n"
+        )
 
         if data[0]:
             # vminStr and vmaxStr hold the last size rendered above; a single
@@ -1648,7 +1841,9 @@ for _{name}_obj in [{objects}]:
             The Python-safe names, empty when the list is.
         """
         if data[0]:
-            return [self.trans_opers(obj) for obj in data[0]]  # XXX self.trans_opers or not??
+            return [
+                self.trans_opers(obj) for obj in data[0]
+            ]  # XXX self.trans_opers or not??
         return []
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
@@ -1674,7 +1869,11 @@ for _{name}_obj in [{objects}]:
         Returns:
             A ``setLastUpdated()`` call.
         """
-        return ".setLastUpdated(" + dorepr(format_ext_utc_time(data[0], self.moduleName[0])) + ")"
+        return (
+            ".setLastUpdated("
+            + dorepr(format_ext_utc_time(data[0], self.moduleName[0]))
+            + ")"
+        )
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def gen_organization(self, data: TextClause, classmode: bool = False) -> str:
@@ -1691,7 +1890,9 @@ for _{name}_obj in [{objects}]:
         return ".setOrganization(" + dorepr(text) + ")"
 
     # noinspection PyUnusedLocal
-    def gen_revisions(self, data: RevisionsClause, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_revisions(
+        self, data: RevisionsClause, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Render a module's revision history.
 
         Args:
@@ -1707,7 +1908,9 @@ for _{name}_obj in [{objects}]:
 
         revisions = f".setRevisions(({', '.join(times)},))"
 
-        revisionDescriptions = ", ".join([dorepr(self.textFilter("description", x[1][1])) for x in data[0]])
+        revisionDescriptions = ", ".join(
+            [dorepr(self.textFilter("description", x[1][1])) for x in data[0]]
+        )
         descriptions = f".setRevisionsDescriptions(({revisionDescriptions},))"
 
         lastRevision = data[0][0][0]
@@ -1731,11 +1934,14 @@ for _{name}_obj in [{objects}]:
         row = data[0]
         row = self.trans_opers(row)
         return (
-            row in self.symbolTable[self.moduleName[0]]["_symtable_rows"] and ("MibTableRow", "")
+            row in self.symbolTable[self.moduleName[0]]["_symtable_rows"]
+            and ("MibTableRow", "")
         ) or self.gen_simple_syntax(data, classmode=classmode)
 
     # noinspection PyUnusedLocal
-    def gen_sequence(self, data: SequenceClause, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_sequence(
+        self, data: SequenceClause, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Record the columns of a SEQUENCE.
 
         Args:
@@ -1778,7 +1984,9 @@ for _{name}_obj in [{objects}]:
         return "MibScalar", outStr
 
     # noinspection PyUnusedLocal
-    def gen_type_declaration_rhs(self, data: Any, classmode: bool = False) -> tuple[Any, ...]:
+    def gen_type_declaration_rhs(
+        self, data: Any, classmode: bool = False
+    ) -> tuple[Any, ...]:
         """Render the body of a type declaration.
 
         A textual convention carries display hint, status and text alongside its
@@ -1880,7 +2088,9 @@ for _{name}_obj in [{objects}]:
         # 'a': lambda x: genXXX(x, 'CONSTRAINT')
     }
 
-    def gen_code(self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any) -> tuple[MibInfo, str]:
+    def gen_code(
+        self, ast: Any, symbolTable: dict[str, Any], **kwargs: Any
+    ) -> tuple[MibInfo, str]:
         """Render one parsed MIB module as PySNMP Python source.
 
         Symbols are emitted in the order the symbol table recorded them, so
@@ -1905,7 +2115,9 @@ for _{name}_obj in [{objects}]:
             PySmiSemanticError: the module is not internally consistent.
         """
         self.genRules["text"] = kwargs.get("genTexts", False)
-        self.textFilter = kwargs.get("textFilter") or (lambda symbol, text: re.sub(r"\s+", " ", text))
+        self.textFilter = kwargs.get("textFilter") or (
+            lambda symbol, text: re.sub(r"\s+", " ", text)
+        )
         self.symbolTable = symbolTable
         self._rows.clear()
         self._cols.clear()
@@ -1916,13 +2128,17 @@ for _{name}_obj in [{objects}]:
         self._moduleIdentityOid = None
         self.moduleName[0], moduleOid, imports, declarations = ast
 
-        out, importedModules = self.gen_imports(with_repaired_imports(imports, symbolTable, self.moduleName[0]))
+        out, importedModules = self.gen_imports(
+            with_repaired_imports(imports, symbolTable, self.moduleName[0])
+        )
 
         for declr in declarations or []:
             if declr:
                 clausetype = declr[0]
                 classmode = clausetype == "typeDeclaration"
-                self.handlersTable[declr[0]](self, self.prep_data(declr[1:], classmode), classmode)
+                self.handlersTable[declr[0]](
+                    self, self.prep_data(declr[1:], classmode), classmode
+                )
 
         for sym in self.symbolTable[self.moduleName[0]]["_symtable_order"]:
             if sym not in self._out:
@@ -1933,7 +2149,10 @@ for _{name}_obj in [{objects}]:
 
         if "comments" in kwargs:
             out = "".join([f"# {x}\n" for x in kwargs["comments"]]) + "#\n" + out
-            out = f"#\n# PySNMP MIB module {self.moduleName[0]} (http://snmplabs.com/pysmi)\n" + out
+            out = (
+                f"#\n# PySNMP MIB module {self.moduleName[0]} (http://snmplabs.com/pysmi)\n"
+                + out
+            )
 
         logger.debug(
             "canonical MIB name %s (%s), imported MIB(s) %s, Python code size %d bytes",

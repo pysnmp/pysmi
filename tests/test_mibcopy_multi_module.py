@@ -107,7 +107,9 @@ class MibCopyMultiModuleTestCase(unittest.TestCase):
 
         self.assertEqual(0, code)
         self.assertTrue((self.dst / "FIRST-MIB").exists())
-        self.assertTrue((self.dst / "SECOND-MIB").exists(), "the second module was dropped")
+        self.assertTrue(
+            (self.dst / "SECOND-MIB").exists(), "the second module was dropped"
+        )
         self.assertIn("(FIRST-MIB)", output)
         self.assertIn("(SECOND-MIB)", output)
 
@@ -211,7 +213,9 @@ class MibCopyMultiModuleTestCase(unittest.TestCase):
         """--verbose reports each module it copies and where it puts it."""
         (self.src / "BOTH.mib").write_text(FIRST + "\n" + SECOND)
 
-        _, output = runMibcopy("--verbose", f"--mib-source={self.base}", str(self.src), str(self.dst))
+        _, output = runMibcopy(
+            "--verbose", f"--mib-source={self.base}", str(self.src), str(self.dst)
+        )
 
         self.assertIn("FIRST-MIB", output)
         self.assertIn("SECOND-MIB", output)
@@ -255,7 +259,10 @@ class MibCopyMultiModuleTestCase(unittest.TestCase):
         code, output = self.copy()
 
         self.assertEqual(0, code)
-        self.assertTrue((self.dst / "NOREV-MIB").is_file(), "a MIB without a revision was never copied")
+        self.assertTrue(
+            (self.dst / "NOREV-MIB").is_file(),
+            "a MIB without a revision was never copied",
+        )
         self.assertIn("copied: 1", output)
 
     def testMibWithoutARevisionIsNotCopiedTwice(self):

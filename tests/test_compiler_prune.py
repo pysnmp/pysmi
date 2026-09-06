@@ -92,7 +92,9 @@ class MibCompilerPruneTestCase(unittest.TestCase):
         self.assertIn("HAND-WRITTEN.json", os.listdir(self.dst))
 
     def testAWriterThatCannotEnumerateItsOutputIsSkippedWithoutError(self):
-        compiler = MibCompiler(SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None))
+        compiler = MibCompiler(
+            SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None)
+        )
         compiler.add_sources(FileReader(self.src))
 
         self.assertEqual({}, compiler.prune())
@@ -104,7 +106,9 @@ class MibCompilerPruneTestCase(unittest.TestCase):
         class BrokenReader:
             def get_data(self, mibname, **options):
                 if mibname == "MIB-A":
-                    raise error.PySmiReaderFileNotFoundError(mibname=mibname, reader=self)
+                    raise error.PySmiReaderFileNotFoundError(
+                        mibname=mibname, reader=self
+                    )
                 raise error.PySmiError("reader is down")
 
             def clear_cache(self):

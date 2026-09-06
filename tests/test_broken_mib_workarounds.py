@@ -60,7 +60,9 @@ class UnimportedTypeTestCase(unittest.TestCase):
                 # The type has to be imported into the generated module even
                 # though the MIB never asked for it, or the line above raises
                 # NameError on load.
-                imported = next(line for line in source.splitlines() if '"SNMPv2-SMI"' in line)
+                imported = next(
+                    line for line in source.splitlines() if '"SNMPv2-SMI"' in line
+                )
                 self.assertIn(f'"{name}"', imported)
 
     def testTheJsonBackendResolvesTheSyntax(self):
@@ -77,7 +79,9 @@ class UnimportedTypeTestCase(unittest.TestCase):
     def testNoReproducerImportsTheTypeItReliesOn(self):
         for name in UNIMPORTED_TYPES:
             with self.subTest(syntax=name):
-                self.assertNotIn(name, imports_of(load(f"UNIMPORTED-{name.upper()}-MIB")))
+                self.assertNotIn(
+                    name, imports_of(load(f"UNIMPORTED-{name.upper()}-MIB"))
+                )
 
 
 class UnimportedNotificationTypeTestCase(unittest.TestCase):
@@ -87,7 +91,10 @@ class UnimportedNotificationTypeTestCase(unittest.TestCase):
         self.source = load("UNIMPORTED-NOTIFICATION-TYPE-MIB")
 
     def testThePySnmpBackendBuildsTheNotification(self):
-        self.assertIn("brokenNotification = NotificationType((1, 3, 2))", render_source(self.source))
+        self.assertIn(
+            "brokenNotification = NotificationType((1, 3, 2))",
+            render_source(self.source),
+        )
 
     def testTheJsonBackendBuildsTheNotification(self):
         doc = render_json(self.source)

@@ -64,10 +64,14 @@ class SupportsTestCase(unittest.TestCase):
         self.capabilities = render_json(MIB)["testCapability"]["capabilities"]
 
     def testEverySupportedModuleIsNamed(self):
-        self.assertEqual([c["module"] for c in self.capabilities], ["TEST-MIB", "OTHER-MIB"])
+        self.assertEqual(
+            [c["module"] for c in self.capabilities], ["TEST-MIB", "OTHER-MIB"]
+        )
 
     def testEachClauseCarriesItsOwnGroups(self):
-        self.assertEqual(self.capabilities[0]["includes"], ["testGroupOne", "testGroupTwo"])
+        self.assertEqual(
+            self.capabilities[0]["includes"], ["testGroupOne", "testGroupTwo"]
+        )
         self.assertEqual(self.capabilities[1]["includes"], ["otherGroup"])
 
     def testAClauseWithoutVariationsReportsNone(self):
@@ -85,10 +89,15 @@ class VariationTestCase(unittest.TestCase):
         self.assertEqual(self.variation["object"], "testObject")
 
     def testSyntaxIsRenderedAsAType(self):
-        self.assertEqual(self.variation["syntax"]["constraints"]["range"], [{"min": 0, "max": 10}])
+        self.assertEqual(
+            self.variation["syntax"]["constraints"]["range"], [{"min": 0, "max": 10}]
+        )
 
     def testWriteSyntaxIsSeparateFromSyntax(self):
-        self.assertEqual(self.variation["writesyntax"]["constraints"]["range"], [{"min": 0, "max": 5}])
+        self.assertEqual(
+            self.variation["writesyntax"]["constraints"]["range"],
+            [{"min": 0, "max": 5}],
+        )
 
     def testAccessIsReported(self):
         self.assertEqual(self.variation["access"], "read-only")
@@ -126,7 +135,9 @@ class SuppressedTextsTestCase(unittest.TestCase):
         self.assertNotIn("description", self.capabilities[0]["variations"][0])
 
     def testTheSupportedModulesAreStillNamed(self):
-        self.assertEqual([c["module"] for c in self.capabilities], ["TEST-MIB", "OTHER-MIB"])
+        self.assertEqual(
+            [c["module"] for c in self.capabilities], ["TEST-MIB", "OTHER-MIB"]
+        )
 
 
 class PysnmpOutputTestCase(unittest.TestCase):
@@ -144,7 +155,14 @@ class PysnmpOutputTestCase(unittest.TestCase):
         self.assertIn("testCapability = AgentCapabilities((1, 3, 2))\n", self.source)
 
     def testNothingOfTheSupportsClauseIsEmitted(self):
-        for dropped in ("SUPPORTS", "INCLUDES", "VARIATION", "setSupports", "OTHER-MIB", "testGroupOne"):
+        for dropped in (
+            "SUPPORTS",
+            "INCLUDES",
+            "VARIATION",
+            "setSupports",
+            "OTHER-MIB",
+            "testGroupOne",
+        ):
             with self.subTest(clause=dropped):
                 self.assertNotIn(dropped, self.source)
 

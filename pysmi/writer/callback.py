@@ -28,7 +28,9 @@ class CallbackWriter(AbstractWriter):
 
     """
 
-    def __init__(self, cbFun: Callable[[str, str, Any], Any], cbCtx: Any = None) -> None:
+    def __init__(
+        self, cbFun: Callable[[str, str, Any], Any], cbCtx: Any = None
+    ) -> None:
         """Creates an instance of *CallbackWriter* class.
 
         Args:
@@ -43,7 +45,13 @@ class CallbackWriter(AbstractWriter):
         """Identify this writer by the callback it hands MIBs to."""
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
-    def put_data(self, mibname: str, data: str, comments: tuple[str, ...] = (), dryRun: bool = False) -> None:
+    def put_data(
+        self,
+        mibname: str,
+        data: str,
+        comments: tuple[str, ...] = (),
+        dryRun: bool = False,
+    ) -> None:
         """Hand the generated MIB to the user callback.
 
         Raises:
@@ -60,7 +68,8 @@ class CallbackWriter(AbstractWriter):
         # into a writer error rather than escaping as itself.
         except Exception as exc:
             raise error.PySmiWriterError(
-                f"user callback {self._cbFun} failure writing {mibname}: {exc}", writer=self
+                f"user callback {self._cbFun} failure writing {mibname}: {exc}",
+                writer=self,
             ) from exc
 
         logger.debug("user callback for %s succeeded", mibname, extra={"mib": mibname})

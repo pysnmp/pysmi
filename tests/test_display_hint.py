@@ -53,7 +53,9 @@ class DisplayHintTestCase(unittest.TestCase):
         for name, (hint, syntax) in HINTS.items():
             with self.subTest(form=name, hint=hint):
                 mib = MIB % (hint, syntax)
-                self.assertEqual(render_json(mib)["TestConvention"]["displayhint"], hint)
+                self.assertEqual(
+                    render_json(mib)["TestConvention"]["displayhint"], hint
+                )
                 self.assertIn(f"    displayHint = '{hint}'", render_source(mib))
 
     def testAbsentHintProducesNoKey(self):
