@@ -1,3 +1,8 @@
+# Changelog
+
+Generated from the commit history at release time. The narrative history
+through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
+
 ## [2.1.0-rc.1](https://github.com/pysnmp/pysmi/compare/v2.0.1...v2.1.0-rc.1) (2026-09-05)
 
 ### Features
@@ -12,10 +17,3 @@
 
 * take the superseded MIBs from their RFC, not the mirror ([29350cf](https://github.com/pysnmp/pysmi/commit/29350cfdceeff34f21e78ff32070cc52b6453820))
 * validate a DEFVAL against the object's own SYNTAX before emitting it ([b6fac5a](https://github.com/pysnmp/pysmi/commit/b6fac5a3122cc60c7875c1d80bc407b317071a07)), closes [#134](https://github.com/pysnmp/pysmi/issues/134)
-
-# Changelog
-
-This file is generated from the commit history at release time.
-
-For the narrative history of the project through 1.0.5, see ``CHANGES.rst`` or
-the published historical changelog page in the documentation.
