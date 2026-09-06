@@ -1,0 +1,11 @@
+--- a/Modem-MIB
++++ b/Modem-MIB
+@@ -24,7 +24,7 @@
+              E-mail: waldbusser@cmu.edu"
+     DESCRIPTION
+             "The MIB module for management of dial-up modems."
+-    ::= { mdmMIB 1 }
++    ::= { mdmMib 1 }
+ 
+ mdmMib OBJECT IDENTIFIER ::= { mib-2 38 }
+ 

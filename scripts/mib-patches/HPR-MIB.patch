@@ -1,0 +1,20 @@
+--- a/HPR-MIB
++++ b/HPR-MIB
+@@ -18,7 +18,7 @@
+                 FROM APPN-MIB;
+ 
+ hprMIB MODULE-IDENTITY
+-        LAST-UPDATED  "970514000000Z"
++        LAST-UPDATED  "9705140000Z"
+         ORGANIZATION  "AIW APPN / HPR MIB SIG"
+         CONTACT-INFO
+ 
+@@ -512,7 +512,7 @@
+      hprRtpCurSendRate       Gauge32,            -- current send rate
+ 
+      hprRtpSmRdTripDelay     Gauge32,            -- smooth rnd trip
+-                                                    delay
++                                                 -- delay
+ 
+      hprRtpSendPackets       HprRtpCounter,      -- packets sent
+      hprRtpRecvPackets       HprRtpCounter,      -- packets received

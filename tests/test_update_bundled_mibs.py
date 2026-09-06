@@ -9,9 +9,15 @@ of the refreshed set before touching pysmi/mibs/asn1/ -- a network failure
 partway through a fetch, or an upstream MIB that no longer compiles, must
 leave the existing bundle exactly as it was rather than a mix of old and
 new files. See the review discussion on pysnmp/pysmi#123.
+
+The patch applier is exercised here too. It is what keeps a module whose
+published text does not compile honest -- the bundled bytes are the
+publisher's plus a patch that is in the repository to be read -- so it has to
+refuse a patch whose context has moved rather than fuzz it into place.
 """
 
 import pathlib
+import re
 import tempfile
 import unittest
 from unittest import mock
@@ -28,21 +34,30 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.dest = pathlib.Path(self._tmp.name) / "asn1"
         self.dest.mkdir()
 
-        self.bundled = ("ALPHA-MIB", "BETA-MIB")
+        self.bundled = {
+            "ALPHA-MIB": {"source": "rfc", "rfc": 1},
+            "BETA-MIB": {"source": "rfc", "rfc": 2},
+        }
 
         for mibname in self.bundled:
             (self.dest / mibname).write_bytes(VALID_MIB.encode())
 
-        self._destPatch = mock.patch.object(update_bundled_mibs, "DEST", self.dest)
-        self._bundledPatch = mock.patch.object(
-            update_bundled_mibs, "BUNDLED", self.bundled
-        )
-        self._destPatch.start()
-        self._bundledPatch.start()
+        self._patches = [
+            mock.patch.object(update_bundled_mibs, "DEST", self.dest),
+            mock.patch.object(
+                update_bundled_mibs, "manifest", return_value=self.bundled
+            ),
+            # update() finishes by regenerating the inventory page; that is not
+            # what these tests are about.
+            mock.patch.object(update_bundled_mibs, "docs", return_value=0),
+        ]
+
+        for patch in self._patches:
+            patch.start()
 
     def tearDown(self):
-        self._destPatch.stop()
-        self._bundledPatch.stop()
+        for patch in self._patches:
+            patch.stop()
         self._tmp.cleanup()
 
     def _existingBundleContents(self):
@@ -55,7 +70,7 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         }
 
         with mock.patch.object(
-            update_bundled_mibs, "fetch", side_effect=lambda name: fresh[name]
+            update_bundled_mibs, "fetch", side_effect=lambda name, _entry: fresh[name]
         ):
             code = update_bundled_mibs.update()
 
@@ -65,8 +80,8 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
     def testAFetchFailurePartwayLeavesTheExistingBundleUntouched(self):
         before = self._existingBundleContents()
 
-        def flakyFetch(mibname):
-            if mibname == self.bundled[-1]:
+        def flakyFetch(mibname, _entry):
+            if mibname == sorted(self.bundled)[-1]:
                 raise TimeoutError("network unreachable")
             return f"-- fresh {mibname}\n{VALID_MIB}".encode()
 
@@ -82,17 +97,30 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         before = self._existingBundleContents()
 
         broken = {
-            self.bundled[0]: UNCOMPILABLE_MIB.encode(),
-            self.bundled[1]: VALID_MIB.encode(),
+            "ALPHA-MIB": UNCOMPILABLE_MIB.encode(),
+            "BETA-MIB": VALID_MIB.encode(),
         }
 
         with mock.patch.object(
-            update_bundled_mibs, "fetch", side_effect=lambda name: broken[name]
+            update_bundled_mibs, "fetch", side_effect=lambda name, _entry: broken[name]
         ):
             code = update_bundled_mibs.update()
 
         self.assertEqual(1, code)
         self.assertEqual(before, self._existingBundleContents())
+
+    def testAModuleDroppedFromTheManifestIsDroppedFromTheBundle(self):
+        """Otherwise a removed entry leaves a file nothing re-checks any more."""
+        (self.dest / "GAMMA-MIB").write_bytes(VALID_MIB.encode())
+
+        with mock.patch.object(
+            update_bundled_mibs,
+            "fetch",
+            side_effect=lambda _name, _entry: VALID_MIB.encode(),
+        ):
+            self.assertEqual(0, update_bundled_mibs.update())
+
+        self.assertFalse((self.dest / "GAMMA-MIB").exists())
 
     def testVerifyDefaultsToCheckingDestInPlace(self):
         self.assertEqual(0, update_bundled_mibs.verify())
@@ -100,12 +128,97 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
     def testVerifyChecksTheGivenDirectoryNotDest(self):
         staging = pathlib.Path(self._tmp.name) / "staging"
         staging.mkdir()
-        (staging / self.bundled[0]).write_bytes(UNCOMPILABLE_MIB.encode())
-        (staging / self.bundled[1]).write_bytes(VALID_MIB.encode())
+        (staging / "ALPHA-MIB").write_bytes(UNCOMPILABLE_MIB.encode())
+        (staging / "BETA-MIB").write_bytes(VALID_MIB.encode())
 
         self.assertEqual(1, update_bundled_mibs.verify(staging))
         # DEST's own (valid) copies are untouched by checking a different directory.
         self.assertEqual(0, update_bundled_mibs.verify())
+
+
+ORIGINAL = "alpha\nbeta\ngamma\n"
+PATCH = """\
+--- a/TEST-MIB
++++ b/TEST-MIB
+@@ -1,3 +1,3 @@
+ alpha
+-beta
++BETA
+ gamma
+"""
+
+
+class ApplyPatchTestCase(unittest.TestCase):
+    def testAPatchIsAppliedWhereItsContextMatches(self):
+        patched = update_bundled_mibs.apply_patch(ORIGINAL.encode(), PATCH, "TEST-MIB")
+
+        self.assertEqual("alpha\nBETA\ngamma\n", patched.decode())
+
+    def testAPatchWhoseContextHasMovedIsRefused(self):
+        """A moved context means the publisher's text changed under the patch.
+
+        Fuzzing it into place would bundle a module nobody has reviewed in its
+        new form, and the whole point of keeping the patch separate is that
+        somebody can see what was changed and why.
+        """
+        moved = "alpha\nbeta and more\ngamma\n"
+
+        with self.assertRaises(SystemExit) as raised:
+            update_bundled_mibs.apply_patch(moved.encode(), PATCH, "TEST-MIB")
+
+        self.assertIn("no longer applies", str(raised.exception))
+
+    def testEveryBundledPatchRoundTripsAgainstTheBundledCopy(self):
+        """Each bundled file must be exactly its patch applied to something.
+
+        This is the offline half of ``--check``. It cannot tell whether the
+        publisher's text has moved -- only the network can -- but it does catch
+        a bundled file edited by hand past what its patch accounts for, which
+        would leave bytes in the package that no patch and no publisher
+        explains.
+        """
+        modules = {
+            name: entry
+            for name, entry in update_bundled_mibs.manifest().items()
+            if "patch" in entry
+        }
+
+        for mibname, entry in sorted(modules.items()):
+            with self.subTest(mib=mibname):
+                patch = (update_bundled_mibs.PATCHES / entry["patch"]).read_text()
+                bundled = (update_bundled_mibs.DEST / mibname).read_bytes()
+
+                # Reversing the patch off the bundled copy recovers the
+                # publisher's text; re-applying it has to give the bundled copy
+                # back, byte for byte.
+                published = update_bundled_mibs.apply_patch(
+                    bundled, _invert(patch), mibname
+                )
+
+                self.assertEqual(
+                    bundled,
+                    update_bundled_mibs.apply_patch(published, patch, mibname),
+                )
+
+
+def _invert(patch: str) -> str:
+    """Turn a unified diff around, so it undoes what it would have done."""
+    header = re.compile(r"^@@ -(\d+(?:,\d+)?) \+(\d+(?:,\d+)?) @@(.*)$")
+    flipped = {"+": "-", "-": "+"}
+    out = []
+
+    for chunk in patch.split("\n"):
+        found = header.match(chunk)
+        if chunk.startswith(("--- ", "+++ ")):
+            out.append(chunk)
+        elif found:
+            out.append(f"@@ -{found.group(2)} +{found.group(1)} @@{found.group(3)}")
+        elif chunk[:1] in flipped:
+            out.append(flipped[chunk[0]] + chunk[1:])
+        else:
+            out.append(chunk)
+
+    return "\n".join(out)
 
 
 if __name__ == "__main__":
