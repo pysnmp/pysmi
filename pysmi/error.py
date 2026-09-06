@@ -64,8 +64,8 @@ class PySmiError(Exception):
         """
         Exception.__init__(self, *args)
         self.msg = str(args[0]) if args else ""
-        for k in kwargs:
-            setattr(self, k, kwargs[k])
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     def __getattr__(self, name: str) -> Any:
         """Report the context attributes handlers attach as they re-raise.

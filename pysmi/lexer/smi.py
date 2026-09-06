@@ -14,7 +14,7 @@ import logging
 import re
 from typing import Any, Final
 
-import ply.lex as lex
+from ply import lex
 from ply.lex import LexToken
 
 from pysmi import debug, error
@@ -591,8 +591,8 @@ def lexerFactory(**grammarOptions: bool) -> type[SmiV2Lexer]:
     """
     classAttr: dict[str, Any] = {}
 
-    for option in grammarOptions:
-        if grammarOptions[option]:
+    for option, enabled in grammarOptions.items():
+        if enabled:
             if option not in relaxedGrammar:
                 raise error.PySmiError(f"Unknown lexer relaxation option: {option}")
 

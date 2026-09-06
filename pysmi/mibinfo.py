@@ -147,5 +147,5 @@ class MibInfo:
         Every attribute documented above is accepted as a keyword argument, so
         a reader fills in only what it knows about the MIB it just fetched.
         """
-        for k in kwargs:
-            setattr(self, k, kwargs[k])
+        for k, v in kwargs.items():
+            setattr(self, k, v)
