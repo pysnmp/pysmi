@@ -9,7 +9,7 @@ The *mibdump* tool is a command-line frontend to the PySMI library. This
 tool can be used for automatic downloading and transforming SNMP MIB modules
 into various formats.
 
-.. code-block:: bash
+.. code-block:: text
 
    $ mibdump --help
    Synopsis:
@@ -29,11 +29,14 @@ into various formats.
          [--cache-directory=<DIRECTORY>]
          [--disable-fuzzy-source]
          [--no-dependencies]
+         [--no-bundled-mibs]
+         [--prefer-mib-source]
          [--no-python-compile]
          [--python-optimization-level]
          [--ignore-errors]
          [--build-index]
          [--rebuild]
+         [--prune]
          [--dry-run]
          [--no-mib-writes]
          [--generate-mib-texts]
@@ -47,6 +50,41 @@ into various formats.
                   the required MIB module when source does not support
                   directory listing (e.g. HTTP).
        FORMAT   - pysnmp, json, null
+       --prune  - remove previously stored output whose source MIB no
+                  longer exists in any configured source. Runs without
+                  MIB-NAME arguments; deletes unless combined with
+                  --dry-run.
+       --no-bundled-mibs - do not use pysmi's own bundled copies of the
+                  RFC-frozen base MIBs (SNMPv2-SMI and similar) at all. The
+                  bundle is not a last-resort fallback: it is consulted
+                  ahead of --mib-source, and where both have one of those
+                  couple of dozen modules the newer MODULE-IDENTITY
+                  LAST-UPDATED supplies it -- so a --mib-source carrying a
+                  newer revision still wins, and one carrying an older or
+                  undated copy does not. Revisions are only compared across
+                  sources read locally (file, zip); a remote --mib-source is
+                  not fetched once a local source has the module, leaving
+                  the bundled copy in place. Pass this to compile strictly
+                  from --mib-source, so a base MIB that is missing there
+                  fails loudly rather than resolving to the bundled copy.
+       --prefer-mib-source - keep the bundled base MIBs, but let
+                  --mib-source supply one wherever the revisions do not
+                  decide: a module with no MODULE-IDENTITY to compare, or two
+                  copies carrying the same one. The newest revision still
+                  wins when every copy found has one. 13 of the 27 bundled
+                  modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
+                  SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
+                  all, so this is what decides them.
+       --repair-imports - supply the import a MIB should have carried for
+                  any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
+                  without naming it in IMPORTS, which RFC 2578 Section 3.2
+                  does not allow. Off by default, so a MIB broken this way
+                  fails rather than being silently patched; what was
+                  repaired is listed in the report.
+       --strict-sources - fail a MIB that more than one source has a
+                  different copy of. Without this, the precedence above picks
+                  one and the copies passed over are named on the "MIBs found
+                  in more than one source" line of the report.
 
 
 When JSON destination format is requested, for each MIB module *mibdump*
@@ -129,28 +167,37 @@ methods are supported:
   Example: `https://pysnmp.github.io/mibs/asn1/@mib@ <https://pysnmp.github.io/mibs/asn1>`_
 
 When trying to fetch a MIB module, the *mibdump* tool will try each of
-configured --mib-source transports in order of specification till 
-first successful hit.
+configured --mib-source transports in order of specification. For most
+modules the first successful hit supplies the module; for the base MIBs
+pysmi bundles a copy of, the newest revision does. `Which copy of a MIB gets
+compiled`_ states the whole rule.
 
 By default *mibdump* will search:
 
+* pysmi's own bundled base MIBs (unless --no-bundled-mibs is given)
 * file:///usr/share/snmp
 * https://pysnmp.github.io/mibs/asn1/@mib@
 
-Once another --mib-source option is given, those defaults will not be used
-and should be manually given to *mibdump* if needed.
+Once another --mib-source option is given, the last two defaults will not be
+used and should be manually given to *mibdump* if needed. The bundled base
+MIBs are not a --mib-source and are unaffected: they are searched whatever
+--mib-source says, and only --no-bundled-mibs takes them out.
 
 Which copy of a MIB gets compiled
 ---------------------------------
 
-More than one --mib-source can have the same MIB module. Which one is used is
-decided by these rules, in order:
+pysmi ships its own copies of a couple of dozen base MIBs (SNMPv2-SMI and
+similar) and searches them alongside --mib-source, so more than one source can
+have the same MIB module -- two --mib-source options, or a --mib-source and
+the bundle. Which copy is used is decided by these rules, in order:
 
 1. For a module pysmi bundles a copy of, the newest MODULE-IDENTITY
-   LAST-UPDATED wins.
-2. Otherwise -- and to break a tie between equal revisions, and for the many
-   modules that carry no LAST-UPDATED at all -- source order wins: pysmi's
-   bundled copy first, then each --mib-source in the order it was given.
+   LAST-UPDATED wins -- provided every copy found carries one.
+2. Otherwise -- to break a tie between equal revisions, when any copy found
+   carries no LAST-UPDATED, and for everything pysmi does not bundle --
+   source order wins: pysmi's bundled copy first, then each --mib-source in
+   the order it was given. --prefer-mib-source moves the bundled copy behind
+   --mib-source for this rule, and for this rule only.
 
 Rule 1 applies only to the couple of dozen modules pysmi bundles, each pinned
 to an RFC or to IANA and re-checked against it. Two copies of one of those are
@@ -159,16 +206,70 @@ copies of a vendor MIB are not that -- they are a collision, or two firmware
 revisions -- so pysmi never picks between them: whichever --mib-source came
 first supplies it.
 
-Rule 2 puts the bundled copy ahead of anything a --mib-source has, which is a
-deliberate reversal of what pysmi did before. A distribution's
-/usr/share/snmp/mibs routinely carries a base MIB frozen years ago, and taking
-that over a copy pinned to its RFC is almost never what was wanted. To use
-your own copy of a bundled module anyway, ship a newer revision of it, or pass
---no-bundled-mibs to drop the bundle entirely.
+Rule 1 needs a LAST-UPDATED on *every* copy, not just on the bundled one: an
+undated copy cannot be placed against a dated one, so a single undated copy
+drops the whole module to rule 2 whatever the others carry.
 
-Where two sources did have the same module, the report says which file was
-used and which were passed over. Pass --strict-sources to fail such a MIB
-instead of choosing.
+That case is not a corner: **13 of the 27 bundled modules carry no
+MODULE-IDENTITY at all** -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF, SNMPv2-TM,
+RFC1155-SMI, RFC1158-MIB, RFC1213-MIB, RFC1271-MIB, RFC-1212, RFC-1215,
+RFC1065-SMI, IPV6-TC and TOKEN-RING-RMON-MIB. For those, rule 1 can never
+fire, so the bundled copy is what gets compiled unless --prefer-mib-source or
+--no-bundled-mibs says otherwise.
+
+The bundle is therefore not a last-resort fallback that only fills gaps in
+--mib-source: for those couple of dozen names it is a source in its own right,
+and rule 2 puts it ahead of anything a --mib-source has when the revisions do
+not settle it. This is a deliberate reversal of what pysmi did before 2.0. A
+distribution's /usr/share/snmp/mibs routinely carries a base MIB frozen years
+ago, and taking that over a copy pinned to its RFC is almost never what was
+wanted. To use your own copy of a bundled module anyway, there are three
+ways, in increasing order of bluntness: ship a newer MODULE-IDENTITY revision
+of it, so rule 1 picks it; pass --prefer-mib-source, so --mib-source outranks
+the bundle wherever rule 1 cannot decide -- which is the only way to override
+the 13 undated modules short of the third; or pass --no-bundled-mibs to drop
+the bundle entirely, after which nothing but --mib-source is searched and a
+base MIB missing there fails the compile rather than resolving to a bundled
+copy.
+
+Rule 1 compares only the copies pysmi actually reads. Once some source has
+the module, pysmi keeps reading further sources just to compare revisions
+while they are local -- file, zip, or the bundle itself -- and stops at the
+first one it would have to go over the network for. A remote --mib-source --
+http, https, ftp, sftp -- is therefore never fetched merely to compare
+revisions, and neither is anything listed after it: whatever revision that
+copy carries, it is not considered. This is why the default
+https://pysnmp.github.io/mibs/asn1/@mib@ mirror does not override a bundled
+base MIB, and why a local --mib-source meant to override one should be given
+ahead of any remote source.
+
+Seeing what was decided
+-----------------------
+
+Whenever two sources had the same module and their content differed, *mibdump*
+reports the choice as it makes it -- not only that one was passed over, but
+which rule passed it over and what would change the outcome::
+
+   WARNING: SNMPv2-MIB was compiled from pysmi's bundled copy, not from --mib-source
+       used        package://pysmi.mibs.asn1/SNMPv2-MIB
+       passed over file:///usr/share/snmp/mibs/SNMPv2-MIB
+       decided by  newest MODULE-IDENTITY revision
+       to change   give your copy a newer MODULE-IDENTITY revision, or pass
+                   --prefer-mib-source, or --no-bundled-mibs
+
+A module that resolved to a copy other than the one you configured is why an
+upgrade of pysmi can change compiled output that no --mib-source change
+explains, so it is a warning rather than a footnote. Where the winner came
+from a --mib-source rather than from the bundle the same block is printed as a
+NOTE, since nothing pysmi ships was involved.
+
+The same MIBs are listed again on the "MIBs found in more than one source"
+line of the summary, with the deciding rule named there too. In the library,
+``MibStatus.path``, ``MibStatus.shadowed`` and ``MibStatus.precedence`` carry
+the same three facts for a caller that wants to record them. Pass
+--strict-sources to fail such a MIB instead of choosing.
+
+--quiet suppresses all of this, as it does the rest of the report.
 
 Fuzzying MIB module names
 -------------------------

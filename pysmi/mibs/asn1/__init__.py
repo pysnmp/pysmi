@@ -4,6 +4,8 @@
 Every file here is named exactly as the MIB module it holds, with no
 extension -- the same convention its canonical source at
 https://pysnmp.github.io/mibs/asn1/ uses. Add a module here only once it is
-frozen -- an actively revised MIB bundled here would silently serve a stale
-copy whenever the real source is unreachable. See pysnmp/pysmi#113.
+frozen. A copy here is preferred over a caller's own whenever the caller's
+carries no newer MODULE-IDENTITY revision, so an actively revised MIB bundled
+here would serve a stale copy to callers who do have a current one. See
+pysnmp/pysmi#113.
 """
