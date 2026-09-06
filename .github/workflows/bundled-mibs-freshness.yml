@@ -1,8 +1,12 @@
 name: Bundled MIBs freshness
 
-# Checks that pysmi/mibs/asn1/ still matches https://pysnmp.github.io/mibs/asn1/,
-# so a compile that falls back to the bundled copy (see pysnmp/pysmi#113) never
-# silently diverges from what the canonical source would have produced.
+# Re-fetches every bundled MIB from the publisher scripts/bundled_mibs.json
+# pins it to -- the RFC, an IANA registry, an IEEE 802.1 file -- and reports
+# anything that no longer matches, so a compile that falls back to the bundled
+# copy (see pysnmp/pysmi#113) never silently diverges from what the publisher
+# serves. RFC-pinned entries are also checked for obsoletion: an RFC's text
+# never changes, but a later RFC can replace it, which is how the mirror came
+# to serve an ENTITY-MIB eight years superseded.
 #
 # A separate, scheduled workflow rather than a step in the main CI run: it
 # depends on a third-party site being reachable, and every contributor's PR
@@ -12,9 +16,11 @@ name: Bundled MIBs freshness
 
 on:
   schedule:
-    # Monthly. Everything bundled is either RFC-frozen or, in IANAifType-MIB's
-    # case, revised a couple of times a year to register ifTypes that take far
-    # longer than a month to reach shipping hardware.
+    # Monthly. Most of the bundle is RFC-frozen and cannot move at all; what
+    # can are the IANA registries, revised a few times a year to register
+    # values that take far longer than a month to reach shipping hardware, and
+    # the IEEE 802.1 files, which are pinned to a dated revision and so only
+    # move when somebody repoints the manifest.
     - cron: "17 6 1 * *" # the 1st, 06:17 UTC -- an arbitrary off-peak time
   workflow_dispatch:
 
@@ -30,5 +36,5 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-      - name: Compare bundled MIBs against upstream
+      - name: Compare bundled MIBs against their publishers
         run: uv run --locked --group dev python3 scripts/update_bundled_mibs.py --check

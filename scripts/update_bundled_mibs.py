@@ -11,48 +11,79 @@ pysmi. Fetching from the network and re-verifying every bundled MIB compiles
 has no business happening on every ``pip install``, so it stays a separate,
 explicit step:
 
-    uv run scripts/update_bundled_mibs.py          # refresh from upstream
+    uv run scripts/update_bundled_mibs.py           # refresh from upstream
     uv run scripts/update_bundled_mibs.py --check   # report drift, change nothing
+    uv run scripts/update_bundled_mibs.py --verify  # compile the bundle as it stands
+    uv run scripts/update_bundled_mibs.py --docs    # rewrite the inventory page
 
-BUNDLED below is the whole bundle manifest. Adding a MIB later that turns out
-to be common enough to bundle -- and stable enough that a frozen copy will
-not go stale, see pysnmp/pysmi#113 -- means adding its name here and running
-this script; nothing else in the source tree names an individual bundled
-MIB.
+``bundled_mibs.json`` beside this file is the whole bundle manifest: one entry
+per module, naming where its text comes from and nothing else. Adding or
+dropping a module means editing that file and re-running this script; no other
+file in the source tree names an individual bundled MIB.
 
-What belongs here is a MIB that is widely imported and revised rarely, if at
-all. Most entries are RFC-frozen and can never drift. IANAifType-MIB is the
-exception: IANA does revise it, but only to register ifType values that take
-longer to reach shipping hardware than a pysmi release does to reach PyPI,
-and .github/workflows/bundled-mibs-freshness.yml re-checks the whole bundle
-monthly. A bundled copy trailing upstream by an unused enumeration beats
-IF-MIB not resolving at all, which is what the bundle is for.
+Every bundled byte is traceable to a publisher
+----------------------------------------------
 
-Frozen is not the same as current, and the difference is the trap here: an
-RFC never changes, but a later RFC can obsolete it. That is how the mirror
-came to serve an ENTITY-MIB eight years superseded. So a MIB is pinned to an
-RFC number, and --check asks the RFC Editor whether that RFC still stands.
+The rule this bundle keeps is that nothing here is hand-authored MIB text. Each
+entry names one of four sources:
+
+``rfc``
+    The module is cut out of the RFC that currently defines it. An RFC's text
+    never changes, so a copy taken from one cannot drift -- but a *later* RFC
+    can obsolete it, which is how the mirror came to serve an ENTITY-MIB eight
+    years superseded. ``--check`` therefore asks the RFC Editor whether each
+    pinned RFC still stands, as well as re-cutting the module and comparing.
+
+``iana``
+    IANA publishes the authoritative text and revises it continuously, so the
+    registry URL is the source and ``--check`` re-fetches and compares. These
+    are the only bundled modules whose upstream can move under us; the monthly
+    freshness workflow exists for them.
+
+``ieee802.1``
+    IEEE 802.1 publishes its MIB modules at a stable directory, one file per
+    revision plus an unversioned current one. The manifest pins the dated file,
+    so the bundled copy cannot silently follow a new revision; ``--check``
+    re-fetches the pinned file and compares.
+
+``local``
+    Only RFC-1212 and RFC-1215. Both RFCs define a macro in prose rather than
+    shipping an ASN.1 module, so no publisher has a copy to fetch and the
+    compat module is maintained in this repository. The manifest records why.
+
+A handful of entries also carry a ``patch``. The published text of those
+modules does not compile -- a truncated line left in the RFC, an IMPORTS clause
+missing a symbol the module goes on to use, a bound one past the top of
+Integer32. The patch is applied to the fetched text after every fetch and lives
+in ``scripts/mib-patches/`` where it can be read; the manifest's ``reason``
+says what defect it repairs. Bundling the pysnmp/mibs mirror's hand-repaired
+copy instead would have hidden all of that.
+
+What belongs in the bundle
+--------------------------
+
+A vendor-neutral module with a publisher we can re-fetch and diff. That is what
+decides membership -- not which directory a mirror happens to file it under,
+which is how CableLabs, DMTF, MEF and SCTE modules end up misfiled as standard
+ones. A module with no live authoritative source is not bundled, however widely
+imported, because there would be no way to tell a stale copy from a current
+one. See ``docs/source/bundled-mibs.rst`` for the inventory and for what is
+deliberately left out.
 
 A user-supplied copy wins over a bundled one when it carries a newer
 MODULE-IDENTITY revision -- not merely by being user-supplied, and not at all
-for the 13 entries here that carry no MODULE-IDENTITY to compare, short of
+for the 34 entries here that carry no MODULE-IDENTITY to compare, short of
 --prefer-mib-source or --no-bundled-mibs. So a stale entry here does shadow a
 caller's own copy of the same module, which is why nothing goes in that is
 still being revised.
 
-What is here is:
-
-- every module a code generator names in its ``baseMibs``, the modules pysmi
-  itself calls foundational, plus SNMPv2-MIB. PYSNMP-USM-MIB is the one
-  exception: it is pysnmp's own, not an RFC, and pysnmp ships it.
-- every other non-vendor module that 1% or more of the 5523 vendor MIBs in
-  https://github.com/pysnmp/mibs name in IMPORTS. That corpus is the best
-  evidence available of what a MIB for a real product actually depends on,
-  and it is what put Q-BRIDGE-MIB, P-BRIDGE-MIB, BRIDGE-MIB, ENTITY-MIB,
-  IPV6-TC and HCNUM-TC here.
-- whatever those need to compile. The RMON MIBs are here only because
-  Q-BRIDGE-MIB imports RMON2-MIB; a bundled MIB that cannot resolve against
-  its siblings is no use as a fallback.
+Those 34 are why the RFC-frozen rule is not a nicety. Every one of them is a
+pre-SMIv2 module or an SMI module proper -- RFC1213-MIB, SNMPv2-SMI, the PPP
+and RFC1xxx-MIB modules -- whose text was fixed when its RFC was published and
+cannot be revised without a new RFC under a new module name. A module that is
+still being revised and carries no revision stamp to compare would shadow the
+caller's copy for good; there is no such module here, and the manifest is where
+that stays true.
 """
 
 import json
@@ -61,83 +92,46 @@ import re
 import sys
 import tempfile
 import urllib.request
+from typing import Any
 
-UPSTREAM = "https://pysnmp.github.io/mibs/asn1/{}"
+HERE = pathlib.Path(__file__).resolve().parent
+ROOT = HERE.parent
+DEST = ROOT / "pysmi" / "mibs" / "asn1"
+MANIFEST = HERE / "bundled_mibs.json"
+PATCHES = HERE / "mib-patches"
+INVENTORY = ROOT / "docs" / "source" / "bundled-mibs.rst"
 
 RFC = "https://www.rfc-editor.org/rfc/rfc{}.txt"
 RFC_METADATA = "https://www.rfc-editor.org/rfc/rfc{}.json"
 
-#: Where a MIB comes from when UPSTREAM is not the copy to trust.
-#:
-#: The pysnmp mirror carries a 2017 IANAifType-MIB, nine years of ifType
-#: registrations behind IANA's own. Bundling that would put a knowingly stale
-#: copy in the package and give the freshness check nothing to catch, since
-#: the mirror is not moving either. IANA publishes the authoritative text, so
-#: IANAifType-MIB is fetched and compared against that instead.
-CANONICAL_SOURCES = {
-    "IANAifType-MIB": "https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib",
-}
+#: A module's MODULE-IDENTITY revision, for the inventory page. Read straight
+#: off the text rather than parsed: the inventory is a listing, not a compile.
+_REVISION = re.compile(r'(?:LAST-UPDATED|REVISION)\s+"(\d{6,14}Z?)"')
 
-#: MIBs taken from their RFC because the mirror serves a superseded revision.
-#:
-#: The mirror is a good source for most of this list, but not a current one
-#: for all of it: its ENTITY-MIB is RFC 4133, obsoleted in 2013; its RMON2-MIB
-#: predates RFC 2021, let alone RFC 4502; its SNMP-TARGET-MIB is RFC 2573.
-#: For these the RFC text is the authority and the module is cut out of it.
-#:
-#: Only these three. The mirror's copies of the SMI modules are deliberately
-#: not verbatim RFC text -- its SNMPv2-CONF, for one, is a stub with the macro
-#: definitions removed because a compiler predefines them -- so replacing the
-#: rest wholesale would throw away edits that are there on purpose.
-RFC_SOURCES = {
-    "ENTITY-MIB": 6933,
-    "RMON2-MIB": 4502,
-    "SNMP-TARGET-MIB": 3413,
-}
 
-BUNDLED = (
-    "SNMPv2-SMI",
-    "SNMPv2-TC",
-    "SNMPv2-CONF",
-    "SNMPv2-MIB",
-    "SNMPv2-TM",
-    "IF-MIB",
-    "IANAifType-MIB",
-    "SNMP-FRAMEWORK-MIB",
-    "SNMP-TARGET-MIB",
-    "TRANSPORT-ADDRESS-MIB",
-    "INET-ADDRESS-MIB",
-    "RFC1065-SMI",
-    "RFC1155-SMI",
-    "RFC1158-MIB",
-    "RFC-1212",
-    "RFC-1215",
-    "RFC1213-MIB",
-    # Imported by 1% or more of the vendor MIBs in the pysnmp corpus.
-    "Q-BRIDGE-MIB",
-    "P-BRIDGE-MIB",
-    "BRIDGE-MIB",
-    "ENTITY-MIB",
-    "IPV6-TC",
-    "HCNUM-TC",
-    # Only Q-BRIDGE-MIB reaches for these, but it cannot compile without them.
-    "RMON-MIB",
-    "RMON2-MIB",
-    "RFC1271-MIB",
-    "TOKEN-RING-RMON-MIB",
-)
+def manifest() -> dict[str, dict[str, Any]]:
+    """Read the bundle manifest."""
+    modules: dict[str, dict[str, Any]] = json.loads(MANIFEST.read_text())["modules"]
 
-DEST = pathlib.Path(__file__).resolve().parent.parent / "pysmi" / "mibs" / "asn1"
+    return modules
 
 
 def download(url: str) -> bytes:
     """Read one URL."""
-    with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 - the URLs come from this script's own command line, not from a MIB
-        return response.read()
+    with urllib.request.urlopen(url, timeout=60) as response:  # noqa: S310 - the URLs come from the manifest in this repository, not from a MIB
+        data: bytes = response.read()
+
+    return data
 
 
 def unpaginate(text: str) -> str:
-    """Drop the footer and header that straddle each form feed in an RFC."""
+    """Drop the footer and header that straddle each form feed in an RFC.
+
+    Both the blank lines a running header sits in and the ones above the page
+    footer go with them, so that a module's text reads as it would have without
+    the page breaks. Leaving them in produces a file that still compiles but
+    diffs badly against every other copy of the same module.
+    """
     pages = []
 
     for number, page in enumerate(text.split("\f")):
@@ -148,19 +142,27 @@ def unpaginate(text: str) -> str:
                 lines.pop(0)
             if lines:
                 lines.pop(0)  # The running header.
+            while lines and not lines[0].strip():
+                lines.pop(0)
 
         while lines and not lines[-1].strip():
             lines.pop()
         if lines and re.search(r"\[Page\s+\d+\]\s*$", lines[-1]):
             lines.pop()
+            while lines and not lines[-1].strip():
+                lines.pop()
 
         pages.append("\n".join(lines))
 
     return "\n".join(pages)
 
 
+#: An RFC may put the module name and ``DEFINITIONS`` on separate lines -- RFC
+#: 1158 does -- so the two are matched across a newline, not just a space.
 BEGINS = re.compile(
-    r"^[ \t]*([A-Za-z0-9][\w-]*)[ \t]+DEFINITIONS[ \t]*::=[ \t]*BEGIN\b", re.M
+    r"^[ \t]*([A-Za-z0-9][\w-]*)[ \t\r\n]+DEFINITIONS"
+    r"[ \t\r\n]*(?:IMPLICIT[ \t]+TAGS[ \t\r\n]*)?::=[ \t\r\n]*BEGIN\b",
+    re.M,
 )
 ENDS = re.compile(r"^[ \t]*END[ \t]*$", re.M)
 
@@ -184,60 +186,181 @@ def extract(mibname: str, rfc: int) -> bytes:
         if not ends:
             break
 
-        return body[start : ends[-1].end()].encode()
+        return (body[start : ends[-1].end()] + "\n").encode()
 
     raise SystemExit(f"{mibname}: no such module in RFC {rfc}")
 
 
-def fetch(mibname: str) -> bytes:
-    """Download one MIB's canonical ASN.1 text.
+HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 
-    From its RFC if RFC_SOURCES pins it to one, else from CANONICAL_SOURCES
-    or, for most of the list, from UPSTREAM.
+
+def apply_patch(text: bytes, patch: str, mibname: str) -> bytes:
+    """Apply a unified diff, refusing anything whose context has moved.
+
+    Deliberately strict and dependency-free: a patch that no longer matches the
+    text it was cut against means the source moved, which is a thing to look
+    at, not to fuzz past.
     """
-    if mibname in RFC_SOURCES:
-        return extract(mibname, RFC_SOURCES[mibname])
+    lines = text.decode("utf-8", "replace").split("\n")
+    out: list[str] = []
+    cursor = 0
 
-    return download(CANONICAL_SOURCES.get(mibname) or UPSTREAM.format(mibname))
+    for chunk in patch.split("\n"):
+        if chunk.startswith(("--- ", "+++ ")):
+            continue
+
+        header = HUNK.match(chunk)
+        if header:
+            start = int(header.group(1)) - 1
+            if start < cursor:
+                raise SystemExit(f"{mibname}: overlapping hunks in its patch")
+            out.extend(lines[cursor:start])
+            cursor = start
+            continue
+
+        if not chunk:
+            continue
+
+        mark, body = chunk[0], chunk[1:]
+
+        if mark == "+":
+            out.append(body)
+        elif mark in " -":
+            if cursor >= len(lines) or lines[cursor] != body:
+                found = lines[cursor] if cursor < len(lines) else "<end of file>"
+                raise SystemExit(
+                    f"{mibname}: its patch no longer applies -- line {cursor + 1} "
+                    f"reads {found!r}, the patch expects {body!r}"
+                )
+            if mark == " ":
+                out.append(body)
+            cursor += 1
+        elif mark == "\\":
+            continue
+        else:
+            raise SystemExit(f"{mibname}: unreadable line in its patch: {chunk!r}")
+
+    out.extend(lines[cursor:])
+
+    return "\n".join(out).encode()
 
 
-def obsoletedBy(rfc: int) -> list[str]:
+def as_utf8(data: bytes) -> bytes:
+    """Re-encode a publisher's text as UTF-8 if it is not already.
+
+    IEEE 802.1 serves at least one module (IEEE8021-PAE-MIB) with Windows-1252
+    smart quotes in its DESCRIPTIONs. Bundling those bytes verbatim would put a
+    file in the package that ``read_text()`` cannot open, and pysmi's own
+    reader decodes with ``errors="ignore"``, which would silently drop the
+    characters out of the descriptions it generates. Transcoding is
+    deterministic, so ``--check`` still compares byte for byte.
+    """
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data.decode("cp1252").encode("utf-8")
+
+    return data
+
+
+def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
+    """Fetch one module's authoritative text and apply its patch, if it has one.
+
+    A ``local`` module has no upstream to fetch, so the bundled copy is
+    returned unchanged and ``--check`` has nothing to compare it against.
+    """
+    if entry["source"] == "local":
+        return (DEST / mibname).read_bytes()
+
+    if entry["source"] == "rfc":
+        data = extract(mibname, entry["rfc"])
+    else:
+        data = as_utf8(download(entry["url"]))
+
+    if "patch" in entry:
+        data = apply_patch(data, (PATCHES / entry["patch"]).read_text(), mibname)
+
+    return data
+
+
+def obsoleted_by(rfc: int) -> list[str]:
     """Name the RFCs that have obsoleted *rfc*, if any."""
     metadata = json.loads(download(RFC_METADATA.format(rfc)))
 
     return metadata.get("obsoleted_by") or []
 
 
+def revision_of(data: bytes) -> str:
+    """The newest MODULE-IDENTITY revision in *data*, for the inventory page."""
+    found = _REVISION.findall(data.decode("utf-8", "replace"))
+    if not found:
+        return "--"
+
+    newest = max(stamp.rstrip("Z") for stamp in found)
+    if len(newest) < 12:
+        century = "19" if int(newest[:2]) >= 70 else "20"
+        newest = century + newest
+
+    return f"{newest[:4]}-{newest[4:6]}-{newest[6:8]}"
+
+
 def check() -> int:
     """Report any bundled file that no longer matches its source, changing nothing.
 
-    Comparing against the source catches a MIB the mirror has revised, but an
-    RFC's text never changes -- a superseded RFC_SOURCES entry would compare
-    equal forever. So the RFCs are checked for obsoletion separately, which is
-    the way ENTITY-MIB came to be eight years stale in the first place.
+    Comparing against the source catches a MIB whose publisher has revised it,
+    but an RFC's text never changes -- an RFC-sourced entry would compare equal
+    forever even once a later RFC had replaced it. So the pinned RFCs are
+    checked for obsoletion separately, which is the way ENTITY-MIB came to be
+    eight years stale in the first place.
+
+    An obsoleted RFC is not on its own a stale pin. Half the time the successor
+    publishes the module under a *different* name -- RFC 1757 obsoletes RFC 1271
+    but calls the module RMON-MIB, so RFC1271-MIB only ever existed in RFC 1271
+    and pinning it there is the only thing that can be right. Those successors
+    are recorded in the manifest as ``successors_reviewed``, naming what each
+    one publishes instead, and are not reported again; a successor nobody has
+    looked at yet still is.
 
     Returns:
         The process exit code: 0 if every bundled file is current, 1 otherwise.
     """
+    modules = manifest()
     stale = []
 
-    for mibname, rfc in RFC_SOURCES.items():
-        successors = obsoletedBy(rfc)
+    for rfc in sorted({e["rfc"] for e in modules.values() if e["source"] == "rfc"}):
+        pinned = sorted(
+            name for name, entry in modules.items() if entry.get("rfc") == rfc
+        )
+        reviewed = {
+            successor
+            for name in pinned
+            for successor in modules[name].get("successors_reviewed", {})
+        }
+        successors = [rfc_id for rfc_id in obsoleted_by(rfc) if rfc_id not in reviewed]
 
         if successors:
-            stale.append(f"{mibname}: RFC {rfc} obsoleted by {', '.join(successors)}")
+            stale.append(
+                f"RFC {rfc} obsoleted by {', '.join(successors)}"
+                f" -- pinned by {', '.join(pinned)}"
+            )
 
-    for mibname in BUNDLED:
+    for mibname, entry in sorted(modules.items()):
         path = DEST / mibname
 
         if not path.is_file():
             stale.append(f"{mibname}: not bundled yet")
             continue
 
-        current = fetch(mibname)
+        if entry["source"] == "local":
+            continue
 
-        if path.read_bytes() != current:
+        if path.read_bytes() != fetch(mibname, entry):
             stale.append(f"{mibname}: bundled copy no longer matches its source")
+
+    for path in sorted(DEST.iterdir()):
+        if path.is_file() and not path.name.startswith("__"):
+            if path.name not in modules:
+                stale.append(f"{path.name}: bundled but not in the manifest")
 
     if stale:
         sys.stderr.write(
@@ -247,7 +370,7 @@ def check() -> int:
         )
         return 1
 
-    sys.stdout.write(f"All {len(BUNDLED)} bundled MIBs are current.\n")
+    sys.stdout.write(f"All {len(modules)} bundled MIBs are current.\n")
     return 0
 
 
@@ -264,28 +387,34 @@ def update() -> int:
         The process exit code: 0 on success, 1 if the refreshed set fails to
         compile.
     """
+    modules = manifest()
     DEST.mkdir(parents=True, exist_ok=True)
 
     # Staged on DEST's own filesystem, so committing a file is an atomic
     # rename rather than a copy that could itself be interrupted.
     with tempfile.TemporaryDirectory(dir=DEST.parent) as staging:
-        stagingDir = pathlib.Path(staging)
+        staging_dir = pathlib.Path(staging)
 
-        for mibname in BUNDLED:
-            data = fetch(mibname)
-            (stagingDir / mibname).write_bytes(data)
+        for mibname, entry in sorted(modules.items()):
+            data = fetch(mibname, entry)
+            (staging_dir / mibname).write_bytes(data)
             sys.stdout.write(f"{mibname}: {len(data)} bytes\n")
 
-        if verify(stagingDir) != 0:
+        if verify(staging_dir) != 0:
             sys.stderr.write(
                 "Staged bundle failed to verify; leaving the existing bundle untouched.\n"
             )
             return 1
 
-        for mibname in BUNDLED:
-            (stagingDir / mibname).replace(DEST / mibname)
+        for path in DEST.iterdir():
+            if path.is_file() and not path.name.startswith("__"):
+                if path.name not in modules:
+                    path.unlink()
 
-    return 0
+        for mibname in modules:
+            (staging_dir / mibname).replace(DEST / mibname)
+
+    return docs()
 
 
 def verify(source: pathlib.Path | None = None) -> int:
@@ -296,8 +425,8 @@ def verify(source: pathlib.Path | None = None) -> int:
     make the fallback source useless for exactly the case it exists for.
 
     Args:
-        source: directory holding one file per name in BUNDLED. Defaults to
-            the bundle already on disk; *update* passes a staging directory
+        source: directory holding one file per name in the manifest. Defaults
+            to the bundle already on disk; *update* passes a staging directory
             to verify a refreshed set before committing it.
 
     Returns:
@@ -309,16 +438,23 @@ def verify(source: pathlib.Path | None = None) -> int:
     from pysmi.reader import FileReader
     from pysmi.writer import CallbackWriter
 
+    names = sorted(manifest())
+
+    # One malformed OID can make the code generator walk a cycle, and the
+    # default limit turns that into a bare RecursionError a long way from the
+    # MIB that caused it. Deep is normal here; unbounded is the bug.
+    sys.setrecursionlimit(20000)
+
     compiler = MibCompiler(
         SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None)
     )
     compiler.add_sources(FileReader(str(source if source is not None else DEST)))
-    processed = compiler.compile(*BUNDLED, ignoreErrors=True)
+    processed = compiler.compile(*names, ignoreErrors=True)
 
     failed = {
         name: status
         for name, status in processed.items()
-        if name in BUNDLED and status != "compiled"
+        if name in names and status != "compiled"
     }
 
     if failed:
@@ -327,9 +463,187 @@ def verify(source: pathlib.Path | None = None) -> int:
             sys.stderr.write(f"  {name}: {status}\n")
         return 1
 
-    sys.stdout.write(f"All {len(BUNDLED)} bundled MIBs compile.\n")
+    sys.stdout.write(f"All {len(names)} bundled MIBs compile.\n")
     return 0
 
 
+def docs() -> int:
+    """Rewrite the inventory page from the manifest and the bundled files.
+
+    The page is generated rather than kept by hand so that it cannot drift from
+    what is actually bundled -- an inventory nobody trusts is worse than none.
+
+    Returns:
+        The process exit code: 0.
+    """
+    modules = manifest()
+
+    def source_of(entry: dict[str, Any]) -> str:
+        if entry["source"] == "rfc":
+            return f":rfc:`{entry['rfc']}`"
+        if entry["source"] == "local":
+            return "maintained here"
+        label = "IANA" if entry["source"] == "iana" else "IEEE 802.1"
+        # Anonymous, so that fifty links labelled "IEEE 802.1" do not each
+        # register a duplicate target name.
+        return f"`{label} <{entry['url']}>`__"
+
+    # A csv-table rather than an aligned one: the cells hold URLs, and padding
+    # every row out to the longest of those would make the source unreadable
+    # for no gain in what Sphinx renders.
+    rows = [
+        '   "{}", "{}", "{}", "{}"'.format(
+            mibname,
+            source_of(entry),
+            revision_of((DEST / mibname).read_bytes()),
+            "yes" if "patch" in entry else "",
+        )
+        for mibname, entry in sorted(modules.items())
+    ]
+
+    patched = sorted(name for name, entry in modules.items() if "patch" in entry)
+    historical = sorted(
+        name for name, entry in modules.items() if "successors_reviewed" in entry
+    )
+    # Counted rather than stated: these are the entries the compiler cannot
+    # adjudicate on revision, so the page must not understate how many.
+    unstamped = sum(
+        1 for mibname in modules if revision_of((DEST / mibname).read_bytes()) == "--"
+    )
+
+    text = [
+        PAGE_HEADER.format(
+            total=len(modules), patched=len(patched), unstamped=unstamped
+        ),
+        ".. csv-table::",
+        '   :header: "Module", "Source", "Revision", "Patched"',
+        "   :widths: 34, 22, 12, 8",
+        "",
+        *rows,
+        "",
+        PAGE_PATCHES,
+        *(f"``{name}``\n    {modules[name]['reason']}\n" for name in patched),
+        PAGE_HISTORICAL,
+        *(
+            f"``{name}``\n    "
+            + "; ".join(
+                f"obsoleted by RFC {successor[3:]}, which publishes ``{instead}``"
+                for successor, instead in sorted(
+                    modules[name]["successors_reviewed"].items()
+                )
+            )
+            + ".\n"
+            for name in historical
+        ),
+        PAGE_FOOTER,
+    ]
+
+    INVENTORY.write_text("\n".join(text))
+    sys.stdout.write(f"Wrote {INVENTORY.relative_to(ROOT)}.\n")
+
+    return 0
+
+
+PAGE_HEADER = """\
+
+.. _bundled-mibs:
+
+Bundled base MIBs
+=================
+
+.. warning::
+
+   This page is generated by ``scripts/update_bundled_mibs.py``. Edit the
+   manifest, ``scripts/bundled_mibs.json``, not this file.
+
+pysmi carries {total} MIB modules of its own, in ``pysmi/mibs/asn1/``. They are
+a *source*, not a fallback: they are registered ahead of the sources a caller
+configures, and a caller's own copy wins only by carrying a newer
+MODULE-IDENTITY revision -- not merely by being the caller's. See
+:doc:`/mibdump` for ``--prefer-mib-source`` and ``--no-bundled-mibs``, which
+override that outright.
+
+{unstamped} of the modules below carry no MODULE-IDENTITY at all, so there is
+no revision to compare and the bundled copy is the one that gets used. Every
+one of them is a pre-SMIv2 module or an SMI module proper, whose text was fixed
+when its RFC was published and cannot be revised except as a new module under a
+new name -- so the copy here cannot go stale under a caller who has a better
+one. That is the whole reason membership is restricted the way it is below.
+
+Every module below is traceable to a publisher: the text is cut out of the RFC
+that currently defines it, or fetched from IANA's registry, or fetched from the
+IEEE 802.1 MIB directory. Nothing here is hand-authored MIB text, and
+``scripts/update_bundled_mibs.py --check`` re-fetches all of it and reports
+anything that no longer matches. RFC-sourced entries are also checked against
+the RFC Editor for obsoletion, since an RFC's text never changes but a later
+RFC can replace it.
+
+{patched} modules carry a patch, listed under :ref:`bundled-mib-patches` below,
+because their published text does not compile as published.
+
+Membership is decided by whether a module has a publisher we can re-fetch and
+diff -- not by which directory a mirror files it under. That is deliberate: MIB
+collections routinely file CableLabs, DMTF, MEF and SCTE modules as "standard",
+and a bundled copy of a module nobody publishes could never be told apart from
+a stale one. Modules with no live authoritative source are therefore not
+bundled, however widely they are imported; they remain available from
+https://pysnmp.github.io/mibs/asn1/ as before.
+
+Inventory
+---------
+"""
+
+PAGE_PATCHES = """\
+.. _bundled-mib-patches:
+
+Patched modules
+---------------
+
+The published text of these modules does not compile. Each is bundled as its
+publisher's text with a patch applied, kept in ``scripts/mib-patches/`` and
+re-applied on every refresh; a patch whose context has moved makes the refresh
+fail rather than silently fuzzing. The defect each one repairs:
+"""
+
+PAGE_HISTORICAL = """\
+.. _bundled-mib-historical:
+
+Modules pinned to an obsoleted RFC
+----------------------------------
+
+An obsoleted RFC is not on its own a stale pin. For these modules the successor
+RFC publishes the replacement under a *different* module name, so the pinned
+RFC is the only one that ever defined the module named here and pinning it
+there is the only thing that can be right. Each successor below has been looked
+at and recorded in the manifest, so ``--check`` does not report it again -- a
+successor nobody has looked at yet still is.
+"""
+
+PAGE_FOOTER = """
+Not bundled
+-----------
+
+Modules with no live authoritative source are left out, including every module
+that only a defunct or paywalled body ever published (ATM Forum, DMTF, IEC),
+vendor modules that MIB collections misfile as standard (CableLabs ``DOCS-*``
+and ``CLAB-*``, SCTE ``SCTE-HMS-*``, MEF ``MEF-*``, Novell ``TCPIPX-MIB``), and
+draft-named predecessors of modules the IETF went on to publish under a
+different name -- ``MPLS-LSR-MIB`` for ``MPLS-LSR-STD-MIB``, ``IGMP-MIB`` for
+``IGMP-STD-MIB``, and so on. Two modules are left out despite having an RFC:
+``COFFEE-POT-MIB`` (RFC 2325, an April Fools' RFC whose ASN.1 does not parse)
+and ``TCPIPX-MIB`` (RFC 1792, rooted under ``enterprises`` and so a vendor
+module in any case).
+
+All of them remain available from https://pysnmp.github.io/mibs/asn1/, which is
+where pysmi looks by default.
+"""
+
+
 if __name__ == "__main__":
-    sys.exit(check() if "--check" in sys.argv[1:] else update())
+    if "--check" in sys.argv[1:]:
+        sys.exit(check())
+    if "--verify" in sys.argv[1:]:
+        sys.exit(verify())
+    if "--docs" in sys.argv[1:]:
+        sys.exit(docs())
+    sys.exit(update())

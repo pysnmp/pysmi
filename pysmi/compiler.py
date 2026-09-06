@@ -56,11 +56,12 @@ def bundled_mib_names(package: str) -> frozenset[str]:
     """Name every MIB module *package* carries a copy of.
 
     This is the set of modules pysmi claims authority over -- each one pinned
-    to an RFC or to IANA by ``scripts/update_bundled_mibs.py`` and re-checked
-    against it on a schedule. Nothing else has that guarantee, which is why
-    the set is what decides whether the compiler may adjudicate between two
-    sources offering the same module or must leave the caller's source order
-    alone. See pysnmp/pysmi#133.
+    by ``scripts/bundled_mibs.json`` to the RFC, IANA registry or IEEE 802.1
+    file that publishes it, and re-checked against that source on a schedule.
+    Nothing else has that guarantee, which is why the set is what decides
+    whether the compiler may adjudicate between two sources offering the same
+    module or must leave the caller's source order alone. See pysnmp/pysmi#133
+    and ``docs/source/bundled-mibs.rst``.
     """
     return frozenset(
         entry.name
@@ -379,7 +380,8 @@ class MibCompiler:
         """Every source that can supply *mibname*, the one to use first.
 
         Source order decides, except for a module pysmi bundles a copy of --
-        one of a couple of dozen names pinned to an RFC or to IANA. Two
+        one of the names pinned by ``scripts/bundled_mibs.json`` to the RFC,
+        IANA registry or IEEE 802.1 file that publishes it. Two
         sources offering one of those are offering the same specification at
         different revisions rather than two different modules, so the newest
         MODULE-IDENTITY wins and source order only breaks the tie. A module

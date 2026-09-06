@@ -9,11 +9,12 @@ importlib.resources -- unlike FileReader, this works from inside a zipped
 wheel, not just a real directory. See pysnmp/pysmi#113.
 """
 
+import re
 import unittest
 
 from pysmi import error
 from pysmi.reader.package import PackageReader
-from scripts.update_bundled_mibs import BUNDLED
+from scripts.update_bundled_mibs import manifest
 
 
 class PackageReaderTestCase(unittest.TestCase):
@@ -52,11 +53,13 @@ class PackageReaderTestCase(unittest.TestCase):
         self.assertEqual("SNMPv2-SMI", info.name)
 
     def testEveryBundledMibIsReachableByItsOwnName(self):
-        for mibname in BUNDLED:
+        for mibname in sorted(manifest()):
             with self.subTest(mib=mibname):
                 info, data = self.reader.get_data(mibname)
                 self.assertEqual(mibname, info.name)
-                self.assertIn(f"{mibname} DEFINITIONS", data)
+                # RFC 1158 puts DEFINITIONS on the line after the module name,
+                # and the bundled copy is that RFC's text as published.
+                self.assertRegex(data, rf"{re.escape(mibname)}\s+DEFINITIONS")
 
 
 if __name__ == "__main__":

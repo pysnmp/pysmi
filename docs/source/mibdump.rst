@@ -57,8 +57,8 @@ into various formats.
        --no-bundled-mibs - do not use pysmi's own bundled copies of the
                   RFC-frozen base MIBs (SNMPv2-SMI and similar) at all. The
                   bundle is not a last-resort fallback: it is consulted
-                  ahead of --mib-source, and where both have one of those
-                  couple of dozen modules the newer MODULE-IDENTITY
+                  ahead of --mib-source, and where both have one of the
+                  301 bundled modules the newer MODULE-IDENTITY
                   LAST-UPDATED supplies it -- so a --mib-source carrying a
                   newer revision still wins, and one carrying an older or
                   undated copy does not. Revisions are only compared across
@@ -71,7 +71,7 @@ into various formats.
                   --mib-source supply one wherever the revisions do not
                   decide: a module with no MODULE-IDENTITY to compare, or two
                   copies carrying the same one. The newest revision still
-                  wins when every copy found has one. 13 of the 27 bundled
+                  wins when every copy found has one. 34 of the 301 bundled
                   modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
                   SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
                   all, so this is what decides them.
@@ -184,8 +184,8 @@ that the file named on the command line is the one that gets read.
 Which copy of a MIB gets compiled
 ---------------------------------
 
-pysmi ships its own copies of a couple of dozen base MIBs (SNMPv2-SMI and
-similar) and searches them alongside --mib-source, so more than one source can
+pysmi ships its own copies of 301 base MIBs (SNMPv2-SMI and similar; see
+:ref:`bundled-mibs`) and searches them alongside --mib-source, so more than one source can
 have the same MIB module -- two --mib-source options, or a --mib-source and
 the bundle. Which copy is used is decided by these rules, in order:
 
@@ -197,8 +197,8 @@ the bundle. Which copy is used is decided by these rules, in order:
    the order it was given. --prefer-mib-source moves the bundled copy behind
    --mib-source for this rule, and for this rule only.
 
-Rule 1 applies only to the couple of dozen modules pysmi bundles, each pinned
-to an RFC or to IANA and re-checked against it. Two copies of one of those are
+Rule 1 applies only to the modules pysmi bundles, each pinned to the RFC, IANA
+registry or IEEE 802.1 file that publishes it and re-checked against it. Two copies of one of those are
 the same specification at two revisions, and the newer is simply better. Two
 copies of a vendor MIB are not that -- they are a collision, or two firmware
 revisions -- so pysmi never picks between them: whichever --mib-source came
@@ -208,15 +208,18 @@ Rule 1 needs a LAST-UPDATED on *every* copy, not just on the bundled one: an
 undated copy cannot be placed against a dated one, so a single undated copy
 drops the whole module to rule 2 whatever the others carry.
 
-That case is not a corner: **13 of the 27 bundled modules carry no
-MODULE-IDENTITY at all** -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF, SNMPv2-TM,
-RFC1155-SMI, RFC1158-MIB, RFC1213-MIB, RFC1271-MIB, RFC-1212, RFC-1215,
-RFC1065-SMI, IPV6-TC and TOKEN-RING-RMON-MIB. For those, rule 1 can never
-fire, so the bundled copy is what gets compiled unless --prefer-mib-source or
---no-bundled-mibs says otherwise.
+That case is not a corner: **34 of the 301 bundled modules carry no
+MODULE-IDENTITY at all** -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF, RFC1155-SMI,
+RFC1213-MIB, RFC-1212, RFC-1215, IPV6-TC, TOKEN-RING-RMON-MIB, the PPP and
+RFC1xxx-MIB modules, and the rest of the pre-SMIv2 set;
+:ref:`bundled-mibs` lists them all with a blank revision. For those, rule 1
+can never fire, so the bundled copy is what gets compiled unless
+--prefer-mib-source or --no-bundled-mibs says otherwise. Every one of them is
+text an RFC froze, which is what makes that safe: none can be revised upstream
+without becoming a new module under a new name.
 
 The bundle is therefore not a last-resort fallback that only fills gaps in
---mib-source: for those couple of dozen names it is a source in its own right,
+--mib-source: for those names it is a source in its own right,
 and rule 2 puts it ahead of anything a --mib-source has when the revisions do
 not settle it. This is a deliberate reversal of what pysmi did before 2.0. A
 distribution's /usr/share/snmp/mibs routinely carries a base MIB frozen years
@@ -225,7 +228,7 @@ wanted. To use your own copy of a bundled module anyway, there are three
 ways, in increasing order of bluntness: ship a newer MODULE-IDENTITY revision
 of it, so rule 1 picks it; pass --prefer-mib-source, so --mib-source outranks
 the bundle wherever rule 1 cannot decide -- which is the only way to override
-the 13 undated modules short of the third; or pass --no-bundled-mibs to drop
+the 34 undated modules short of the third; or pass --no-bundled-mibs to drop
 the bundle entirely, after which nothing but --mib-source is searched and a
 base MIB missing there fails the compile rather than resolving to a bundled
 copy.

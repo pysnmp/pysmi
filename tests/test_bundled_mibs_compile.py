@@ -10,9 +10,14 @@ part of the normal test suite, so a broken or incomplete addition to the
 bundle is caught by ``pytest`` like any other regression, not only by the
 network-dependent ``scripts/update_bundled_mibs.py --check``. See
 pysnmp/pysmi#113.
+
+The manifest is asserted against the files on disk here too, since it is what
+``--check`` refreshes from: an entry with no file, or a file no entry names,
+would leave part of the bundle unverified against any publisher at all.
 """
 
 import re
+import sys
 import unittest
 from importlib import resources
 
@@ -21,13 +26,17 @@ from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import PackageReader
 from pysmi.writer import CallbackWriter
-from scripts.update_bundled_mibs import BUNDLED, RFC_SOURCES
+from scripts.update_bundled_mibs import PATCHES, manifest
 
-#: The LAST-UPDATED each RFC_SOURCES module should carry, per its RFC.
-RFC_REVISIONS = {
-    "ENTITY-MIB": "201304050000Z",
-    "RMON2-MIB": "200605020000Z",
-    "SNMP-TARGET-MIB": "200210140000Z",
+BUNDLED = sorted(manifest())
+
+#: The LAST-UPDATED a few load-bearing modules should carry, per the RFC the
+#: manifest pins them to.
+PINNED_REVISIONS = {
+    "ENTITY-MIB": (6933, "201304050000Z"),
+    "RMON2-MIB": (4502, "200605020000Z"),
+    "SNMP-TARGET-MIB": (3413, "200210140000Z"),
+    "IF-MIB": (2863, "200006140000Z"),
 }
 
 
@@ -40,6 +49,14 @@ class BundledMibsCompileTestCase(unittest.TestCase):
             useBundledMibs=False,
         )
         self.compiler.add_sources(PackageReader("pysmi.mibs.asn1"))
+        # A malformed OID in one module can send the code generator round a
+        # cycle; the default limit turns that into a bare RecursionError far
+        # from the MIB that caused it. Restored in tearDown.
+        self._recursionLimit = sys.getrecursionlimit()
+        sys.setrecursionlimit(20000)
+
+    def tearDown(self):
+        sys.setrecursionlimit(self._recursionLimit)
 
     def testEveryBundledMibCompilesAgainstTheBundleAlone(self):
         processed = self.compiler.compile(*BUNDLED, ignoreErrors=True)
@@ -48,8 +65,46 @@ class BundledMibsCompileTestCase(unittest.TestCase):
             with self.subTest(mib=mibname):
                 self.assertEqual("compiled", processed[mibname])
 
-    def testTheBundleManifestHasNoDuplicates(self):
-        self.assertEqual(len(BUNDLED), len(set(BUNDLED)))
+    def testTheManifestAndThePackageHoldTheSameModules(self):
+        onDisk = {
+            entry.name
+            for entry in resources.files("pysmi.mibs.asn1").iterdir()
+            if entry.is_file() and not entry.name.startswith("__")
+        }
+
+        self.assertEqual(set(BUNDLED), onDisk)
+
+    def testEveryManifestEntryNamesASourceItCanBeRefetchedFrom(self):
+        for mibname, entry in sorted(manifest().items()):
+            with self.subTest(mib=mibname):
+                if entry["source"] == "rfc":
+                    self.assertIsInstance(entry["rfc"], int)
+                elif entry["source"] == "local":
+                    # Nothing to re-fetch, so the manifest owes an explanation.
+                    self.assertTrue(entry.get("reason"))
+                else:
+                    self.assertTrue(entry["url"].startswith("https://"))
+
+    def testEveryPatchedEntryHasAPatchFileAndAStatedReason(self):
+        """A patch is a deviation from the publisher's text, so it is spelled out.
+
+        The bundle's whole claim is that its bytes come from a publisher. Where
+        that is not quite true the manifest has to say so and the patch has to
+        be readable, or the claim quietly stops being checkable.
+        """
+        patched = {
+            name: entry for name, entry in manifest().items() if "patch" in entry
+        }
+
+        self.assertTrue(patched, "the patch machinery has nothing exercising it")
+
+        for mibname, entry in sorted(patched.items()):
+            with self.subTest(mib=mibname):
+                self.assertTrue(entry.get("reason"))
+                self.assertTrue((PATCHES / entry["patch"]).is_file())
+
+        onDisk = {path.name for path in PATCHES.iterdir() if path.suffix == ".patch"}
+        self.assertEqual({entry["patch"] for entry in patched.values()}, onDisk)
 
     def testEveryModuleACodeGeneratorCallsABaseMibIsBundled(self):
         """The bundle is what makes a base MIB resolvable without a network.
@@ -67,18 +122,21 @@ class BundledMibsCompileTestCase(unittest.TestCase):
             with self.subTest(mib=mibname):
                 self.assertIn(mibname, BUNDLED)
 
-    def testEveryRfcPinnedMibIsTheRevisionItIsPinnedTo(self):
+    def testLoadBearingMibsAreTheRevisionTheirRfcPinsThemTo(self):
         """A pinned MIB carries the LAST-UPDATED of the RFC it came from.
 
-        These three are in RFC_SOURCES because the pysnmp mirror serves an
-        older revision of each; refreshing the bundle from the mirror by
-        mistake would put that older text back, still compiling and still
-        passing every other test here. The revision stamp is what tells the
-        two apart, so it is asserted rather than assumed.
+        Mirrors serve older revisions of all four of these -- an ENTITY-MIB
+        eight years superseded, an RMON2-MIB predating RFC 4502. Refreshing the
+        bundle from one by mistake would put that older text back, still
+        compiling and still passing every other test here. The revision stamp
+        is what tells the two apart, so it is asserted rather than assumed.
         """
-        for mibname, lastUpdated in RFC_REVISIONS.items():
+        modules = manifest()
+
+        for mibname, (rfc, lastUpdated) in PINNED_REVISIONS.items():
             with self.subTest(mib=mibname):
-                self.assertIn(mibname, RFC_SOURCES)
+                self.assertEqual("rfc", modules[mibname]["source"])
+                self.assertEqual(rfc, modules[mibname]["rfc"])
 
                 text = (
                     resources.files("pysmi.mibs.asn1")

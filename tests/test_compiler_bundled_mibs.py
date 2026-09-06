@@ -38,6 +38,7 @@ from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import FileReader
 from pysmi.searcher import AnyFileSearcher
 from pysmi.writer import CallbackWriter, FileWriter
+from scripts import update_bundled_mibs
 
 BUNDLED_PACKAGE = "pysmi.mibs.asn1"
 
@@ -440,13 +441,14 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
     """The counts stated in mibdump's --help and guide, checked against the
     bundle itself.
 
-    "13 of the 27 bundled modules carry no MODULE-IDENTITY" is load-bearing
+    "34 of the 301 bundled modules carry no MODULE-IDENTITY" is load-bearing
     prose: it is why --prefer-mib-source exists. Adding to the bundle without
-    updating pysmi/scripts/mibdump.py and docs/source/mibdump.rst would leave
-    both quietly wrong, so the numbers are asserted rather than trusted.
+    updating pysmi/scripts/mibdump.py, docs/source/mibdump.rst and
+    docs/source/bundled-mibs.rst would leave them quietly wrong, so the numbers
+    are asserted rather than trusted.
     """
 
-    def testTheBundleIsTwentySevenModulesThirteenOfThemUndated(self):
+    def testTheBundleIsThreeHundredAndOneModulesThirtyFourOfThemUndated(self):
         names = bundled_mib_names(BUNDLED_PACKAGE)
         undated = {
             name
@@ -457,6 +459,26 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
             is None
         }
 
-        self.assertEqual(27, len(names))
-        self.assertEqual(13, len(undated))
+        self.assertEqual(301, len(names))
+        self.assertEqual(34, len(undated))
         self.assertIn("SNMPv2-SMI", undated)
+
+    def testEveryUndatedBundledModulePredatesModuleIdentity(self):
+        """An undated module is used over the caller's copy, with no comparison.
+
+        That is only safe while every one of them is text an RFC froze -- a
+        pre-SMIv2 module, or an SMI module proper. One that is still revised
+        upstream would shadow a caller's better copy for good, so the property
+        is asserted here rather than left to the manifest reviewer.
+        """
+        manifest = update_bundled_mibs.manifest()
+
+        for name in sorted(bundled_mib_names(BUNDLED_PACKAGE)):
+            text = (importlib.resources.files(BUNDLED_PACKAGE) / name).read_text()
+            if revision_of(text) is not None:
+                continue
+
+            with self.subTest(mib=name):
+                # IANA and IEEE 802.1 revise their modules; an undated one from
+                # either would be exactly the trap described above.
+                self.assertIn(manifest[name]["source"], ("rfc", "local"))

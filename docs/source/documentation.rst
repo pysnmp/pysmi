@@ -43,4 +43,5 @@ chosen and configured to compiler.
 
    /mibdump
    /mibcopy
+   /bundled-mibs
    /library-reference
