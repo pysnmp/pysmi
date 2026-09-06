@@ -3,6 +3,13 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [2.1.1](https://github.com/pysnmp/pysmi/compare/v2.1.0...v2.1.1) (2026-09-06)
+
+### Bug Fixes
+
+* **ci:** publish docs from a branch, not a detached HEAD ([8ff1ecc](https://github.com/pysnmp/pysmi/commit/8ff1eccf667bf25cf55bb843b0ddbba45e8f9181))
+* **ci:** publish docs from a branch, not a detached HEAD ([212f083](https://github.com/pysnmp/pysmi/commit/212f083df413a9073d2074b02bf325a5c4301666))
+
 ## [2.1.0](https://github.com/pysnmp/pysmi/compare/v2.0.1...v2.1.0) (2026-09-06)
 
 ### Features
