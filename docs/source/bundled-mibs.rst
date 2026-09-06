@@ -503,16 +503,24 @@ now, rather than only that the module it came from is gone.
 Not bundled
 -----------
 
-Modules with no live authoritative source are left out, including every module
-that only a defunct or paywalled body ever published (ATM Forum, DMTF, IEC),
-vendor modules that MIB collections misfile as standard (CableLabs ``DOCS-*``
-and ``CLAB-*``, SCTE ``SCTE-HMS-*``, MEF ``MEF-*``, Novell ``TCPIPX-MIB``), and
-draft-named predecessors of modules the IETF went on to publish under a
-different name -- ``MPLS-LSR-MIB`` for ``MPLS-LSR-STD-MIB``, ``IGMP-MIB`` for
-``IGMP-STD-MIB``, and so on. Two modules are left out despite having an RFC:
-``COFFEE-POT-MIB`` (RFC 2325, an April Fools' RFC whose ASN.1 does not parse)
-and ``TCPIPX-MIB`` (RFC 1792, rooted under ``enterprises`` and so a vendor
-module in any case).
+Membership turns on what other modules have to import to compile, not on how a
+collection files a module. A module rooted under ``enterprises`` is not that,
+whoever publishes it. CableLabs' ``DOCS-*`` and ``CLAB-*`` sit under
+``enterprises 4491``, SCTE's ``SCTE-HMS-*`` under 5591, MEF's ``MEF-*`` under
+15007; across the 5,500 modules at https://pysnmp.github.io/mibs/, three of the
+eighteen CableLabs modules are imported from outside their own directory and
+none of the SCTE or MEF ones are at all. That is why they are left out.
+Publisher availability is not the reason and should not be read as one:
+CableLabs publishes at https://mibs.cablelabs.com/MIBs/, free and live, and 14
+of those 18 can be fetched there today.
+
+Where the publisher itself is gone or paywalled the modules are out on that
+ground as well -- ATM Forum, DMTF, IEC. So are draft-named predecessors of
+modules the IETF went on to publish under a different name: ``MPLS-LSR-MIB``
+for ``MPLS-LSR-STD-MIB``, ``IGMP-MIB`` for ``IGMP-STD-MIB``, and so on. Two
+modules are left out despite having an RFC: ``COFFEE-POT-MIB`` (RFC 2325, an
+April Fools' RFC whose ASN.1 does not parse) and ``TCPIPX-MIB`` (RFC 1792,
+rooted under ``enterprises`` and so a vendor module in any case).
 
 All of them remain available from https://pysnmp.github.io/mibs/asn1/, which is
 where pysmi looks by default.
