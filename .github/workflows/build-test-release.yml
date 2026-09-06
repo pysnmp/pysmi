@@ -7,7 +7,7 @@ on:
       - "next"
   pull_request:
     branches: [main, next]
-    # `labeled` so that adding ci:full-matrix re-runs with macOS and Windows.
+    # `labeled` so that adding ci:full-matrix re-runs with macOS as well.
     types: [opened, synchronize, reopened, labeled]
   # No push releases anything. Both the rc from next and the GA from main are
   # cut by dispatching this workflow by hand.
@@ -68,9 +68,14 @@ jobs:
       - name: Run mypy
         run: uv run mypy
 
-  # Every supported Python on Linux on every run. macOS and Windows only on the
-  # edge versions, and only where they can pay for themselves: a push to
-  # main/next, a manual dispatch, or a PR labelled ci:full-matrix.
+  # Every supported Python on Linux, plus the edge versions on Windows, on
+  # every run -- pull requests included. Windows is where this package's
+  # assumptions actually differ: line endings on checkout, path separators,
+  # no `pwd`. Leaving it to a label meant breakage reached next and was found
+  # there rather than on the pull request that caused it. macOS is the one
+  # kept behind the label: it has yet to catch anything Linux did not, so it
+  # runs on a push to main/next, a manual dispatch, or a PR labelled
+  # ci:full-matrix.
   setup-matrix:
     name: matrix
     runs-on: ubuntu-latest
@@ -87,11 +92,13 @@ jobs:
           import json, os
 
           pythons = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+          edges = (pythons[0], pythons[-1])
+
           jobs = [{"os": "ubuntu-latest", "python": p} for p in pythons]
+          jobs += [{"os": "windows-latest", "python": p} for p in edges]
 
           if os.environ["BROAD"] == "true":
-              for platform in ("macos-latest", "windows-latest"):
-                  jobs += [{"os": platform, "python": p} for p in (pythons[0], pythons[-1])]
+              jobs += [{"os": "macos-latest", "python": p} for p in edges]
 
           print("include=" + json.dumps(jobs))
           PY
