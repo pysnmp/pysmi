@@ -55,7 +55,7 @@ class AbstractWriter:
         Raises:
             PySmiWriterError: the output could not be stored.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_data(self, filename: str) -> str:
         """Read back something this writer stored.
@@ -66,7 +66,7 @@ class AbstractWriter:
         Returns:
             The stored text, or an empty string when there is none.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def list_data(self) -> Iterable[str]:
         """List the MIB module names this writer currently holds output for.
@@ -98,4 +98,4 @@ class AbstractWriter:
         Raises:
             PySmiWriterError: the output could not be removed.
         """
-        raise NotImplementedError()
+        raise NotImplementedError

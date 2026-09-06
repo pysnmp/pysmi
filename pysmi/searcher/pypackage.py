@@ -178,7 +178,7 @@ class PyPackageSearcher(AbstractSearcher):
                     extra={"mib": mibname, "path": f, "mtime": pyTime},
                 )
                 if pyTime >= mtime:
-                    raise error.PySmiFileNotModifiedError()
+                    raise error.PySmiFileNotModifiedError
                 else:
                     raise error.PySmiFileNotFoundError(
                         f"older file {mibname} exists", searcher=self
@@ -209,7 +209,7 @@ class PyPackageSearcher(AbstractSearcher):
                 extra={"mib": mibname, "path": f, "mtime": pyTime},
             )
             if pyTime >= mtime:
-                raise error.PySmiFileNotModifiedError()
+                raise error.PySmiFileNotModifiedError
             else:
                 raise error.PySmiFileNotFoundError(
                     f"older file {mibname} exists", searcher=self

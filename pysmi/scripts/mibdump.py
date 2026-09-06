@@ -323,9 +323,7 @@ def start() -> None:
         borrowers: list[AbstractBorrower] = [
             PyFileBorrower(x[1], genTexts=mibBorrowers[x[0]][1])
             for x in enumerate(
-                getReadersFromUrls(
-                    *[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)
-                )
+                getReadersFromUrls(*[m[0] for m in mibBorrowers], lowcaseMatching=False)
             )
         ]
 
@@ -362,9 +360,7 @@ def start() -> None:
                 exts=[_JSON_EXT]
             )
             for x in enumerate(
-                getReadersFromUrls(
-                    *[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)
-                )
+                getReadersFromUrls(*[m[0] for m in mibBorrowers], lowcaseMatching=False)
             )
         ]
 
@@ -399,9 +395,7 @@ def start() -> None:
         borrowers = [
             AnyFileBorrower(x[1], genTexts=mibBorrowers[x[0]][1])
             for x in enumerate(
-                getReadersFromUrls(
-                    *[m[0] for m in mibBorrowers], **dict(lowcaseMatching=False)
-                )
+                getReadersFromUrls(*[m[0] for m in mibBorrowers], lowcaseMatching=False)
             )
         ]
 
@@ -473,7 +467,7 @@ def start() -> None:
 
     try:
         mibCompiler.add_sources(
-            *getReadersFromUrls(*mibSources, **dict(fuzzyMatching=doFuzzyMatchingFlag))
+            *getReadersFromUrls(*mibSources, fuzzyMatching=doFuzzyMatchingFlag)
         )
 
         mibCompiler.add_searchers(*searchers)
@@ -482,17 +476,15 @@ def start() -> None:
 
         processed = mibCompiler.compile(
             *inputMibs,
-            **dict(
-                noDeps=nodepsFlag,
-                rebuild=rebuildFlag,
-                dryRun=dryrunFlag,
-                genTexts=genMibTextsFlag,
-                textFilter=(lambda symbol, text: text) if keepTextsLayout else None,
-                writeMibs=writeMibsFlag,
-                ignoreErrors=ignoreErrorsFlag,
-                repairImports=repairImportsFlag,
-                strictSources=strictSourcesFlag,
-            ),
+            noDeps=nodepsFlag,
+            rebuild=rebuildFlag,
+            dryRun=dryrunFlag,
+            genTexts=genMibTextsFlag,
+            textFilter=(lambda symbol, text: text) if keepTextsLayout else None,
+            writeMibs=writeMibsFlag,
+            ignoreErrors=ignoreErrorsFlag,
+            repairImports=repairImportsFlag,
+            strictSources=strictSourcesFlag,
         )
 
         safe = {}

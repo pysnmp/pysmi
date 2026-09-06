@@ -190,12 +190,10 @@ def start() -> None:
         try:
             processed = mibCompiler.compile(
                 mibFile,
-                **dict(
-                    noDeps=True,
-                    rebuild=True,
-                    fuzzyMatching=False,
-                    ignoreErrors=ignoreErrorsFlag,
-                ),
+                noDeps=True,
+                rebuild=True,
+                fuzzyMatching=False,
+                ignoreErrors=ignoreErrorsFlag,
             )
 
         except error.PySmiError as exc:
