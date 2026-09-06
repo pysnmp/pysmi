@@ -4,11 +4,15 @@
 # Copyright (c) 2015-2020, Ilya Etingof <etingof@gmail.com>
 # License: https://www.pysnmp.com/pysmi/license.html
 #
-"""The ``--no-bundled-mibs`` mibdump flag, wired to MibCompiler's
-``useBundledMibs`` constructor argument. See pysnmp/pysmi#113.
+"""The bundled-MIB mibdump flags -- ``--no-bundled-mibs``, wired to
+MibCompiler's ``useBundledMibs`` (pysnmp/pysmi#113), and
+``--prefer-mib-source``, wired to ``preferConfiguredSources`` -- and what
+mibdump reports when a configured source is passed over (pysnmp/pysmi#155).
 """
 
+import importlib.resources
 import io
+import re
 import sys
 import tempfile
 import unittest
@@ -16,6 +20,21 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from pysmi.scripts import mibdump
+
+BUNDLED_PACKAGE = "pysmi.mibs.asn1"
+
+#: A bundled module that is compiled rather than stubbed out, and carries a
+#: MODULE-IDENTITY for the newest-wins rule to compare.
+DATED = "SNMPv2-MIB"
+
+#: The same, but with no MODULE-IDENTITY at all -- the case that can only be
+#: settled by source order, and the one 13 of the 27 bundled modules are in.
+UNDATED = "IPV6-TC"
+
+
+def bundledText(mibname):
+    return (importlib.resources.files(BUNDLED_PACKAGE) / mibname).read_text()
+
 
 TARGET_MIB = """TINY-TEST-MIB DEFINITIONS ::= BEGIN
 IMPORTS
@@ -86,6 +105,101 @@ class MibDumpBundledMibsTestCase(unittest.TestCase):
         code, output = self._run("--no-bundled-mibs")
         self.assertNotEqual(0, code, output)
         self.assertIn("TINY-TEST-MIB", output.split("Failed MIBs:")[1])
+
+
+class MibDumpShadowedSourceReportTestCase(unittest.TestCase):
+    """What mibdump says when a --mib-source copy is passed over.
+
+    pysnmp/pysmi#155: the outcome was one line in a long summary and the rule
+    behind it was nowhere, so a curated corpus compiling from pysmi's own copy
+    looked like a defect rather than the documented precedence at work.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.src = Path(self._tmp.name) / "src"
+        self.dst = Path(self._tmp.name) / "dst"
+        self.src.mkdir()
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def _run(self, mibname, *extra):
+        return runMibdump(
+            f"--mib-source={self.src}",
+            f"--destination-directory={self.dst}",
+            "--destination-format=json",
+            *extra,
+            mibname,
+        )
+
+    def testAnOlderConfiguredCopyIsReportedWithTheRuleThatPassedItOver(self):
+        older = re.sub(
+            r'LAST-UPDATED\s+"\d+Z"',
+            'LAST-UPDATED "199001010000Z"',
+            bundledText(DATED),
+            count=1,
+        )
+        (self.src / DATED).write_text(older)
+
+        code, output = self._run(DATED)
+
+        self.assertEqual(0, code, output)
+        self.assertIn(
+            f"WARNING: {DATED} was compiled from pysmi's bundled copy", output
+        )
+        self.assertIn("decided by  newest MODULE-IDENTITY revision", output)
+        self.assertIn("give your copy a newer MODULE-IDENTITY revision", output)
+
+    def testAnUndatedModuleSaysThereWasNoRevisionToCompare(self):
+        (self.src / UNDATED).write_text(bundledText(UNDATED) + "\n-- a local edit\n")
+
+        code, output = self._run(UNDATED)
+
+        self.assertEqual(0, code, output)
+        self.assertIn(
+            "decided by  source order; no MODULE-IDENTITY revision to compare", output
+        )
+        # Telling someone to ship a newer revision is no use for a module that
+        # has none to carry; the flags are the only way out.
+        self.assertIn(
+            "to change   pass --prefer-mib-source, or --no-bundled-mibs", output
+        )
+
+    def testPreferMibSourceGivesAnUndatedModuleToTheConfiguredSource(self):
+        (self.src / UNDATED).write_text(bundledText(UNDATED) + "\n-- a local edit\n")
+
+        code, output = self._run(UNDATED, "--prefer-mib-source")
+
+        self.assertEqual(0, code, output)
+        self.assertIn(f"NOTE: {UNDATED} was found in more than one source", output)
+        self.assertIn(f"used        file://{self.src}/{UNDATED}", output)
+        self.assertIn(f"passed over package://{BUNDLED_PACKAGE}/{UNDATED}", output)
+
+    def testPreferMibSourceLeavesTheNewestRevisionRuleAlone(self):
+        older = re.sub(
+            r'LAST-UPDATED\s+"\d+Z"',
+            'LAST-UPDATED "199001010000Z"',
+            bundledText(DATED),
+            count=1,
+        )
+        (self.src / DATED).write_text(older)
+
+        code, output = self._run(DATED, "--prefer-mib-source")
+
+        self.assertEqual(0, code, output)
+        self.assertIn(
+            f"WARNING: {DATED} was compiled from pysmi's bundled copy", output
+        )
+
+    def testOneSourceOnlyReportsNothing(self):
+        (self.src / "TINY-TEST-MIB").write_text(TARGET_MIB)
+
+        code, output = self._run("TINY-TEST-MIB")
+
+        self.assertEqual(0, code, output)
+        self.assertNotIn("WARNING:", output)
+        self.assertNotIn("NOTE:", output)
 
 
 if __name__ == "__main__":

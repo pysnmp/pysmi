@@ -42,6 +42,15 @@ _AT_MIB_SUFFIX: Final = " at MIB %s"
 _LAST_UPDATED: Final = re.compile(r'LAST-UPDATED\s+"(\d{10}Z|\d{12}Z)"')
 
 
+#: Why one copy of a module was compiled and the others passed over. Carried
+#: on :py:attr:`MibStatus.precedence` and named in the log, so a build can show
+#: not only what it resolved to but which rule resolved it.
+PRECEDENCE_NEWEST_REVISION: Final = "newest MODULE-IDENTITY revision"
+PRECEDENCE_NO_REVISION: Final = "source order; no MODULE-IDENTITY revision to compare"
+PRECEDENCE_EQUAL_REVISIONS: Final = "source order; equal MODULE-IDENTITY revisions"
+PRECEDENCE_NOT_BUNDLED: Final = "source order; not a module pysmi bundles"
+
+
 @cache
 def bundled_mib_names(package: str) -> frozenset[str]:
     """Name every MIB module *package* carries a copy of.
@@ -115,6 +124,10 @@ class MibStatus(str):
     #: their content differed from the one used. Empty in the usual case that
     #: only one configured source had the module.
     shadowed: tuple[str, ...]
+    #: Which rule picked the copy that was used, one of the ``PRECEDENCE_*``
+    #: constants. Set only when something was ``shadowed``, since with one
+    #: copy there was nothing to decide.
+    precedence: str
     #: URL the MIB was read from.
     path: str
     #: File the MIB was read from.
@@ -195,6 +208,7 @@ class MibCompiler:
         codegen: "AbstractCodeGen",
         writer: "AbstractWriter",
         useBundledMibs: bool = True,
+        preferConfiguredSources: bool = False,
     ) -> None:
         """Creates an instance of *MibCompiler* class.
 
@@ -214,6 +228,16 @@ class MibCompiler:
                 states the whole rule. Set to ``False`` to compile from
                 :py:meth:`add_sources` alone, so a misconfigured call fails
                 loudly instead of silently succeeding from the bundled copy.
+            preferConfiguredSources: put :py:meth:`add_sources` ahead of the
+                bundled copy where the revisions do not decide -- a module
+                with no MODULE-IDENTITY to compare, or two copies carrying
+                the same one. The newest revision still wins when there is
+                one on every copy; this only settles what the bundle would
+                otherwise settle by being asked first. Nearly half the
+                bundled modules carry no MODULE-IDENTITY at all
+                (``SNMPv2-SMI`` and the other SMI modules among them), so
+                for those this is the difference between the caller's copy
+                being used and the bundled one.
         """
         self._parser = parser
         self._codegen = codegen
@@ -224,10 +248,17 @@ class MibCompiler:
         self._searchers: list[AbstractSearcher] = []
         self._borrowers: list[AbstractBorrower] = []
 
+        self._preferConfiguredSources = preferConfiguredSources
+        #: The reader serving the bundled copies, kept so that precedence can
+        #: name it apart from anything the caller added. ``None`` when
+        #: ``useBundledMibs`` was not asked for.
+        self._bundledSource: AbstractReader | None = None
+
         if useBundledMibs:
             from pysmi.reader.package import PackageReader
 
-            self.add_priority_sources(PackageReader(self.bundledMibsPackage))
+            self._bundledSource = PackageReader(self.bundledMibsPackage)
+            self.add_priority_sources(self._bundledSource)
 
     def add_sources(self, *sources: "AbstractReader") -> "MibCompiler":
         """Add more ASN.1 MIB source repositories.
@@ -239,8 +270,11 @@ class MibCompiler:
         order either was added in.
 
         The one exception is a module pysmi bundles a copy of, where the
-        newest MODULE-IDENTITY revision wins instead and this order only
-        breaks the tie. :py:meth:`compile` documents the whole rule.
+        newest MODULE-IDENTITY revision wins instead -- when every copy found
+        carries one -- and this order only breaks the tie. Where it does fall
+        to this order, ``preferConfiguredSources`` on the constructor puts
+        these sources ahead of the bundled copy. :py:meth:`compile` documents
+        the whole rule.
 
         Args:
             sources: reader object(s)
@@ -271,8 +305,10 @@ class MibCompiler:
         A distribution's ``/usr/share/snmp/mibs`` routinely carries a base MIB
         frozen years ago, and taking that over a copy pinned to its RFC is
         almost never what anyone wanted. Overriding a bundled module is still
-        possible -- ship a newer revision of it, or pass
-        ``useBundledMibs=False``.
+        possible -- ship a newer MODULE-IDENTITY revision of it, pass
+        ``preferConfiguredSources=True`` so :py:meth:`add_sources` outranks
+        the bundle wherever revisions do not decide, or pass
+        ``useBundledMibs=False`` to drop the bundle entirely.
 
         Args:
             sources: reader object(s)
@@ -332,7 +368,7 @@ class MibCompiler:
 
     def _candidate_sources(
         self, mibname: str
-    ) -> list[tuple["AbstractReader", MibInfo, str]]:
+    ) -> tuple[list[tuple["AbstractReader", MibInfo, str]], str]:
         """Every source that can supply *mibname*, the one to use first.
 
         Source order decides, except for a module pysmi bundles a copy of --
@@ -345,8 +381,19 @@ class MibCompiler:
         firmware revisions, and which one the caller meant is what their
         source order says.
 
+        Comparing revisions takes one on every copy found, not just on the
+        bundled one: an undated copy cannot be placed against a dated one, so
+        a single undated copy leaves the whole decision to source order. That
+        is the usual case for the SMI modules themselves, which carry no
+        MODULE-IDENTITY at all, and it is what ``preferConfiguredSources``
+        exists to settle the other way.
+
         Sources past the first hit are read only when reading them is a local
         lookup, and only so that the loser can be named in the report.
+
+        Returns:
+            The candidates, best first, and which rule put that one first --
+            one of the ``PRECEDENCE_*`` constants.
         """
         candidates: list[tuple[AbstractReader, MibInfo, str]] = []
 
@@ -359,21 +406,34 @@ class MibCompiler:
             if found:
                 candidates.append((source, *found))
 
-        if len(candidates) > 1 and mibname in bundled_mib_names(
-            self.bundledMibsPackage
-        ):
-            revisions = [revision_of(data) for _, _, data in candidates]
+        if len(candidates) < 2:
+            return candidates, ""
 
-            if all(revisions):
-                # Stable, so equal revisions keep the order they were asked in.
-                ordered = sorted(
-                    zip(revisions, candidates, strict=True),
-                    key=lambda p: p[0] or "",
-                    reverse=True,
-                )
-                candidates = [candidate for _, candidate in ordered]
+        if mibname not in bundled_mib_names(self.bundledMibsPackage):
+            return candidates, PRECEDENCE_NOT_BUNDLED
 
-        return candidates
+        if self._preferConfiguredSources:
+            # Stable, so the caller's own sources keep their order among
+            # themselves and only the bundled copy moves.
+            candidates.sort(key=lambda c: c[0] is self._bundledSource)
+
+        revisions = [revision_of(data) for _, _, data in candidates]
+
+        if not all(revisions):
+            return candidates, PRECEDENCE_NO_REVISION
+
+        if len(set(revisions)) == 1:
+            return candidates, PRECEDENCE_EQUAL_REVISIONS
+
+        # Stable, so copies sharing the newest revision keep the order they
+        # were asked in.
+        ordered = sorted(
+            zip(revisions, candidates, strict=True),
+            key=lambda p: p[0] or "",
+            reverse=True,
+        )
+
+        return [candidate for _, candidate in ordered], PRECEDENCE_NEWEST_REVISION
 
     def add_searchers(self, *searchers: "AbstractSearcher") -> "MibCompiler":
         """Add more transformed MIBs repositories.
@@ -462,11 +522,17 @@ class MibCompiler:
             source has it:
 
             1. For a module pysmi bundles a copy of, the newest
-               MODULE-IDENTITY LAST-UPDATED wins.
-            2. Otherwise -- and to break a tie, and for the many modules
-               carrying no LAST-UPDATED at all -- source order wins: every
+               MODULE-IDENTITY LAST-UPDATED wins -- provided every copy
+               found carries one. An undated copy cannot be placed against
+               a dated one, so a single one of those drops the module to
+               rule 2 whatever the others carry.
+            2. Otherwise -- to break a tie between equal revisions, for a
+               module with an undated copy, and for everything pysmi does
+               not bundle -- source order wins: every
                :py:meth:`add_priority_sources` reader, then every
-               :py:meth:`add_sources` reader, each in the order it was added.
+               :py:meth:`add_sources` reader, each in the order it was
+               added. ``preferConfiguredSources`` moves the bundled copy
+               behind :py:meth:`add_sources` for this rule only.
 
             Rule 1 is deliberately confined to the bundled names. Those are
             pinned to an RFC or to IANA and re-checked against it, so two
@@ -475,9 +541,18 @@ class MibCompiler:
             that: they are a collision, or two firmware revisions, and which
             one was meant is what the caller's source order says.
 
-            ``MibStatus.path`` names the file a module was compiled from and
-            ``MibStatus.shadowed`` the copies passed over, so a build can
-            record what it resolved to and reproduce it later.
+            Rule 2 carries more than it looks like it does: 13 of the 27
+            bundled modules -- ``SNMPv2-SMI``, ``SNMPv2-TC``, ``SNMPv2-CONF``
+            and the other SMI and RFC-numbered ones -- have no
+            MODULE-IDENTITY at all, so for those rule 1 can never fire and
+            the bundled copy is used unless ``preferConfiguredSources`` or
+            ``useBundledMibs=False`` says otherwise.
+
+            ``MibStatus.path`` names the file a module was compiled from,
+            ``MibStatus.shadowed`` the copies passed over, and
+            ``MibStatus.precedence`` which of these rules chose between
+            them -- so a build can record what it resolved to, why, and
+            reproduce it later.
 
         """
         processed: dict[str, MibStatus] = {}
@@ -489,6 +564,7 @@ class MibCompiler:
         mibsToParse = list(mibnames)
         canonicalMibNames: dict[str, Any] = {}
         shadowedMibs: dict[str, list[str]] = {}
+        precedenceOfMib: dict[str, str] = {}
 
         while mibsToParse:
             mibname = mibsToParse.pop(0)
@@ -501,7 +577,7 @@ class MibCompiler:
                 logger.debug("MIB %s already failed", mibname, extra={"mib": mibname})
                 continue
 
-            candidates = self._candidate_sources(mibname)
+            candidates, precedence = self._candidate_sources(mibname)
 
             shadowed = [
                 info.path
@@ -511,15 +587,18 @@ class MibCompiler:
 
             if shadowed:
                 shadowedMibs[mibname] = shadowed
+                precedenceOfMib[mibname] = precedence
 
                 logger.warning(
-                    "%s taken from %s, shadowing a different copy at %s",
+                    "%s taken from %s by %s, shadowing a different copy at %s",
                     mibname,
                     candidates[0][1].path,
+                    precedence,
                     ", ".join(shadowed),
                     extra={
                         "mib": mibname,
                         "path": candidates[0][1].path,
+                        "precedence": precedence,
                         "shadowed": shadowed,
                     },
                 )
@@ -980,6 +1059,7 @@ class MibCompiler:
                             REPAIRED_IMPORTS_KEY, {}
                         ),
                         shadowed=tuple(shadowedMibs.get(mibname, ())),
+                        precedence=precedenceOfMib.get(mibname, ""),
                     )
 
             except error.PySmiError as exc:

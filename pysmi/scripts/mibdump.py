@@ -19,7 +19,7 @@ from pysmi.borrower import AnyFileBorrower, PyFileBorrower
 from pysmi.borrower.base import AbstractBorrower
 from pysmi.codegen import JsonCodeGen, NullCodeGen, PySnmpCodeGen
 from pysmi.codegen.base import AbstractCodeGen
-from pysmi.compiler import MibCompiler
+from pysmi.compiler import PRECEDENCE_NO_REVISION, MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import getReadersFromUrls
 from pysmi.searcher import (
@@ -61,6 +61,7 @@ def start() -> None:
     rebuildFlag = False
     pruneFlag = False
     bundledMibsFlag = True
+    preferMibSourceFlag = False
     dryrunFlag = False
     genMibTextsFlag = False
     keepTextsLayout = False
@@ -87,6 +88,7 @@ def start() -> None:
         [--disable-fuzzy-source]
         [--no-dependencies]
         [--no-bundled-mibs]
+        [--prefer-mib-source]
         [--no-python-compile]
         [--python-optimization-level]
         [--ignore-errors]
@@ -123,6 +125,14 @@ def start() -> None:
                 the bundled copy in place. Pass this to compile strictly
                 from --mib-source, so a base MIB that is missing there
                 fails loudly rather than resolving to the bundled copy.
+        --prefer-mib-source - keep the bundled base MIBs, but let
+                --mib-source supply one wherever the revisions do not
+                decide: a module with no MODULE-IDENTITY to compare, or two
+                copies carrying the same one. The newest revision still
+                wins when every copy found has one. 13 of the 27 bundled
+                modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
+                SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
+                all, so this is what decides them.
         --repair-imports - supply the import a MIB should have carried for
                 any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
                 without naming it in IMPORTS, which RFC 2578 Section 3.2
@@ -154,6 +164,7 @@ def start() -> None:
                 "cache-directory=",
                 "no-dependencies",
                 "no-bundled-mibs",
+                "prefer-mib-source",
                 "no-python-compile",
                 "python-optimization-level=",
                 "ignore-errors",
@@ -230,6 +241,9 @@ def start() -> None:
 
         if opt[0] == "--no-bundled-mibs":
             bundledMibsFlag = False
+
+        if opt[0] == "--prefer-mib-source":
+            preferMibSourceFlag = True
 
         if opt[0] == "--no-python-compile":
             pyCompileFlag = False
@@ -426,6 +440,7 @@ def start() -> None:
     Parser grammar cache directory: {}
     Also compile all relevant MIBs: {}
     Search pysmi's bundled base MIBs, newest revision winning: {}
+    Prefer --mib-source where no revision decides: {}
     Rebuild MIBs regardless of age: {}
     Prune stored MIBs with no remaining source: {}
     Dry run mode: {}
@@ -447,6 +462,7 @@ def start() -> None:
                 cacheDirectory or "not used",
                 (nodepsFlag and "no") or "yes",
                 (bundledMibsFlag and "yes") or "no",
+                (preferMibSourceFlag and "yes") or "no",
                 (rebuildFlag and "yes") or "no",
                 (pruneFlag and "yes") or "no",
                 (dryrunFlag and "yes") or "no",
@@ -468,6 +484,7 @@ def start() -> None:
         codeGenerator,
         fileWriter,
         useBundledMibs=bundledMibsFlag,
+        preferConfiguredSources=preferMibSourceFlag,
     )
 
     pruned = {}
@@ -559,8 +576,57 @@ def start() -> None:
             )
             sys.stderr.write(f"Repaired MIBs: {repairedMibs}\n")
 
+            # A module resolved to a copy other than the one the caller
+            # thought they configured is worth more than a line in the
+            # summary: it is why an upgrade of pysmi can change compiled
+            # output that no --mib-source change explains. Say which copy
+            # won, which rule made it win, and how to have it the other way.
+            bundledPrefix = f"package://{mibCompiler.bundledMibsPackage}/"
+
+            for mibname in sorted(processed):
+                shadowed = getattr(processed[mibname], "shadowed", None)
+
+                if not shadowed:
+                    continue
+
+                fromBundle = processed[mibname].path.startswith(bundledPrefix)
+                precedence = getattr(processed[mibname], "precedence", "")
+
+                if fromBundle:
+                    headline = (
+                        f"WARNING: {mibname} was compiled from pysmi's bundled copy, "
+                        f"not from --mib-source"
+                    )
+                    # Telling someone to ship a newer revision is no help for
+                    # a module that has none to carry, which is the case for
+                    # 13 of the 27 bundled ones.
+                    remedy = (
+                        "pass --prefer-mib-source, or --no-bundled-mibs"
+                        if precedence == PRECEDENCE_NO_REVISION
+                        else (
+                            "give your copy a newer MODULE-IDENTITY revision, or pass "
+                            "--prefer-mib-source, or --no-bundled-mibs"
+                        )
+                    )
+
+                else:
+                    headline = f"NOTE: {mibname} was found in more than one source"
+                    remedy = (
+                        "give the --mib-source you want first, or pass "
+                        "--strict-sources to fail instead of choosing"
+                    )
+
+                sys.stderr.write(
+                    f"{headline}\n"
+                    f"    used        {processed[mibname].path}\n"
+                    f"    passed over {', '.join(shadowed)}\n"
+                    f"    decided by  {precedence}\n"
+                    f"    to change   {remedy}\n"
+                )
+
             shadowedMibs = ", ".join(
-                f"{x} (used {processed[x].path}, passed over {', '.join(processed[x].shadowed)})"
+                f"{x} (used {processed[x].path}, passed over {', '.join(processed[x].shadowed)},"
+                f" by {getattr(processed[x], 'precedence', '')})"
                 for x in sorted(processed)
                 if getattr(processed[x], "shadowed", None)
             )
