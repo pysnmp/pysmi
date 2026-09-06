@@ -65,4 +65,4 @@ class AbstractSearcher:
                 must be compiled.
             PySmiSearcherError: something is stored but could not be examined.
         """
-        raise NotImplementedError()
+        raise NotImplementedError

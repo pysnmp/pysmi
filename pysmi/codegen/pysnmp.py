@@ -583,13 +583,13 @@ for _%(name)s_obj in [%(objects)s]:
         outStr = name + " = AgentCapabilities(" + oidStr + ")" + label + "\n"
 
         if productRelease:
-            outStr += """\
+            outStr += f"""\
 if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
     {name} = {name}{productRelease}
-""".format(**dict(name=name, productRelease=productRelease))
+"""
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % dict(name=name, status=status)
+            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
@@ -642,10 +642,10 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                 outStr += name + revisions + "\n"
 
             if self.genRules["text"] and descriptions:
-                outStr += """
+                outStr += f"""
 if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
-    {ifTextStr}{name}{descriptions}
-""".format(**dict(ifTextStr=self.ifTextStr, name=name, descriptions=descriptions))
+    {self.ifTextStr}{name}{descriptions}
+"""
 
         if lastUpdated:
             outStr += self.ifTextStr + name + lastUpdated + "\n"
@@ -686,7 +686,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         outStr += compliances + "\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % dict(name=name, status=status)
+            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
@@ -742,9 +742,10 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                         "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
                     )
 
-                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(
-                    name=name, objects=", ".join(objStrParts)
-                )
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % {
+                    "name": name,
+                    "objects": ", ".join(objStrParts),
+                }
 
             else:
                 outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
@@ -752,7 +753,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         outStr += "\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % dict(name=name, status=status)
+            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
@@ -805,9 +806,10 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                         "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
                     )
 
-                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(
-                    name=name, objects=", ".join(objStrParts)
-                )
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % {
+                    "name": name,
+                    "objects": ", ".join(objStrParts),
+                }
 
             else:
                 outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
@@ -873,7 +875,7 @@ for _{name}_obj in [{objects}]:
         {name} = {name}.setObjects(*_{name}_obj)
     else:
         {name} = {name}.setObjects(*_{name}_obj, **dict(append=True))\
-""".format(**dict(name=name, objects=", ".join(objStrParts)))
+""".format(name=name, objects=", ".join(objStrParts))
 
             else:
                 outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
@@ -881,7 +883,7 @@ for _{name}_obj in [{objects}]:
         outStr += "\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % dict(name=name, status=status)
+            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
@@ -1078,9 +1080,10 @@ for _{name}_obj in [{objects}]:
                         "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
                     )
 
-                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % dict(
-                    name=name, objects=", ".join(objStrParts)
-                )
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % {
+                    "name": name,
+                    "objects": ", ".join(objStrParts),
+                }
 
             else:
                 outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
@@ -1253,9 +1256,10 @@ for _{name}_obj in [{objects}]:
                     "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
                 )
 
-            outStr += self._SET_OBJECTS_LOOP_TEMPLATE_NL % dict(
-                name=name, objects=", ".join(objStrParts)
-            )
+            outStr += self._SET_OBJECTS_LOOP_TEMPLATE_NL % {
+                "name": name,
+                "objects": ", ".join(objStrParts),
+            }
 
         else:
             outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")\n"

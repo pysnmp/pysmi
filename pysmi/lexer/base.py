@@ -18,4 +18,4 @@ class AbstractLexer:
 
         Called before reusing a lexer on another module.
         """
-        raise NotImplementedError()
+        raise NotImplementedError

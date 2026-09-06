@@ -119,7 +119,7 @@ class AbstractReader:
             PySmiReaderFileNotFoundError: this source does not have the MIB.
             PySmiReaderFileNotModifiedError: the source is older than requested.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def clear_cache(self) -> None:
         """Discard anything this reader has cached about what exists where.

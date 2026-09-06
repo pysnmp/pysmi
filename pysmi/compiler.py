@@ -481,7 +481,7 @@ class MibCompiler:
         borrowedMibs: dict[str, Any] = {}
         builtMibs: dict[str, Any] = {}
         symbolTableMap: dict[str, Any] = {}
-        mibsToParse = [x for x in mibnames]
+        mibsToParse = list(mibnames)
         canonicalMibNames: dict[str, Any] = {}
         shadowedMibs: dict[str, list[str]] = {}
 
@@ -1050,7 +1050,7 @@ class MibCompiler:
             if options.get("ignoreErrors"):
                 return
 
-            raise exc
+            raise
 
     def prune(self, **options: Any) -> dict[str, MibStatus]:
         """Remove previously stored output whose source MIB no longer exists.
