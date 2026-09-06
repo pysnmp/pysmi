@@ -14,7 +14,7 @@ import logging
 import os
 from typing import Any, cast
 
-import ply.yacc as yacc
+from ply import yacc
 from ply.yacc import YaccProduction
 
 from pysmi import debug, error
@@ -1689,8 +1689,8 @@ def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
                 f"Parser relaxation option {option} requires {', '.join(sorted(missing))} to be enabled as well"
             )
 
-    for option in grammarOptions:
-        if grammarOptions[option]:
+    for option, isEnabled in grammarOptions.items():
+        if isEnabled:
             for func in relaxedGrammar[option]:
                 classAttr[func.__name__] = func
 

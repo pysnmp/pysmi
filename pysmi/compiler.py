@@ -145,8 +145,8 @@ class MibStatus(str):
         particular MIB is attached to a copy rather than to the original.
         """
         n = self.__class__(self)
-        for k in kwargs:
-            setattr(n, k, kwargs[k])
+        for k, v in kwargs.items():
+            setattr(n, k, v)
         return n
 
 

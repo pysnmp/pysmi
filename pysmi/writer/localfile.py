@@ -50,10 +50,12 @@ class FileWriter(AbstractWriter):
         try:
             with open(path) as f:
                 data = f.read()
-            return data
 
         except (OSError, UnicodeEncodeError):
             return ""
+
+        else:
+            return data
 
     def put_data(
         self,

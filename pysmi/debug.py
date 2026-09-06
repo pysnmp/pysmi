@@ -221,15 +221,14 @@ class Debug:
         elif self.defaultPrinter is not None:
             self._printer = self.defaultPrinter
 
+        elif "loggerName" in options:
+            # route our logs to parent logger
+            self._printer = Printer(
+                logger=logging.getLogger(options["loggerName"]),
+                handler=NullHandler(),
+            )
         else:
-            if "loggerName" in options:
-                # route our logs to parent logger
-                self._printer = Printer(
-                    logger=logging.getLogger(options["loggerName"]),
-                    handler=NullHandler(),
-                )
-            else:
-                self._printer = Printer()
+            self._printer = Printer()
 
         self(f"running pysmi version {__version__}")
 

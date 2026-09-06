@@ -1452,68 +1452,65 @@ for _{name}_obj in [{objects}]:
 
             val = dorepr(defval[1:-1])
 
-        else:  # symbol (oid as defval) or name for enumeration member
-            # A bits list reaching an OID-typed object is a broken MIB; the
-            # membership tests below would raise TypeError on the unhashable
-            # list, so leave it to the branches that handle a list.
-            if (
-                defvalType[0][0] == "ObjectIdentifier"
-                and isinstance(defval, str)
-                and (
-                    defval in self.symbolTable[self.moduleName[0]]
-                    or defval in self._importMap
-                )
-            ):  # oid
-                module = self._importMap.get(defval, self.moduleName[0])
+        # A bits list reaching an OID-typed object is a broken MIB; the
+        # membership tests below would raise TypeError on the unhashable
+        # list, so leave it to the branches that handle a list.
+        elif (
+            defvalType[0][0] == "ObjectIdentifier"
+            and isinstance(defval, str)
+            and (
+                defval in self.symbolTable[self.moduleName[0]]
+                or defval in self._importMap
+            )
+        ):  # oid
+            module = self._importMap.get(defval, self.moduleName[0])
 
-                try:
-                    val = str(
-                        self.gen_numeric_oid(self.symbolTable[module][defval]["oid"])
-                    )
-                except (KeyError, error.PySmiSemanticError) as exc:
-                    # or no module if it will be borrowed later
-                    raise error.PySmiSemanticError(
-                        f'no symbol "{defval}" in module "{module}"'
-                    ) from exc
-
-            # enumeration
-            elif defvalType[0][0] in ("Integer32", "Integer") and isinstance(
-                defvalType[1], list
-            ):
-                if isinstance(defval, list):  # buggy MIB: DEFVAL { { ... } }
-                    defval = [dv for dv in defval if dv in dict(defvalType[1])]
-                    val = (defval and dorepr(defval[0])) or ""
-                elif defval in dict(defvalType[1]):  # good MIB: DEFVAL { ... }
-                    val = dorepr(defval)
-                else:
-                    val = ""
-
-            elif defvalType[0][0] == "Bits":
-                # The default names the bits that are set. Passing them as a
-                # value keeps the type's own named values intact; passing them
-                # as namedValues would redefine the type and set no default.
-                defvalBits = []
-                bits = dict(defvalType[1])
-
-                for bit in defval:
-                    bitValue = bits.get(bit)
-                    if bitValue is not None:
-                        defvalBits.append(bit)
-                    else:
-                        raise error.PySmiSemanticError(
-                            f'no such bit as "{bit}" for symbol "{objname}"'
-                        )
-
-                val = (
-                    "(" + ", ".join(dorepr(bit) for bit in defvalBits) + ",)"
-                    if defvalBits
-                    else "()"
-                )
-
-            else:
+            try:
+                val = str(self.gen_numeric_oid(self.symbolTable[module][defval]["oid"]))
+            except (KeyError, error.PySmiSemanticError) as exc:
+                # or no module if it will be borrowed later
                 raise error.PySmiSemanticError(
-                    f'unknown type "{defvalType}" for defval "{defval}" of symbol "{objname}"'
-                )
+                    f'no symbol "{defval}" in module "{module}"'
+                ) from exc
+
+        # enumeration
+        elif defvalType[0][0] in ("Integer32", "Integer") and isinstance(
+            defvalType[1], list
+        ):
+            if isinstance(defval, list):  # buggy MIB: DEFVAL { { ... } }
+                defval = [dv for dv in defval if dv in dict(defvalType[1])]
+                val = (defval and dorepr(defval[0])) or ""
+            elif defval in dict(defvalType[1]):  # good MIB: DEFVAL { ... }
+                val = dorepr(defval)
+            else:
+                val = ""
+
+        elif defvalType[0][0] == "Bits":
+            # The default names the bits that are set. Passing them as a
+            # value keeps the type's own named values intact; passing them
+            # as namedValues would redefine the type and set no default.
+            defvalBits = []
+            bits = dict(defvalType[1])
+
+            for bit in defval:
+                bitValue = bits.get(bit)
+                if bitValue is not None:
+                    defvalBits.append(bit)
+                else:
+                    raise error.PySmiSemanticError(
+                        f'no such bit as "{bit}" for symbol "{objname}"'
+                    )
+
+            val = (
+                "(" + ", ".join(dorepr(bit) for bit in defvalBits) + ",)"
+                if defvalBits
+                else "()"
+            )
+
+        else:
+            raise error.PySmiSemanticError(
+                f'unknown type "{defvalType}" for defval "{defval}" of symbol "{objname}"'
+            )
 
         return ".clone(" + val + ")"
 

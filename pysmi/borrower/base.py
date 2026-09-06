@@ -30,7 +30,7 @@ class AbstractBorrower:
     """
 
     genTexts: bool = False
-    exts: list[str] = []  # noqa: RUF012
+    exts: list[str] = []
 
     def __init__(self, reader: "AbstractReader", genTexts: bool = False) -> None:
         """Creates an instance of *Borrower* class.
@@ -62,8 +62,8 @@ class AbstractBorrower:
         """
         self._reader.set_options(**kwargs)
 
-        for k in kwargs:
-            setattr(self, k, kwargs[k])
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
         return self
 

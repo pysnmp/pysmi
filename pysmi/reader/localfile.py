@@ -274,7 +274,9 @@ class FileReader(AbstractReader):
                             mibData = fp.read(self.maxMibSize)
 
                         if len(mibData) == self.maxMibSize:
-                            raise OSError(f"MIB {f} too large")
+                            # Deliberate: an over-size MIB is skipped and logged
+                            # by the same handler as a file that would not open.
+                            raise OSError(f"MIB {f} too large")  # noqa: TRY301
 
                         return MibInfo(
                             path=f"file://{f}",
