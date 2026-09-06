@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>The mibdump tool &#8212; SNMP SMI compiler 2.2.0 documentation</title>
+    <title>The mibdump tool &#8212; SNMP SMI compiler 2.3.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
-    <script src="_static/documentation_options.js?v=b21de401"></script>
+    <script src="_static/documentation_options.js?v=c3c8ae58"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="_static/favicon.ico"/>
@@ -168,7 +168,7 @@ Where:
                bundled base MIBs (SNMPv2-SMI and similar) at all. The
                bundle is not a last-resort fallback: it is consulted
                ahead of --mib-source, and where both have one of the
-               302 bundled modules the newer MODULE-IDENTITY
+               299 bundled modules the newer MODULE-IDENTITY
                LAST-UPDATED supplies it -- so a --mib-source carrying a
                newer revision still wins, and one carrying an older or
                undated copy does not. Revisions are only compared across
@@ -181,7 +181,7 @@ Where:
                --mib-source supply one wherever the revisions do not
                decide: a module with no MODULE-IDENTITY to compare, or two
                copies carrying the same one. The newest revision still
-               wins when every copy found has one. 34 of the 302 bundled
+               wins when every copy found has one. 34 of the 299 bundled
                modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
                SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
                all, so this is what decides them.
@@ -287,7 +287,7 @@ that the file named on the command line is the one that gets read.</p>
 </section>
 <section id="which-copy-of-a-mib-gets-compiled">
 <h2>Which copy of a MIB gets compiled<a class="headerlink" href="#which-copy-of-a-mib-gets-compiled" title="Link to this heading">¶</a></h2>
-<p>pysmi ships its own copies of 302 base MIBs (SNMPv2-SMI and similar; see
+<p>pysmi ships its own copies of 299 base MIBs (SNMPv2-SMI and similar; see
 <a class="reference internal" href="bundled-mibs.html#bundled-mibs"><span class="std std-ref">Bundled base MIBs</span></a>) and searches them alongside –mib-source, so more than one source can
 have the same MIB module – two –mib-source options, or a –mib-source and
 the bundle. Which copy is used is decided by these rules, in order:</p>
@@ -309,7 +309,7 @@ first supplies it.</p>
 <p>Rule 1 needs a LAST-UPDATED on <em>every</em> copy, not just on the bundled one: an
 undated copy cannot be placed against a dated one, so a single undated copy
 drops the whole module to rule 2 whatever the others carry.</p>
-<p>That case is not a corner: <strong>34 of the 302 bundled modules carry no
+<p>That case is not a corner: <strong>34 of the 299 bundled modules carry no
 MODULE-IDENTITY at all</strong> – SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF, RFC1155-SMI,
 RFC1213-MIB, RFC-1212, RFC-1215, IPV6-TC, TOKEN-RING-RMON-MIB, the PPP and
 RFC1xxx-MIB modules, and the rest of the pre-SMIv2 set;
