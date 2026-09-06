@@ -45,7 +45,7 @@ into various formats.
          [--strict-sources]
          <MIB-NAME> [MIB-NAME [...]]]
    Where:
-       URI      - file, zip, http, https, ftp, sftp schemes are supported.
+       URI      - file, zip, http, https schemes are supported.
                   Use @mib@ placeholder token in URI to refer directly to
                   the required MIB module when source does not support
                   directory listing (e.g. HTTP).
@@ -148,7 +148,7 @@ Specifying MIB source
 The --mib-source option can be given multiple times. Each instance of
 --mib-source must specify a URL where ASN.1 MIB modules should be
 looked up and downloaded from. At this moment three MIB sourcing
-methods are supported:
+methods are supported -- a URL of any other scheme is rejected:
 
 * Local files. This could be a top-level directory where MIB files are
   located. Subdirectories will be automatically traversed as well. 
@@ -160,11 +160,6 @@ methods are supported:
   a @mib@ placeholder. When specific MIB is looked up, PySMI will replace
   that placeholder with MIB module name it is looking for. 
   Example: `https://pysnmp.github.io/mibs/asn1/@mib@ <https://pysnmp.github.io/mibs/asn1>`_
-* SFTP/FTP. A fully specified URL including FTP username and password. 
-  MIB module name is specified by a @mib@ placeholder. When specific MIB
-  is looked up, PySMI will replace that placeholder with MIB module name
-  it is looking for. 
-  Example: `https://pysnmp.github.io/mibs/asn1/@mib@ <https://pysnmp.github.io/mibs/asn1>`_
 
 When trying to fetch a MIB module, the *mibdump* tool will try each of
 configured --mib-source transports in order of specification. For most
@@ -172,16 +167,19 @@ modules the first successful hit supplies the module; for the base MIBs
 pysmi bundles a copy of, the newest revision does. `Which copy of a MIB gets
 compiled`_ states the whole rule.
 
-By default *mibdump* will search:
+With no --mib-source given, *mibdump* searches:
 
 * pysmi's own bundled base MIBs (unless --no-bundled-mibs is given)
-* file:///usr/share/snmp
 * https://pysnmp.github.io/mibs/asn1/@mib@
 
-Once another --mib-source option is given, the last two defaults will not be
-used and should be manually given to *mibdump* if needed. The bundled base
-MIBs are not a --mib-source and are unaffected: they are searched whatever
---mib-source says, and only --no-bundled-mibs takes them out.
+Once a --mib-source option is given, that mirror is not searched and should be
+given explicitly if it is still wanted. The bundled base MIBs are not a
+--mib-source and are unaffected: they are searched whatever --mib-source says,
+and only --no-bundled-mibs takes them out.
+
+Naming a MIB to compile by path rather than by module name -- ``mibdump
+/some/dir/MY-MIB`` -- also puts its directory ahead of every --mib-source, so
+that the file named on the command line is the one that gets read.
 
 Which copy of a MIB gets compiled
 ---------------------------------
@@ -250,7 +248,7 @@ Whenever two sources had the same module and their content differed, *mibdump*
 reports the choice as it makes it -- not only that one was passed over, but
 which rule passed it over and what would change the outcome::
 
-   WARNING: SNMPv2-MIB was compiled from pysmi's bundled copy, not from --mib-source
+   WARNING: SNMPv2-MIB resolved to pysmi's bundled copy, not to --mib-source
        used        package://pysmi.mibs.asn1/SNMPv2-MIB
        passed over file:///usr/share/snmp/mibs/SNMPv2-MIB
        decided by  newest MODULE-IDENTITY revision
@@ -262,6 +260,10 @@ upgrade of pysmi can change compiled output that no --mib-source change
 explains, so it is a warning rather than a footnote. Where the winner came
 from a --mib-source rather than from the bundle the same block is printed as a
 NOTE, since nothing pysmi ships was involved.
+
+It is reported whether or not the module was recompiled: a run that finds
+everything already up to date still says which copy each module resolves to,
+which is the run where a quiet override would otherwise go unmentioned.
 
 The same MIBs are listed again on the "MIBs found in more than one source"
 line of the summary, with the deciding rule named there too. In the library,

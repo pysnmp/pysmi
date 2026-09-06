@@ -565,6 +565,7 @@ class MibCompiler:
         canonicalMibNames: dict[str, Any] = {}
         shadowedMibs: dict[str, list[str]] = {}
         precedenceOfMib: dict[str, str] = {}
+        usedPathOfMib: dict[str, str] = {}
 
         while mibsToParse:
             mibname = mibsToParse.pop(0)
@@ -588,6 +589,7 @@ class MibCompiler:
             if shadowed:
                 shadowedMibs[mibname] = shadowed
                 precedenceOfMib[mibname] = precedence
+                usedPathOfMib[mibname] = candidates[0][1].path
 
                 logger.warning(
                     "%s taken from %s by %s, shadowing a different copy at %s",
@@ -1081,6 +1083,26 @@ class MibCompiler:
                 processed[mibname] = statusFailed.set_options(error=exc)
                 failedMibs[mibname] = exc
                 del builtMibs[mibname]
+
+        # A module the searchers found up to date was still chosen between,
+        # and an incremental build is exactly where a copy quietly resolving
+        # to something other than the caller's own would go unmentioned. The
+        # compiled ones already carry this; give it to the rest too.
+        for mibname, shadowed in shadowedMibs.items():
+            status = processed.get(mibname)
+
+            if status is None or getattr(status, "shadowed", None):
+                continue
+
+            carried: dict[str, Any] = {
+                "shadowed": tuple(shadowed),
+                "precedence": precedenceOfMib.get(mibname, ""),
+            }
+
+            if not getattr(status, "path", None):
+                carried["path"] = usedPathOfMib[mibname]
+
+            processed[mibname] = status.set_options(**carried)
 
         logger.debug(
             "MIBs modified: %s",
