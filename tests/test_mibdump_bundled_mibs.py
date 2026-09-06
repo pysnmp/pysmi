@@ -98,6 +98,7 @@ class MibDumpBundledMibsTestCase(unittest.TestCase):
         )
 
     def testDefaultFallsBackToTheBundledBaseMibs(self):
+        """A --mib-source with only the target MIB still resolves SNMPv2-SMI."""
         code, output = self._run()
         self.assertEqual(0, code, output)
         self.assertIn("TINY-TEST-MIB", output.split("Created/updated MIBs:")[1])

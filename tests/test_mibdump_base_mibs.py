@@ -54,6 +54,7 @@ BUILT_IN = frozenset({"ASN1", "ASN1-ENUMERATION", "ASN1-REFINEMENT"})
 
 
 def runMibdump(*args):
+    """Run mibdump in-process and hand back its exit code and whole report."""
     out, err = io.StringIO(), io.StringIO()
     argv = sys.argv
     sys.argv = ["mibdump", *args]
@@ -83,6 +84,7 @@ class MibDumpBaseMibsTestCase(unittest.TestCase):
         self._tmp.cleanup()
 
     def _run(self, *extra, fmt="json"):
+        """Compile the test MIB, asserting the run succeeded, and return the report."""
         code, output = runMibdump(
             f"--mib-source={self.src}",
             f"--destination-directory={self.dst}",
@@ -94,6 +96,7 @@ class MibDumpBaseMibsTestCase(unittest.TestCase):
         return output
 
     def testJsonOutputCarriesTheBaseMibsItImports(self):
+        """The modules the compiled MIB imports are written, not stubbed."""
         self._run()
 
         for mibname in ("SNMPv2-SMI", "SNMPv2-TC"):
@@ -117,6 +120,7 @@ class MibDumpBaseMibsTestCase(unittest.TestCase):
                     self.assertIn(imported, emitted)
 
     def testTheReportNamesTheBaseMibsItWillWriteOut(self):
+        """A run says which base MIBs are coming, rather than leaving it to be found."""
         output = self._run()
 
         line = output.split("Base MIBs written out with the modules importing them:")[
@@ -126,6 +130,7 @@ class MibDumpBaseMibsTestCase(unittest.TestCase):
         self.assertIn("SNMPv2-TC", line)
 
     def testNoBaseMibsLeavesThemStubbedOut(self):
+        """--no-base-mibs restores the behaviour of releases before 2.2."""
         output = self._run("--no-base-mibs")
 
         self.assertIn(
