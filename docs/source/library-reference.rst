@@ -185,6 +185,17 @@ beside the ones PySMI ships.
 
    /pysmi/extending
 
+Bundled MIBs
+------------
+
+The modules PySMI bundles carry a manifest recording where each one's text
+comes from and, for those a later RFC replaced, which module took over.
+
+.. toctree::
+   :maxdepth: 2
+
+   /pysmi/mibs
+
 Exceptions
 ----------
 
