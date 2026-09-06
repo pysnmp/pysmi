@@ -12,6 +12,7 @@ mibdump reports when a configured source is passed over (pysnmp/pysmi#155).
 
 import importlib.resources
 import io
+import os
 import re
 import sys
 import tempfile
@@ -171,7 +172,9 @@ class MibDumpShadowedSourceReportTestCase(unittest.TestCase):
 
         self.assertEqual(0, code, output)
         self.assertIn(f"NOTE: {UNDATED} was found in more than one source", output)
-        self.assertIn(f"used        file://{self.src}/{UNDATED}", output)
+        # os.path.join, not "/": the reader reports the path as the platform
+        # spells it, which is a backslash on Windows.
+        self.assertIn(f"used        file://{os.path.join(self.src, UNDATED)}", output)
         self.assertIn(f"passed over package://{BUNDLED_PACKAGE}/{UNDATED}", output)
 
     def testPreferMibSourceLeavesTheNewestRevisionRuleAlone(self):
@@ -218,7 +221,7 @@ class MibDumpShadowedSourceReportTestCase(unittest.TestCase):
         self.assertEqual(0, code, output)
         self.assertIn(f"WARNING: {UNDATED} resolved to pysmi's bundled copy", output)
         self.assertIn(f"used        package://{BUNDLED_PACKAGE}/{UNDATED}", output)
-        self.assertIn(f"passed over file://{self.src}/{UNDATED}", output)
+        self.assertIn(f"passed over file://{os.path.join(self.src, UNDATED)}", output)
         # The whole fallback has to complete, not just be reported: the
         # module compiles from the copy that parsed, and the failure the
         # broken copy raised does not survive as its status.
