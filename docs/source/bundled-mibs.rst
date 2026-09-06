@@ -10,10 +10,18 @@ Bundled base MIBs
    manifest, ``scripts/bundled_mibs.json``, not this file.
 
 pysmi carries 301 MIB modules of its own, in ``pysmi/mibs/asn1/``. They are
-a *fallback*, registered ahead of the sources a caller configures only so that
-a compile does not fail outright when the base modules every real-world MIB
-imports cannot be reached. A copy the caller supplies always wins over one
-bundled here.
+a *source*, not a fallback: they are registered ahead of the sources a caller
+configures, and a caller's own copy wins only by carrying a newer
+MODULE-IDENTITY revision -- not merely by being the caller's. See
+:doc:`/mibdump` for ``--prefer-mib-source`` and ``--no-bundled-mibs``, which
+override that outright.
+
+34 of the modules below carry no MODULE-IDENTITY at all, so there is
+no revision to compare and the bundled copy is the one that gets used. Every
+one of them is a pre-SMIv2 module or an SMI module proper, whose text was fixed
+when its RFC was published and cannot be revised except as a new module under a
+new name -- so the copy here cannot go stale under a caller who has a better
+one. That is the whole reason membership is restricted the way it is below.
 
 Every module below is traceable to a publisher: the text is cut out of the RFC
 that currently defines it, or fetched from IANA's registry, or fetched from the

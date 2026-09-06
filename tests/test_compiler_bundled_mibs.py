@@ -24,12 +24,21 @@ import time
 import unittest
 
 from pysmi.codegen import JsonCodeGen
-from pysmi.compiler import MibCompiler, revision_of
+from pysmi.compiler import (
+    PRECEDENCE_EQUAL_REVISIONS,
+    PRECEDENCE_NEWEST_REVISION,
+    PRECEDENCE_NO_REVISION,
+    PRECEDENCE_NOT_BUNDLED,
+    MibCompiler,
+    bundled_mib_names,
+    revision_of,
+)
 from pysmi.mibinfo import source_digest
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import FileReader
 from pysmi.searcher import AnyFileSearcher
 from pysmi.writer import CallbackWriter, FileWriter
+from scripts import update_bundled_mibs
 
 BUNDLED_PACKAGE = "pysmi.mibs.asn1"
 
@@ -304,3 +313,172 @@ class RecompileFromAChangedSourceTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PrecedenceIsReportedTestCase(unittest.TestCase):
+    """Every choice between two copies says which rule made it.
+
+    Reported on pysnmp/pysmi#155: the outcome was visible but the reason was
+    not, so a module resolving to pysmi's own copy read as a defect rather
+    than as the documented rule doing its job.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.compiler = MibCompiler(
+            SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *a: None)
+        )
+        self.compiler.add_sources(FileReader(self._tmp.name))
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def write(self, mibname, text):
+        with open(os.path.join(self._tmp.name, mibname), "w") as fp:
+            fp.write(text)
+        return text
+
+    def bundled(self, mibname):
+        return (importlib.resources.files(BUNDLED_PACKAGE) / mibname).read_text()
+
+    def testTheNewestRevisionIsNamedAsTheReason(self):
+        self.write("SNMPv2-MIB", stamped("SNMPv2-MIB", "199001010000Z"))
+        processed = self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)
+        self.assertEqual(PRECEDENCE_NEWEST_REVISION, processed["SNMPv2-MIB"].precedence)
+
+    def testAnUndatedCopyIsNamedAsTheReason(self):
+        # Not "the bundled copy is better" but "nothing here can be compared":
+        # SNMPv2-CONF carries no MODULE-IDENTITY, so source order decides and
+        # the bundled copy is asked first.
+        self.write(UNSTAMPED, f"{UNSTAMPED} DEFINITIONS ::= BEGIN\nEND\n")
+        processed = self.compiler.compile(UNSTAMPED, ignoreErrors=True)
+        self.assertEqual(PRECEDENCE_NO_REVISION, processed[UNSTAMPED].precedence)
+
+    def testOneUndatedCopyDropsTheWholeModuleToSourceOrder(self):
+        # The comparison needs a revision on every copy found, not just on the
+        # bundled one -- an undated copy cannot be placed against a dated one.
+        self.write("SNMPv2-MIB", "SNMPv2-MIB DEFINITIONS ::= BEGIN\nEND\n")
+        processed = self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)
+        self.assertEqual(PRECEDENCE_NO_REVISION, processed["SNMPv2-MIB"].precedence)
+
+    def testEqualRevisionsAreNamedAsTheReason(self):
+        sameRevision = revision_of(self.bundled("SNMPv2-MIB"))
+        self.write("SNMPv2-MIB", stamped("SNMPv2-MIB", sameRevision))
+        processed = self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)
+        self.assertEqual(PRECEDENCE_EQUAL_REVISIONS, processed["SNMPv2-MIB"].precedence)
+
+    def testAModulePysmiDoesNotBundleIsNamedAsSourceOrder(self):
+        second = tempfile.TemporaryDirectory()
+        self.addCleanup(second.cleanup)
+
+        self.write("VENDOR-MIB", stamped("VENDOR-MIB", "200001010000Z"))
+        with open(os.path.join(second.name, "VENDOR-MIB"), "w") as fp:
+            fp.write(stamped("VENDOR-MIB", "202601010000Z"))
+
+        self.compiler.add_sources(FileReader(second.name))
+        processed = self.compiler.compile("VENDOR-MIB", ignoreErrors=True)
+
+        self.assertEqual(PRECEDENCE_NOT_BUNDLED, processed["VENDOR-MIB"].precedence)
+
+    def testNothingShadowedLeavesNoReasonToGive(self):
+        processed = self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)
+        self.assertEqual("", processed["SNMPv2-MIB"].precedence)
+
+
+class PreferConfiguredSourcesTestCase(unittest.TestCase):
+    """preferConfiguredSources settles what the revisions do not.
+
+    The bundle stays a source and the newest-wins rule stays authoritative;
+    only the cases the revisions cannot decide -- an undated copy, or two
+    copies carrying the same revision -- change hands. See pysnmp/pysmi#155.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.written = {}
+        self.compiler = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda n, d, ctx: self.written.update({n: d})),
+            preferConfiguredSources=True,
+        )
+        self.compiler.add_sources(FileReader(self._tmp.name))
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def write(self, mibname, text):
+        with open(os.path.join(self._tmp.name, mibname), "w") as fp:
+            fp.write(text)
+        return text
+
+    def bundled(self, mibname):
+        return (importlib.resources.files(BUNDLED_PACKAGE) / mibname).read_text()
+
+    def testAnUndatedModuleGoesToTheConfiguredSource(self):
+        mine = self.write(UNSTAMPED, f"{UNSTAMPED} DEFINITIONS ::= BEGIN\nEND\n")
+        self.compiler.compile(UNSTAMPED, ignoreErrors=True)
+        self.assertIn(source_digest(mine), self.written[UNSTAMPED])
+
+    def testTheBundledCopyStillWinsOnANewerRevision(self):
+        self.write("SNMPv2-MIB", stamped("SNMPv2-MIB", "199001010000Z"))
+        self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)
+        self.assertIn(
+            source_digest(self.bundled("SNMPv2-MIB")), self.written["SNMPv2-MIB"]
+        )
+
+    def testAConfiguredSourceStillWinsOnANewerRevision(self):
+        newer = self.write("SNMPv2-MIB", stamped("SNMPv2-MIB", "202601010000Z"))
+        self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)
+        self.assertIn(source_digest(newer), self.written["SNMPv2-MIB"])
+
+    def testTheBundleStillFillsAGapTheConfiguredSourceLeaves(self):
+        processed = self.compiler.compile(UNSTAMPED, ignoreErrors=True)
+        self.assertEqual("compiled", processed[UNSTAMPED])
+
+
+class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
+    """The counts stated in mibdump's --help and guide, checked against the
+    bundle itself.
+
+    "34 of the 301 bundled modules carry no MODULE-IDENTITY" is load-bearing
+    prose: it is why --prefer-mib-source exists. Adding to the bundle without
+    updating pysmi/scripts/mibdump.py, docs/source/mibdump.rst and
+    docs/source/bundled-mibs.rst would leave them quietly wrong, so the numbers
+    are asserted rather than trusted.
+    """
+
+    def testTheBundleIsThreeHundredAndOneModulesThirtyFourOfThemUndated(self):
+        names = bundled_mib_names(BUNDLED_PACKAGE)
+        undated = {
+            name
+            for name in names
+            if revision_of(
+                (importlib.resources.files(BUNDLED_PACKAGE) / name).read_text()
+            )
+            is None
+        }
+
+        self.assertEqual(301, len(names))
+        self.assertEqual(34, len(undated))
+        self.assertIn("SNMPv2-SMI", undated)
+
+    def testEveryUndatedBundledModulePredatesModuleIdentity(self):
+        """An undated module is used over the caller's copy, with no comparison.
+
+        That is only safe while every one of them is text an RFC froze -- a
+        pre-SMIv2 module, or an SMI module proper. One that is still revised
+        upstream would shadow a caller's better copy for good, so the property
+        is asserted here rather than left to the manifest reviewer.
+        """
+        manifest = update_bundled_mibs.manifest()
+
+        for name in sorted(bundled_mib_names(BUNDLED_PACKAGE)):
+            text = (importlib.resources.files(BUNDLED_PACKAGE) / name).read_text()
+            if revision_of(text) is not None:
+                continue
+
+            with self.subTest(mib=name):
+                # IANA and IEEE 802.1 revise their modules; an undated one from
+                # either would be exactly the trap described above.
+                self.assertIn(manifest[name]["source"], ("rfc", "local"))

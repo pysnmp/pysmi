@@ -70,8 +70,20 @@ imported, because there would be no way to tell a stale copy from a current
 one. See ``docs/source/bundled-mibs.rst`` for the inventory and for what is
 deliberately left out.
 
-A user-supplied copy always wins over a bundled one, so nothing here can shadow
-a current MIB the caller already has.
+A user-supplied copy wins over a bundled one when it carries a newer
+MODULE-IDENTITY revision -- not merely by being user-supplied, and not at all
+for the 34 entries here that carry no MODULE-IDENTITY to compare, short of
+--prefer-mib-source or --no-bundled-mibs. So a stale entry here does shadow a
+caller's own copy of the same module, which is why nothing goes in that is
+still being revised.
+
+Those 34 are why the RFC-frozen rule is not a nicety. Every one of them is a
+pre-SMIv2 module or an SMI module proper -- RFC1213-MIB, SNMPv2-SMI, the PPP
+and RFC1xxx-MIB modules -- whose text was fixed when its RFC was published and
+cannot be revised without a new RFC under a new module name. A module that is
+still being revised and carries no revision stamp to compare would shadow the
+caller's copy for good; there is no such module here, and the manifest is where
+that stays true.
 """
 
 import json
@@ -233,6 +245,24 @@ def apply_patch(text: bytes, patch: str, mibname: str) -> bytes:
     return "\n".join(out).encode()
 
 
+def as_utf8(data: bytes) -> bytes:
+    """Re-encode a publisher's text as UTF-8 if it is not already.
+
+    IEEE 802.1 serves at least one module (IEEE8021-PAE-MIB) with Windows-1252
+    smart quotes in its DESCRIPTIONs. Bundling those bytes verbatim would put a
+    file in the package that ``read_text()`` cannot open, and pysmi's own
+    reader decodes with ``errors="ignore"``, which would silently drop the
+    characters out of the descriptions it generates. Transcoding is
+    deterministic, so ``--check`` still compares byte for byte.
+    """
+    try:
+        data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data.decode("cp1252").encode("utf-8")
+
+    return data
+
+
 def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
     """Fetch one module's authoritative text and apply its patch, if it has one.
 
@@ -245,7 +275,7 @@ def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
     if entry["source"] == "rfc":
         data = extract(mibname, entry["rfc"])
     else:
-        data = download(entry["url"])
+        data = as_utf8(download(entry["url"]))
 
     if "patch" in entry:
         data = apply_patch(data, (PATCHES / entry["patch"]).read_text(), mibname)
@@ -475,9 +505,16 @@ def docs() -> int:
     historical = sorted(
         name for name, entry in modules.items() if "successors_reviewed" in entry
     )
+    # Counted rather than stated: these are the entries the compiler cannot
+    # adjudicate on revision, so the page must not understate how many.
+    unstamped = sum(
+        1 for mibname in modules if revision_of((DEST / mibname).read_bytes()) == "--"
+    )
 
     text = [
-        PAGE_HEADER.format(total=len(modules), patched=len(patched)),
+        PAGE_HEADER.format(
+            total=len(modules), patched=len(patched), unstamped=unstamped
+        ),
         ".. csv-table::",
         '   :header: "Module", "Source", "Revision", "Patched"',
         "   :widths: 34, 22, 12, 8",
@@ -520,10 +557,18 @@ Bundled base MIBs
    manifest, ``scripts/bundled_mibs.json``, not this file.
 
 pysmi carries {total} MIB modules of its own, in ``pysmi/mibs/asn1/``. They are
-a *fallback*, registered ahead of the sources a caller configures only so that
-a compile does not fail outright when the base modules every real-world MIB
-imports cannot be reached. A copy the caller supplies always wins over one
-bundled here.
+a *source*, not a fallback: they are registered ahead of the sources a caller
+configures, and a caller's own copy wins only by carrying a newer
+MODULE-IDENTITY revision -- not merely by being the caller's. See
+:doc:`/mibdump` for ``--prefer-mib-source`` and ``--no-bundled-mibs``, which
+override that outright.
+
+{unstamped} of the modules below carry no MODULE-IDENTITY at all, so there is
+no revision to compare and the bundled copy is the one that gets used. Every
+one of them is a pre-SMIv2 module or an SMI module proper, whose text was fixed
+when its RFC was published and cannot be revised except as a new module under a
+new name -- so the copy here cannot go stale under a caller who has a better
+one. That is the whole reason membership is restricted the way it is below.
 
 Every module below is traceable to a publisher: the text is cut out of the RFC
 that currently defines it, or fetched from IANA's registry, or fetched from the

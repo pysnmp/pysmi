@@ -3,12 +3,19 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
-## [2.1.1](https://github.com/pysnmp/pysmi/compare/v2.1.0...v2.1.1) (2026-09-06)
+## [2.2.0-rc.1](https://github.com/pysnmp/pysmi/compare/v2.1.0...v2.2.0-rc.1) (2026-09-06)
+
+### Features
+
+* say which rule picked a MIB, and let --mib-source outrank the bundle ([b2b1448](https://github.com/pysnmp/pysmi/commit/b2b1448bf0f3493fcae754dde484b49cc3dec560)), closes [#155](https://github.com/pysnmp/pysmi/issues/155)
 
 ### Bug Fixes
 
 * **ci:** publish docs from a branch, not a detached HEAD ([8ff1ecc](https://github.com/pysnmp/pysmi/commit/8ff1eccf667bf25cf55bb843b0ddbba45e8f9181))
 * **ci:** publish docs from a branch, not a detached HEAD ([212f083](https://github.com/pysnmp/pysmi/commit/212f083df413a9073d2074b02bf325a5c4301666))
+* let a module compiled from a fallback copy report as compiled ([26b1927](https://github.com/pysnmp/pysmi/commit/26b1927003555c6f98d75aa586ab49255cb884b1)), closes [#157](https://github.com/pysnmp/pysmi/issues/157) [#155](https://github.com/pysnmp/pysmi/issues/155)
+* name the copy that actually parsed, under the name it parsed as ([f211f0d](https://github.com/pysnmp/pysmi/commit/f211f0dd106c998624ebbb06baf5cbfb85617558)), closes [#155](https://github.com/pysnmp/pysmi/issues/155)
+* report the resolved copy on runs that recompile nothing ([25e1e8e](https://github.com/pysnmp/pysmi/commit/25e1e8efbfd2aefb5682c9fdb84cb0cefbea83c4)), closes [#156](https://github.com/pysnmp/pysmi/issues/156) [#155](https://github.com/pysnmp/pysmi/issues/155)
 
 ## [2.1.0](https://github.com/pysnmp/pysmi/compare/v2.0.1...v2.1.0) (2026-09-06)
 
