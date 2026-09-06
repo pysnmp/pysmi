@@ -47,6 +47,6 @@ mibCompiler.add_sources(CallbackReader(readMib))
 mibCompiler.add_searchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 
 # run non-recursive MIB compilation
-results = mibCompiler.compile(*inputMibs, **dict(noDeps=True))
+results = mibCompiler.compile(*inputMibs, noDeps=True)
 
 print("Results: " + ", ".join([f"{x}:{results[x]}" for x in results]))

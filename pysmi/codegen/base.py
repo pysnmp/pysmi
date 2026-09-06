@@ -767,7 +767,7 @@ class AbstractCodeGen:
             PySmiCodegenError: the module could not be rendered.
             PySmiSemanticError: the module is not internally consistent.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def gen_index(self, processed: dict[str, Any], **kwargs: Any) -> str:
         """Render an index over the modules compiled so far.
@@ -785,7 +785,7 @@ class AbstractCodeGen:
         Returns:
             The rendered index, empty when the generator produces none.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     @staticmethod
     def is_binary(s: Any) -> TypeGuard[str]:

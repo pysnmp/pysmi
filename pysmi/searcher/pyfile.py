@@ -103,7 +103,7 @@ class PyFileSearcher(AbstractSearcher):
                     extra={"mib": mibname, "path": f, "mtime": pyTime},
                 )
                 if pyTime >= mtime:
-                    raise error.PySmiFileNotModifiedError()
+                    raise error.PySmiFileNotModifiedError
 
                 else:
                     raise error.PySmiFileNotFoundError(
@@ -184,7 +184,7 @@ class PyFileSearcher(AbstractSearcher):
                 )
                 continue
 
-            raise error.PySmiFileNotModifiedError()
+            raise error.PySmiFileNotModifiedError
 
         raise error.PySmiFileNotFoundError(
             f"no compiled file {mibname} found", searcher=self

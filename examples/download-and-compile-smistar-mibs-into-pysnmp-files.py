@@ -39,6 +39,6 @@ mibCompiler.add_sources(HttpReader("https://pysnmp.github.io/mibs/asn1/@mib@"))
 mibCompiler.add_searchers(StubSearcher(*PySnmpCodeGen.baseMibs))
 
 # run non-recursive MIB compilation
-results = mibCompiler.compile(*inputMibs, **dict(noDeps=True))
+results = mibCompiler.compile(*inputMibs, noDeps=True)
 
 print("Results: " + ", ".join([f"{x}:{results[x]}" for x in results]))

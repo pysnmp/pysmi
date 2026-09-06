@@ -134,7 +134,7 @@ class AnyFileSearcher(AbstractSearcher):
                 )
                 continue
 
-            raise error.PySmiFileNotModifiedError()
+            raise error.PySmiFileNotModifiedError
 
         raise error.PySmiFileNotFoundError(
             f"no compiled file {mibname} found", searcher=self

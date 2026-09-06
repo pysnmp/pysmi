@@ -22,7 +22,7 @@ class AbstractParser:
 
         Called before reusing a parser on another module.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def parse(self, data: str, **kwargs: Any) -> list[Any]:
         """Parse ASN.1 MIB text.
@@ -37,4 +37,4 @@ class AbstractParser:
             PySmiLexerError: the text could not be tokenised.
             PySmiParserError: the tokens do not fit the SMI grammar.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
