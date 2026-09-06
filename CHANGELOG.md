@@ -3,6 +3,23 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [2.2.0-rc.2](https://github.com/pysnmp/pysmi/compare/v2.2.0-rc.1...v2.2.0-rc.2) (2026-09-06)
+
+### Features
+
+* **mibdump:** write out the base MIBs a JSON tree needs to stand alone ([d37c274](https://github.com/pysnmp/pysmi/commit/d37c2749740f6366bcbcc1db49fc5396cb6924a8))
+* **mibs:** bundle the standard MIB set, each pinned to its publisher ([4533c62](https://github.com/pysnmp/pysmi/commit/4533c626aa40d5b3875e2242ac89e6c7a3df65b9)), closes [#161](https://github.com/pysnmp/pysmi/issues/161)
+* **mibs:** compile the bundled MIBs into pysnmp modules at build time ([47e9891](https://github.com/pysnmp/pysmi/commit/47e9891d6008f4f2907992eafcc07a4b736be219))
+* **mibs:** report where the pysnmp/mibs mirror disagrees with the bundle ([a7c4853](https://github.com/pysnmp/pysmi/commit/a7c4853296afb97d6abac952f85d02bdfb5d651a)), closes [pysnmp/mibs#345](https://github.com/pysnmp/mibs/issues/345)
+
+### Bug Fixes
+
+* **mibdump:** report the base MIBs a run may write, not the ones it did ([01309b1](https://github.com/pysnmp/pysmi/commit/01309b134c0f3a865718743676f54cf5b56a699e))
+* **mibs:** bundle IANA-GBOND-TC-MIB, and make verify catch what hid it ([a2d077c](https://github.com/pysnmp/pysmi/commit/a2d077c98ca933e982532b8935054b99be6bef50)), closes [pysnmp/mibs#343](https://github.com/pysnmp/mibs/issues/343)
+* **mibs:** keep git's line-ending filters off the bundled MIB bytes ([f6741ce](https://github.com/pysnmp/pysmi/commit/f6741ceaa93bb20e0dded584b683fb191140d890))
+* **mibs:** track IEEE 802.1 at its current revision, not a pinned file ([579da07](https://github.com/pysnmp/pysmi/commit/579da07e54d0dee11c6a2d98d68cea19226743c6))
+* **reader:** report an over-long MIB name as missing, not a crash ([82699fe](https://github.com/pysnmp/pysmi/commit/82699fef859c4642887a9185a9badb2aef61546d)), closes [#163](https://github.com/pysnmp/pysmi/issues/163)
+
 ## [2.2.0-rc.1](https://github.com/pysnmp/pysmi/compare/v2.1.0...v2.2.0-rc.1) (2026-09-06)
 
 ### Features
