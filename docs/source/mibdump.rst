@@ -288,8 +288,8 @@ with no MIB repository of your own behind it.
 
 The base MIBs are the exception, and which way they go depends on the format:
 
-* --destination-format=pysnmp never writes them. SNMPv2-SMI, SNMPv2-TC and the
-  rest are not generated code in pysnmp -- it implements them, in
+* --destination-format=pysnmp does not write them. SNMPv2-SMI, SNMPv2-TC and
+  the rest are not generated code in pysnmp -- it implements them, in
   ``pysnmp/smi/mibs/`` -- and a generated copy in the destination directory
   would shadow the implementation. The report lists them under *Up to date
   MIBs*.
@@ -301,9 +301,22 @@ The base MIBs are the exception, and which way they go depends on the format:
 Only the base MIBs actually imported are written, and only from pysmi's
 bundled copies, so --no-bundled-mibs turns this off along with the bundle.
 Pass --no-base-mibs to keep the bundle but leave the base MIBs stubbed out, as
-releases before 2.2 did. An explicit --mib-stub replaces the whole default
-list and takes precedence over both. The summary names what a run will write
-on its "Base MIBs written out with the modules importing them" line.
+releases before 2.2 did. The summary's "Base MIBs eligible to be written out
+from the bundle" line names the whole set a run may write; which of them it
+did write is on the created/updated line.
+
+What holds a base MIB back on the pysnmp target is the default --mib-stub
+list, not the target itself. Give --mib-stub explicitly and it replaces that
+list entirely -- so a base MIB the replacement omits is compiled and written
+like any other module, and it is then yours to make sure the result does not
+shadow the implementation pysnmp loads. --no-base-mibs is not consulted at all
+once --mib-stub is given, since it only chooses what the default list holds
+back.
+
+--no-bundled-mibs is a different lever and keeps working either way: it decides
+whether the bundle is a source, not whether a module is stubbed. Combine it
+with a --mib-stub list that leaves a base MIB unstubbed and that MIB has to
+come from a --mib-source, or the compile fails on it as missing.
 
 Fuzzying MIB module names
 -------------------------

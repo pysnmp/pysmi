@@ -141,14 +141,18 @@ def start() -> None:
                 all, so this is what decides them.
         --no-base-mibs - do not write out the base MIBs (SNMPv2-SMI,
                 SNMPv2-TC and the rest) that the compiled modules import.
-                Only --destination-format=json writes them at all, and
-                only from the bundled copies, so --no-bundled-mibs turns
-                this off too; the pysnmp format never does, because
-                pysnmp implements those modules itself and a generated
-                copy would shadow the implementation. Without this, a
-                JSON destination directory resolves every import on its
-                own rather than needing the base MIBs from somewhere
-                else.
+                Only --destination-format=json writes them, and only from
+                the bundled copies, so --no-bundled-mibs turns this off
+                too; the pysnmp format leaves them stubbed, because pysnmp
+                implements those modules itself and a generated copy would
+                shadow the implementation. Without this, a JSON
+                destination directory resolves every import on its own
+                rather than needing the base MIBs from somewhere else.
+                Giving --mib-stub explicitly replaces the stub list, for
+                either format, and this option is then not consulted at
+                all. --no-bundled-mibs is: it drops the bundle as a
+                source, so a base MIB the replacement list leaves
+                unstubbed has to come from --mib-source or it is missing.
         --repair-imports - supply the import a MIB should have carried for
                 any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
                 without naming it in IMPORTS, which RFC 2578 Section 3.2
@@ -335,10 +339,12 @@ def start() -> None:
     if not dstFormat:
         dstFormat = "pysnmp"
 
-    # Base MIBs compiled and written out alongside the modules that import
-    # them, rather than stubbed out as something the consumer supplies. Only
-    # the JSON format fills this in; see the branch below.
-    emittedBaseMibs: list[str] = []
+    # Base MIBs taken off the stub list, so one is compiled and written out
+    # like any other module wherever something imports it. The whole eligible
+    # set, not the subset a given run reaches -- which of them were written is
+    # what the created/updated line reports. Only the JSON format fills this
+    # in; see the branch below.
+    eligibleBaseMibs: list[str] = []
 
     if dstFormat == "pysnmp":
         if not mibSearchers:
@@ -399,7 +405,7 @@ def start() -> None:
                 # list would then have to be found somewhere.
                 bundled = bundled_mib_names(MibCompiler.bundledMibsPackage)
 
-                emittedBaseMibs = [x for x in mibStubs if x in bundled]
+                eligibleBaseMibs = [x for x in mibStubs if x in bundled]
                 mibStubs = [x for x in mibStubs if x not in bundled]
 
         if not mibBorrowers:
@@ -478,7 +484,7 @@ def start() -> None:
     Also compile all relevant MIBs: {}
     Search pysmi's bundled base MIBs, newest revision winning: {}
     Prefer --mib-source where no revision decides: {}
-    Base MIBs written out with the modules importing them: {}
+    Base MIBs eligible to be written out from the bundle: {}
     Rebuild MIBs regardless of age: {}
     Prune stored MIBs with no remaining source: {}
     Dry run mode: {}
@@ -501,7 +507,7 @@ def start() -> None:
                 (nodepsFlag and "no") or "yes",
                 (bundledMibsFlag and "yes") or "no",
                 (preferMibSourceFlag and "yes") or "no",
-                ", ".join(sorted(emittedBaseMibs)) or "none",
+                ", ".join(sorted(eligibleBaseMibs)) or "none",
                 (rebuildFlag and "yes") or "no",
                 (pruneFlag and "yes") or "no",
                 (dryrunFlag and "yes") or "no",
