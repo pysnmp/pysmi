@@ -100,7 +100,8 @@ class MibDumpBundledMibsTestCase(unittest.TestCase):
     def testDefaultFallsBackToTheBundledBaseMibs(self):
         code, output = self._run()
         self.assertEqual(0, code, output)
-        self.assertIn("Created/updated MIBs: TINY-TEST-MIB", output)
+        self.assertIn("TINY-TEST-MIB", output.split("Created/updated MIBs:")[1])
+        self.assertTrue((self.dst / "TINY-TEST-MIB.json").is_file())
 
     def testNoBundledMibsFailsWithoutTheBaseMibs(self):
         code, output = self._run("--no-bundled-mibs")
