@@ -3,6 +3,16 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [2.3.0](https://github.com/pysnmp/pysmi/compare/v2.2.0...v2.3.0) (2026-09-06)
+
+### Features
+
+* **mibs:** ship the bundle manifest, and answer which module replaced a subtree ([ea4bded](https://github.com/pysnmp/pysmi/commit/ea4bdeda4bd7a20fe931d0112a3a66f4bea19d23)), closes [#174](https://github.com/pysnmp/pysmi/issues/174)
+
+### Bug Fixes
+
+* **mibs:** drop the three withdrawn IPv6 modules nothing imports ([c7c4fb7](https://github.com/pysnmp/pysmi/commit/c7c4fb7e05109fa48185cc4101ac94ab5e72ef90)), closes [#173](https://github.com/pysnmp/pysmi/issues/173)
+
 ## [2.2.0](https://github.com/pysnmp/pysmi/compare/v2.1.1...v2.2.0) (2026-09-06)
 
 ### Features
