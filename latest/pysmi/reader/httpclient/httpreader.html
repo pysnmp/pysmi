@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>HTTP reader &#8212; SNMP SMI compiler 2.1.0rc2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=f6a572b4" />
+    <script src="../../../_static/documentation_options.js?v=5a2e240d"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="../../../_static/favicon.ico"/>
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Callback reader" href="../callback/callbackreader.html" />
+    <link rel="prev" title="ZIP archive reader" href="../zipreader/zipreader.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../contents.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../../documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../../library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../contents.html">Documentation overview</a><ul>
+  <li><a href="../../../documentation.html">PySMI documentation</a><ul>
+  <li><a href="../../../library-reference.html">PySMI library</a><ul>
+      <li>Previous: <a href="../zipreader/zipreader.html" title="previous chapter">ZIP archive reader</a></li>
+      <li>Next: <a href="../callback/callbackreader.html" title="next chapter">Callback reader</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="http-reader">
+<span id="reader-httpclient-httpreader"></span><h1>HTTP reader<a class="headerlink" href="#http-reader" title="Link to this heading">¶</a></h1>
+<p><em>HttpReader</em> class instance tries to download MIB files using configured URL.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.reader.httpclient.HttpReader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.reader.httpclient.</span></span><span class="sig-name descname"><span class="pre">HttpReader</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.reader.httpclient.HttpReader" title="Link to this definition">¶</a></dt>
+<dd><p>Fetch ASN.1 MIB text by name from a web site.</p>
+<p><em>HttpReader</em> class instance tries to download ASN.1 MIB files
+by name and return their contents to caller.</p>
+<p>Create an instance of <em>HttpReader</em> bound to specific URL.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <cite>http_proxy</cite> and <cite>https_proxy</cite> environment variables are
+respected by the underlying <cite>urllib</cite> stdlib module.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>host</strong> (<em>str</em>) – domain name or IP address of web server</p></li>
+<li><p><strong>port</strong> (<em>int</em>) – TCP port web server is listening</p></li>
+<li><p><strong>locationTemplate</strong> (<em>str</em>) – location part of the URL optionally containing &#64;mib&#64;
+magic placeholder to be replaced with MIB name. If &#64;mib&#64; magic is not present,
+MIB name is appended to <cite>locationTemplate</cite></p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – response timeout</p></li>
+<li><p><strong>ssl</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – access HTTPS web site</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.httpclient.HttpReader.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.reader.httpclient.HttpReader.__str__" title="Link to this definition">¶</a></dt>
+<dd><p>Identify this reader by the URL template it fetches from.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.httpclient.HttpReader.getData">
+<span class="sig-name descname"><span class="pre">getData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../extending.html#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><span class="pre">MibInfo</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.reader.httpclient.HttpReader.getData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.reader.httpclient.HttpReader.get_data" title="pysmi.reader.httpclient.HttpReader.get_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.httpclient.HttpReader.get_data">
+<span class="sig-name descname"><span class="pre">get_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="../../extending.html#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><span class="pre">MibInfo</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.reader.httpclient.HttpReader.get_data" title="Link to this definition">¶</a></dt>
+<dd><p>Download a MIB over HTTP, trying each candidate file name in turn.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference internal" href="../../error.html#pysmi.error.PySmiReaderFileNotFoundError" title="pysmi.error.PySmiReaderFileNotFoundError"><strong>PySmiReaderFileNotFoundError</strong></a> – the server has none of the candidate
+    names, or the request failed.</p></li>
+<li><p><a class="reference internal" href="../../error.html#pysmi.error.PySmiReaderFileNotModifiedError" title="pysmi.error.PySmiReaderFileNotModifiedError"><strong>PySmiReaderFileNotModifiedError</strong></a> – the server reports the MIB is
+    older than requested.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

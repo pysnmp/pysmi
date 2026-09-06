@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Exceptions &#8212; SNMP SMI compiler 2.1.0rc2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=f6a572b4" />
+    <script src="../_static/documentation_options.js?v=5a2e240d"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Compile MIBs into JSON" href="../examples/download-and-compile-smistar-mibs-into-json.html" />
+    <link rel="prev" title="Extension points" href="extending.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../contents.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../contents.html">Documentation overview</a><ul>
+  <li><a href="../documentation.html">PySMI documentation</a><ul>
+  <li><a href="../library-reference.html">PySMI library</a><ul>
+      <li>Previous: <a href="extending.html" title="previous chapter">Extension points</a></li>
+      <li>Next: <a href="../examples/download-and-compile-smistar-mibs-into-json.html" title="next chapter">Compile MIBs into JSON</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="exceptions">
+<span id="error"></span><h1>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading">¶</a></h1>
+<p>Every error PySMI raises derives from <a class="reference internal" href="#pysmi.error.PySmiError" title="pysmi.error.PySmiError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">PySmiError</span></code></a>, so a
+caller that has no interest in which stage failed can catch that one class.</p>
+<p>The stages raise their own subclasses. A searcher reports that a MIB need not
+be compiled by raising <a class="reference internal" href="#pysmi.error.PySmiFileNotModifiedError" title="pysmi.error.PySmiFileNotModifiedError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">PySmiFileNotModifiedError</span></code></a> or
+<a class="reference internal" href="#pysmi.error.PySmiFileNotFoundError" title="pysmi.error.PySmiFileNotFoundError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">PySmiFileNotFoundError</span></code></a>; a reader reports the same
+conditions about a source file with
+<a class="reference internal" href="#pysmi.error.PySmiReaderFileNotModifiedError" title="pysmi.error.PySmiReaderFileNotModifiedError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">PySmiReaderFileNotModifiedError</span></code></a> and
+<a class="reference internal" href="#pysmi.error.PySmiReaderFileNotFoundError" title="pysmi.error.PySmiReaderFileNotFoundError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">PySmiReaderFileNotFoundError</span></code></a>. Those are part of the
+normal flow of a compilation run, not failures.</p>
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiError" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for every error PySMI raises.</p>
+<p>Subclasses identify which stage failed. Catch this to catch them all.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.__getattr__">
+<span class="sig-name descname"><span class="pre">__getattr__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></span><a class="headerlink" href="#pysmi.error.PySmiError.__getattr__" title="Link to this definition">¶</a></dt>
+<dd><p>Report the context attributes handlers attach as they re-raise.</p>
+<p>Attributes are set from keyword arguments, so which ones exist depends
+on where the error came from and who handled it on the way up. Missing
+ones still raise AttributeError, as they always did.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.error.PySmiError.__repr__" title="Link to this definition">¶</a></dt>
+<dd><p>Spell out every context attribute that was actually set.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.error.PySmiError.__str__" title="Link to this definition">¶</a></dt>
+<dd><p>Report the message alone, leaving the context to <code class="docutils literal notranslate"><span class="pre">__repr__</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.file">
+<span class="sig-name descname"><span class="pre">file</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.error.PySmiError.file" title="Link to this definition">¶</a></dt>
+<dd><p>MIB file the error concerns.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.handler">
+<span class="sig-name descname"><span class="pre">handler</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span><a class="headerlink" href="#pysmi.error.PySmiError.handler" title="Link to this definition">¶</a></dt>
+<dd><p>Component that was handling the MIB when it failed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.mibname">
+<span class="sig-name descname"><span class="pre">mibname</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.error.PySmiError.mibname" title="Link to this definition">¶</a></dt>
+<dd><p>MIB module the error concerns.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.msg">
+<span class="sig-name descname"><span class="pre">msg</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.error.PySmiError.msg" title="Link to this definition">¶</a></dt>
+<dd><p>The error message. Handlers extend it as the error travels up the stack.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.reader">
+<span class="sig-name descname"><span class="pre">reader</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="extending.html#pysmi.reader.base.AbstractReader" title="pysmi.reader.base.AbstractReader"><span class="pre">AbstractReader</span></a></span><a class="headerlink" href="#pysmi.error.PySmiError.reader" title="Link to this definition">¶</a></dt>
+<dd><p>Reader the MIB was being fetched from.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.searcher">
+<span class="sig-name descname"><span class="pre">searcher</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="extending.html#pysmi.searcher.base.AbstractSearcher" title="pysmi.searcher.base.AbstractSearcher"><span class="pre">AbstractSearcher</span></a></span><a class="headerlink" href="#pysmi.error.PySmiError.searcher" title="Link to this definition">¶</a></dt>
+<dd><p>Searcher that was consulted.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.source">
+<span class="sig-name descname"><span class="pre">source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="extending.html#pysmi.reader.base.AbstractReader" title="pysmi.reader.base.AbstractReader"><span class="pre">AbstractReader</span></a></span><a class="headerlink" href="#pysmi.error.PySmiError.source" title="Link to this definition">¶</a></dt>
+<dd><p>Reader that supplied the MIB, as recorded by the compiler.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.error.PySmiError.writer">
+<span class="sig-name descname"><span class="pre">writer</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="extending.html#pysmi.writer.base.AbstractWriter" title="pysmi.writer.base.AbstractWriter"><span class="pre">AbstractWriter</span></a></span><a class="headerlink" href="#pysmi.error.PySmiError.writer" title="Link to this definition">¶</a></dt>
+<dd><p>Writer that was storing the MIB.</p>
+</dd></dl>
+
+</dd></dl>
+
+<section id="lexer-and-parser">
+<h2>Lexer and parser<a class="headerlink" href="#lexer-and-parser" title="Link to this heading">¶</a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiLexerError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiLexerError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiLexerError" title="Link to this definition">¶</a></dt>
+<dd><p>A MIB could not be broken into tokens.</p>
+<p>Raised for input the SMI grammar forbids outright: a reserved word used as
+an identifier, or an identifier ending in a hyphen.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.error.PySmiLexerError.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.error.PySmiLexerError.__str__" title="Link to this definition">¶</a></dt>
+<dd><p>Report the message with the source line the offending token came from.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.error.PySmiLexerError.lineno">
+<span class="sig-name descname"><span class="pre">lineno</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'?'</span></span><a class="headerlink" href="#pysmi.error.PySmiLexerError.lineno" title="Link to this definition">¶</a></dt>
+<dd><p>Line the offending token was read from, or “?” when it is not known.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiParserError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiParserError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiParserError" title="Link to this definition">¶</a></dt>
+<dd><p>A MIB tokenised but did not parse.</p>
+<p>Raised when the token stream does not fit the grammar. Carries the line
+number of the offending token, inherited from <a class="reference internal" href="#pysmi.error.PySmiLexerError" title="pysmi.error.PySmiLexerError"><code class="xref py py-class docutils literal notranslate"><span class="pre">PySmiLexerError</span></code></a>.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiSyntaxError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiSyntaxError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiSyntaxError" title="Link to this definition">¶</a></dt>
+<dd><p>A more specific parse failure.</p>
+<p>Nothing in PySMI raises this; it exists so callers can distinguish a
+syntax error from other parser errors should a parser start reporting one.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+</section>
+<section id="searcher">
+<h2>Searcher<a class="headerlink" href="#searcher" title="Link to this heading">¶</a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiSearcherError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiSearcherError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiSearcherError" title="Link to this definition">¶</a></dt>
+<dd><p>A searcher could not determine whether a compiled MIB is current.</p>
+<p>Raised when the stored MIB exists but cannot be examined – unreadable
+file, or an unparsable timestamp in a compiled module.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiFileNotModifiedError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiFileNotModifiedError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiFileNotModifiedError" title="Link to this definition">¶</a></dt>
+<dd><p>The compiled MIB is already up to date.</p>
+<p>Not a failure: searchers raise it to tell the compiler it can skip this
+MIB, and the compiler marks the module <em>untouched</em>.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiFileNotFoundError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiFileNotFoundError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiFileNotFoundError" title="Link to this definition">¶</a></dt>
+<dd><p>No usable compiled MIB was found.</p>
+<p>Raised when nothing is stored for the module, or what is stored is older
+than the source and must be rebuilt.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+</section>
+<section id="reader">
+<h2>Reader<a class="headerlink" href="#reader" title="Link to this heading">¶</a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiReaderError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiReaderError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiReaderError" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for failures fetching MIB source.</p>
+<p>Nothing raises this directly; catch it to catch any reader failure.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiReaderFileNotModifiedError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiReaderFileNotModifiedError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiReaderFileNotModifiedError" title="Link to this definition">¶</a></dt>
+<dd><p>The MIB source is older than the caller asked for.</p>
+<p>Raised when a reader is given a modification time to beat and the source
+it found does not beat it.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiReaderFileNotFoundError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiReaderFileNotFoundError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiReaderFileNotFoundError" title="Link to this definition">¶</a></dt>
+<dd><p>A reader has no source for this MIB.</p>
+<p>Every source is tried in turn, so this is the ordinary “not here, try the
+next one” signal; it only reaches the caller when no source has the MIB.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+</section>
+<section id="code-generator">
+<h2>Code generator<a class="headerlink" href="#code-generator" title="Link to this heading">¶</a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiCodegenError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiCodegenError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiCodegenError" title="Link to this definition">¶</a></dt>
+<dd><p>A code generator could not produce output for a MIB.</p>
+<p>Raised when generation reaches an unusable state – a symbol left without
+generated code, or an existing MIB index that cannot be read back.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiSemanticError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiSemanticError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiSemanticError" title="Link to this definition">¶</a></dt>
+<dd><p>A MIB parsed but does not mean anything consistent.</p>
+<p>Raised for a MIB that is syntactically valid yet self-contradictory: a
+duplicate symbol, a second module identity, or a reference to a module
+absent from the symbol table.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+</section>
+<section id="writer">
+<h2>Writer<a class="headerlink" href="#writer" title="Link to this heading">¶</a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="pysmi.error.PySmiWriterError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.error.</span></span><span class="sig-name descname"><span class="pre">PySmiWriterError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.error.PySmiWriterError" title="Link to this definition">¶</a></dt>
+<dd><p>Generated output could not be stored.</p>
+<p>Raised when the destination cannot be created or written, or when a
+caller-supplied callback raises while receiving the output.</p>
+<p>Record the message and whatever context the caller attaches.</p>
+<p>The first positional argument becomes <code class="docutils literal notranslate"><span class="pre">msg</span></code>. Every keyword
+argument is set as an attribute, which is how handlers annotate an
+error with the MIB, reader, or writer involved as it travels up.</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

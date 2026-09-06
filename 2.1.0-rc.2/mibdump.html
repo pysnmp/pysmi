@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>The mibdump tool &#8212; SNMP SMI compiler 2.1.0rc2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
+    <script src="_static/documentation_options.js?v=5a2e240d"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The mibcopy tool" href="mibcopy.html" />
+    <link rel="prev" title="PySMI documentation" href="documentation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="contents.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="contents.html">Documentation overview</a><ul>
+  <li><a href="documentation.html">PySMI documentation</a><ul>
+      <li>Previous: <a href="documentation.html" title="previous chapter">PySMI documentation</a></li>
+      <li>Next: <a href="mibcopy.html" title="next chapter">The <em>mibcopy</em> tool</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="the-mibdump-tool">
+<h1>The <em>mibdump</em> tool<a class="headerlink" href="#the-mibdump-tool" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>The <em>mibdump</em> tool is a command-line frontend to the PySMI library. This
+tool can be used for automatic downloading and transforming SNMP MIB modules
+into various formats.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>mibdump<span class="w"> </span>--help
+Synopsis:
+<span class="w">  </span>SNMP<span class="w"> </span>SMI/MIB<span class="w"> </span>files<span class="w"> </span>conversion<span class="w"> </span>tool
+Documentation:
+<span class="w">  </span>https://github.com/pysnmp/pysmi
+Usage:<span class="w"> </span>mibdump<span class="w"> </span><span class="o">[</span>--help<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--version<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--quiet<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--debug<span class="o">=</span>&lt;all<span class="p">|</span>borrower<span class="p">|</span>codegen<span class="p">|</span>compiler<span class="p">|</span>grammar<span class="p">|</span>lexer<span class="p">|</span>parser<span class="p">|</span>reader<span class="p">|</span>searcher<span class="p">|</span>writer&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--mib-source<span class="o">=</span>&lt;URI&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--mib-searcher<span class="o">=</span>&lt;PATH<span class="p">|</span>PACKAGE&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--mib-stub<span class="o">=</span>&lt;MIB-NAME&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--mib-borrower<span class="o">=</span>&lt;PATH&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--destination-format<span class="o">=</span>&lt;FORMAT&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--destination-directory<span class="o">=</span>&lt;DIRECTORY&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--cache-directory<span class="o">=</span>&lt;DIRECTORY&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--disable-fuzzy-source<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--no-dependencies<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--no-python-compile<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--python-optimization-level<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--ignore-errors<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--build-index<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--rebuild<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--dry-run<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--no-mib-writes<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--generate-mib-texts<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--keep-texts-layout<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--repair-imports<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--strict-sources<span class="o">]</span>
+<span class="w">      </span>&lt;MIB-NAME&gt;<span class="w"> </span><span class="o">[</span>MIB-NAME<span class="w"> </span><span class="o">[</span>...<span class="o">]]]</span>
+Where:
+<span class="w">    </span>URI<span class="w">      </span>-<span class="w"> </span>file,<span class="w"> </span>zip,<span class="w"> </span>http,<span class="w"> </span>https,<span class="w"> </span>ftp,<span class="w"> </span>sftp<span class="w"> </span>schemes<span class="w"> </span>are<span class="w"> </span>supported.
+<span class="w">               </span>Use<span class="w"> </span>@mib@<span class="w"> </span>placeholder<span class="w"> </span>token<span class="w"> </span><span class="k">in</span><span class="w"> </span>URI<span class="w"> </span>to<span class="w"> </span>refer<span class="w"> </span>directly<span class="w"> </span>to
+<span class="w">               </span>the<span class="w"> </span>required<span class="w"> </span>MIB<span class="w"> </span>module<span class="w"> </span>when<span class="w"> </span><span class="nb">source</span><span class="w"> </span>does<span class="w"> </span>not<span class="w"> </span>support
+<span class="w">               </span>directory<span class="w"> </span>listing<span class="w"> </span><span class="o">(</span>e.g.<span class="w"> </span>HTTP<span class="o">)</span>.
+<span class="w">    </span>FORMAT<span class="w">   </span>-<span class="w"> </span>pysnmp,<span class="w"> </span>json,<span class="w"> </span>null
+</pre></div>
+</div>
+<p>When JSON destination format is requested, for each MIB module <em>mibdump</em>
+will produce a JSON document containing all MIB objects. For example,
+<a class="reference external" href="https://pysnmp.github.io/mibs/asn1IF-MIB">IF-MIB</a> module in JSON form
+would look like:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+   <span class="s2">"ifMIB"</span><span class="p">:</span> <span class="p">{</span>
+       <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"ifMIB"</span><span class="p">,</span>
+       <span class="s2">"oid"</span><span class="p">:</span> <span class="s2">"1.3.6.1.2.1.31"</span><span class="p">,</span>
+       <span class="s2">"class"</span><span class="p">:</span> <span class="s2">"moduleidentity"</span><span class="p">,</span>
+       <span class="s2">"revisions"</span><span class="p">:</span> <span class="p">[</span>
+         <span class="s2">"2007-02-15 00:00"</span><span class="p">,</span>
+         <span class="s2">"1996-02-28 21:55"</span><span class="p">,</span>
+         <span class="s2">"1993-11-08 21:55"</span>
+       <span class="p">]</span>
+     <span class="p">},</span>
+
+   <span class="o">...</span>
+   <span class="s2">"ifTestTable"</span><span class="p">:</span> <span class="p">{</span>
+     <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"ifTestTable"</span><span class="p">,</span>
+     <span class="s2">"oid"</span><span class="p">:</span> <span class="s2">"1.3.6.1.2.1.31.1.3"</span><span class="p">,</span>
+     <span class="s2">"class"</span><span class="p">:</span> <span class="s2">"objecttype"</span><span class="p">,</span>
+     <span class="s2">"maxaccess"</span><span class="p">:</span> <span class="s2">"not-accessible"</span>
+   <span class="p">},</span>
+   <span class="s2">"ifTestEntry"</span><span class="p">:</span> <span class="p">{</span>
+     <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"ifTestEntry"</span><span class="p">,</span>
+     <span class="s2">"oid"</span><span class="p">:</span> <span class="s2">"1.3.6.1.2.1.31.1.3.1"</span><span class="p">,</span>
+     <span class="s2">"class"</span><span class="p">:</span> <span class="s2">"objecttype"</span><span class="p">,</span>
+     <span class="s2">"maxaccess"</span><span class="p">:</span> <span class="s2">"not-accessible"</span><span class="p">,</span>
+     <span class="s2">"augmentation"</span><span class="p">:</span> <span class="p">{</span>
+       <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"ifTestEntry"</span><span class="p">,</span>
+       <span class="s2">"module"</span><span class="p">:</span> <span class="s2">"IF-MIB"</span><span class="p">,</span>
+       <span class="s2">"object"</span><span class="p">:</span> <span class="s2">"ifEntry"</span>
+     <span class="p">}</span>
+   <span class="p">},</span>
+   <span class="s2">"ifTestId"</span><span class="p">:</span> <span class="p">{</span>
+     <span class="s2">"name"</span><span class="p">:</span> <span class="s2">"ifTestId"</span><span class="p">,</span>
+     <span class="s2">"oid"</span><span class="p">:</span> <span class="s2">"1.3.6.1.2.1.31.1.3.1.1"</span><span class="p">,</span>
+     <span class="s2">"class"</span><span class="p">:</span> <span class="s2">"objecttype"</span><span class="p">,</span>
+     <span class="s2">"syntax"</span><span class="p">:</span> <span class="p">{</span>
+       <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"TestAndIncr"</span><span class="p">,</span>
+       <span class="s2">"class"</span><span class="p">:</span> <span class="s2">"type"</span>
+     <span class="p">},</span>
+     <span class="s2">"maxaccess"</span><span class="p">:</span> <span class="s2">"read-write"</span>
+   <span class="p">},</span>
+   <span class="o">...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In general, JSON MIB captures all aspects of original (ASN.1) MIB contents
+and layout. The snippet above is just an example, here is the complete
+<a class="reference external" href="http://pysnmp.github.io/json/fulltext/IF-MIB.json">IF-MIB.json</a>
+file.</p>
+<section id="specifying-mib-source">
+<h2>Specifying MIB source<a class="headerlink" href="#specifying-mib-source" title="Link to this heading">¶</a></h2>
+<p>The –mib-source option can be given multiple times. Each instance of
+–mib-source must specify a URL where ASN.1 MIB modules should be
+looked up and downloaded from. At this moment three MIB sourcing
+methods are supported:</p>
+<ul class="simple">
+<li><p>Local files. This could be a top-level directory where MIB files are
+located. Subdirectories will be automatically traversed as well.
+Example: <a class="reference external" href="file:///usr/share/snmp">file:///usr/share/snmp</a></p></li>
+<li><p>ZIP archives containing MIB files. Subdirectories and embedded ZIP
+archives will be automatically traversed.
+Example: zip://mymibs.zip</p></li>
+<li><p>HTTP/HTTPS. A fully specified URL where MIB module name is specified by
+a &#64;mib&#64; placeholder. When specific MIB is looked up, PySMI will replace
+that placeholder with MIB module name it is looking for.
+Example: <a class="reference external" href="https://pysnmp.github.io/mibs/asn1">https://pysnmp.github.io/mibs/asn1/&#64;mib&#64;</a></p></li>
+<li><p>SFTP/FTP. A fully specified URL including FTP username and password.
+MIB module name is specified by a &#64;mib&#64; placeholder. When specific MIB
+is looked up, PySMI will replace that placeholder with MIB module name
+it is looking for.
+Example: <a class="reference external" href="https://pysnmp.github.io/mibs/asn1">https://pysnmp.github.io/mibs/asn1/&#64;mib&#64;</a></p></li>
+</ul>
+<p>When trying to fetch a MIB module, the <em>mibdump</em> tool will try each of
+configured –mib-source transports in order of specification till
+first successful hit.</p>
+<p>By default <em>mibdump</em> will search:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="file:///usr/share/snmp">file:///usr/share/snmp</a></p></li>
+<li><p><a class="reference external" href="https://pysnmp.github.io/mibs/asn1">https://pysnmp.github.io/mibs/asn1</a>/&#64;mib&#64;</p></li>
+</ul>
+<p>Once another –mib-source option is given, those defaults will not be used
+and should be manually given to <em>mibdump</em> if needed.</p>
+</section>
+<section id="which-copy-of-a-mib-gets-compiled">
+<h2>Which copy of a MIB gets compiled<a class="headerlink" href="#which-copy-of-a-mib-gets-compiled" title="Link to this heading">¶</a></h2>
+<p>More than one –mib-source can have the same MIB module. Which one is used is
+decided by these rules, in order:</p>
+<ol class="arabic simple">
+<li><p>For a module pysmi bundles a copy of, the newest MODULE-IDENTITY
+LAST-UPDATED wins.</p></li>
+<li><p>Otherwise – and to break a tie between equal revisions, and for the many
+modules that carry no LAST-UPDATED at all – source order wins: pysmi’s
+bundled copy first, then each –mib-source in the order it was given.</p></li>
+</ol>
+<p>Rule 1 applies only to the couple of dozen modules pysmi bundles, each pinned
+to an RFC or to IANA and re-checked against it. Two copies of one of those are
+the same specification at two revisions, and the newer is simply better. Two
+copies of a vendor MIB are not that – they are a collision, or two firmware
+revisions – so pysmi never picks between them: whichever –mib-source came
+first supplies it.</p>
+<p>Rule 2 puts the bundled copy ahead of anything a –mib-source has, which is a
+deliberate reversal of what pysmi did before. A distribution’s
+/usr/share/snmp/mibs routinely carries a base MIB frozen years ago, and taking
+that over a copy pinned to its RFC is almost never what was wanted. To use
+your own copy of a bundled module anyway, ship a newer revision of it, or pass
+–no-bundled-mibs to drop the bundle entirely.</p>
+<p>Where two sources did have the same module, the report says which file was
+used and which were passed over. Pass –strict-sources to fail such a MIB
+instead of choosing.</p>
+</section>
+<section id="fuzzying-mib-module-names">
+<h2>Fuzzying MIB module names<a class="headerlink" href="#fuzzying-mib-module-names" title="Link to this heading">¶</a></h2>
+<p>There is no single convention on how MIB module files should be named. By
+default <em>mibdump</em> will try a handful of guesses when trying to find a file
+containing specific MIB module. It will try upper and lower cases, a file
+named after MIB module, try adding different extensions to a file (.mib,
+.my etc), try adding/cutting the ‘-MIB’ part of the file name.
+If nothing matches, <em>mibdump</em> will consider that probed –mib-source
+does not contain MIB module it is looking for.</p>
+<p>There is a small chance, though, that fuzzy natching may result in getting
+a wrong MIB. If that happens, you can disable the above fuzzyness by
+giving <em>mibdump</em> the –disable-fuzzy-source flag.</p>
+</section>
+<section id="avoiding-excessive-transformation">
+<h2>Avoiding excessive transformation<a class="headerlink" href="#avoiding-excessive-transformation" title="Link to this heading">¶</a></h2>
+<p>It well may happen that many MIB modules refer to a common single MIB
+module. In that case <em>mibdump</em> may transform it many times unless you
+tell <em>mibdump</em> where to search for already transformed MIBs. That place
+could of course be a directory where <em>mibdump</em> writes its transforms into
+and/or some other local locations.</p>
+<p>The –mib-searcher option specifies either local directory or importable
+Python package (applicable to pysnmp transformation) containing transformed
+MIB modules. Multiple –mib-searcher options could be given, <em>mibdump</em>
+will use each of them in order of specification till first hit.</p>
+<p>If no transformed MIB module is found, <em>mibdump</em> will go on running its full
+transformation cycle.</p>
+<p>By default <em>mibdump</em> will use:</p>
+<ul class="simple">
+<li><p>–mib-searcher=$HOME/.pysnmp/mibs</p></li>
+<li><p>–mib-searcher=pysnmp_mibs</p></li>
+</ul>
+<p>Once another –mib-searcher option is given, those defaults will not be used
+and should be manually given to <em>mibdump</em> if needed.</p>
+</section>
+<section id="blacklisting-mibs">
+<h2>Blacklisting MIBs<a class="headerlink" href="#blacklisting-mibs" title="Link to this heading">¶</a></h2>
+<p>Some MIBs may not be automatically transformed into another form and
+therefore must be explicitly excluded from processing. Such MIBs are
+normally manually implemented for each target MIB format. Examples
+include MIBs containing base SMI types or ASN.1 MACRO definitions
+(SNMPv2-SMI, SNMPV2-TC), initially compiled but later manually modified
+MIBs and others.</p>
+<p>Default list of blacklisted MIBs for pysnmp transformation target
+is: RFC-1212, RFC-1215, RFC1065-SMI, RFC1155-SMI, RFC1158-MIB,
+RFC1213-MIB, SNMP-FRAMEWORK-MIB, SNMP-TARGET-MIB, SNMPv2-CONF, SNMPv2-SMI,
+SNMPv2-TC, SNMPv2-TM, TRANSPORT-ADDRESS-MIB.</p>
+<p>If you need to modify this list use the –mib-stub option.</p>
+</section>
+<section id="dealing-with-broken-mibs">
+<h2>Dealing with broken MIBs<a class="headerlink" href="#dealing-with-broken-mibs" title="Link to this heading">¶</a></h2>
+<p>Curiously enough, some MIBs coming from quite prominent vendors
+appear syntactically incorrect. That leads to MIB compilers fail on
+such MIBs. While many MIB compiler implementations (PySMI included)
+introduce workarounds and grammar relaxations allowing slightly
+broken MIBs to compile, however severely broken MIBs can’t be
+reliably compiled.</p>
+<p>As another workaround PySMI offers the <em>borrow</em> feature. It allows
+PySMI to fetch already transformed MIBs even if corresponding
+ASN.1 MIB can’t be found or parsed.</p>
+<p>Default source of pre-compiled MIBs for pysnmp target is:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="http://pysnmp.github.com/mibs/fulltexts">http://pysnmp.github.com/mibs/fulltexts</a>/&#64;mib&#64;</p></li>
+<li><p><a class="reference external" href="http://pysnmp.github.com/mibs/notexts">http://pysnmp.github.com/mibs/notexts</a>/&#64;mib&#64;</p></li>
+</ul>
+<p>If you wish to modify this default list use one or more
+–mib-borrower options.</p>
+</section>
+<section id="repairing-missing-imports">
+<h2>Repairing missing IMPORTS<a class="headerlink" href="#repairing-missing-imports" title="Link to this heading">¶</a></h2>
+<p>RFC 2578, Section 3.2 requires a MIB module to name in IMPORTS every
+symbol it refers to and does not define itself. A great many vendor MIBs
+do not, and refer to a base type, textual convention or registration node
+they never imported.</p>
+<p>Where the omitted symbol is one that SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF
+exports, the import that was meant is not in doubt – there is exactly
+one module it could have come from. The –repair-imports option supplies
+it.</p>
+<p>This is off by default, so that the strict reading of RFC 2578 stays the
+one you get unless you ask otherwise, and a MIB broken this way fails
+rather than being quietly patched. What was repaired, for which module,
+is listed on the “Repaired MIBs” line of the report.</p>
+<p>Symbols out of any other module are never repaired: supplying an import
+for, say, <em>sysUpTime</em> would add a compilation dependency on SNMPv2-MIB
+that the module never declared.</p>
+</section>
+<section id="choosing-target-transformation">
+<h2>Choosing target transformation<a class="headerlink" href="#choosing-target-transformation" title="Link to this heading">¶</a></h2>
+<p>PySMI design allows many transformation formats to be
+supported in form of specialized code generation components.
+At the moment PySMI can produce MIBs in form of pysnmp classes
+and JSON documents.</p>
+<p>JSON document schema is chosen to preserve as much of MIB
+information as possible. There’s no established JSON schema
+known to the authors.</p>
+</section>
+<section id="setting-destination-directory">
+<h2>Setting destination directory<a class="headerlink" href="#setting-destination-directory" title="Link to this heading">¶</a></h2>
+<p>By default <em>mibdump</em> writes pysnmp MIBs into:</p>
+<ul class="simple">
+<li><p>$HOME/.pysnmp/mibs  (on UNIX)</p></li>
+<li><p>&#64;HOME&#64;PySNMP ConfigurationMIBs (on Windows)</p></li>
+</ul>
+<p>and JSON files in current working directory.</p>
+<p>Use –destination-directory option to change default output
+directory.</p>
+</section>
+<section id="performing-unconditional-transformation">
+<h2>Performing unconditional transformation<a class="headerlink" href="#performing-unconditional-transformation" title="Link to this heading">¶</a></h2>
+<p>By default PySMI will avoid creating new transformations if fresh
+enough versions already exist. By using –rebuild option you could
+trick PySMI doing requested transformation for all given MIB modules.</p>
+</section>
+<section id="ignoring-transformation-errors">
+<h2>Ignoring transformation errors<a class="headerlink" href="#ignoring-transformation-errors" title="Link to this heading">¶</a></h2>
+<p>By default PySMI will stop on first fatal error occurred during
+transformations of a series of MIBs. If you wish PySMI to ignore
+fatal errors and therefore skipping failed MIB, use the –ignore-errors
+option.</p>
+<p>Keep in mind that skipping transformation of MIBs that are imported
+by other MIBs might make dependant MIBs inconsistent for use.</p>
+</section>
+<section id="skipping-dependencies">
+<h2>Skipping dependencies<a class="headerlink" href="#skipping-dependencies" title="Link to this heading">¶</a></h2>
+<p>Most MIBs rely on other MIBs for their operations. This is indicated
+by the IMPORT statement in ASN.1 language. PySMI attempts to transform
+all MIBs IMPORT’ed by MIB being transformed. That is done in recursive
+manner.</p>
+<p>By using –no-dependencies flag you can tell PySMI not to transform any
+MIBs other than those explicitly requested to be transformed.</p>
+<p>Keep in mind that skipping dependencies may make the whole set of
+transformed MIBs inconsistent.</p>
+</section>
+<section id="generating-mib-texts">
+<h2>Generating MIB texts<a class="headerlink" href="#generating-mib-texts" title="Link to this heading">¶</a></h2>
+<p>Most MIBs are very verbose. They contain many human-oriented descriptions
+and clarifications written in plain English. Those texts may be useful
+for MIB browser applications (to display those texts to human operator)
+but might not make any sense in other applications.</p>
+<p>To save space and CPU time, PySMI does not by default include those texts
+into transformed MIBs. However this can be reverted by adding
+–generate-mib-texts option.</p>
+<p>When MIB texts are generated, whitespaces and new lines are stripped by
+default. Sometimes that breaks down ASCII art should it occur in MIB texts.
+To preserve original text formatting, –keep-texts-layout option may
+be used.</p>
+</section>
+<section id="building-mib-indices">
+<h2>Building MIB indices<a class="headerlink" href="#building-mib-indices" title="Link to this heading">¶</a></h2>
+<p>If –build-index option is given, depending on the destination format chosen,
+the <em>mibdump</em> tool may create new (or update existing) document containing
+MIB information in a form that is convenient for querying cornerstone
+properties of MIB files.</p>
+<p>For example, building JSON index for
+<a class="reference external" href="http://pysnmp.github.io/json/asn1/IP-MIB">IP-MIB.json</a>,
+<a class="reference external" href="http://pysnmp.github.io/json/asn1/TCP-MIB">TCP-MIB.json</a> and
+<a class="reference external" href="http://pysnmp.github.io/json/asn1/UDP-MIB">UDP-MIB.json</a>
+MIB modules would emit something like this:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">   </span><span class="nt">"compliance"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"1.3.6.1.2.1.48.2.1.1"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">"IP-MIB"</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">"1.3.6.1.2.1.49.2.1.1"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">"TCP-MIB"</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">"1.3.6.1.2.1.50.2.1.1"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">"UDP-MIB"</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">   </span><span class="p">},</span>
+<span class="w">   </span><span class="nt">"identity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">       </span><span class="nt">"1.3.6.1.2.1.48"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">"IP-MIB"</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">"1.3.6.1.2.1.49"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">"TCP-MIB"</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">"1.3.6.1.2.1.50"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">"UDP-MIB"</span>
+<span class="w">       </span><span class="p">]</span>
+<span class="w">   </span><span class="p">},</span>
+<span class="w">   </span><span class="nt">"oids"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">       </span><span class="nt">"1.3.6.1.2.1.4"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">"IP-MIB"</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">"1.3.6.1.2.1.5"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">"IP-MIB"</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">"1.3.6.1.2.1.6"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">"TCP-MIB"</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">"1.3.6.1.2.1.7"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">"UDP-MIB"</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">"1.3.6.1.2.1.49"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">"TCP-MIB"</span>
+<span class="w">       </span><span class="p">],</span>
+<span class="w">       </span><span class="nt">"1.3.6.1.2.1.50"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">         </span><span class="s2">"UDP-MIB"</span>
+<span class="w">       </span><span class="p">]</span>
+<span class="w">   </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Each section maps an OID onto the modules that define it, and answers a
+different question:</p>
+<dl class="simple">
+<dt><em>identity</em></dt><dd><p>the <em>MODULE-IDENTITY</em>, which is what a module calls itself.</p>
+</dd>
+<dt><em>enterprise</em></dt><dd><p>the module’s enterprise branch, for those that have one.</p>
+</dd>
+<dt><em>compliance</em></dt><dd><p>the <em>MODULE-COMPLIANCE</em> statements an implementation may be held to.</p>
+</dd>
+<dt><em>notification</em></dt><dd><p>the <em>NOTIFICATION-TYPE</em> and <em>TRAP-TYPE</em> objects a module may emit. An
+SMIv1 <em>TRAP-TYPE</em> is listed under the OID it converts to, so a trap
+received on the wire can be looked up whichever SMI version declared it.</p>
+</dd>
+<dt><em>oids</em></dt><dd><p>the top-level branches a module defines, collapsed to the shortest
+prefix that still answers a lookup unambiguously.</p>
+</dd>
+</dl>
+<p>A <em>meta</em> section records the schema version the index is written to, so a
+consumer can tell one shape of index from another.</p>
+<p>The index is incremental: each run merges the modules it compiled into
+whatever index is already in the destination directory, rather than
+replacing it. A collection may therefore be built up over many runs. Full
+index build over thousands of MIBs could be seen
+<a class="reference external" href="http://pysnmp.github.io/json/index.json">here</a>.</p>
+<p>To build an index from your own code rather than from <em>mibdump</em>, see
+<a class="reference internal" href="examples/build-json-index.html"><span class="doc">Build a JSON index over compiled MIBs</span></a>.</p>
+</section>
+<section id="minor-speedups">
+<h2>Minor speedups<a class="headerlink" href="#minor-speedups" title="Link to this heading">¶</a></h2>
+<p>There are a few options that may improve PySMI performance.</p>
+<p>The –cache-directory option may be used to point to a temporary
+writable directory where PySMI parser (e.g. Ply) would store its
+lookup tables.</p>
+<p>By default PySMI performing transformation into pysnmp format will
+also pre-compile Python source into interpreter bytecode. That takes
+some time and space. If you wish not to cache Python bytecode
+or to do that later, use the –no-python-compile option.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

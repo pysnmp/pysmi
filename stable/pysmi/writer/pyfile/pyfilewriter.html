@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Python file writer &#8212; SNMP SMI compiler 2.1.0rc2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=f6a572b4" />
+    <script src="../../../_static/documentation_options.js?v=5a2e240d"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="../../../_static/favicon.ico"/>
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Callback writer" href="../callback/callbackwriter.html" />
+    <link rel="prev" title="File writer" href="../localfile/filewriter.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../contents.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../../documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../../library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../contents.html">Documentation overview</a><ul>
+  <li><a href="../../../documentation.html">PySMI documentation</a><ul>
+  <li><a href="../../../library-reference.html">PySMI library</a><ul>
+      <li>Previous: <a href="../localfile/filewriter.html" title="previous chapter">File writer</a></li>
+      <li>Next: <a href="../callback/callbackwriter.html" title="next chapter">Callback writer</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="python-file-writer">
+<span id="writer-pyfile-pyfilewriter"></span><h1>Python file writer<a class="headerlink" href="#python-file-writer" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.writer.pyfile.</span></span><span class="sig-name descname"><span class="pre">PyFileWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter" title="Link to this definition">¶</a></dt>
+<dd><p>Stores transformed MIB modules as Python files at specified location.</p>
+<p>User is expected to pass <em>PyFileWriter</em> class instance to
+<em>MibCompiler</em> on instantiation. The rest is internal to <em>MibCompiler</em>.</p>
+<p>Creates an instance of <em>PyFileWriter</em> class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> – writable directory to store Python modules</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter.__str__" title="Link to this definition">¶</a></dt>
+<dd><p>Identify this writer by the directory it stores modules in.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter.delData">
+<span class="sig-name descname"><span class="pre">delData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryRun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter.delData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.writer.pyfile.PyFileWriter.del_data" title="pysmi.writer.pyfile.PyFileWriter.del_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">del_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter.del_data">
+<span class="sig-name descname"><span class="pre">del_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryRun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter.del_data" title="Link to this definition">¶</a></dt>
+<dd><p>Remove a previously written module, and its cached bytecode.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter.getData">
+<span class="sig-name descname"><span class="pre">getData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter.getData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.writer.pyfile.PyFileWriter.get_data" title="pysmi.writer.pyfile.PyFileWriter.get_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter.get_data">
+<span class="sig-name descname"><span class="pre">get_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter.get_data" title="Link to this definition">¶</a></dt>
+<dd><p>Return an empty string; compiled modules are not read back.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter.listData">
+<span class="sig-name descname"><span class="pre">listData</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter.listData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.writer.pyfile.PyFileWriter.list_data" title="pysmi.writer.pyfile.PyFileWriter.list_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">list_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter.list_data">
+<span class="sig-name descname"><span class="pre">list_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter.list_data" title="Link to this definition">¶</a></dt>
+<dd><p>List the MIB modules stored in the destination directory.</p>
+<p>Only files carrying this package’s own “Produced by” marker are
+reported – a file this writer did not itself create is not this
+writer’s to enumerate for pruning.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter.putData">
+<span class="sig-name descname"><span class="pre">putData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryRun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter.putData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.writer.pyfile.PyFileWriter.put_data" title="pysmi.writer.pyfile.PyFileWriter.put_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">put_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.pyfile.PyFileWriter.put_data">
+<span class="sig-name descname"><span class="pre">put_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryRun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.writer.pyfile.PyFileWriter.put_data" title="Link to this definition">¶</a></dt>
+<dd><p>Write the generated MIB as a Python module.</p>
+<p>Comments are rendered as a module docstring. The module is also
+byte-compiled when <code class="docutils literal notranslate"><span class="pre">pyCompile</span></code> is set, which it is by default; a
+module that fails to compile is removed rather than left behind.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../../error.html#pysmi.error.PySmiWriterError" title="pysmi.error.PySmiWriterError"><strong>PySmiWriterError</strong></a> – the module could not be written or compiled.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Extension points &#8212; SNMP SMI compiler 2.1.0rc2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=f6a572b4" />
+    <script src="../_static/documentation_options.js?v=5a2e240d"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Exceptions" href="error.html" />
+    <link rel="prev" title="Callback writer" href="writer/callback/callbackwriter.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../contents.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../contents.html">Documentation overview</a><ul>
+  <li><a href="../documentation.html">PySMI documentation</a><ul>
+  <li><a href="../library-reference.html">PySMI library</a><ul>
+      <li>Previous: <a href="writer/callback/callbackwriter.html" title="previous chapter">Callback writer</a></li>
+      <li>Next: <a href="error.html" title="next chapter">Exceptions</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="extension-points">
+<span id="extending"></span><h1>Extension points<a class="headerlink" href="#extension-points" title="Link to this heading">¶</a></h1>
+<p>Every stage of the compiler is pluggable. The classes below define what a
+replacement has to implement; the concrete classes documented elsewhere in
+this reference are all built on them.</p>
+<p>A component is only ever asked for what its stage needs, so a custom reader
+that pulls MIBs out of a database, or a writer that posts them to a service,
+fits alongside the ones shipped with PySMI without touching anything else.</p>
+<section id="mib-sources">
+<h2>MIB sources<a class="headerlink" href="#mib-sources" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.reader.base.</span></span><span class="sig-name descname"><span class="pre">AbstractReader</span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for MIB source readers.</p>
+<p>A reader fetches ASN.1 MIB text from one place – a directory, a web
+server, a ZIP archive. The compiler tries its readers in the order they
+were added and takes the first that produces the module.</p>
+<p>Subclasses implement <a class="reference internal" href="#pysmi.reader.base.AbstractReader.get_data" title="pysmi.reader.base.AbstractReader.get_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_data()</span></code></a>. The file name guessing in
+<a class="reference internal" href="#pysmi.reader.base.AbstractReader.get_mib_variants" title="pysmi.reader.base.AbstractReader.get_mib_variants"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_mib_variants()</span></code></a> is shared by all of them, since a MIB module is
+named inside the file but a reader only has the file name to go on.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.clearCache">
+<span class="sig-name descname"><span class="pre">clearCache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.clearCache" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.reader.base.AbstractReader.clear_cache" title="pysmi.reader.base.AbstractReader.clear_cache"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clear_cache()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.clear_cache">
+<span class="sig-name descname"><span class="pre">clear_cache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.clear_cache" title="Link to this definition">¶</a></dt>
+<dd><p>Discard anything this reader has cached about what exists where.</p>
+<p>A no-op by default. <a class="reference internal" href="reader/localfile/filereader.html#pysmi.reader.localfile.FileReader" title="pysmi.reader.localfile.FileReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileReader</span></code></a>
+remembers each directory it lists for its own lifetime, so a MIB
+deleted after that listing was taken stays invisible to it until
+this is called – which is exactly wrong for
+<a class="reference internal" href="compiler/mibcompiler.html#pysmi.compiler.MibCompiler.prune" title="pysmi.compiler.MibCompiler.prune"><code class="xref py py-meth docutils literal notranslate"><span class="pre">prune()</span></code></a>, whose one job is to
+notice a MIB is gone. <em>prune</em> calls this on every source before
+checking what still exists, so a reader already warmed up by an
+earlier <em>compile</em> in the same run does not mask a removal.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.getData">
+<span class="sig-name descname"><span class="pre">getData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><span class="pre">MibInfo</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.getData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.reader.base.AbstractReader.get_data" title="pysmi.reader.base.AbstractReader.get_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.getMibVariants">
+<span class="sig-name descname"><span class="pre">getMibVariants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.getMibVariants" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.reader.base.AbstractReader.get_mib_variants" title="pysmi.reader.base.AbstractReader.get_mib_variants"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_mib_variants()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.get_data">
+<span class="sig-name descname"><span class="pre">get_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><span class="pre">MibInfo</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.get_data" title="Link to this definition">¶</a></dt>
+<dd><p>Fetch the ASN.1 source of a MIB module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mibname</strong> (<em>str</em>) – MIB module name to fetch</p>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>options</strong> – passed through to <a class="reference internal" href="#pysmi.reader.base.AbstractReader.get_mib_variants" title="pysmi.reader.base.AbstractReader.get_mib_variants"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_mib_variants()</span></code></a></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The module’s <a class="reference internal" href="#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">MibInfo</span></code></a> and its ASN.1 text.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="error.html#pysmi.error.PySmiReaderFileNotFoundError" title="pysmi.error.PySmiReaderFileNotFoundError"><strong>PySmiReaderFileNotFoundError</strong></a> – this source does not have the MIB.</p></li>
+<li><p><a class="reference internal" href="error.html#pysmi.error.PySmiReaderFileNotModifiedError" title="pysmi.error.PySmiReaderFileNotModifiedError"><strong>PySmiReaderFileNotModifiedError</strong></a> – the source is older than requested.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.get_mib_variants">
+<span class="sig-name descname"><span class="pre">get_mib_variants</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.get_mib_variants" title="Link to this definition">¶</a></dt>
+<dd><p>Guess the file names a MIB module might be stored under.</p>
+<p>A module is named inside the file, not by it, so the same MIB turns up
+as <code class="docutils literal notranslate"><span class="pre">IF-MIB</span></code>, <code class="docutils literal notranslate"><span class="pre">if-mib.txt</span></code>, <code class="docutils literal notranslate"><span class="pre">IF-MIB.my</span></code> and so on. This produces
+the spellings to try, honouring the <code class="docutils literal notranslate"><span class="pre">originalMatching</span></code>,
+<code class="docutils literal notranslate"><span class="pre">uppercaseMatching</span></code>, <code class="docutils literal notranslate"><span class="pre">lowcaseMatching</span></code> and <code class="docutils literal notranslate"><span class="pre">fuzzyMatching</span></code>
+attributes, each combined with every extension in <code class="docutils literal notranslate"><span class="pre">exts</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mibname</strong> (<em>str</em>) – MIB module name to look for</p>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>exts</strong> – extensions to try instead of the <code class="docutils literal notranslate"><span class="pre">exts</span></code> attribute</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Pairs of MIB alias and candidate file name.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.isLocal">
+<span class="sig-name descname"><span class="pre">isLocal</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.isLocal" title="Link to this definition">¶</a></dt>
+<dd><p>Whether asking this reader for a module it may not have is cheap.</p>
+<p>The compiler consults every source that can supply an authoritative
+module, rather than stopping at the first, so that it can pick the
+newest revision and report what it passed over. That is a filesystem
+lookup for a directory, an archive or a package, and a network round
+trip for a web server – so only local readers are consulted that way,
+and a remote one keeps its place in plain first-match order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.setOptions">
+<span class="sig-name descname"><span class="pre">setOptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.reader.base.AbstractReader" title="pysmi.reader.base.AbstractReader"><span class="pre">AbstractReader</span></a></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.setOptions" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.reader.base.AbstractReader.set_options" title="pysmi.reader.base.AbstractReader.set_options"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_options()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.set_options">
+<span class="sig-name descname"><span class="pre">set_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.reader.base.AbstractReader" title="pysmi.reader.base.AbstractReader"><span class="pre">AbstractReader</span></a></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.set_options" title="Link to this definition">¶</a></dt>
+<dd><p>Set reader options as attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – option names and values, each assigned to the reader</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The reader, so calls can be chained.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="conditional-compilation">
+<h2>Conditional compilation<a class="headerlink" href="#conditional-compilation" title="Link to this heading">¶</a></h2>
+<p>A searcher answers whether a compiled MIB is current, and reports the answer
+by raising rather than returning.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.searcher.base.AbstractSearcher">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.searcher.base.</span></span><span class="sig-name descname"><span class="pre">AbstractSearcher</span></span><a class="headerlink" href="#pysmi.searcher.base.AbstractSearcher" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for searchers of already-compiled MIBs.</p>
+<p>A searcher answers one question for the compiler: is the compiled form of
+this MIB new enough to leave alone? It reports the answer by raising, so
+subclasses implement <a class="reference internal" href="#pysmi.searcher.base.AbstractSearcher.file_exists" title="pysmi.searcher.base.AbstractSearcher.file_exists"><code class="xref py py-meth docutils literal notranslate"><span class="pre">file_exists()</span></code></a> and never return a verdict.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.searcher.base.AbstractSearcher.fileExists">
+<span class="sig-name descname"><span class="pre">fileExists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtime</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rebuild</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">digest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.searcher.base.AbstractSearcher.fileExists" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.searcher.base.AbstractSearcher.file_exists" title="pysmi.searcher.base.AbstractSearcher.file_exists"><code class="xref py py-meth docutils literal notranslate"><span class="pre">file_exists()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.searcher.base.AbstractSearcher.file_exists">
+<span class="sig-name descname"><span class="pre">file_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mtime</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rebuild</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">digest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.searcher.base.AbstractSearcher.file_exists" title="Link to this definition">¶</a></dt>
+<dd><p>Report whether a compiled MIB is current, by raising.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mibname</strong> (<em>str</em>) – MIB module to look for</p></li>
+<li><p><strong>mtime</strong> (<em>float</em>) – modification time of the MIB source, which the
+compiled form must be at least as new as</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>rebuild</strong> – ignore whatever is stored and report nothing, so the
+caller recompiles</p></li>
+<li><p><strong>digest</strong> – digest of the MIB source about to be compiled, as
+returned by <code class="docutils literal notranslate"><span class="pre">pysmi.mibinfo.source_digest</span></code>. Lets a
+subclass tell a stored file apart from one produced from a
+<em>different</em> source that merely has an equal or older
+modification time – the case a primary source with a stale
+mtime, following a fallback source’s compile, would
+otherwise pass. <code class="docutils literal notranslate"><span class="pre">None</span></code> skips the check.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference internal" href="error.html#pysmi.error.PySmiFileNotModifiedError" title="pysmi.error.PySmiFileNotModifiedError"><strong>PySmiFileNotModifiedError</strong></a> – the compiled MIB is up to date and the
+    compiler should skip this module.</p></li>
+<li><p><a class="reference internal" href="error.html#pysmi.error.PySmiFileNotFoundError" title="pysmi.error.PySmiFileNotFoundError"><strong>PySmiFileNotFoundError</strong></a> – nothing usable is stored, so the module
+    must be compiled.</p></li>
+<li><p><a class="reference internal" href="error.html#pysmi.error.PySmiSearcherError" title="pysmi.error.PySmiSearcherError"><strong>PySmiSearcherError</strong></a> – something is stored but could not be examined.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.searcher.base.AbstractSearcher.setOptions">
+<span class="sig-name descname"><span class="pre">setOptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.searcher.base.AbstractSearcher" title="pysmi.searcher.base.AbstractSearcher"><span class="pre">AbstractSearcher</span></a></span></span><a class="headerlink" href="#pysmi.searcher.base.AbstractSearcher.setOptions" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.searcher.base.AbstractSearcher.set_options" title="pysmi.searcher.base.AbstractSearcher.set_options"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_options()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.searcher.base.AbstractSearcher.set_options">
+<span class="sig-name descname"><span class="pre">set_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.searcher.base.AbstractSearcher" title="pysmi.searcher.base.AbstractSearcher"><span class="pre">AbstractSearcher</span></a></span></span><a class="headerlink" href="#pysmi.searcher.base.AbstractSearcher.set_options" title="Link to this definition">¶</a></dt>
+<dd><p>Set searcher options as attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – option names and values, each assigned to the searcher</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The searcher, so calls can be chained.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="parsers-and-lexers">
+<h2>Parsers and lexers<a class="headerlink" href="#parsers-and-lexers" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.parser.base.AbstractParser">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.parser.base.</span></span><span class="sig-name descname"><span class="pre">AbstractParser</span></span><a class="headerlink" href="#pysmi.parser.base.AbstractParser" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for MIB parsers.</p>
+<p>A parser turns ASN.1 MIB text into the nested lists and tuples the code
+generators walk. Subclasses implement <a class="reference internal" href="#pysmi.parser.base.AbstractParser.reset" title="pysmi.parser.base.AbstractParser.reset"><code class="xref py py-meth docutils literal notranslate"><span class="pre">reset()</span></code></a> and
+<a class="reference internal" href="#pysmi.parser.base.AbstractParser.parse" title="pysmi.parser.base.AbstractParser.parse"><code class="xref py py-meth docutils literal notranslate"><span class="pre">parse()</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.parser.base.AbstractParser.parse">
+<span class="sig-name descname"><span class="pre">parse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.parser.base.AbstractParser.parse" title="Link to this definition">¶</a></dt>
+<dd><p>Parse ASN.1 MIB text.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>str</em>) – ASN.1 MIB text, which may hold several modules</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One parse tree per module found in the text.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><a class="reference internal" href="error.html#pysmi.error.PySmiLexerError" title="pysmi.error.PySmiLexerError"><strong>PySmiLexerError</strong></a> – the text could not be tokenised.</p></li>
+<li><p><a class="reference internal" href="error.html#pysmi.error.PySmiParserError" title="pysmi.error.PySmiParserError"><strong>PySmiParserError</strong></a> – the tokens do not fit the SMI grammar.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.parser.base.AbstractParser.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.parser.base.AbstractParser.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Discard state left over from the last parse.</p>
+<p>Called before reusing a parser on another module.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.lexer.base.AbstractLexer">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.lexer.base.</span></span><span class="sig-name descname"><span class="pre">AbstractLexer</span></span><a class="headerlink" href="#pysmi.lexer.base.AbstractLexer" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for MIB lexers.</p>
+<p>A lexer breaks ASN.1 MIB text into the tokens a parser consumes.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.lexer.base.AbstractLexer.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.lexer.base.AbstractLexer.reset" title="Link to this definition">¶</a></dt>
+<dd><p>Discard state left over from the last module.</p>
+<p>Called before reusing a lexer on another module.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="code-generators">
+<h2>Code generators<a class="headerlink" href="#code-generators" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.codegen.base.AbstractCodeGen">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.codegen.base.</span></span><span class="sig-name descname"><span class="pre">AbstractCodeGen</span></span><a class="headerlink" href="#pysmi.codegen.base.AbstractCodeGen" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for code generators.</p>
+<p>A code generator walks the parse tree of one MIB module and renders it in
+some target form – pysnmp Python source, JSON, or nothing at all. It also
+keeps the tables describing which modules are supplied by the target
+implementation rather than compiled, and how SMI base types map onto it.</p>
+<p>Subclasses implement <a class="reference internal" href="#pysmi.codegen.base.AbstractCodeGen.gen_code" title="pysmi.codegen.base.AbstractCodeGen.gen_code"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gen_code()</span></code></a> and <a class="reference internal" href="#pysmi.codegen.base.AbstractCodeGen.gen_index" title="pysmi.codegen.base.AbstractCodeGen.gen_index"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gen_index()</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.codegen.base.AbstractCodeGen.gen_code">
+<span class="sig-name descname"><span class="pre">gen_code</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ast</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">symbolTable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><span class="pre">MibInfo</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.codegen.base.AbstractCodeGen.gen_code" title="Link to this definition">¶</a></dt>
+<dd><p>Render one parsed MIB module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ast</strong> – parse tree of a single module, as produced by a parser</p></li>
+<li><p><strong>symbolTable</strong> – symbols of this module and everything it imports,
+as built by <a class="reference internal" href="codegen/symtable/symtablecodegen.html#pysmi.codegen.symtable.SymtableCodeGen" title="pysmi.codegen.symtable.SymtableCodeGen"><code class="xref py py-class docutils literal notranslate"><span class="pre">SymtableCodeGen</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>genTexts</strong> – carry human-readable texts into the output</p></li>
+<li><p><strong>textFilter</strong> – callable applied to each text before it is rendered</p></li>
+<li><p><strong>comments</strong> – lines to record in the generated output</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The module’s <a class="reference internal" href="#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">MibInfo</span></code></a> and the rendered
+module. What the second element holds depends on the generator:
+source text for the real backends, the symbol table itself for
+<a class="reference internal" href="codegen/symtable/symtablecodegen.html#pysmi.codegen.symtable.SymtableCodeGen" title="pysmi.codegen.symtable.SymtableCodeGen"><code class="xref py py-class docutils literal notranslate"><span class="pre">SymtableCodeGen</span></code></a>.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference internal" href="error.html#pysmi.error.PySmiCodegenError" title="pysmi.error.PySmiCodegenError"><strong>PySmiCodegenError</strong></a> – the module could not be rendered.</p></li>
+<li><p><a class="reference internal" href="error.html#pysmi.error.PySmiSemanticError" title="pysmi.error.PySmiSemanticError"><strong>PySmiSemanticError</strong></a> – the module is not internally consistent.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.codegen.base.AbstractCodeGen.gen_index">
+<span class="sig-name descname"><span class="pre">gen_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.codegen.base.AbstractCodeGen.gen_index" title="Link to this definition">¶</a></dt>
+<dd><p>Render an index over the modules compiled so far.</p>
+<p>The index maps OIDs onto the modules that define them, so a consumer
+can find the right MIB without loading all of them.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>processed</strong> – MIB module names mapped to their compilation results</p>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>dstTemplate</strong> – destination the index will be stored at, used to
+merge with an index already there</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The rendered index, empty when the generator produces none.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.codegen.base.AbstractCodeGen.is_binary">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_binary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.TypeGuard" title="(in Python v3.14)"><span class="pre">TypeGuard</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.codegen.base.AbstractCodeGen.is_binary" title="Link to this definition">¶</a></dt>
+<dd><p>Tell whether <em>s</em> is an SMI binary string such as <code class="docutils literal notranslate"><span class="pre">'1010'b</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.codegen.base.AbstractCodeGen.is_hex">
+<span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">is_hex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.TypeGuard" title="(in Python v3.14)"><span class="pre">TypeGuard</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.codegen.base.AbstractCodeGen.is_hex" title="Link to this definition">¶</a></dt>
+<dd><p>Tell whether <em>s</em> is an SMI hex string such as <code class="docutils literal notranslate"><span class="pre">'0a1b'h</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.codegen.base.AbstractCodeGen.str2int">
+<span class="sig-name descname"><span class="pre">str2int</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></span><a class="headerlink" href="#pysmi.codegen.base.AbstractCodeGen.str2int" title="Link to this definition">¶</a></dt>
+<dd><p>Convert an SMI numeric literal to an int.</p>
+<p>Accepts binary and hexadecimal SMI strings as well as plain decimal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="error.html#pysmi.error.PySmiSemanticError" title="pysmi.error.PySmiSemanticError"><strong>PySmiSemanticError</strong></a> – the literal has no digits between its quotes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.codegen.base.ValueRanges">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.codegen.base.</span></span><span class="sig-name descname"><span class="pre">ValueRanges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kind</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.codegen.base.ValueRanges" title="Link to this definition">¶</a></dt>
+<dd><p>A SIZE or range restriction, kept as the bounds it was written with.</p>
+<p>The symbol table used to discard these. <code class="docutils literal notranslate"><span class="pre">get_base_type</span></code> describes itself
+as “gathering the restrictions imposed along the way”, and for enumerations
+and BITS it does, but a SIZE or a numeric range reached it as an empty
+string – so a DEFVAL was rendered against constraints nobody had read.
+See pysnmp/pysmi#134.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.codegen.base.ValueRanges.kind">
+<span class="sig-name descname"><span class="pre">kind</span></span><a class="headerlink" href="#pysmi.codegen.base.ValueRanges.kind" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">&quot;size&quot;</span></code> for a SIZE restriction, <code class="docutils literal notranslate"><span class="pre">&quot;range&quot;</span></code> for a numeric one</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.codegen.base.ValueRanges.bounds">
+<span class="sig-name descname"><span class="pre">bounds</span></span><a class="headerlink" href="#pysmi.codegen.base.ValueRanges.bounds" title="Link to this definition">¶</a></dt>
+<dd><p>the permitted spans, each an inclusive <code class="docutils literal notranslate"><span class="pre">(low,</span> <span class="pre">high)</span></code> pair</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)">tuple</a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>], …]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>Create new instance of ValueRanges(kind, bounds)</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.codegen.base.ValueRanges.permits">
+<span class="sig-name descname"><span class="pre">permits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#pysmi.codegen.base.ValueRanges.permits" title="Link to this definition">¶</a></dt>
+<dd><p>Tell whether <em>value</em> falls inside any one of the spans.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="borrowers">
+<h2>Borrowers<a class="headerlink" href="#borrowers" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.borrower.base.AbstractBorrower">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.borrower.base.</span></span><span class="sig-name descname"><span class="pre">AbstractBorrower</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reader</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pysmi.reader.base.AbstractReader" title="pysmi.reader.base.AbstractReader"><span class="pre">AbstractReader</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">genTexts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.borrower.base.AbstractBorrower" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for borrowers of pre-compiled MIBs.</p>
+<p>A borrower is the compiler’s fallback: when a MIB cannot be compiled from
+source, it fetches an already-compiled copy from somewhere else. Each
+borrower wraps a reader and serves one flavour of output, since a MIB
+built with human-readable texts cannot stand in for one built without.</p>
+<p>Creates an instance of <em>Borrower</em> class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reader</strong> – a <em>reader</em> object</p>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>genText</strong> – indicates whether this borrower should be looking
+for transformed MIBs that include human-oriented texts</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.borrower.base.AbstractBorrower.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.borrower.base.AbstractBorrower.__str__" title="Link to this definition">¶</a></dt>
+<dd><p>Identify this borrower by the reader behind it and what it will lend.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.borrower.base.AbstractBorrower.getData">
+<span class="sig-name descname"><span class="pre">getData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><span class="pre">MibInfo</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.borrower.base.AbstractBorrower.getData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.borrower.base.AbstractBorrower.get_data" title="pysmi.borrower.base.AbstractBorrower.get_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.borrower.base.AbstractBorrower.get_data">
+<span class="sig-name descname"><span class="pre">get_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><span class="pre">MibInfo</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.borrower.base.AbstractBorrower.get_data" title="Link to this definition">¶</a></dt>
+<dd><p>Fetch a pre-compiled MIB module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mibname</strong> (<em>str</em>) – MIB module to borrow</p>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>genTexts</strong> – whether the caller wants MIBs carrying human-readable
+texts; a borrower that does not match is skipped</p></li>
+<li><p><strong>options</strong> – passed through to the underlying reader</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The module’s <a class="reference internal" href="#pysmi.mibinfo.MibInfo" title="pysmi.mibinfo.MibInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">MibInfo</span></code></a> and its compiled form.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="error.html#pysmi.error.PySmiFileNotFoundError" title="pysmi.error.PySmiFileNotFoundError"><strong>PySmiFileNotFoundError</strong></a> – this borrower does not serve the flavour
+    asked for, or its reader does not have the MIB.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.borrower.base.AbstractBorrower.setOptions">
+<span class="sig-name descname"><span class="pre">setOptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.borrower.base.AbstractBorrower" title="pysmi.borrower.base.AbstractBorrower"><span class="pre">AbstractBorrower</span></a></span></span><a class="headerlink" href="#pysmi.borrower.base.AbstractBorrower.setOptions" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.borrower.base.AbstractBorrower.set_options" title="pysmi.borrower.base.AbstractBorrower.set_options"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_options()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.borrower.base.AbstractBorrower.set_options">
+<span class="sig-name descname"><span class="pre">set_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.borrower.base.AbstractBorrower" title="pysmi.borrower.base.AbstractBorrower"><span class="pre">AbstractBorrower</span></a></span></span><a class="headerlink" href="#pysmi.borrower.base.AbstractBorrower.set_options" title="Link to this definition">¶</a></dt>
+<dd><p>Set options on this borrower and on the reader behind it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – option names and values, each assigned to both objects</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The borrower, so calls can be chained.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="writers">
+<h2>Writers<a class="headerlink" href="#writers" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.writer.base.</span></span><span class="sig-name descname"><span class="pre">AbstractWriter</span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter" title="Link to this definition">¶</a></dt>
+<dd><p>Base class for writers of generated MIBs.</p>
+<p>A writer stores what a code generator produced – to a directory, into a
+Python package, or by handing it to a callback. Subclasses implement
+<a class="reference internal" href="#pysmi.writer.base.AbstractWriter.put_data" title="pysmi.writer.base.AbstractWriter.put_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">put_data()</span></code></a> and <a class="reference internal" href="#pysmi.writer.base.AbstractWriter.get_data" title="pysmi.writer.base.AbstractWriter.get_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_data()</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.delData">
+<span class="sig-name descname"><span class="pre">delData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryRun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.delData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.writer.base.AbstractWriter.del_data" title="pysmi.writer.base.AbstractWriter.del_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">del_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.del_data">
+<span class="sig-name descname"><span class="pre">del_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryRun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.del_data" title="Link to this definition">¶</a></dt>
+<dd><p>Remove previously stored output for a MIB module.</p>
+<p>Only ever called for a name <a class="reference internal" href="#pysmi.writer.base.AbstractWriter.list_data" title="pysmi.writer.base.AbstractWriter.list_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">list_data()</span></code></a> itself reported, so
+the default implementation here is unreachable unless a subclass
+overrides one of the pair without the other.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mibname</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – MIB module whose output should be removed</p></li>
+<li><p><strong>dryRun</strong> – report what would be removed without removing anything</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="error.html#pysmi.error.PySmiWriterError" title="pysmi.error.PySmiWriterError"><strong>PySmiWriterError</strong></a> – the output could not be removed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.getData">
+<span class="sig-name descname"><span class="pre">getData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.getData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.writer.base.AbstractWriter.get_data" title="pysmi.writer.base.AbstractWriter.get_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.get_data">
+<span class="sig-name descname"><span class="pre">get_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.get_data" title="Link to this definition">¶</a></dt>
+<dd><p>Read back something this writer stored.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – name the data was stored under</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The stored text, or an empty string when there is none.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.listData">
+<span class="sig-name descname"><span class="pre">listData</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.listData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.writer.base.AbstractWriter.list_data" title="pysmi.writer.base.AbstractWriter.list_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">list_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.list_data">
+<span class="sig-name descname"><span class="pre">list_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.list_data" title="Link to this definition">¶</a></dt>
+<dd><p>List the MIB module names this writer currently holds output for.</p>
+<p>Used by <a class="reference internal" href="compiler/mibcompiler.html#pysmi.compiler.MibCompiler.prune" title="pysmi.compiler.MibCompiler.prune"><code class="xref py py-meth docutils literal notranslate"><span class="pre">prune()</span></code></a> to find output
+whose source MIB has since disappeared. A writer that cannot
+enumerate what it holds – <a class="reference internal" href="writer/callback/callbackwriter.html#pysmi.writer.callback.CallbackWriter" title="pysmi.writer.callback.CallbackWriter"><code class="xref py py-class docutils literal notranslate"><span class="pre">CallbackWriter</span></code></a>
+hands data to a callback and keeps none of its own – reports
+nothing, which excludes it from pruning entirely rather than
+raising.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Names of the modules stored, empty if there are none or this
+writer does not track what it holds.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.putData">
+<span class="sig-name descname"><span class="pre">putData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryRun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.putData" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.writer.base.AbstractWriter.put_data" title="pysmi.writer.base.AbstractWriter.put_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">put_data()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.put_data">
+<span class="sig-name descname"><span class="pre">put_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dryRun</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.put_data" title="Link to this definition">¶</a></dt>
+<dd><p>Store the generated form of a MIB module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mibname</strong> (<em>str</em>) – MIB module the output belongs to</p></li>
+<li><p><strong>data</strong> (<em>str</em>) – generated MIB, as produced by a code generator</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>comments</strong> – lines to record in the output, where the format has
+somewhere to put them</p></li>
+<li><p><strong>dryRun</strong> – go through the motions without storing anything</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="error.html#pysmi.error.PySmiWriterError" title="pysmi.error.PySmiWriterError"><strong>PySmiWriterError</strong></a> – the output could not be stored.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.setOptions">
+<span class="sig-name descname"><span class="pre">setOptions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.writer.base.AbstractWriter" title="pysmi.writer.base.AbstractWriter"><span class="pre">AbstractWriter</span></a></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.setOptions" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.writer.base.AbstractWriter.set_options" title="pysmi.writer.base.AbstractWriter.set_options"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_options()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.writer.base.AbstractWriter.set_options">
+<span class="sig-name descname"><span class="pre">set_options</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.writer.base.AbstractWriter" title="pysmi.writer.base.AbstractWriter"><span class="pre">AbstractWriter</span></a></span></span><a class="headerlink" href="#pysmi.writer.base.AbstractWriter.set_options" title="Link to this definition">¶</a></dt>
+<dd><p>Set writer options as attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>kwargs</strong> – option names and values, each assigned to the writer</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The writer, so calls can be chained.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="mib-metadata">
+<h2>MIB metadata<a class="headerlink" href="#mib-metadata" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.mibinfo.</span></span><span class="sig-name descname"><span class="pre">MibInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.mibinfo.MibInfo" title="Link to this definition">¶</a></dt>
+<dd><p>What PySMI knows about one MIB module.</p>
+<p>Readers fill in where the module came from; code generators fill in what
+it contains. Every field has a default, and any of them can be set from
+keyword arguments at construction.</p>
+<p>Set the given fields, leaving the rest at their class defaults.</p>
+<p>Every attribute documented above is accepted as a keyword argument, so
+a reader fills in only what it knows about the MIB it just fetched.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.alias">
+<span class="sig-name descname"><span class="pre">alias</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.alias" title="Link to this definition">¶</a></dt>
+<dd><p>possible alternative to MIB name</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.compliance">
+<span class="sig-name descname"><span class="pre">compliance</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.compliance" title="Link to this definition">¶</a></dt>
+<dd><p>MODULE-COMPLIANCE OIDs</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.digest">
+<span class="sig-name descname"><span class="pre">digest</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.digest" title="Link to this definition">¶</a></dt>
+<dd><p>SHA-256 of the ASN.1 source, newlines normalised to <code class="docutils literal notranslate"><span class="pre">\n</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.enterprise">
+<span class="sig-name descname"><span class="pre">enterprise</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.enterprise" title="Link to this definition">¶</a></dt>
+<dd><p>Enterprise OID</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.file">
+<span class="sig-name descname"><span class="pre">file</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.file" title="Link to this definition">¶</a></dt>
+<dd><p>MIB file name</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.identity">
+<span class="sig-name descname"><span class="pre">identity</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.identity" title="Link to this definition">¶</a></dt>
+<dd><p>MODULE-IDENTITY OID</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.imported">
+<span class="sig-name descname"><span class="pre">imported</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.imported" title="Link to this definition">¶</a></dt>
+<dd><p>imported MIB names</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.mtime">
+<span class="sig-name descname"><span class="pre">mtime</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.mtime" title="Link to this definition">¶</a></dt>
+<dd><p>MIB file modification time</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.name" title="Link to this definition">¶</a></dt>
+<dd><p>actual MIB name</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.notification">
+<span class="sig-name descname"><span class="pre">notification</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.notification" title="Link to this definition">¶</a></dt>
+<dd><p>NOTIFICATION-TYPE OIDs, including converted TRAP-TYPEs</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.oid">
+<span class="sig-name descname"><span class="pre">oid</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.oid" title="Link to this definition">¶</a></dt>
+<dd><p>module OID</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.oids">
+<span class="sig-name descname"><span class="pre">oids</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.oids" title="Link to this definition">¶</a></dt>
+<dd><p>all OIDs defined in this module</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.path">
+<span class="sig-name descname"><span class="pre">path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.path" title="Link to this definition">¶</a></dt>
+<dd><p>URL to MIB file</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.mibinfo.MibInfo.revision">
+<span class="sig-name descname"><span class="pre">revision</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.14)"><span class="pre">datetime</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pysmi.mibinfo.MibInfo.revision" title="Link to this definition">¶</a></dt>
+<dd><p>MIB revision as <cite>datetime</cite></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="building-readers-from-urls">
+<h2>Building readers from URLs<a class="headerlink" href="#building-readers-from-urls" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.reader.url.getReadersFromUrls">
+<span class="sig-prename descclassname"><span class="pre">pysmi.reader.url.</span></span><span class="sig-name descname"><span class="pre">getReadersFromUrls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">sourceUrls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pysmi.reader.base.AbstractReader" title="pysmi.reader.base.AbstractReader"><span class="pre">AbstractReader</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.reader.url.getReadersFromUrls" title="Link to this definition">¶</a></dt>
+<dd><p>Build readers from MIB source URLs.</p>
+<p>The scheme picks the reader: <code class="docutils literal notranslate"><span class="pre">http</span></code> and <code class="docutils literal notranslate"><span class="pre">https</span></code> give an
+<a class="reference internal" href="reader/httpclient/httpreader.html#pysmi.reader.httpclient.HttpReader" title="pysmi.reader.httpclient.HttpReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">HttpReader</span></code></a>, <code class="docutils literal notranslate"><span class="pre">zip</span></code> or a path ending
+in <code class="docutils literal notranslate"><span class="pre">.zip</span></code> a <a class="reference internal" href="reader/zipreader/zipreader.html#pysmi.reader.zipreader.ZipReader" title="pysmi.reader.zipreader.ZipReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">ZipReader</span></code></a>, and <code class="docutils literal notranslate"><span class="pre">file</span></code>
+or a bare path a <a class="reference internal" href="reader/localfile/filereader.html#pysmi.reader.localfile.FileReader" title="pysmi.reader.localfile.FileReader"><code class="xref py py-class docutils literal notranslate"><span class="pre">FileReader</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sourceUrls</strong> (<em>str</em>) – URLs to build readers for</p>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>options</strong> – passed to <a class="reference internal" href="#pysmi.reader.base.AbstractReader.set_options" title="pysmi.reader.base.AbstractReader.set_options"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_options()</span></code></a>
+on every reader built</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Readers, in the order their URLs were given.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="error.html#pysmi.error.PySmiError" title="pysmi.error.PySmiError"><strong>PySmiError</strong></a> – a URL uses a scheme no reader handles.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

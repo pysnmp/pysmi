@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>SMI parser &#8212; SNMP SMI compiler 2.1.0rc2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=f6a572b4" />
+    <script src="../../../_static/documentation_options.js?v=5a2e240d"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="../../../_static/favicon.ico"/>
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="SMI language dialects" href="dialect.html" />
+    <link rel="prev" title="Unconditionally ignore MIBs" href="../../searcher/stub/stubsearcher.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../contents.html">
+    <img class="logo" src="../../../_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../../documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../../library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../contents.html">Documentation overview</a><ul>
+  <li><a href="../../../documentation.html">PySMI documentation</a><ul>
+  <li><a href="../../../library-reference.html">PySMI library</a><ul>
+      <li>Previous: <a href="../../searcher/stub/stubsearcher.html" title="previous chapter">Unconditionally ignore MIBs</a></li>
+      <li>Next: <a href="dialect.html" title="next chapter">SMI language dialects</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="smi-parser">
+<span id="parser-smi-parserfactory"></span><h1>SMI parser<a class="headerlink" href="#smi-parser" title="Link to this heading">¶</a></h1>
+<p>SNMP MIBs are written in two kinds of special language - SMIv1 and SMIv2.
+The first SMI version is obsolete, most MIBs by now are written in SMIv2
+grammar. There are also efforts aimed at improving SMIv2, but those MIBs
+are in great minority at the time of this writing.</p>
+<p>PySMI is designed to handle both SMIv1 and SMIv2. The way it is done is
+that SMIv2 is considered the most basic and complete, whereas SMIv1 is a
+specialization of SMIv2 syntax.</p>
+<p>For a user to acquire SMIv2 parser the <em>parserFactory</em> function should
+be called with the <a class="reference internal" href="dialect.html#parser-smi-dialect"><span class="std std-ref">SMI dialect object</span></a>.</p>
+<p>The parser object should be passed to the <a class="reference internal" href="../../compiler/mibcompiler.html#compiler-mibcompiler"><span class="std std-ref">MibCompiler</span></a> object.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.parser.smi.SmiV2Parser">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.parser.smi.</span></span><span class="sig-name descname"><span class="pre">SmiV2Parser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">startSym</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mibFile'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tempdir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.parser.smi.SmiV2Parser" title="Link to this definition">¶</a></dt>
+<dd><p>Parser for the SMIv2 grammar.</p>
+<p>Builds a PLY parser over the SMIv2 lexer. The
+generated parse tables are cached on disk when a temporary directory is
+given, since building them is slow.</p>
+<p>The SMIv1 and relaxed dialects are produced by
+<a class="reference internal" href="#pysmi.parser.smi.parserFactory" title="pysmi.parser.smi.parserFactory"><code class="xref py py-func docutils literal notranslate"><span class="pre">parserFactory()</span></code></a>, which mixes the grammar relaxations below into
+this class.</p>
+<p>Build the grammar, optionally caching its tables on disk.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>startSym</strong> (<em>str</em>) – grammar symbol to start parsing from. The default
+reads a whole MIB file; a narrower symbol parses a fragment.</p></li>
+<li><p><strong>tempdir</strong> (<em>str</em>) – directory PLY may write its generated parser tables
+to, under a subdirectory named for <em>startSym</em> so dialects do
+not overwrite each other. Empty rebuilds the tables in memory
+on every run.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="../../error.html#pysmi.error.PySmiError" title="pysmi.error.PySmiError"><strong>PySmiError</strong></a> – <em>tempdir</em> could not be created.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.parser.smi.parserFactory">
+<span class="sig-prename descclassname"><span class="pre">pysmi.parser.smi.</span></span><span class="sig-name descname"><span class="pre">parserFactory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">grammarOptions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.14)"><span class="pre">type</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pysmi.parser.smi.SmiV2Parser" title="pysmi.parser.smi.SmiV2Parser"><span class="pre">SmiV2Parser</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.parser.smi.parserFactory" title="Link to this definition">¶</a></dt>
+<dd><p>Factory function producing custom specializations of base <em>SmiV2Parser</em>
+class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>grammarOptions</strong> – a list of (bool) typed optional keyword parameters
+enabling particular set of SMIv2 grammar relaxations.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Specialized copy of <em>SmiV2Parser</em> class.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The following SMIv2 grammar relaxation parameters are defined:</p>
+<ul class="simple">
+<li><p>supportSmiV1Keywords - parses SMIv1 grammar</p></li>
+<li><p>supportIndex - tolerates ASN.1 types in INDEX clause, and requires
+supportSmiV1Keywords alongside it</p></li>
+<li><p>commaAtTheEndOfImport - tolerates stray comma at the end of IMPORT section</p></li>
+<li><p>commaAtTheEndOfSequence - tolerates stray comma at the end of sequence of elements in MIB</p></li>
+<li><p>mixOfCommasAndSpaces - tolerate a mix of comma and spaces in MIB enumerations</p></li>
+<li><p>uppercaseIdentifier - tolerate uppercased MIB identifiers</p></li>
+<li><p>lowcaseIdentifier - tolerate lowercase MIB identifiers</p></li>
+<li><p>curlyBracesAroundEnterpriseInTrap - tolerate curly braces around enterprise ID in TRAP MACRO</p></li>
+<li><p>noCells - tolerate missing cells (XXX)</p></li>
+</ul>
+<p>Examples:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">smi</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">SmiV1Parser</span> <span class="o">=</span> <span class="n">smi</span><span class="o">.</span><span class="n">parserFactory</span><span class="p">(</span><span class="n">supportSmiV1Keywords</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">supportIndex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Please, note that <em>parserFactory</em> function returns a class, not
+class instance. Make sure to instantiate it when passing to
+<a class="reference internal" href="../../compiler/mibcompiler.html#compiler-mibcompiler"><span class="std std-ref">MibCompiler</span></a> class constructor.</p>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
