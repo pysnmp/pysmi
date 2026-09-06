@@ -608,10 +608,6 @@
       "rfc": 3595,
       "source": "rfc"
     },
-    "IPV6-ICMP-MIB": {
-      "rfc": 8096,
-      "source": "rfc"
-    },
     "IPV6-MIB": {
       "rfc": 8096,
       "source": "rfc"
@@ -624,14 +620,6 @@
       }
     },
     "IPV6-TC": {
-      "rfc": 8096,
-      "source": "rfc"
-    },
-    "IPV6-TCP-MIB": {
-      "rfc": 8096,
-      "source": "rfc"
-    },
-    "IPV6-UDP-MIB": {
       "rfc": 8096,
       "source": "rfc"
     },
