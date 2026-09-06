@@ -143,4 +143,5 @@ dev = [
     "ruff>=0.8",
     "sphinx>=7.0",
     "types-requests>=2.33.0",
+    "ty>=0.0.77",
 ]
