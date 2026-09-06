@@ -608,10 +608,6 @@
       "rfc": 3595,
       "source": "rfc"
     },
-    "IPV6-ICMP-MIB": {
-      "rfc": 8096,
-      "source": "rfc"
-    },
     "IPV6-MIB": {
       "rfc": 8096,
       "source": "rfc"
@@ -624,14 +620,6 @@
       }
     },
     "IPV6-TC": {
-      "rfc": 8096,
-      "source": "rfc"
-    },
-    "IPV6-TCP-MIB": {
-      "rfc": 8096,
-      "source": "rfc"
-    },
-    "IPV6-UDP-MIB": {
       "rfc": 8096,
       "source": "rfc"
     },
@@ -905,13 +893,33 @@
     "RFC1158-MIB": {
       "rfc": 1158,
       "source": "rfc",
+      "successors_by_oid": {
+        "1.3.6.1.2.1.1": "SNMPv2-MIB",
+        "1.3.6.1.2.1.11": "SNMPv2-MIB",
+        "1.3.6.1.2.1.2": "IF-MIB",
+        "1.3.6.1.2.1.3": "IP-MIB",
+        "1.3.6.1.2.1.4": "IP-MIB",
+        "1.3.6.1.2.1.5": "IP-MIB",
+        "1.3.6.1.2.1.6": "TCP-MIB",
+        "1.3.6.1.2.1.7": "UDP-MIB"
+      },
       "successors_reviewed": {
         "RFC1213": "RFC1213-MIB"
       }
     },
     "RFC1213-MIB": {
       "rfc": 1213,
-      "source": "rfc"
+      "source": "rfc",
+      "successors_by_oid": {
+        "1.3.6.1.2.1.1": "SNMPv2-MIB",
+        "1.3.6.1.2.1.11": "SNMPv2-MIB",
+        "1.3.6.1.2.1.2": "IF-MIB",
+        "1.3.6.1.2.1.3": "IP-MIB",
+        "1.3.6.1.2.1.4": "IP-MIB",
+        "1.3.6.1.2.1.5": "IP-MIB",
+        "1.3.6.1.2.1.6": "TCP-MIB",
+        "1.3.6.1.2.1.7": "UDP-MIB"
+      }
     },
     "RFC1253-MIB": {
       "rfc": 1253,
