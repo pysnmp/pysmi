@@ -82,6 +82,10 @@ class BundledMibsCompileTestCase(unittest.TestCase):
                 elif entry["source"] == "local":
                     # Nothing to re-fetch, so the manifest owes an explanation.
                     self.assertTrue(entry.get("reason"))
+                elif entry["source"] == "ieee802.1":
+                    # No URL: the source is whatever the IEEE directory
+                    # currently publishes, and this records what we took.
+                    self.assertRegex(entry["revision"], r"^\d{12}$")
                 else:
                     self.assertTrue(entry["url"].startswith("https://"))
 

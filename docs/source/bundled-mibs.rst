@@ -35,12 +35,18 @@ RFC can replace it.
 because their published text does not compile as published.
 
 Membership is decided by whether a module has a publisher we can re-fetch and
-diff -- not by which directory a mirror files it under. That is deliberate: MIB
-collections routinely file CableLabs, DMTF, MEF and SCTE modules as "standard",
-and a bundled copy of a module nobody publishes could never be told apart from
-a stale one. Modules with no live authoritative source are therefore not
-bundled, however widely they are imported; they remain available from
-https://pysnmp.github.io/mibs/asn1/ as before.
+diff -- not by which directory a mirror files it under, and not by whether that
+publisher still revises it. MIB collections routinely file CableLabs, DMTF, MEF
+and SCTE modules as "standard", and a bundled copy of a module nobody publishes
+could never be told apart from a stale one. Modules with no live authoritative
+source are therefore not bundled, however widely they are imported; they remain
+available from https://pysnmp.github.io/mibs/asn1/ as before.
+
+A module its publisher still revises *is* bundled -- IANA's registries and the
+IEEE 802.1 directory are tracked at whatever they currently publish, not frozen
+at a dated file. Freezing would only make staleness undetectable: the whole
+point of ``--check`` is that a revision upstream gets reported, and a caller
+who has the newer copy already outranks the bundle on revision.
 
 Inventory
 ---------

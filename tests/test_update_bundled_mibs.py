@@ -201,6 +201,77 @@ class ApplyPatchTestCase(unittest.TestCase):
                 )
 
 
+class IeeeIndexTestCase(unittest.TestCase):
+    """The IEEE 802.1 source is the newest file in the directory, not a pin.
+
+    An immutable dated URL would make --check useless for those forty modules:
+    it would compare equal forever while IEEE published revision after
+    revision, and nothing would be able to say the bundle had fallen behind.
+    """
+
+    LISTING = b"""
+      <a href="IEEE8021-CFM-MIB-200810150000Z.mib">old</a>
+      <a href="IEEE8021-CFM-MIB-202211080000Z.mib">new</a>
+      <a href="IEEE8021-AS-MIB-201011110000.mib">no trailing Z</a>
+      <a href="IEEE8021-CFM-MIB.mib">undated, ignored</a>
+    """
+
+    def setUp(self):
+        update_bundled_mibs.ieee_index.cache_clear()
+        self.addCleanup(update_bundled_mibs.ieee_index.cache_clear)
+
+    def testTheNewestPublishedRevisionIsTheOneResolved(self):
+        with mock.patch.object(
+            update_bundled_mibs, "download", return_value=self.LISTING
+        ):
+            revision, url = update_bundled_mibs.ieee_current("IEEE8021-CFM-MIB")
+
+        self.assertEqual("202211080000", revision)
+        self.assertTrue(url.endswith("IEEE8021-CFM-MIB-202211080000Z.mib"))
+
+    def testARevisionWithoutTheTrailingZStillResolves(self):
+        with mock.patch.object(
+            update_bundled_mibs, "download", return_value=self.LISTING
+        ):
+            revision, _url = update_bundled_mibs.ieee_current("IEEE8021-AS-MIB")
+
+        self.assertEqual("201011110000", revision)
+
+    def testAModuleIeeeNoLongerPublishesIsAnError(self):
+        with (
+            mock.patch.object(
+                update_bundled_mibs, "download", return_value=self.LISTING
+            ),
+            self.assertRaises(SystemExit) as raised,
+        ):
+            update_bundled_mibs.ieee_current("IEEE8021-GONE-MIB")
+
+        self.assertIn("no longer published", str(raised.exception))
+
+    def testAnEmptyListingIsAnErrorRatherThanAnEmptyBundle(self):
+        """A directory that fails to parse must not read as "nothing to fetch"."""
+        with (
+            mock.patch.object(update_bundled_mibs, "download", return_value=b"<html/>"),
+            self.assertRaises(SystemExit),
+        ):
+            update_bundled_mibs.ieee_current("IEEE8021-CFM-MIB")
+
+    def testEveryIeeeEntryRecordsTheRevisionItWasTakenFrom(self):
+        """No URL to read it off, so the manifest is where that answer lives."""
+        entries = {
+            name: entry
+            for name, entry in update_bundled_mibs.manifest().items()
+            if entry["source"] == "ieee802.1"
+        }
+
+        self.assertTrue(entries)
+
+        for mibname, entry in sorted(entries.items()):
+            with self.subTest(mib=mibname):
+                self.assertNotIn("url", entry)
+                self.assertRegex(entry["revision"], r"^\d{12}$")
+
+
 def _invert(patch: str) -> str:
     """Turn a unified diff around, so it undoes what it would have done."""
     header = re.compile(r"^@@ -(\d+(?:,\d+)?) \+(\d+(?:,\d+)?) @@(.*)$")

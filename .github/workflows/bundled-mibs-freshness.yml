@@ -16,11 +16,12 @@ name: Bundled MIBs freshness
 
 on:
   schedule:
-    # Monthly. Most of the bundle is RFC-frozen and cannot move at all; what
-    # can are the IANA registries, revised a few times a year to register
-    # values that take far longer than a month to reach shipping hardware, and
-    # the IEEE 802.1 files, which are pinned to a dated revision and so only
-    # move when somebody repoints the manifest.
+    # Monthly. Most of the bundle is cut from RFCs and cannot move at all;
+    # what can are the IANA registries and the IEEE 802.1 directory, both
+    # tracked at their current revision. Neither turns over faster than a
+    # month, and a bundled copy that has fallen a revision behind still loses
+    # to a caller who supplies the newer one -- so this catching it late costs
+    # nothing but a stale entry nobody had to work around.
     - cron: "17 6 1 * *" # the 1st, 06:17 UTC -- an arbitrary off-peak time
   workflow_dispatch:
 
