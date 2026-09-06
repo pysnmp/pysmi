@@ -1,0 +1,1292 @@
+{
+  "modules": {
+    "ACCOUNTING-CONTROL-MIB": {
+      "rfc": 2513,
+      "source": "rfc"
+    },
+    "ADSL-LINE-EXT-MIB": {
+      "rfc": 3440,
+      "source": "rfc"
+    },
+    "ADSL-LINE-MIB": {
+      "patch": "ADSL-LINE-MIB.patch",
+      "reason": "RFC 2662 carries a truncated ``MIN-ACCESS  read-wr`` line, orphaned in the published text.",
+      "rfc": 2662,
+      "source": "rfc"
+    },
+    "ADSL-TC-MIB": {
+      "rfc": 2662,
+      "source": "rfc"
+    },
+    "ADSL2-LINE-MIB": {
+      "rfc": 4706,
+      "source": "rfc"
+    },
+    "ADSL2-LINE-TC-MIB": {
+      "rfc": 4706,
+      "source": "rfc"
+    },
+    "AGENTX-MIB": {
+      "rfc": 2742,
+      "source": "rfc"
+    },
+    "ALARM-MIB": {
+      "rfc": 3877,
+      "source": "rfc"
+    },
+    "APPC-MIB": {
+      "rfc": 2051,
+      "source": "rfc"
+    },
+    "APPLETALK-MIB": {
+      "rfc": 1742,
+      "source": "rfc"
+    },
+    "APPLICATION-MIB": {
+      "rfc": 2564,
+      "source": "rfc"
+    },
+    "APPN-DLUR-MIB": {
+      "rfc": 2232,
+      "source": "rfc"
+    },
+    "APPN-MIB": {
+      "rfc": 2455,
+      "source": "rfc"
+    },
+    "APPN-TRAP-MIB": {
+      "rfc": 2456,
+      "source": "rfc"
+    },
+    "ARC-MIB": {
+      "rfc": 3878,
+      "source": "rfc"
+    },
+    "ATM-ACCOUNTING-INFORMATION-MIB": {
+      "rfc": 2512,
+      "source": "rfc"
+    },
+    "ATM-MIB": {
+      "rfc": 2515,
+      "source": "rfc"
+    },
+    "ATM-TC-MIB": {
+      "rfc": 2514,
+      "source": "rfc"
+    },
+    "ATM2-MIB": {
+      "rfc": 3606,
+      "source": "rfc"
+    },
+    "BFD-STD-MIB": {
+      "rfc": 7331,
+      "source": "rfc"
+    },
+    "BFD-TC-STD-MIB": {
+      "rfc": 7330,
+      "source": "rfc"
+    },
+    "BGP4-MIB": {
+      "rfc": 4273,
+      "source": "rfc"
+    },
+    "BRIDGE-MIB": {
+      "rfc": 4188,
+      "source": "rfc"
+    },
+    "CHARACTER-MIB": {
+      "rfc": 1658,
+      "source": "rfc"
+    },
+    "CLNS-MIB": {
+      "patch": "CLNS-MIB.patch",
+      "reason": "RFC 1238 imports PhysAddress ``FROM RFC-1213``, a module name nothing publishes; the same IMPORTS clause spells RFC1155-SMI correctly.",
+      "rfc": 1238,
+      "source": "rfc"
+    },
+    "COPS-CLIENT-MIB": {
+      "rfc": 2940,
+      "source": "rfc"
+    },
+    "DECNET-PHIV-MIB": {
+      "rfc": 1559,
+      "source": "rfc"
+    },
+    "DIAL-CONTROL-MIB": {
+      "rfc": 2128,
+      "source": "rfc"
+    },
+    "DIFFSERV-DSCP-TC": {
+      "rfc": 3289,
+      "source": "rfc"
+    },
+    "DIFFSERV-MIB": {
+      "rfc": 3289,
+      "source": "rfc"
+    },
+    "DIRECTORY-SERVER-MIB": {
+      "rfc": 2605,
+      "source": "rfc"
+    },
+    "DISMAN-EVENT-MIB": {
+      "rfc": 2981,
+      "source": "rfc"
+    },
+    "DISMAN-EXPRESSION-MIB": {
+      "rfc": 2982,
+      "source": "rfc"
+    },
+    "DISMAN-NSLOOKUP-MIB": {
+      "rfc": 4560,
+      "source": "rfc"
+    },
+    "DISMAN-PING-MIB": {
+      "rfc": 4560,
+      "source": "rfc"
+    },
+    "DISMAN-SCHEDULE-MIB": {
+      "rfc": 3231,
+      "source": "rfc"
+    },
+    "DISMAN-SCRIPT-MIB": {
+      "rfc": 3165,
+      "source": "rfc"
+    },
+    "DISMAN-TRACEROUTE-MIB": {
+      "rfc": 4560,
+      "source": "rfc"
+    },
+    "DLSW-MIB": {
+      "patch": "DLSW-MIB.patch",
+      "reason": "RFC 2024 anchors the module under mib-2 but never imports it.",
+      "rfc": 2024,
+      "source": "rfc"
+    },
+    "DNS-RESOLVER-MIB": {
+      "rfc": 1612,
+      "source": "rfc"
+    },
+    "DNS-SERVER-MIB": {
+      "patch": "DNS-SERVER-MIB.patch",
+      "reason": "RFC 1611 imports from ``RFC-1213``, a module name nothing publishes, and gives INTEGER objects octet-count DISPLAY-HINTs.",
+      "rfc": 1611,
+      "source": "rfc"
+    },
+    "DOCS-BPI-MIB": {
+      "rfc": 3083,
+      "source": "rfc"
+    },
+    "DOCS-CABLE-DEVICE-MIB": {
+      "rfc": 4639,
+      "source": "rfc"
+    },
+    "DOCS-IETF-BPI2-MIB": {
+      "rfc": 4131,
+      "source": "rfc"
+    },
+    "DOCS-IETF-CABLE-DEVICE-NOTIFICATION-MIB": {
+      "rfc": 4547,
+      "source": "rfc"
+    },
+    "DOCS-IETF-QOS-MIB": {
+      "rfc": 4323,
+      "source": "rfc"
+    },
+    "DOCS-IF-MIB": {
+      "rfc": 4546,
+      "source": "rfc"
+    },
+    "DOT12-IF-MIB": {
+      "rfc": 2020,
+      "source": "rfc"
+    },
+    "DOT12-RPTR-MIB": {
+      "rfc": 2266,
+      "source": "rfc"
+    },
+    "DOT3-OAM-MIB": {
+      "rfc": 4878,
+      "source": "rfc"
+    },
+    "DS0-MIB": {
+      "rfc": 2494,
+      "source": "rfc"
+    },
+    "DS0BUNDLE-MIB": {
+      "rfc": 2494,
+      "source": "rfc"
+    },
+    "DS1-MIB": {
+      "rfc": 4805,
+      "source": "rfc"
+    },
+    "DS3-MIB": {
+      "rfc": 3896,
+      "source": "rfc"
+    },
+    "DSA-MIB": {
+      "rfc": 1567,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC2605": "DIRECTORY-SERVER-MIB"
+      }
+    },
+    "EBN-MIB": {
+      "rfc": 2457,
+      "source": "rfc"
+    },
+    "ENERGY-OBJECT-MIB": {
+      "rfc": 7460,
+      "source": "rfc"
+    },
+    "ENTITY-MIB": {
+      "rfc": 6933,
+      "source": "rfc"
+    },
+    "ENTITY-SENSOR-MIB": {
+      "rfc": 3433,
+      "source": "rfc"
+    },
+    "ENTITY-STATE-MIB": {
+      "rfc": 4268,
+      "source": "rfc"
+    },
+    "ENTITY-STATE-TC-MIB": {
+      "rfc": 4268,
+      "source": "rfc"
+    },
+    "ETHER-CHIPSET-MIB": {
+      "rfc": 2666,
+      "source": "rfc"
+    },
+    "ETHER-WIS": {
+      "rfc": 3637,
+      "source": "rfc"
+    },
+    "EtherLike-MIB": {
+      "rfc": 3635,
+      "source": "rfc"
+    },
+    "FC-MGMT-MIB": {
+      "rfc": 4044,
+      "source": "rfc"
+    },
+    "FCIP-MGMT-MIB": {
+      "rfc": 4404,
+      "source": "rfc"
+    },
+    "FDDI-SMT73-MIB": {
+      "patch": "FDDI-SMT73-MIB.patch",
+      "reason": "RFC 1512 anchors the module under transmission but never imports it.",
+      "rfc": 1512,
+      "source": "rfc"
+    },
+    "FIBRE-CHANNEL-FE-MIB": {
+      "rfc": 2837,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC4044": "FC-MGMT-MIB"
+      }
+    },
+    "FLOAT-TC-MIB": {
+      "rfc": 6340,
+      "source": "rfc"
+    },
+    "FLOW-METER-MIB": {
+      "rfc": 2720,
+      "source": "rfc"
+    },
+    "FR-ATM-PVC-SERVICE-IWF-MIB": {
+      "rfc": 2955,
+      "source": "rfc"
+    },
+    "FR-MFR-MIB": {
+      "rfc": 3020,
+      "source": "rfc"
+    },
+    "FRAME-RELAY-DTE-MIB": {
+      "rfc": 2115,
+      "source": "rfc"
+    },
+    "FRNETSERV-MIB": {
+      "rfc": 2954,
+      "source": "rfc"
+    },
+    "GBOND-MIB": {
+      "rfc": 6765,
+      "source": "rfc"
+    },
+    "HC-ALARM-MIB": {
+      "rfc": 3434,
+      "source": "rfc"
+    },
+    "HC-PerfHist-TC-MIB": {
+      "rfc": 3705,
+      "source": "rfc"
+    },
+    "HC-RMON-MIB": {
+      "rfc": 3273,
+      "source": "rfc"
+    },
+    "HCNUM-TC": {
+      "rfc": 2856,
+      "source": "rfc"
+    },
+    "HDSL2-SHDSL-LINE-MIB": {
+      "rfc": 4319,
+      "source": "rfc"
+    },
+    "HOST-RESOURCES-MIB": {
+      "rfc": 2790,
+      "source": "rfc"
+    },
+    "HOST-RESOURCES-TYPES": {
+      "rfc": 2790,
+      "source": "rfc"
+    },
+    "HPR-IP-MIB": {
+      "rfc": 2584,
+      "source": "rfc"
+    },
+    "HPR-MIB": {
+      "patch": "HPR-MIB.patch",
+      "reason": "RFC 2238 gives LAST-UPDATED a 12-digit value that is neither form RFC 2578 allows, and one comment line lost its leading ``--``.",
+      "rfc": 2238,
+      "source": "rfc"
+    },
+    "IANA-ADDRESS-FAMILY-NUMBERS-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianaaddressfamilynumbers-mib/ianaaddressfamilynumbers-mib"
+    },
+    "IANA-BFD-TC-STD-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianabfdtcstd-mib/ianabfdtcstd-mib"
+    },
+    "IANA-CHARSET-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianacharset-mib/ianacharset-mib"
+    },
+    "IANA-ENTITY-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianaentity-mib/ianaentity-mib"
+    },
+    "IANA-GBOND-TC-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianagbondtc-mib/ianagbondtc-mib"
+    },
+    "IANA-GMPLS-TC-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianagmplstc-mib/ianagmplstc-mib"
+    },
+    "IANA-ITU-ALARM-TC-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianaitualarmtc-mib/ianaitualarmtc-mib"
+    },
+    "IANA-LANGUAGE-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianalanguage-mib/ianalanguage-mib"
+    },
+    "IANA-MAU-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianamau-mib/ianamau-mib"
+    },
+    "IANA-PRINTER-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianaprinter-mib/ianaprinter-mib"
+    },
+    "IANA-PWE3-MIB": {
+      "rfc": 5601,
+      "source": "rfc"
+    },
+    "IANA-RTPROTO-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianaiprouteprotocol-mib/ianaiprouteprotocol-mib"
+    },
+    "IANAPowerStateSet-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianapowerstateset-mib/ianapowerstateset-mib"
+    },
+    "IANATn3270eTC-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianatn3270etc-mib/ianatn3270etc-mib"
+    },
+    "IANAifType-MIB": {
+      "source": "iana",
+      "url": "https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib"
+    },
+    "IEEE8021-BRIDGE-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-CFM-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-CFM-V2-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-CN-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-DDCFM-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-DEVID-MIB": {
+      "revision": "201807151904",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-ECMP-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-EVB-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-FQTSS-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-MIRP-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-MSTP-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-MVRPX-MIB": {
+      "revision": "202103050000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-PAE-MIB": {
+      "revision": "200406220000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-PB-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-PBB-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-PBBTE-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-PE-MIB": {
+      "revision": "201201220000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-PFC-MIB": {
+      "revision": "202103050000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-PSFP-MIB": {
+      "revision": "202309260000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-Preemption-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-Q-BRIDGE-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-SECY-MIB": {
+      "revision": "202206060000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-SPANNING-TREE-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-SPB-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-SRP-MIB": {
+      "revision": "202309260000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-ST-MIB": {
+      "revision": "202309260000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-TC-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-TEIPS-MIB": {
+      "revision": "201108170000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-TPMR-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-TSN-REMOTE-MANAGEMENT-MIB": {
+      "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021X-PAE-MIB": {
+      "revision": "202002181507",
+      "source": "ieee802.1"
+    },
+    "IEEE8023-LAG-MIB": {
+      "revision": "201610120000",
+      "source": "ieee802.1"
+    },
+    "IF-INVERTED-STACK-MIB": {
+      "rfc": 2864,
+      "source": "rfc"
+    },
+    "IF-MIB": {
+      "rfc": 2863,
+      "source": "rfc"
+    },
+    "IGMP-STD-MIB": {
+      "rfc": 2933,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC5519": "MGMD-STD-MIB"
+      }
+    },
+    "INET-ADDRESS-MIB": {
+      "rfc": 4001,
+      "source": "rfc"
+    },
+    "INTEGRATED-SERVICES-GUARANTEED-MIB": {
+      "rfc": 2214,
+      "source": "rfc"
+    },
+    "INTEGRATED-SERVICES-MIB": {
+      "patch": "INTEGRATED-SERVICES-MIB.patch",
+      "reason": "RFC 2213 uses TestAndIncr without importing it, and puts a numeric DISPLAY-HINT on an OCTET STRING.",
+      "rfc": 2213,
+      "source": "rfc"
+    },
+    "INTERFACETOPN-MIB": {
+      "rfc": 3144,
+      "source": "rfc"
+    },
+    "IP-FORWARD-MIB": {
+      "rfc": 4292,
+      "source": "rfc"
+    },
+    "IP-MIB": {
+      "rfc": 4293,
+      "source": "rfc"
+    },
+    "IPATM-IPMC-MIB": {
+      "patch": "IPATM-IPMC-MIB.patch",
+      "reason": "RFC 2417 anchors marsMIB under mib-2 but never imports it.",
+      "rfc": 2417,
+      "source": "rfc"
+    },
+    "IPMCAST-MIB": {
+      "rfc": 5132,
+      "source": "rfc"
+    },
+    "IPMROUTE-STD-MIB": {
+      "rfc": 2932,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC5132": "IPMCAST-MIB"
+      }
+    },
+    "IPOA-MIB": {
+      "rfc": 2320,
+      "source": "rfc"
+    },
+    "IPV6-FLOW-LABEL-MIB": {
+      "rfc": 3595,
+      "source": "rfc"
+    },
+    "IPV6-ICMP-MIB": {
+      "rfc": 8096,
+      "source": "rfc"
+    },
+    "IPV6-MIB": {
+      "rfc": 8096,
+      "source": "rfc"
+    },
+    "IPV6-MLD-MIB": {
+      "rfc": 3019,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC5519": "MGMD-STD-MIB"
+      }
+    },
+    "IPV6-TC": {
+      "rfc": 8096,
+      "source": "rfc"
+    },
+    "IPV6-TCP-MIB": {
+      "rfc": 8096,
+      "source": "rfc"
+    },
+    "IPV6-UDP-MIB": {
+      "rfc": 8096,
+      "source": "rfc"
+    },
+    "ISDN-MIB": {
+      "rfc": 2127,
+      "source": "rfc"
+    },
+    "ISIS-MIB": {
+      "rfc": 4444,
+      "source": "rfc"
+    },
+    "ITU-ALARM-MIB": {
+      "rfc": 3877,
+      "source": "rfc"
+    },
+    "ITU-ALARM-TC-MIB": {
+      "rfc": 3877,
+      "source": "rfc"
+    },
+    "Job-Monitoring-MIB": {
+      "rfc": 2707,
+      "source": "rfc"
+    },
+    "LANGTAG-TC-MIB": {
+      "rfc": 5131,
+      "source": "rfc"
+    },
+    "LISP-MIB": {
+      "rfc": 7052,
+      "source": "rfc"
+    },
+    "LLDP-EXT-DOT1-EVB-EXTENSIONS-MIB": {
+      "revision": "201806210000",
+      "source": "ieee802.1"
+    },
+    "LLDP-EXT-DOT1-MIB": {
+      "revision": "200505060000",
+      "source": "ieee802.1"
+    },
+    "LLDP-EXT-DOT1-V2-MIB": {
+      "revision": "201806210000",
+      "source": "ieee802.1"
+    },
+    "LLDP-EXT-DOT3-MIB": {
+      "revision": "200505060000",
+      "source": "ieee802.1"
+    },
+    "LLDP-EXT-DOT3-V2-MIB": {
+      "revision": "200906080000",
+      "source": "ieee802.1"
+    },
+    "LLDP-MIB": {
+      "revision": "200505060000",
+      "source": "ieee802.1"
+    },
+    "LLDP-V2-MIB": {
+      "revision": "201603110000",
+      "source": "ieee802.1"
+    },
+    "LLDP-V2-TC-MIB": {
+      "revision": "201603110000",
+      "source": "ieee802.1"
+    },
+    "MAU-MIB": {
+      "rfc": 4836,
+      "source": "rfc"
+    },
+    "MGMD-STD-MIB": {
+      "rfc": 5519,
+      "source": "rfc"
+    },
+    "MIOX25-MIB": {
+      "rfc": 1461,
+      "source": "rfc"
+    },
+    "MIP-MIB": {
+      "patch": "MIP-MIB.patch",
+      "reason": "RFC 2006 omits mib-2, Unsigned32 and NOTIFICATION-GROUP from IMPORTS, gives a plain object accessible-for-notify, and misspells mipSecNotificationsGroup.",
+      "rfc": 2006,
+      "source": "rfc"
+    },
+    "MPLS-ID-STD-MIB": {
+      "rfc": 7453,
+      "source": "rfc"
+    },
+    "MPLS-L3VPN-STD-MIB": {
+      "rfc": 4382,
+      "source": "rfc"
+    },
+    "MPLS-LDP-GENERIC-STD-MIB": {
+      "rfc": 3815,
+      "source": "rfc"
+    },
+    "MPLS-LDP-STD-MIB": {
+      "rfc": 3815,
+      "source": "rfc"
+    },
+    "MPLS-LSR-STD-MIB": {
+      "rfc": 3813,
+      "source": "rfc"
+    },
+    "MPLS-TC-EXT-STD-MIB": {
+      "rfc": 7453,
+      "source": "rfc"
+    },
+    "MPLS-TC-STD-MIB": {
+      "rfc": 3811,
+      "source": "rfc"
+    },
+    "MPLS-TE-STD-MIB": {
+      "rfc": 3812,
+      "source": "rfc"
+    },
+    "MSDP-MIB": {
+      "rfc": 4624,
+      "source": "rfc"
+    },
+    "MTA-MIB": {
+      "rfc": 2789,
+      "source": "rfc"
+    },
+    "Modem-MIB": {
+      "patch": "Modem-MIB.patch",
+      "reason": "RFC 1696 spells the module's own root mdmMIB in one OID and mdmMib everywhere else, leaving the OID tree self-referential.",
+      "rfc": 1696,
+      "source": "rfc"
+    },
+    "NAT-MIB": {
+      "rfc": 7658,
+      "source": "rfc"
+    },
+    "NETWORK-SERVICES-MIB": {
+      "rfc": 2788,
+      "source": "rfc"
+    },
+    "NHRP-MIB": {
+      "rfc": 2677,
+      "source": "rfc"
+    },
+    "NOTIFICATION-LOG-MIB": {
+      "rfc": 3014,
+      "source": "rfc"
+    },
+    "NTPv4-MIB": {
+      "rfc": 5907,
+      "source": "rfc"
+    },
+    "OSPF-MIB": {
+      "rfc": 4750,
+      "source": "rfc"
+    },
+    "OSPF-TRAP-MIB": {
+      "rfc": 4750,
+      "source": "rfc"
+    },
+    "OSPFV3-MIB": {
+      "rfc": 5643,
+      "source": "rfc"
+    },
+    "P-BRIDGE-MIB": {
+      "rfc": 4363,
+      "source": "rfc"
+    },
+    "PARALLEL-MIB": {
+      "rfc": 1660,
+      "source": "rfc"
+    },
+    "PIM-BSR-MIB": {
+      "rfc": 5240,
+      "source": "rfc"
+    },
+    "PIM-MIB": {
+      "rfc": 2934,
+      "source": "rfc"
+    },
+    "PIM-STD-MIB": {
+      "rfc": 5060,
+      "source": "rfc"
+    },
+    "PINT-MIB": {
+      "rfc": 3055,
+      "source": "rfc"
+    },
+    "POWER-ETHERNET-MIB": {
+      "rfc": 3621,
+      "source": "rfc"
+    },
+    "PPP-BRIDGE-NCP-MIB": {
+      "rfc": 1474,
+      "source": "rfc"
+    },
+    "PPP-IP-NCP-MIB": {
+      "rfc": 1473,
+      "source": "rfc"
+    },
+    "PPP-LCP-MIB": {
+      "rfc": 1471,
+      "source": "rfc"
+    },
+    "PPP-SEC-MIB": {
+      "rfc": 1472,
+      "source": "rfc"
+    },
+    "PTOPO-MIB": {
+      "rfc": 2922,
+      "source": "rfc"
+    },
+    "PW-STD-MIB": {
+      "rfc": 5601,
+      "source": "rfc"
+    },
+    "PW-TC-STD-MIB": {
+      "rfc": 5542,
+      "source": "rfc"
+    },
+    "PerfHist-TC-MIB": {
+      "rfc": 3593,
+      "source": "rfc"
+    },
+    "Printer-MIB": {
+      "rfc": 3805,
+      "source": "rfc"
+    },
+    "Q-BRIDGE-MIB": {
+      "rfc": 4363,
+      "source": "rfc"
+    },
+    "RADIUS-ACC-CLIENT-MIB": {
+      "rfc": 4670,
+      "source": "rfc"
+    },
+    "RADIUS-ACC-SERVER-MIB": {
+      "rfc": 4671,
+      "source": "rfc"
+    },
+    "RADIUS-AUTH-CLIENT-MIB": {
+      "rfc": 4668,
+      "source": "rfc"
+    },
+    "RADIUS-AUTH-SERVER-MIB": {
+      "rfc": 4669,
+      "source": "rfc"
+    },
+    "RADIUS-DYNAUTH-SERVER-MIB": {
+      "rfc": 4673,
+      "source": "rfc"
+    },
+    "RDBMS-MIB": {
+      "rfc": 1697,
+      "source": "rfc"
+    },
+    "RFC-1212": {
+      "reason": "RFC 1212 defines the OBJECT-TYPE macro in prose, not as an ASN.1 module; no publisher ships one, so this compat module is maintained here.",
+      "source": "local"
+    },
+    "RFC-1215": {
+      "reason": "RFC 1215 defines the TRAP-TYPE macro in prose, not as an ASN.1 module; no publisher ships one, so this compat module is maintained here.",
+      "source": "local"
+    },
+    "RFC1065-SMI": {
+      "rfc": 1065,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC1155": "RFC1155-SMI"
+      }
+    },
+    "RFC1155-SMI": {
+      "rfc": 1155,
+      "source": "rfc"
+    },
+    "RFC1158-MIB": {
+      "rfc": 1158,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC1213": "RFC1213-MIB"
+      }
+    },
+    "RFC1213-MIB": {
+      "rfc": 1213,
+      "source": "rfc"
+    },
+    "RFC1253-MIB": {
+      "rfc": 1253,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC1850": "OSPF-MIB"
+      }
+    },
+    "RFC1269-MIB": {
+      "rfc": 1269,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC4273": "BGP4-MIB"
+      }
+    },
+    "RFC1271-MIB": {
+      "rfc": 1271,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC1757": "RMON-MIB"
+      }
+    },
+    "RFC1284-MIB": {
+      "rfc": 1284,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC1398": "RFC1398-MIB"
+      }
+    },
+    "RFC1285-MIB": {
+      "rfc": 1285,
+      "source": "rfc"
+    },
+    "RFC1315-MIB": {
+      "patch": "RFC1315-MIB.patch",
+      "reason": "RFC 1315 imports TimeTicks ``FROM RFC-1155``, a module name nothing publishes; the same IMPORTS clause spells RFC1213-MIB correctly.",
+      "rfc": 1315,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC2115": "FRAME-RELAY-DTE-MIB"
+      }
+    },
+    "RFC1316-MIB": {
+      "patch": "RFC1316-MIB.patch",
+      "reason": "RFC 1316 uses mib-2 without importing it.",
+      "rfc": 1316,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC1658": "CHARACTER-MIB"
+      }
+    },
+    "RFC1381-MIB": {
+      "rfc": 1381,
+      "source": "rfc"
+    },
+    "RFC1382-MIB": {
+      "rfc": 1382,
+      "source": "rfc"
+    },
+    "RFC1389-MIB": {
+      "rfc": 1389,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC1724": "RIPv2-MIB"
+      }
+    },
+    "RFC1406-MIB": {
+      "rfc": 1406,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC2495": "DS1-MIB"
+      }
+    },
+    "RFC1414-MIB": {
+      "patch": "RFC1414-MIB.patch",
+      "reason": "RFC 1414 uses mib-2 without importing it.",
+      "rfc": 1414,
+      "source": "rfc"
+    },
+    "RIPv2-MIB": {
+      "rfc": 1724,
+      "source": "rfc"
+    },
+    "RMON-MIB": {
+      "rfc": 2819,
+      "source": "rfc"
+    },
+    "RMON2-MIB": {
+      "rfc": 4502,
+      "source": "rfc"
+    },
+    "RS-232-MIB": {
+      "rfc": 1659,
+      "source": "rfc"
+    },
+    "RSTP-MIB": {
+      "rfc": 4318,
+      "source": "rfc"
+    },
+    "RSVP-MIB": {
+      "rfc": 2206,
+      "source": "rfc"
+    },
+    "RTP-MIB": {
+      "rfc": 2959,
+      "source": "rfc"
+    },
+    "SCTP-MIB": {
+      "rfc": 3873,
+      "source": "rfc"
+    },
+    "SIP-MIB": {
+      "rfc": 1694,
+      "source": "rfc"
+    },
+    "SLAPM-MIB": {
+      "rfc": 2758,
+      "source": "rfc"
+    },
+    "SMON-MIB": {
+      "rfc": 2613,
+      "source": "rfc"
+    },
+    "SMUX-MIB": {
+      "patch": "SMUX-MIB.patch",
+      "reason": "RFC 1227 imports OBJECT-TYPE ``FROM RFC1212``, a module name nothing publishes -- the bundled compat module is RFC-1212.",
+      "rfc": 1227,
+      "source": "rfc"
+    },
+    "SNA-NAU-MIB": {
+      "patch": "SNA-NAU-MIB.patch",
+      "reason": "RFC 1666 uses mib-2 without importing it.",
+      "rfc": 1666,
+      "source": "rfc"
+    },
+    "SNA-SDLC-MIB": {
+      "rfc": 1747,
+      "source": "rfc"
+    },
+    "SNMP-COMMUNITY-MIB": {
+      "rfc": 3584,
+      "source": "rfc"
+    },
+    "SNMP-FRAMEWORK-MIB": {
+      "rfc": 3411,
+      "source": "rfc"
+    },
+    "SNMP-MPD-MIB": {
+      "rfc": 3412,
+      "source": "rfc"
+    },
+    "SNMP-NOTIFICATION-MIB": {
+      "rfc": 3413,
+      "source": "rfc"
+    },
+    "SNMP-PROXY-MIB": {
+      "rfc": 3413,
+      "source": "rfc"
+    },
+    "SNMP-REPEATER-MIB": {
+      "rfc": 2108,
+      "source": "rfc"
+    },
+    "SNMP-TARGET-MIB": {
+      "rfc": 3413,
+      "source": "rfc"
+    },
+    "SNMP-TLS-TM-MIB": {
+      "rfc": 9456,
+      "source": "rfc"
+    },
+    "SNMP-TSM-MIB": {
+      "rfc": 5591,
+      "source": "rfc"
+    },
+    "SNMP-USER-BASED-SM-MIB": {
+      "rfc": 3414,
+      "source": "rfc"
+    },
+    "SNMP-USM-AES-MIB": {
+      "rfc": 3826,
+      "source": "rfc"
+    },
+    "SNMP-USM-DH-OBJECTS-MIB": {
+      "rfc": 2786,
+      "source": "rfc"
+    },
+    "SNMP-USM-HMAC-SHA2-MIB": {
+      "rfc": 7860,
+      "source": "rfc"
+    },
+    "SNMP-VIEW-BASED-ACM-MIB": {
+      "rfc": 3415,
+      "source": "rfc"
+    },
+    "SNMPv2-CONF": {
+      "rfc": 2580,
+      "source": "rfc"
+    },
+    "SNMPv2-MIB": {
+      "rfc": 3418,
+      "source": "rfc"
+    },
+    "SNMPv2-SMI": {
+      "rfc": 2578,
+      "source": "rfc"
+    },
+    "SNMPv2-TC": {
+      "rfc": 2579,
+      "source": "rfc"
+    },
+    "SNMPv2-TM": {
+      "rfc": 3417,
+      "source": "rfc"
+    },
+    "SNMPv2-USEC-MIB": {
+      "rfc": 1910,
+      "source": "rfc"
+    },
+    "SONET-MIB": {
+      "rfc": 3592,
+      "source": "rfc"
+    },
+    "SOURCE-ROUTING-MIB": {
+      "rfc": 1525,
+      "source": "rfc"
+    },
+    "SYSAPPL-MIB": {
+      "rfc": 2287,
+      "source": "rfc"
+    },
+    "SYSLOG-TC-MIB": {
+      "rfc": 5427,
+      "source": "rfc"
+    },
+    "T11-FC-FABRIC-ADDR-MGR-MIB": {
+      "rfc": 4439,
+      "source": "rfc"
+    },
+    "T11-FC-FABRIC-CONFIG-SERVER-MIB": {
+      "rfc": 4935,
+      "source": "rfc"
+    },
+    "T11-FC-FABRIC-LOCK-MIB": {
+      "rfc": 4936,
+      "source": "rfc"
+    },
+    "T11-FC-FSPF-MIB": {
+      "rfc": 4626,
+      "source": "rfc"
+    },
+    "T11-FC-NAME-SERVER-MIB": {
+      "rfc": 4438,
+      "source": "rfc"
+    },
+    "T11-FC-ROUTE-MIB": {
+      "rfc": 4625,
+      "source": "rfc"
+    },
+    "T11-FC-RSCN-MIB": {
+      "rfc": 4983,
+      "source": "rfc"
+    },
+    "T11-FC-SP-AUTHENTICATION-MIB": {
+      "rfc": 5324,
+      "source": "rfc"
+    },
+    "T11-FC-SP-POLICY-MIB": {
+      "rfc": 5324,
+      "source": "rfc"
+    },
+    "T11-FC-SP-SA-MIB": {
+      "rfc": 5324,
+      "source": "rfc"
+    },
+    "T11-FC-SP-TC-MIB": {
+      "rfc": 5324,
+      "source": "rfc"
+    },
+    "T11-FC-SP-ZONING-MIB": {
+      "rfc": 5324,
+      "source": "rfc"
+    },
+    "T11-FC-VIRTUAL-FABRIC-MIB": {
+      "rfc": 4747,
+      "source": "rfc"
+    },
+    "T11-FC-ZONE-SERVER-MIB": {
+      "rfc": 4936,
+      "source": "rfc"
+    },
+    "T11-TC-MIB": {
+      "rfc": 4439,
+      "source": "rfc"
+    },
+    "TCP-MIB": {
+      "rfc": 4022,
+      "source": "rfc"
+    },
+    "TN3270E-MIB": {
+      "rfc": 2561,
+      "source": "rfc"
+    },
+    "TN3270E-RT-MIB": {
+      "rfc": 2562,
+      "source": "rfc"
+    },
+    "TOKEN-RING-RMON-MIB": {
+      "rfc": 1513,
+      "source": "rfc"
+    },
+    "TOKENRING-MIB": {
+      "rfc": 1748,
+      "source": "rfc"
+    },
+    "TOKENRING-STATION-SR-MIB": {
+      "rfc": 1749,
+      "source": "rfc"
+    },
+    "TRANSPORT-ADDRESS-MIB": {
+      "rfc": 3419,
+      "source": "rfc"
+    },
+    "TUNNEL-MIB": {
+      "rfc": 4087,
+      "source": "rfc"
+    },
+    "UDP-MIB": {
+      "rfc": 4113,
+      "source": "rfc"
+    },
+    "UPS-MIB": {
+      "patch": "UPS-MIB.patch",
+      "reason": "RFC 1628 omits mib-2 and TEXTUAL-CONVENTION from IMPORTS, and bounds two objects at 2147483648, one past the top of Integer32.",
+      "rfc": 1628,
+      "source": "rfc"
+    },
+    "URI-TC-MIB": {
+      "rfc": 5017,
+      "source": "rfc"
+    },
+    "UUID-TC-MIB": {
+      "rfc": 6933,
+      "source": "rfc"
+    },
+    "VDSL-LINE-MIB": {
+      "rfc": 3728,
+      "source": "rfc"
+    },
+    "VDSL2-LINE-MIB": {
+      "rfc": 5650,
+      "source": "rfc"
+    },
+    "VDSL2-LINE-TC-MIB": {
+      "rfc": 5650,
+      "source": "rfc"
+    },
+    "VPN-TC-STD-MIB": {
+      "rfc": 4265,
+      "source": "rfc"
+    },
+    "VRRP-MIB": {
+      "rfc": 2787,
+      "source": "rfc",
+      "successors_reviewed": {
+        "RFC6527": "VRRPV3-MIB"
+      }
+    },
+    "VRRPV3-MIB": {
+      "rfc": 6527,
+      "source": "rfc"
+    },
+    "WWW-MIB": {
+      "rfc": 2594,
+      "source": "rfc"
+    }
+  }
+}

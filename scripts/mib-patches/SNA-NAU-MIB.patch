@@ -1,0 +1,11 @@
+--- a/SNA-NAU-MIB
++++ b/SNA-NAU-MIB
+@@ -19,7 +19,7 @@
+         DisplayString, RowStatus, TimeStamp, InstancePointer
+                 FROM SNMPv2-TC
+ 
+-        Counter32, Gauge32, Integer32,
++        Counter32, Gauge32, Integer32, mib-2,
+         OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
+                 FROM SNMPv2-SMI
+ 

@@ -7,7 +7,7 @@ on:
       - "next"
   pull_request:
     branches: [main, next]
-    # `labeled` so that adding ci:full-matrix re-runs with macOS and Windows.
+    # `labeled` so that adding ci:full-matrix re-runs with macOS as well.
     types: [opened, synchronize, reopened, labeled]
   # No push releases anything. Both the rc from next and the GA from main are
   # cut by dispatching this workflow by hand.
@@ -32,7 +32,17 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - uses: pre-commit/action@v3.0.1
+      # pre-commit/action is archived at v3.0.1 and pins actions/cache@v4
+      # inside itself, which runs on the deprecated Node 20 runtime. Its steps
+      # are short enough to keep here instead, on a cache action that is not.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-3|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Run pre-commit
+        run: |
+          python -m pip install pre-commit
+          pre-commit run --show-diff-on-failure --color=always --all-files
 
   lint:
     name: lint
@@ -58,16 +68,14 @@ jobs:
       - name: Run mypy
         run: uv run mypy
 
-      # Advisory only. ty is pre-1.0 and has no disallow_untyped_defs
-      # equivalent, so mypy above remains the blocking gate. ty catches
-      # things mypy misses, notably Liskov override violations.
-      - name: Run ty (advisory)
-        run: uv run ty check pysmi
-        continue-on-error: true
-
-  # Every supported Python on Linux on every run. macOS and Windows only on the
-  # edge versions, and only where they can pay for themselves: a push to
-  # main/next, a manual dispatch, or a PR labelled ci:full-matrix.
+  # Every supported Python on Linux, plus the edge versions on Windows, on
+  # every run -- pull requests included. Windows is where this package's
+  # assumptions actually differ: line endings on checkout, path separators,
+  # no `pwd`. Leaving it to a label meant breakage reached next and was found
+  # there rather than on the pull request that caused it. macOS is the one
+  # kept behind the label: it has yet to catch anything Linux did not, so it
+  # runs on a push to main/next, a manual dispatch, or a PR labelled
+  # ci:full-matrix.
   setup-matrix:
     name: matrix
     runs-on: ubuntu-latest
@@ -84,11 +92,13 @@ jobs:
           import json, os
 
           pythons = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+          edges = (pythons[0], pythons[-1])
+
           jobs = [{"os": "ubuntu-latest", "python": p} for p in pythons]
+          jobs += [{"os": "windows-latest", "python": p} for p in edges]
 
           if os.environ["BROAD"] == "true":
-              for platform in ("macos-latest", "windows-latest"):
-                  jobs += [{"os": platform, "python": p} for p in (pythons[0], pythons[-1])]
+              jobs += [{"os": "macos-latest", "python": p} for p in edges]
 
           print("include=" + json.dumps(jobs))
           PY
@@ -189,6 +199,43 @@ jobs:
           name: dist
           path: dist
 
+  # One check name for the branch ruleset to require, standing in for every
+  # gating job below. The test matrix cannot be named directly: its job names
+  # carry the Python version and the runner, the set of them changes with the
+  # labels on a pull request, and a required check that stops reporting is
+  # indistinguishable -- to a pull request -- from one that is failing. See
+  # .github/rulesets/README.md.
+  ci-gate:
+    name: ci-gate
+    # always(), or a failure anywhere upstream skips this job too, and a
+    # skipped required check never reports: the pull request would just hang.
+    if: always()
+    needs:
+      - pre-commit
+      - lint
+      - docs
+      - build
+      - setup-matrix
+      - run-unit-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail unless every gating job succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+
+          results = {name: job["result"] for name, job in json.loads(os.environ["NEEDS"]).items()}
+          for name, result in sorted(results.items()):
+              print(f"{name}: {result}")
+              # Skipped counts as a failure: a job that never ran has not
+              # passed, and a job whose dependency failed is skipped, not red.
+              if result != "success":
+                  print(f"::error::{name} did not succeed ({result})")
+          sys.exit(0 if all(r == "success" for r in results.values()) else 1)
+          PY
+
   publish:
     name: Build Release
     # Semantic-release cuts tags from a branch, so keep this to branch refs and
@@ -223,21 +270,29 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          # semantic-release 25 needs ^22.14, and @semantic-release/changelog
+          # and /git need ^22.22.2 || >=24.15. Pin the major here rather than
+          # inherit whatever node the runner image happens to ship.
+          node-version: "24"
       - name: Semantic Release
         id: semantic
         uses: cycjimmy/semantic-release-action@v6
         with:
-          semantic_version: 24
+          semantic_version: 25
           dry_run: ${{ env.DRY }}
+          # Pinned to majors: the action npm-installs these fresh on every
+          # run, so an unpinned name is whatever was published that morning.
+          # The preset stays on 9 deliberately -- 10 renders through
+          # conventional-changelog-writer@9, and semantic-release 25 still
+          # carries writer 8, which fails at note-generation time.
           extra_plugins: |
-            @semantic-release/changelog
-            @semantic-release/exec
-            @semantic-release/git
-            @google/semantic-release-replace-plugin
-            conventional-changelog-conventionalcommits@8.0.0
+            @semantic-release/changelog@7
+            @semantic-release/exec@7
+            @semantic-release/git@11
+            @google/semantic-release-replace-plugin@1
+            conventional-changelog-conventionalcommits@9
         env:
           GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
       # A dry run tags nothing and builds nothing, so the version the branch

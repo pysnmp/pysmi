@@ -1,0 +1,11 @@
+--- a/FDDI-SMT73-MIB
++++ b/FDDI-SMT73-MIB
+@@ -3,6 +3,8 @@
+           IMPORTS
+                   Counter
+                       FROM RFC1155-SMI
++        transmission
++            FROM RFC1213-MIB
+                   OBJECT-TYPE
+                       FROM RFC-1212;
+ 

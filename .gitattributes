@@ -1,0 +1,20 @@
+# Line endings are part of this repository's data, not a checkout preference.
+#
+# Source and docs are stored with LF and handed out with LF everywhere, so a
+# Windows checkout with core.autocrlf=true does not rewrite them under us.
+* text=auto eol=lf
+
+# The bundled MIBs are the publisher's bytes, pinned: scripts/update_bundled_mibs.py
+# --check compares them to the source byte for byte, and the patches in
+# scripts/mib-patches/ are cut against those exact lines. Some publishers ship
+# CRLF (IEEE 802.1, a pair of IANA modules) and some LF, so neither conversion
+# is right for the set -- git must not touch either of them in either
+# direction. See pysnmp/pysmi#171.
+pysmi/mibs/asn1/** -text
+scripts/mib-patches/*.patch -text
+
+# Test fixtures are compared byte for byte for the same reason.
+tests/data/** -text
+
+# Content git has no business inspecting for line endings at all.
+*.ico binary

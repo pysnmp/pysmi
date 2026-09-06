@@ -19,7 +19,11 @@ from pysmi.borrower import AnyFileBorrower, PyFileBorrower
 from pysmi.borrower.base import AbstractBorrower
 from pysmi.codegen import JsonCodeGen, NullCodeGen, PySnmpCodeGen
 from pysmi.codegen.base import AbstractCodeGen
-from pysmi.compiler import MibCompiler
+from pysmi.compiler import (
+    PRECEDENCE_NO_REVISION,
+    MibCompiler,
+    bundled_mib_names,
+)
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import getReadersFromUrls
 from pysmi.searcher import (
@@ -61,6 +65,8 @@ def start() -> None:
     rebuildFlag = False
     pruneFlag = False
     bundledMibsFlag = True
+    preferMibSourceFlag = False
+    baseMibsFlag = True
     dryrunFlag = False
     genMibTextsFlag = False
     keepTextsLayout = False
@@ -87,6 +93,8 @@ def start() -> None:
         [--disable-fuzzy-source]
         [--no-dependencies]
         [--no-bundled-mibs]
+        [--prefer-mib-source]
+        [--no-base-mibs]
         [--no-python-compile]
         [--python-optimization-level]
         [--ignore-errors]
@@ -101,7 +109,7 @@ def start() -> None:
         [--strict-sources]
         <MIB-NAME> [MIB-NAME [...]]]
     Where:
-        URI      - file, zip, http, https, ftp, sftp schemes are supported.
+        URI      - file, zip, http, https schemes are supported.
                 Use @mib@ placeholder token in URI to refer directly to
                 the required MIB module when source does not support
                 directory listing (e.g. HTTP).
@@ -110,22 +118,51 @@ def start() -> None:
                 longer exists in any configured source. Runs without
                 MIB-NAME arguments; deletes unless combined with
                 --dry-run.
-        --no-bundled-mibs - do not fall back to pysmi's own bundled copy
-                of the RFC-frozen base MIBs (SNMPv2-SMI and similar) when
-                none of --mib-source has them. Without this, a compile
-                that would once have failed on a missing base MIB now
-                silently succeeds from the bundled copy; pass this to make
-                a misconfigured --mib-source fail loudly instead.
+        --no-bundled-mibs - do not use pysmi's own bundled copies of the
+                bundled base MIBs (SNMPv2-SMI and similar) at all. The
+                bundle is not a last-resort fallback: it is consulted
+                ahead of --mib-source, and where both have one of the
+                302 bundled modules the newer MODULE-IDENTITY
+                LAST-UPDATED supplies it -- so a --mib-source carrying a
+                newer revision still wins, and one carrying an older or
+                undated copy does not. Revisions are only compared across
+                sources read locally (file, zip); a remote --mib-source is
+                not fetched once a local source has the module, leaving
+                the bundled copy in place. Pass this to compile strictly
+                from --mib-source, so a base MIB that is missing there
+                fails loudly rather than resolving to the bundled copy.
+        --prefer-mib-source - keep the bundled base MIBs, but let
+                --mib-source supply one wherever the revisions do not
+                decide: a module with no MODULE-IDENTITY to compare, or two
+                copies carrying the same one. The newest revision still
+                wins when every copy found has one. 34 of the 302 bundled
+                modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
+                SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
+                all, so this is what decides them.
+        --no-base-mibs - do not write out the base MIBs (SNMPv2-SMI,
+                SNMPv2-TC and the rest) that the compiled modules import.
+                Only --destination-format=json writes them, and only from
+                the bundled copies, so --no-bundled-mibs turns this off
+                too; the pysnmp format leaves them stubbed, because pysnmp
+                implements those modules itself and a generated copy would
+                shadow the implementation. Without this, a JSON
+                destination directory resolves every import on its own
+                rather than needing the base MIBs from somewhere else.
+                Giving --mib-stub explicitly replaces the stub list, for
+                either format, and this option is then not consulted at
+                all. --no-bundled-mibs is: it drops the bundle as a
+                source, so a base MIB the replacement list leaves
+                unstubbed has to come from --mib-source or it is missing.
         --repair-imports - supply the import a MIB should have carried for
                 any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
                 without naming it in IMPORTS, which RFC 2578 Section 3.2
                 does not allow. Off by default, so a MIB broken this way
                 fails rather than being silently patched; what was
                 repaired is listed in the report.
-        --strict-sources - fail a MIB that more than one --mib-source has a
-                different copy of. Without this the first one wins, by the
-                rule mibdump's documentation states, and the copies passed
-                over are named on the shadowed line of the report.""".format(
+        --strict-sources - fail a MIB that more than one source has a
+                different copy of. Without this, the precedence above picks
+                one and the copies passed over are named on the "MIBs found
+                in more than one source" line of the report.""".format(
         os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES))
     )
 
@@ -147,6 +184,8 @@ def start() -> None:
                 "cache-directory=",
                 "no-dependencies",
                 "no-bundled-mibs",
+                "prefer-mib-source",
+                "no-base-mibs",
                 "no-python-compile",
                 "python-optimization-level=",
                 "ignore-errors",
@@ -224,6 +263,12 @@ def start() -> None:
         if opt[0] == "--no-bundled-mibs":
             bundledMibsFlag = False
 
+        if opt[0] == "--prefer-mib-source":
+            preferMibSourceFlag = True
+
+        if opt[0] == "--no-base-mibs":
+            baseMibsFlag = False
+
         if opt[0] == "--no-python-compile":
             pyCompileFlag = False
 
@@ -294,6 +339,13 @@ def start() -> None:
     if not dstFormat:
         dstFormat = "pysnmp"
 
+    # Base MIBs taken off the stub list, so one is compiled and written out
+    # like any other module wherever something imports it. The whole eligible
+    # set, not the subset a given run reaches -- which of them were written is
+    # what the created/updated line reports. Only the JSON format fills this
+    # in; see the branch below.
+    eligibleBaseMibs: list[str] = []
+
     if dstFormat == "pysnmp":
         if not mibSearchers:
             mibSearchers = list(PySnmpCodeGen.defaultMibPackages)
@@ -343,6 +395,18 @@ def start() -> None:
     elif dstFormat == "json":
         if not mibStubs:
             mibStubs = list(JsonCodeGen.baseMibs)
+
+            if baseMibsFlag and bundledMibsFlag:
+                # Nothing supplies a JSON SNMPv2-TC the way pysnmp supplies a
+                # Python one, so stubbing the base MIBs leaves a destination
+                # directory that cannot resolve the DisplayString half the
+                # modules in it import. Compile them instead, from the copies
+                # pysmi bundles -- and only those, since the rest of the stub
+                # list would then have to be found somewhere.
+                bundled = bundled_mib_names(MibCompiler.bundledMibsPackage)
+
+                eligibleBaseMibs = [x for x in mibStubs if x in bundled]
+                mibStubs = [x for x in mibStubs if x not in bundled]
 
         if not mibBorrowers:
             mibBorrowers = [
@@ -418,7 +482,9 @@ def start() -> None:
     Destination format: {}
     Parser grammar cache directory: {}
     Also compile all relevant MIBs: {}
-    Use pysmi's bundled base MIBs as a fallback source: {}
+    Search pysmi's bundled base MIBs, newest revision winning: {}
+    Prefer --mib-source where no revision decides: {}
+    Base MIBs eligible to be written out from the bundle: {}
     Rebuild MIBs regardless of age: {}
     Prune stored MIBs with no remaining source: {}
     Dry run mode: {}
@@ -440,6 +506,8 @@ def start() -> None:
                 cacheDirectory or "not used",
                 (nodepsFlag and "no") or "yes",
                 (bundledMibsFlag and "yes") or "no",
+                (preferMibSourceFlag and "yes") or "no",
+                ", ".join(sorted(eligibleBaseMibs)) or "none",
                 (rebuildFlag and "yes") or "no",
                 (pruneFlag and "yes") or "no",
                 (dryrunFlag and "yes") or "no",
@@ -461,6 +529,7 @@ def start() -> None:
         codeGenerator,
         fileWriter,
         useBundledMibs=bundledMibsFlag,
+        preferConfiguredSources=preferMibSourceFlag,
     )
 
     pruned = {}
@@ -552,8 +621,57 @@ def start() -> None:
             )
             sys.stderr.write(f"Repaired MIBs: {repairedMibs}\n")
 
+            # A module resolved to a copy other than the one the caller
+            # thought they configured is worth more than a line in the
+            # summary: it is why an upgrade of pysmi can change compiled
+            # output that no --mib-source change explains. Say which copy
+            # won, which rule made it win, and how to have it the other way.
+            bundledPrefix = f"package://{mibCompiler.bundledMibsPackage}/"
+
+            for mibname in sorted(processed):
+                shadowed = getattr(processed[mibname], "shadowed", None)
+
+                if not shadowed:
+                    continue
+
+                fromBundle = processed[mibname].path.startswith(bundledPrefix)
+                precedence = getattr(processed[mibname], "precedence", "")
+
+                if fromBundle:
+                    headline = (
+                        f"WARNING: {mibname} resolved to pysmi's bundled copy, "
+                        f"not to --mib-source"
+                    )
+                    # Telling someone to ship a newer revision is no help for
+                    # a module that has none to carry, which is the case for
+                    # 34 of the 302 bundled ones.
+                    remedy = (
+                        "pass --prefer-mib-source, or --no-bundled-mibs"
+                        if precedence == PRECEDENCE_NO_REVISION
+                        else (
+                            "give your copy a newer MODULE-IDENTITY revision, or pass "
+                            "--prefer-mib-source, or --no-bundled-mibs"
+                        )
+                    )
+
+                else:
+                    headline = f"NOTE: {mibname} was found in more than one source"
+                    remedy = (
+                        "give the --mib-source you want first, or pass "
+                        "--strict-sources to fail instead of choosing"
+                    )
+
+                sys.stderr.write(
+                    f"{headline}\n"
+                    f"    used        {processed[mibname].path}\n"
+                    f"    passed over {', '.join(shadowed)}\n"
+                    f"    decided by  {precedence}\n"
+                    f"    to change   {remedy}\n"
+                )
+
             shadowedMibs = ", ".join(
-                f"{x} (used {processed[x].path}, passed over {', '.join(processed[x].shadowed)})"
+                f"{x} (used {processed[x].path}, passed over {', '.join(processed[x].shadowed)},"
+                f" by {getattr(processed[x], 'precedence', '')})"
                 for x in sorted(processed)
                 if getattr(processed[x], "shadowed", None)
             )

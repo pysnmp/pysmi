@@ -42,7 +42,7 @@ Homepage = "https://github.com/pysnmp/pysmi"
 Repository = "https://github.com/pysnmp/pysmi"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "ply>=3.11", "requests>=2.31.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
@@ -50,6 +50,12 @@ path = "pysmi/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["pysmi"]
+
+# Compiles pysmi/mibs/asn1 into pysmi/mibs/pysnmp as the wheel is built, so a
+# consumer can load a standard module instead of compiling it. Generated per
+# build rather than committed -- see hatch_build.py.
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
 
 [tool.hatch.build.targets.sdist]
 # An explicit include is an allowlist: anything not named here is left out,
@@ -65,6 +71,7 @@ include = [
     "tests",
     "examples",
     "scripts",
+    "hatch_build.py",
     "CHANGELOG.md",
     "CHANGES.rst",
     "THANKS.txt",
@@ -184,6 +191,8 @@ markers = ["pysnmp_consumer: loads a generated module under pysnmp; non-gating"]
 
 [dependency-groups]
 dev = [
+    # hatch_build.py is exercised by the test suite, not only at release.
+    "hatchling>=1.27",
     "mypy>=1.14",
     "myst-parser>=4.0.1",
     "pysnmplib==6.0.0rc2",
@@ -192,5 +201,4 @@ dev = [
     "ruff>=0.8",
     "sphinx>=7.0",
     "types-requests>=2.33.0",
-    "ty>=0.0.77",
 ]
