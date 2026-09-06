@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [2.1.0-rc.2](https://github.com/pysnmp/pysmi/compare/v2.1.0-rc.1...v2.1.0-rc.2) (2026-09-06)
+
+### Bug Fixes
+
+* **release:** give the changelog a title semantic-release owns ([32d800a](https://github.com/pysnmp/pysmi/commit/32d800ae9ef17434812a5e7b383b0b0af47838f8))
+
 ## [2.1.0-rc.1](https://github.com/pysnmp/pysmi/compare/v2.0.1...v2.1.0-rc.1) (2026-09-05)
 
 ### Features
