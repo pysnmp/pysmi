@@ -31,6 +31,7 @@ into various formats.
          [--no-dependencies]
          [--no-bundled-mibs]
          [--prefer-mib-source]
+         [--no-base-mibs]
          [--no-python-compile]
          [--python-optimization-level]
          [--ignore-errors]
@@ -276,6 +277,34 @@ the same three facts for a caller that wants to record them. Pass
 
 --quiet suppresses all of this, as it does the rest of the report.
 
+What ends up in the destination directory
+-----------------------------------------
+
+*mibdump* compiles the MIB modules you name and, unless --no-dependencies says
+otherwise, everything they import -- taking whatever a --mib-source does not
+have from pysmi's own bundled copies. So a destination directory built from a
+single vendor MIB also holds the IF-MIB, ENTITY-MIB or BRIDGE-MIB it leans on,
+with no MIB repository of your own behind it.
+
+The base MIBs are the exception, and which way they go depends on the format:
+
+* --destination-format=pysnmp never writes them. SNMPv2-SMI, SNMPv2-TC and the
+  rest are not generated code in pysnmp -- it implements them, in
+  ``pysnmp/smi/mibs/`` -- and a generated copy in the destination directory
+  would shadow the implementation. The report lists them under *Up to date
+  MIBs*.
+* --destination-format=json writes them out with everything else, because
+  nothing supplies a JSON SNMPv2-TC the way pysnmp supplies a Python one. A
+  JSON tree without one refers to a DisplayString that is not in it, so the
+  tree cannot be read on its own.
+
+Only the base MIBs actually imported are written, and only from pysmi's
+bundled copies, so --no-bundled-mibs turns this off along with the bundle.
+Pass --no-base-mibs to keep the bundle but leave the base MIBs stubbed out, as
+releases before 2.2 did. An explicit --mib-stub replaces the whole default
+list and takes precedence over both. The summary names what a run will write
+on its "Base MIBs written out with the modules importing them" line.
+
 Fuzzying MIB module names
 -------------------------
 
@@ -332,6 +361,11 @@ RFC1213-MIB, SNMP-FRAMEWORK-MIB, SNMP-TARGET-MIB, SNMPv2-CONF, SNMPv2-SMI,
 SNMPv2-TC, SNMPv2-TM, TRANSPORT-ADDRESS-MIB.
 
 If you need to modify this list use the --mib-stub option.
+
+The JSON transformation target blacklists only what it cannot compile: the
+base MIBs pysmi bundles are compiled and written out with the modules that
+import them, so that a JSON destination directory resolves its own imports.
+See `What ends up in the destination directory`_.
 
 Dealing with broken MIBs
 ------------------------

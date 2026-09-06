@@ -19,7 +19,11 @@ from pysmi.borrower import AnyFileBorrower, PyFileBorrower
 from pysmi.borrower.base import AbstractBorrower
 from pysmi.codegen import JsonCodeGen, NullCodeGen, PySnmpCodeGen
 from pysmi.codegen.base import AbstractCodeGen
-from pysmi.compiler import PRECEDENCE_NO_REVISION, MibCompiler
+from pysmi.compiler import (
+    PRECEDENCE_NO_REVISION,
+    MibCompiler,
+    bundled_mib_names,
+)
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import getReadersFromUrls
 from pysmi.searcher import (
@@ -62,6 +66,7 @@ def start() -> None:
     pruneFlag = False
     bundledMibsFlag = True
     preferMibSourceFlag = False
+    baseMibsFlag = True
     dryrunFlag = False
     genMibTextsFlag = False
     keepTextsLayout = False
@@ -89,6 +94,7 @@ def start() -> None:
         [--no-dependencies]
         [--no-bundled-mibs]
         [--prefer-mib-source]
+        [--no-base-mibs]
         [--no-python-compile]
         [--python-optimization-level]
         [--ignore-errors]
@@ -133,6 +139,16 @@ def start() -> None:
                 modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
                 SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
                 all, so this is what decides them.
+        --no-base-mibs - do not write out the base MIBs (SNMPv2-SMI,
+                SNMPv2-TC and the rest) that the compiled modules import.
+                Only --destination-format=json writes them at all, and
+                only from the bundled copies, so --no-bundled-mibs turns
+                this off too; the pysnmp format never does, because
+                pysnmp implements those modules itself and a generated
+                copy would shadow the implementation. Without this, a
+                JSON destination directory resolves every import on its
+                own rather than needing the base MIBs from somewhere
+                else.
         --repair-imports - supply the import a MIB should have carried for
                 any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
                 without naming it in IMPORTS, which RFC 2578 Section 3.2
@@ -165,6 +181,7 @@ def start() -> None:
                 "no-dependencies",
                 "no-bundled-mibs",
                 "prefer-mib-source",
+                "no-base-mibs",
                 "no-python-compile",
                 "python-optimization-level=",
                 "ignore-errors",
@@ -245,6 +262,9 @@ def start() -> None:
         if opt[0] == "--prefer-mib-source":
             preferMibSourceFlag = True
 
+        if opt[0] == "--no-base-mibs":
+            baseMibsFlag = False
+
         if opt[0] == "--no-python-compile":
             pyCompileFlag = False
 
@@ -315,6 +335,11 @@ def start() -> None:
     if not dstFormat:
         dstFormat = "pysnmp"
 
+    # Base MIBs compiled and written out alongside the modules that import
+    # them, rather than stubbed out as something the consumer supplies. Only
+    # the JSON format fills this in; see the branch below.
+    emittedBaseMibs: list[str] = []
+
     if dstFormat == "pysnmp":
         if not mibSearchers:
             mibSearchers = list(PySnmpCodeGen.defaultMibPackages)
@@ -364,6 +389,18 @@ def start() -> None:
     elif dstFormat == "json":
         if not mibStubs:
             mibStubs = list(JsonCodeGen.baseMibs)
+
+            if baseMibsFlag and bundledMibsFlag:
+                # Nothing supplies a JSON SNMPv2-TC the way pysnmp supplies a
+                # Python one, so stubbing the base MIBs leaves a destination
+                # directory that cannot resolve the DisplayString half the
+                # modules in it import. Compile them instead, from the copies
+                # pysmi bundles -- and only those, since the rest of the stub
+                # list would then have to be found somewhere.
+                bundled = bundled_mib_names(MibCompiler.bundledMibsPackage)
+
+                emittedBaseMibs = [x for x in mibStubs if x in bundled]
+                mibStubs = [x for x in mibStubs if x not in bundled]
 
         if not mibBorrowers:
             mibBorrowers = [
@@ -441,6 +478,7 @@ def start() -> None:
     Also compile all relevant MIBs: {}
     Search pysmi's bundled base MIBs, newest revision winning: {}
     Prefer --mib-source where no revision decides: {}
+    Base MIBs written out with the modules importing them: {}
     Rebuild MIBs regardless of age: {}
     Prune stored MIBs with no remaining source: {}
     Dry run mode: {}
@@ -463,6 +501,7 @@ def start() -> None:
                 (nodepsFlag and "no") or "yes",
                 (bundledMibsFlag and "yes") or "no",
                 (preferMibSourceFlag and "yes") or "no",
+                ", ".join(sorted(emittedBaseMibs)) or "none",
                 (rebuildFlag and "yes") or "no",
                 (pruneFlag and "yes") or "no",
                 (dryrunFlag and "yes") or "no",
