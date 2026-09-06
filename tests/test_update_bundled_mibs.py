@@ -28,6 +28,26 @@ VALID_MIB = "TEST-MIB DEFINITIONS ::= BEGIN\nEND\n"
 UNCOMPILABLE_MIB = "this is not valid ASN.1\n"
 
 
+def _addBaseMibs(dest, manifest):
+    """Copy the modules every compile pulls in into a fixture bundle.
+
+    Taken from the real bundle rather than stubbed: the point is that verify()
+    now demands a bundle nothing dangles out of, and faking these would just
+    move the dangle somewhere else.
+    """
+    from importlib import resources
+
+    from pysmi.codegen import JsonCodeGen
+
+    installed = resources.files("pysmi.mibs.asn1")
+
+    for mibname in sorted(set(JsonCodeGen.baseMibs)):
+        candidate = installed.joinpath(mibname)
+        if candidate.is_file():
+            (dest / mibname).write_bytes(candidate.read_bytes())
+            manifest[mibname] = {"source": "rfc", "rfc": 0}
+
+
 class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -60,10 +80,24 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
             patch.stop()
         self._tmp.cleanup()
 
+    def _stubVerify(self, code):
+        """Make verify() return *code* without compiling anything.
+
+        These four tests are about what ends up on disk -- that a partway
+        failure leaves the old bundle intact, that a dropped manifest entry
+        takes its file with it. Compiling a real bundle for each would be slow
+        and would test verify() over again, which the two tests below do
+        directly.
+        """
+        patch = mock.patch.object(update_bundled_mibs, "verify", return_value=code)
+        patch.start()
+        self.addCleanup(patch.stop)
+
     def _existingBundleContents(self):
         return {mibname: (self.dest / mibname).read_bytes() for mibname in self.bundled}
 
     def testASuccessfulUpdateReplacesEveryFile(self):
+        self._stubVerify(0)
         fresh = {
             mibname: f"-- fresh {mibname}\n{VALID_MIB}".encode()
             for mibname in self.bundled
@@ -78,6 +112,7 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertEqual(fresh, self._existingBundleContents())
 
     def testAFetchFailurePartwayLeavesTheExistingBundleUntouched(self):
+        self._stubVerify(0)
         before = self._existingBundleContents()
 
         def flakyFetch(mibname, _entry):
@@ -94,6 +129,7 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertEqual(before, self._existingBundleContents())
 
     def testAnUncompilableRefreshLeavesTheExistingBundleUntouched(self):
+        self._stubVerify(1)
         before = self._existingBundleContents()
 
         broken = {
@@ -110,6 +146,7 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertEqual(before, self._existingBundleContents())
 
     def testAModuleDroppedFromTheManifestIsDroppedFromTheBundle(self):
+        self._stubVerify(0)
         """Otherwise a removed entry leaves a file nothing re-checks any more."""
         (self.dest / "GAMMA-MIB").write_bytes(VALID_MIB.encode())
 
@@ -123,13 +160,18 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertFalse((self.dest / "GAMMA-MIB").exists())
 
     def testVerifyDefaultsToCheckingDestInPlace(self):
+        _addBaseMibs(self.dest, self.bundled)
+
         self.assertEqual(0, update_bundled_mibs.verify())
 
     def testVerifyChecksTheGivenDirectoryNotDest(self):
+        _addBaseMibs(self.dest, self.bundled)
+
         staging = pathlib.Path(self._tmp.name) / "staging"
         staging.mkdir()
         (staging / "ALPHA-MIB").write_bytes(UNCOMPILABLE_MIB.encode())
         (staging / "BETA-MIB").write_bytes(VALID_MIB.encode())
+        _addBaseMibs(staging, dict(self.bundled))
 
         self.assertEqual(1, update_bundled_mibs.verify(staging))
         # DEST's own (valid) copies are untouched by checking a different directory.
@@ -270,6 +312,71 @@ class IeeeIndexTestCase(unittest.TestCase):
             with self.subTest(mib=mibname):
                 self.assertNotIn("url", entry)
                 self.assertRegex(entry["revision"], r"^\d{12}$")
+
+
+class CheckMirrorTestCase(unittest.TestCase):
+    """--check-mirror is what keeps pysmi and pysnmp/mibs from drifting apart.
+
+    pysmi is the source of truth for the modules it bundles, but the mirror is
+    also what mibdump and mibcopy reach for by default -- so a disagreement
+    means a caller can be served pysmi's copy of one module and the mirror's
+    copy of something that imports it.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dest = pathlib.Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+        self.bundled = {"ALPHA-MIB": {"source": "rfc", "rfc": 1}}
+        (self.dest / "ALPHA-MIB").write_bytes(_stamped("200001010000Z"))
+
+        for patch in (
+            mock.patch.object(update_bundled_mibs, "DEST", self.dest),
+            mock.patch.object(
+                update_bundled_mibs, "manifest", return_value=self.bundled
+            ),
+        ):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def testAMirrorThatMatchesPasses(self):
+        with mock.patch.object(
+            update_bundled_mibs, "download", return_value=_stamped("200001010000Z")
+        ):
+            self.assertEqual(0, update_bundled_mibs.check_mirror())
+
+    def testAMirrorServingAnotherRevisionIsReported(self):
+        with mock.patch.object(
+            update_bundled_mibs, "download", return_value=_stamped("201501010000Z")
+        ):
+            self.assertEqual(1, update_bundled_mibs.check_mirror())
+
+    def testAMirrorServingDifferentTextAtTheSameRevisionIsReported(self):
+        """The case a revision comparison alone would wave through.
+
+        Two copies stamped identically but differing in body is precisely the
+        drift that went unnoticed for years, so it has to fail rather than
+        being treated as agreement.
+        """
+        edited = _stamped("200001010000Z").replace(b"END", b"-- edited\nEND")
+
+        with mock.patch.object(update_bundled_mibs, "download", return_value=edited):
+            self.assertEqual(1, update_bundled_mibs.check_mirror())
+
+    def testAnUnreachableMirrorFailsRatherThanReadingAsAgreement(self):
+        with mock.patch.object(
+            update_bundled_mibs, "download", side_effect=TimeoutError("no route")
+        ):
+            self.assertEqual(1, update_bundled_mibs.check_mirror())
+
+
+def _stamped(revision: bytes | str) -> bytes:
+    return (
+        b"ALPHA-MIB DEFINITIONS ::= BEGIN\n"
+        b'alpha MODULE-IDENTITY LAST-UPDATED "' + str(revision).encode() + b'"\n'
+        b"END\n"
+    )
 
 
 def _invert(patch: str) -> str:

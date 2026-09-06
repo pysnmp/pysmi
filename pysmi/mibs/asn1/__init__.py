@@ -2,8 +2,10 @@
 :py:class:`~pysmi.reader.package.PackageReader`.
 
 Every file here is named exactly as the MIB module it holds, with no
-extension -- the same convention its canonical source at
-https://pysnmp.github.io/mibs/asn1/ uses.
+extension -- the same convention https://pysnmp.github.io/mibs/asn1/ uses. That
+mirror is not where these come from: for the modules bundled here pysmi is the
+source of truth, each one fetched from the body that publishes it, and the
+mirror follows. ``--check-mirror`` is what says whether it still does.
 
 Membership is decided by ``scripts/bundled_mibs.json``, which pins each module
 to the publisher its text is fetched from. A module still being revised
