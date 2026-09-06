@@ -40,7 +40,7 @@ class AbstractReader:
     maxMibSize = 10000000  # MIBs can't be that large
     fuzzyMatching = True  # try different file names while searching for MIB
     originalMatching = uppercaseMatching = lowcaseMatching = True
-    exts: list[str] = [  # noqa: RUF012
+    exts: list[str] = [
         "",
         os.path.extsep + "txt",
         os.path.extsep + "mib",
@@ -57,8 +57,8 @@ class AbstractReader:
         Returns:
             The reader, so calls can be chained.
         """
-        for k in kwargs:
-            setattr(self, k, kwargs[k])
+        for k, v in kwargs.items():
+            setattr(self, k, v)
         return self
 
     def get_mib_variants(

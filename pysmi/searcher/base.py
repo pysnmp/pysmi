@@ -29,8 +29,8 @@ class AbstractSearcher:
         Returns:
             The searcher, so calls can be chained.
         """
-        for k in kwargs:
-            setattr(self, k, kwargs[k])
+        for k, v in kwargs.items():
+            setattr(self, k, v)
         return self
 
     def file_exists(

@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class AnyFileSearcher(AbstractSearcher):
     """Figures out if given file exists at given location."""
 
-    exts: list[str] = []  # noqa: RUF012
+    exts: list[str] = []
 
     def __init__(self, path: str) -> None:
         """Create an instance of *AnyFileSearcher* bound to specific directory.

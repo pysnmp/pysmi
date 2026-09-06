@@ -128,7 +128,7 @@ DEST = pathlib.Path(__file__).resolve().parent.parent / "pysmi" / "mibs" / "asn1
 
 def download(url: str) -> bytes:
     """Read one URL."""
-    with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310
+    with urllib.request.urlopen(url, timeout=30) as response:  # noqa: S310 - the URLs come from this script's own command line, not from a MIB
         return response.read()
 
 
