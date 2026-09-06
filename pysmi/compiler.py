@@ -156,8 +156,15 @@ class MibStatus(str):
 
         The module-level statuses are shared constants, so detail about one
         particular MIB is attached to a copy rather than to the original.
+
+        Detail already on this status is carried over, so a second call adds
+        to the first rather than replacing it -- a status is built up in more
+        than one place (what a module resolved to is known before whether it
+        compiled), and dropping the earlier half would take ``error`` off a
+        failure with it.
         """
         n = self.__class__(self)
+        n.__dict__.update(self.__dict__)
         for k, v in kwargs.items():
             setattr(n, k, v)
         return n
@@ -565,6 +572,7 @@ class MibCompiler:
         canonicalMibNames: dict[str, Any] = {}
         shadowedMibs: dict[str, list[str]] = {}
         precedenceOfMib: dict[str, str] = {}
+        usedPathOfMib: dict[str, str] = {}
 
         while mibsToParse:
             mibname = mibsToParse.pop(0)
@@ -588,6 +596,7 @@ class MibCompiler:
             if shadowed:
                 shadowedMibs[mibname] = shadowed
                 precedenceOfMib[mibname] = precedence
+                usedPathOfMib[mibname] = candidates[0][1].path
 
                 logger.warning(
                     "%s taken from %s by %s, shadowing a different copy at %s",
@@ -634,6 +643,33 @@ class MibCompiler:
                         parsedMibs[mibInfo.name] = fileInfo, mibInfo, mibTree
 
                         failedMibs.pop(mibname, None)
+
+                        # An earlier candidate that failed to parse left its
+                        # error as this module's status. This one parsed, so
+                        # that status is stale -- and it would otherwise
+                        # stand, since the statuses set further down only
+                        # fill in a module that has none yet. Without this a
+                        # module compiled from a fallback copy is written to
+                        # disk and still reported failed.
+                        processed.pop(mibname, None)
+
+                        # The copy that parses is the copy that is used, and
+                        # it is not always the first one found -- a candidate
+                        # that fails to parse falls through to the next. So
+                        # the copies passed over, and the path used, are only
+                        # known here. Key them by the name the module turned
+                        # out to have, which is what everything downstream is
+                        # keyed by; the lookup name keeps its own entry, for
+                        # a strictSources failure to report.
+                        if shadowedMibs.get(mibname):
+                            shadowedMibs[mibInfo.name] = [
+                                info.path
+                                for _, info, _ in candidates
+                                if info.path != fileInfo.path
+                                and info.digest != fileInfo.digest
+                            ]
+                            precedenceOfMib[mibInfo.name] = precedenceOfMib[mibname]
+                            usedPathOfMib[mibInfo.name] = fileInfo.path
 
                         mibsToParse.extend(mibInfo.imported)
 
@@ -1081,6 +1117,26 @@ class MibCompiler:
                 processed[mibname] = statusFailed.set_options(error=exc)
                 failedMibs[mibname] = exc
                 del builtMibs[mibname]
+
+        # A module the searchers found up to date was still chosen between,
+        # and an incremental build is exactly where a copy quietly resolving
+        # to something other than the caller's own would go unmentioned. The
+        # compiled ones already carry this; give it to the rest too.
+        for mibname, shadowed in shadowedMibs.items():
+            status = processed.get(mibname)
+
+            if not shadowed or status is None or getattr(status, "shadowed", None):
+                continue
+
+            carried: dict[str, Any] = {
+                "shadowed": tuple(shadowed),
+                "precedence": precedenceOfMib.get(mibname, ""),
+            }
+
+            if not getattr(status, "path", None):
+                carried["path"] = usedPathOfMib[mibname]
+
+            processed[mibname] = status.set_options(**carried)
 
         logger.debug(
             "MIBs modified: %s",

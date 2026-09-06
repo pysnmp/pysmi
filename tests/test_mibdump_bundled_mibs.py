@@ -145,9 +145,7 @@ class MibDumpShadowedSourceReportTestCase(unittest.TestCase):
         code, output = self._run(DATED)
 
         self.assertEqual(0, code, output)
-        self.assertIn(
-            f"WARNING: {DATED} was compiled from pysmi's bundled copy", output
-        )
+        self.assertIn(f"WARNING: {DATED} resolved to pysmi's bundled copy", output)
         self.assertIn("decided by  newest MODULE-IDENTITY revision", output)
         self.assertIn("give your copy a newer MODULE-IDENTITY revision", output)
 
@@ -188,9 +186,44 @@ class MibDumpShadowedSourceReportTestCase(unittest.TestCase):
         code, output = self._run(DATED, "--prefer-mib-source")
 
         self.assertEqual(0, code, output)
+        self.assertIn(f"WARNING: {DATED} resolved to pysmi's bundled copy", output)
+
+    def testASecondRunStillSaysWhichCopyTheModuleResolvesTo(self):
+        # The status of an up-to-date module is not the one that carries a
+        # compile's metadata, so an incremental build used to report nothing
+        # at all -- the run where a quiet override is least likely to be
+        # noticed. See pysnmp/pysmi#155.
+        (self.src / UNDATED).write_text(bundledText(UNDATED) + "\n-- a local edit\n")
+
+        first, firstOutput = self._run(UNDATED)
+        self.assertEqual(0, first, firstOutput)
+
+        code, output = self._run(UNDATED)
+
+        self.assertEqual(0, code, output)
+        self.assertIn(f"Up to date MIBs: {UNDATED}", output)
+        self.assertIn(f"WARNING: {UNDATED} resolved to pysmi's bundled copy", output)
         self.assertIn(
-            f"WARNING: {DATED} was compiled from pysmi's bundled copy", output
+            "decided by  source order; no MODULE-IDENTITY revision to compare", output
         )
+
+    def testTheCopyThatParsesIsTheCopyReportedAsUsed(self):
+        # The first candidate is not always the one used: one that fails to
+        # parse falls through to the next, and it is that one the report has
+        # to name. --prefer-mib-source puts the broken copy first.
+        (self.src / UNDATED).write_text("IPV6-TC DEFINITIONS ::= BEGIN\nnot asn.1\n")
+
+        code, output = self._run(UNDATED, "--prefer-mib-source")
+
+        self.assertEqual(0, code, output)
+        self.assertIn(f"WARNING: {UNDATED} resolved to pysmi's bundled copy", output)
+        self.assertIn(f"used        package://{BUNDLED_PACKAGE}/{UNDATED}", output)
+        self.assertIn(f"passed over file://{self.src}/{UNDATED}", output)
+        # The whole fallback has to complete, not just be reported: the
+        # module compiles from the copy that parsed, and the failure the
+        # broken copy raised does not survive as its status.
+        self.assertIn(f"Created/updated MIBs: {UNDATED}", output)
+        self.assertNotIn(f"Failed MIBs: {UNDATED}", output)
 
     def testOneSourceOnlyReportsNothing(self):
         (self.src / "TINY-TEST-MIB").write_text(TARGET_MIB)

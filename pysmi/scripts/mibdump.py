@@ -103,7 +103,7 @@ def start() -> None:
         [--strict-sources]
         <MIB-NAME> [MIB-NAME [...]]]
     Where:
-        URI      - file, zip, http, https, ftp, sftp schemes are supported.
+        URI      - file, zip, http, https schemes are supported.
                 Use @mib@ placeholder token in URI to refer directly to
                 the required MIB module when source does not support
                 directory listing (e.g. HTTP).
@@ -594,8 +594,8 @@ def start() -> None:
 
                 if fromBundle:
                     headline = (
-                        f"WARNING: {mibname} was compiled from pysmi's bundled copy, "
-                        f"not from --mib-source"
+                        f"WARNING: {mibname} resolved to pysmi's bundled copy, "
+                        f"not to --mib-source"
                     )
                     # Telling someone to ship a newer revision is no help for
                     # a module that has none to carry, which is the case for

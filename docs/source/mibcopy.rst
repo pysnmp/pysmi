@@ -50,7 +50,7 @@ all named after their canonical names.
           [--dry-run]
           <SOURCE [SOURCE...]> <DESTINATION>
     Where:
-        URI      - file, zip, http, https, ftp, sftp schemes are
+        URI      - file, zip, http, https schemes are
                    supported. Use @mib@ placeholder token in URI to
                    refer directly to the required MIB module when
                    source does not support directory listing
@@ -62,7 +62,7 @@ Specifying MIB source
 The --mib-source option can be given multiple times. Each instance of
 --mib-source must specify a URL where ASN.1 MIB modules should be
 looked up and downloaded from. At this moment three MIB sourcing
-methods are supported:
+methods are supported -- a URL of any other scheme is rejected:
 
 * Local files. This could be a top-level directory where MIB files are
   located. Subdirectories will be automatically traversed as well. 
@@ -73,11 +73,6 @@ methods are supported:
 * HTTP/HTTPS. A fully specified URL where MIB module name is specified by
   a @mib@ placeholder. When specific MIB is looked up, PySMI will replace
   that placeholder with MIB module name it is looking for. 
-  Example: `https://pysnmp.github.io/mibs/asn1/@mib@ <https://pysnmp.github.io/mibs/asn1>`_
-* SFTP/FTP. A fully specified URL including FTP username and password. 
-  MIB module name is specified by a @mib@ placeholder. When specific MIB
-  is looked up, PySMI will replace that placeholder with MIB module name
-  it is looking for. 
   Example: `https://pysnmp.github.io/mibs/asn1/@mib@ <https://pysnmp.github.io/mibs/asn1>`_
 
 When trying to fetch a MIB module, the *mibcopy* tool will try each of

@@ -147,7 +147,15 @@ class MibDumpReportTestCase(unittest.TestCase):
         )
 
         self.assertEqual(0, code, output)
-        self.assertIn("MIBs found in more than one source: TEST-REPORT-MIB", output)
+        self.assertIn("MIBs found in more than one source:", output)
+        # Not necessarily first on that line: the placeholder base MIBs this
+        # fixture writes are shadowed by pysmi's bundled copies of them, and
+        # are reported too.
+        self.assertIn(
+            f"TEST-REPORT-MIB (used file://{self.src}/TEST-REPORT-MIB,"
+            f" passed over file://{other}/TEST-REPORT-MIB,",
+            output,
+        )
         self.assertIn(str(other), output)
 
     def testStrictSourcesFailsOnSuchACopy(self):
