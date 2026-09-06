@@ -8,6 +8,13 @@ name: Bundled MIBs freshness
 # never changes, but a later RFC can replace it, which is how the mirror came
 # to serve an ENTITY-MIB eight years superseded.
 #
+# The second job compares the other direction: pysmi is the source of truth for
+# the modules it bundles, and https://pysnmp.github.io/mibs/asn1/ follows. That
+# mirror is also what mibdump and mibcopy reach for by default, so a
+# disagreement means a caller can resolve one module from pysmi and a module
+# importing it from the mirror, at two different editions of the same
+# specification.
+#
 # A separate, scheduled workflow rather than a step in the main CI run: it
 # depends on a third-party site being reachable, and every contributor's PR
 # should not go red over an outage or a network hiccup that has nothing to do
@@ -39,3 +46,21 @@ jobs:
           enable-cache: true
       - name: Compare bundled MIBs against their publishers
         run: uv run --locked --group dev python3 scripts/update_bundled_mibs.py --check
+
+  # A separate job, not another step, because the two answer different
+  # questions and have different remedies: `check` going red means re-run the
+  # updater here, `mirror` going red means pysnmp/mibs needs a pull request.
+  # Sharing a job would collapse them into one red X that says neither.
+  mirror:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Compare the pysnmp/mibs mirror against the bundle
+        run: uv run --locked --group dev python3 scripts/update_bundled_mibs.py --check-mirror

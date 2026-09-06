@@ -13,8 +13,17 @@ explicit step:
 
     uv run scripts/update_bundled_mibs.py           # refresh from upstream
     uv run scripts/update_bundled_mibs.py --check   # report drift, change nothing
+    uv run scripts/update_bundled_mibs.py --check-mirror  # report mirror disagreement
     uv run scripts/update_bundled_mibs.py --verify  # compile the bundle as it stands
     uv run scripts/update_bundled_mibs.py --docs    # rewrite the inventory page
+
+For the modules listed here pysmi is the source of truth and
+https://pysnmp.github.io/mibs/asn1/ follows, not the other way round -- which
+matters because that mirror is also what ``mibdump`` and ``mibcopy`` reach for
+by default. A caller can be served pysmi's SNMPv2-TC and the mirror's copy of
+something that imports it, so the two disagreeing is a compile resolving
+against two editions of one specification. ``--check-mirror`` is what says
+whether they still agree.
 
 ``bundled_mibs.json`` beside this file is the whole bundle manifest: one entry
 per module, naming where its text comes from and nothing else. Adding or
@@ -435,6 +444,72 @@ def check() -> int:
     return 0
 
 
+MIRROR = "https://pysnmp.github.io/mibs/asn1/{}"
+
+
+def check_mirror() -> int:
+    """Report where the pysnmp/mibs mirror disagrees with the bundle.
+
+    For the modules bundled here pysmi is the source of truth and the mirror
+    follows, but the mirror is also what pysmi itself reaches for by default
+    when a module is not bundled -- ``mibdump`` and ``mibcopy`` both point at
+    it. So a caller can be served pysmi's copy of SNMPv2-TC and the mirror's
+    copy of a module that imports it, and if the two disagree that is a compile
+    resolving against two different editions of the same specification.
+
+    Separate from ``--check`` because it answers a different question and has a
+    different remedy: ``--check`` finding drift means re-run ``update`` here,
+    while this finding drift means the mirror needs a pull request. Reported as
+    a list rather than one failure per module, since a batch of them usually
+    has a single cause.
+
+    Returns:
+        The process exit code: 0 if the mirror matches the bundle, 1 otherwise.
+    """
+    modules = manifest()
+    diverged = []
+    unreachable = []
+
+    for mibname in sorted(modules):
+        try:
+            served = download(MIRROR.format(mibname))
+        except Exception as exc:  # noqa: BLE001 - one unreachable module must not end the sweep
+            unreachable.append(f"{mibname}: {exc}")
+            continue
+
+        bundled = (DEST / mibname).read_bytes()
+
+        if served == bundled:
+            continue
+
+        theirs = revision_of(served)
+        ours = revision_of(bundled)
+
+        if theirs == ours:
+            diverged.append(f"{mibname}: same revision ({ours}), different text")
+        else:
+            diverged.append(f"{mibname}: mirror at {theirs}, bundled {ours}")
+
+    for line, stream in ((unreachable, sys.stderr), (diverged, sys.stderr)):
+        if line:
+            stream.write("\n".join(f"  {entry}" for entry in line) + "\n")
+
+    if diverged:
+        sys.stderr.write(
+            f"\n{len(diverged)} of {len(modules)} bundled modules disagree with "
+            f"{MIRROR.format('')}\nOpen a pull request against pysnmp/mibs to "
+            "bring src/standard back into line.\n"
+        )
+        return 1
+
+    if unreachable:
+        sys.stderr.write("Mirror comparison incomplete.\n")
+        return 1
+
+    sys.stdout.write(f"The mirror matches all {len(modules)} bundled MIBs.\n")
+    return 0
+
+
 def update() -> int:
     """Refresh every bundled file from upstream, then compile-verify the set.
 
@@ -758,6 +833,8 @@ where pysmi looks by default.
 if __name__ == "__main__":
     if "--check" in sys.argv[1:]:
         sys.exit(check())
+    if "--check-mirror" in sys.argv[1:]:
+        sys.exit(check_mirror())
     if "--verify" in sys.argv[1:]:
         sys.exit(verify())
     if "--docs" in sys.argv[1:]:

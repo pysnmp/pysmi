@@ -272,6 +272,71 @@ class IeeeIndexTestCase(unittest.TestCase):
                 self.assertRegex(entry["revision"], r"^\d{12}$")
 
 
+class CheckMirrorTestCase(unittest.TestCase):
+    """--check-mirror is what keeps pysmi and pysnmp/mibs from drifting apart.
+
+    pysmi is the source of truth for the modules it bundles, but the mirror is
+    also what mibdump and mibcopy reach for by default -- so a disagreement
+    means a caller can be served pysmi's copy of one module and the mirror's
+    copy of something that imports it.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dest = pathlib.Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+
+        self.bundled = {"ALPHA-MIB": {"source": "rfc", "rfc": 1}}
+        (self.dest / "ALPHA-MIB").write_bytes(_stamped("200001010000Z"))
+
+        for patch in (
+            mock.patch.object(update_bundled_mibs, "DEST", self.dest),
+            mock.patch.object(
+                update_bundled_mibs, "manifest", return_value=self.bundled
+            ),
+        ):
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def testAMirrorThatMatchesPasses(self):
+        with mock.patch.object(
+            update_bundled_mibs, "download", return_value=_stamped("200001010000Z")
+        ):
+            self.assertEqual(0, update_bundled_mibs.check_mirror())
+
+    def testAMirrorServingAnotherRevisionIsReported(self):
+        with mock.patch.object(
+            update_bundled_mibs, "download", return_value=_stamped("201501010000Z")
+        ):
+            self.assertEqual(1, update_bundled_mibs.check_mirror())
+
+    def testAMirrorServingDifferentTextAtTheSameRevisionIsReported(self):
+        """The case a revision comparison alone would wave through.
+
+        Two copies stamped identically but differing in body is precisely the
+        drift that went unnoticed for years, so it has to fail rather than
+        being treated as agreement.
+        """
+        edited = _stamped("200001010000Z").replace(b"END", b"-- edited\nEND")
+
+        with mock.patch.object(update_bundled_mibs, "download", return_value=edited):
+            self.assertEqual(1, update_bundled_mibs.check_mirror())
+
+    def testAnUnreachableMirrorFailsRatherThanReadingAsAgreement(self):
+        with mock.patch.object(
+            update_bundled_mibs, "download", side_effect=TimeoutError("no route")
+        ):
+            self.assertEqual(1, update_bundled_mibs.check_mirror())
+
+
+def _stamped(revision: bytes | str) -> bytes:
+    return (
+        b"ALPHA-MIB DEFINITIONS ::= BEGIN\n"
+        b'alpha MODULE-IDENTITY LAST-UPDATED "' + str(revision).encode() + b'"\n'
+        b"END\n"
+    )
+
+
 def _invert(patch: str) -> str:
     """Turn a unified diff around, so it undoes what it would have done."""
     header = re.compile(r"^@@ -(\d+(?:,\d+)?) \+(\d+(?:,\d+)?) @@(.*)$")
