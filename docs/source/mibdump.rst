@@ -309,8 +309,14 @@ What holds a base MIB back on the pysnmp target is the default --mib-stub
 list, not the target itself. Give --mib-stub explicitly and it replaces that
 list entirely -- so a base MIB the replacement omits is compiled and written
 like any other module, and it is then yours to make sure the result does not
-shadow the implementation pysnmp loads. --no-base-mibs and --no-bundled-mibs
-have no say once --mib-stub is given.
+shadow the implementation pysnmp loads. --no-base-mibs is not consulted at all
+once --mib-stub is given, since it only chooses what the default list holds
+back.
+
+--no-bundled-mibs is a different lever and keeps working either way: it decides
+whether the bundle is a source, not whether a module is stubbed. Combine it
+with a --mib-stub list that leaves a base MIB unstubbed and that MIB has to
+come from a --mib-source, or the compile fails on it as missing.
 
 Fuzzying MIB module names
 -------------------------

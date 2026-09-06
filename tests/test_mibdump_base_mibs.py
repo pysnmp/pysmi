@@ -185,6 +185,27 @@ class MibDumpBaseMibsTestCase(unittest.TestCase):
 
         self.assertTrue((self.dst / "SNMPv2-CONF.py").is_file())
 
+    def testNoBundledMibsStillBitesAlongsideACustomMibStub(self):
+        """The two flags are separate levers, and --mib-stub disarms only one.
+
+        --no-base-mibs is read only where the default stub list is built, so
+        --mib-stub makes it moot. --no-bundled-mibs is not: it decides whether
+        the bundle is a source at all, so a base MIB the replacement list
+        leaves unstubbed has nowhere offline to come from.
+        """
+        _, output = runMibdump(
+            f"--mib-source={self.src}",
+            f"--destination-directory={self.dst}",
+            "--destination-format=json",
+            "--mib-stub=NOTHING-AT-ALL",
+            "--no-bundled-mibs",
+            "--ignore-errors",
+            "SELF-CONTAINED-TEST-MIB",
+        )
+
+        self.assertIn("SNMPv2-SMI", output.split("Missing source MIBs:")[1])
+        self.assertFalse((self.dst / "SNMPv2-SMI.json").exists())
+
     def testDroppingTheBundleDropsTheBaseMibsWithIt(self):
         """They are written out from the bundled copies or not at all.
 

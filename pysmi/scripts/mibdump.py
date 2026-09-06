@@ -148,8 +148,11 @@ def start() -> None:
                 shadow the implementation. Without this, a JSON
                 destination directory resolves every import on its own
                 rather than needing the base MIBs from somewhere else.
-                Giving --mib-stub explicitly replaces the stub list for
-                either format and overrides all of this.
+                Giving --mib-stub explicitly replaces the stub list, for
+                either format, and this option is then not consulted at
+                all. --no-bundled-mibs is: it drops the bundle as a
+                source, so a base MIB the replacement list leaves
+                unstubbed has to come from --mib-source or it is missing.
         --repair-imports - supply the import a MIB should have carried for
                 any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
                 without naming it in IMPORTS, which RFC 2578 Section 3.2
