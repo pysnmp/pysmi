@@ -33,8 +33,10 @@ RFC never changes, but a later RFC can obsolete it. That is how the mirror
 came to serve an ENTITY-MIB eight years superseded. So a MIB is pinned to an
 RFC number, and --check asks the RFC Editor whether that RFC still stands.
 
-A user-supplied copy always wins over a bundled one, so nothing here can
-shadow a current MIB the caller already has.
+A user-supplied copy wins over a bundled one when it carries a newer
+MODULE-IDENTITY revision -- not merely by being user-supplied. So a stale
+entry here does shadow a caller's own copy of the same module unless that
+copy is newer, which is why nothing goes in that is still being revised.
 
 What is here is:
 

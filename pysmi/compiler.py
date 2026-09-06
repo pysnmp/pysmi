@@ -206,8 +206,13 @@ class MibCompiler:
         Keyword Args:
             useBundledMibs: register pysmi's own bundled copy of the base
                 MIBs (``SNMPv2-SMI`` and friends) as a priority source, tried
-                ahead of everything added through :py:meth:`add_sources`. Set
-                to ``False`` so a misconfigured ``add_sources`` call fails
+                ahead of everything added through :py:meth:`add_sources`. It
+                is a source of its own rather than a last-resort fallback:
+                where an :py:meth:`add_sources` reader has one of those
+                modules too, the newest MODULE-IDENTITY revision supplies it
+                and this ordering only breaks the tie -- :py:meth:`compile`
+                states the whole rule. Set to ``False`` to compile from
+                :py:meth:`add_sources` alone, so a misconfigured call fails
                 loudly instead of silently succeeding from the bundled copy.
         """
         self._parser = parser

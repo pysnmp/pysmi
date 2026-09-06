@@ -110,22 +110,29 @@ def start() -> None:
                 longer exists in any configured source. Runs without
                 MIB-NAME arguments; deletes unless combined with
                 --dry-run.
-        --no-bundled-mibs - do not fall back to pysmi's own bundled copy
-                of the RFC-frozen base MIBs (SNMPv2-SMI and similar) when
-                none of --mib-source has them. Without this, a compile
-                that would once have failed on a missing base MIB now
-                silently succeeds from the bundled copy; pass this to make
-                a misconfigured --mib-source fail loudly instead.
+        --no-bundled-mibs - do not use pysmi's own bundled copies of the
+                RFC-frozen base MIBs (SNMPv2-SMI and similar) at all. The
+                bundle is not a last-resort fallback: it is consulted
+                ahead of --mib-source, and where both have one of those
+                couple of dozen modules the newer MODULE-IDENTITY
+                LAST-UPDATED supplies it -- so a --mib-source carrying a
+                newer revision still wins, and one carrying an older or
+                undated copy does not. Revisions are only compared across
+                sources read locally (file, zip); a remote --mib-source is
+                not fetched once a local source has the module, leaving
+                the bundled copy in place. Pass this to compile strictly
+                from --mib-source, so a base MIB that is missing there
+                fails loudly rather than resolving to the bundled copy.
         --repair-imports - supply the import a MIB should have carried for
                 any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
                 without naming it in IMPORTS, which RFC 2578 Section 3.2
                 does not allow. Off by default, so a MIB broken this way
                 fails rather than being silently patched; what was
                 repaired is listed in the report.
-        --strict-sources - fail a MIB that more than one --mib-source has a
-                different copy of. Without this the first one wins, by the
-                rule mibdump's documentation states, and the copies passed
-                over are named on the shadowed line of the report.""".format(
+        --strict-sources - fail a MIB that more than one source has a
+                different copy of. Without this, the precedence above picks
+                one and the copies passed over are named on the "MIBs found
+                in more than one source" line of the report.""".format(
         os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES))
     )
 
@@ -418,7 +425,7 @@ def start() -> None:
     Destination format: {}
     Parser grammar cache directory: {}
     Also compile all relevant MIBs: {}
-    Use pysmi's bundled base MIBs as a fallback source: {}
+    Search pysmi's bundled base MIBs, newest revision winning: {}
     Rebuild MIBs regardless of age: {}
     Prune stored MIBs with no remaining source: {}
     Dry run mode: {}
