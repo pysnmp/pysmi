@@ -29,7 +29,25 @@
     # marker at all, so "refactor!:" and "feat!:" were read as no release.
     [
       "@semantic-release/commit-analyzer",
-      { preset: "conventionalcommits"
+      {
+        preset: "conventionalcommits",
+        # The scope, not the type, is what says a dependency moved: dependabot
+        # writes "deps" for a runtime dependency and "deps-dev" for one that
+        # only this repository sees (.github/dependabot.yml). A runtime bump
+        # changes what an installer resolves, so it has to be released --
+        # whatever type it was written with, including the "chore(deps)" that
+        # would otherwise sit unreleased until an unrelated commit landed. A
+        # dev bump never releases, even written as "fix(deps-dev)".
+        #
+        # Custom rules short-circuit the built-in ones, so breaking changes and
+        # "feat(deps)" are restated here or they would be demoted to a patch.
+        # Rules are matched in order.
+        releaseRules: [
+          { breaking: true, release: "major" },
+          { scope: "deps-dev", release: false },
+          { type: "feat", scope: "deps", release: "minor" },
+          { scope: "deps", release: "patch" },
+        ],
       },
     ],
     [
