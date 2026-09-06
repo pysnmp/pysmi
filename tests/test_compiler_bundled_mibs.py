@@ -441,14 +441,14 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
     """The counts stated in mibdump's --help and guide, checked against the
     bundle itself.
 
-    "34 of the 302 bundled modules carry no MODULE-IDENTITY" is load-bearing
+    "34 of the 299 bundled modules carry no MODULE-IDENTITY" is load-bearing
     prose: it is why --prefer-mib-source exists. Adding to the bundle without
     updating pysmi/scripts/mibdump.py, docs/source/mibdump.rst and
     docs/source/bundled-mibs.rst would leave them quietly wrong, so the numbers
     are asserted rather than trusted.
     """
 
-    def testTheBundleIsThreeHundredAndTwoModulesThirtyFourOfThemUndated(self):
+    def testTheBundleIsTwoHundredAndNinetyNineModulesThirtyFourOfThemUndated(self):
         names = bundled_mib_names(BUNDLED_PACKAGE)
         undated = {
             name
@@ -459,7 +459,7 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
             is None
         }
 
-        self.assertEqual(302, len(names))
+        self.assertEqual(299, len(names))
         self.assertEqual(34, len(undated))
         self.assertIn("SNMPv2-SMI", undated)
 
