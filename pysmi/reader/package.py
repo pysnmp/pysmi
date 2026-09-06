@@ -76,7 +76,25 @@ class PackageReader(AbstractReader):
         for mibalias, mibfile in self.get_mib_variants(mibname, **options):
             candidate = root.joinpath(mibfile)
 
-            if not candidate.is_file():
+            try:
+                if not candidate.is_file():
+                    continue
+
+            except OSError as exc:
+                # A candidate the filesystem will not even stat is one this
+                # package cannot be holding -- a name longer than NAME_MAX is
+                # the case that turns up in practice, since get_mib_variants()
+                # appends extensions and pushes a merely long MIB name over the
+                # limit. Path.is_file() only swallows ENOENT, ENOTDIR, EBADF
+                # and ELOOP, so ENAMETOOLONG would otherwise escape as a
+                # traceback where every other reader reports the module
+                # missing.
+                logger.debug(
+                    "package resource %s stat failure: %s",
+                    mibfile,
+                    exc,
+                    extra={"mib": mibname, "error": str(exc)},
+                )
                 continue
 
             logger.debug(
