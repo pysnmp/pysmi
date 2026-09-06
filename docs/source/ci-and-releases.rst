@@ -132,35 +132,40 @@ it as a required check.
 The test matrix
 ---------------
 
-Every supported Python runs on Linux on every pull request. macOS and Windows
-run only on the edge Python versions, and only when the run can justify the
-cost: a push to ``main`` or ``next``, a manual dispatch, or a pull request
-carrying the ``ci:full-matrix`` label.
+Every supported Python runs on Linux, and the edge Python versions run on
+Windows, on every pull request. macOS runs on the edge versions too, but only
+when the run can justify the cost: a push to ``main`` or ``next``, a manual
+dispatch, or a pull request carrying the ``ci:full-matrix`` label.
 
 .. list-table::
    :header-rows: 1
-   :widths: 40 25 35
+   :widths: 40 20 20 20
 
    * - Trigger
      - Linux
-     - macOS and Windows
+     - Windows
+     - macOS
    * - Pull request
      - 3.10 – 3.14
+     - 3.10 and 3.14
      - —
    * - Pull request labelled ``ci:full-matrix``
      - 3.10 – 3.14
      - 3.10 and 3.14
+     - 3.10 and 3.14
    * - Push to ``main`` or ``next``
      - 3.10 – 3.14
      - 3.10 and 3.14
+     - 3.10 and 3.14
 
-That is five jobs on an ordinary pull request and nine on a broad run.
+That is seven jobs on an ordinary pull request and nine on a broad run.
 
-These are pure-Python tests, so the interpreter version is where the risk
-lives and the operating system mostly is not. Windows still earns coverage for
-encoding and path handling; macOS is kept on the edge versions so that broad
-runs retain platform coverage without making every ordinary pull request pay for
-it.
+These are pure-Python tests, so the interpreter version is where most of the
+risk lives -- but not all of it. Windows is the platform whose line endings,
+path separators and missing ``pwd`` module this package has to account for,
+and a Windows-only regression that a pull request does not run is one found on
+``next`` instead. macOS has yet to catch anything Linux did not, so it stays
+behind the label.
 
 To get the broad matrix on a pull request, add the ``ci:full-matrix`` label.
 The workflow listens for the ``labeled`` event, so the run starts when the
