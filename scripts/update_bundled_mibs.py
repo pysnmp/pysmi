@@ -581,6 +581,23 @@ RFC can replace it.
 {patched} modules carry a patch, listed under :ref:`bundled-mib-patches` below,
 because their published text does not compile as published.
 
+The same modules ship compiled too. A wheel carries ``pysmi/mibs/pysnmp/``,
+one pysnmp module per entry below, rendered from the ASN.1 by ``hatch_build.py``
+while the wheel is built. A consumer that wants to *load* a standard module
+rather than compile it can point pysnmp straight at the package::
+
+   from pysnmp.smi import builder
+
+   mibBuilder = builder.MibBuilder()
+   mibBuilder.addMibSources(builder.ZipMibSource("pysmi.mibs.pysnmp"))
+   mibBuilder.loadModules("IF-MIB")
+
+Nothing under that directory is in the repository and nothing regenerates it on
+a schedule: it is built from the ASN.1 beside it every time a distribution is,
+so the two cannot disagree. The ASN.1 stays because it is what the compiler
+reads -- resolving an IMPORTS clause means parsing the imported module's source
+-- so the compiled form joins it rather than replacing it.
+
 Membership is decided by whether a module has a publisher we can re-fetch and
 diff -- not by which directory a mirror files it under. That is deliberate: MIB
 collections routinely file CableLabs, DMTF, MEF and SCTE modules as "standard",

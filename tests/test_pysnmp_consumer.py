@@ -18,11 +18,14 @@ accessor, this file goes red and pysmi is not at fault, which is why it is
 marked ``pysnmp_consumer`` and does not gate CI. See pysnmp/pysmi#127.
 """
 
+import pathlib
+import shutil
 import sys
 import unittest
 
 import pytest
 
+from hatch_build import build as build_precompiled
 from pysmi.codegen import PySnmpCodeGen
 from tests.harness import render_pysnmp
 from tests.test_spec_index import MULTI_MIB
@@ -304,3 +307,44 @@ suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
 
 if __name__ == "__main__":
     unittest.TextTestRunner(verbosity=2).run(suite)
+
+
+class PrecompiledBundleTestCase(unittest.TestCase):
+    """The modules a wheel carries in ``pysmi/mibs/pysnmp`` load as they are.
+
+    That is the whole point of generating them: a consumer adds the package as
+    a MIB source and loads a standard module without running the compiler.
+    A wheel is not built here, so the hook's generator is called directly and
+    its output read as a directory rather than as ``pysmi.mibs.pysnmp``.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.out = build_precompiled(pathlib.Path(__file__).parent.parent)
+
+        from pysnmp.smi import builder
+
+        cls.mibBuilder = builder.MibBuilder()
+        cls.mibBuilder.addMibSources(builder.DirMibSource(str(cls.out)))
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.out, ignore_errors=True)
+
+    def testAStandardModuleLoadsWithoutBeingCompiledFirst(self):
+        self.mibBuilder.loadModules("IF-MIB")
+
+        (ifDescr,) = self.mibBuilder.importSymbols("IF-MIB", "ifDescr")
+
+        self.assertEqual((1, 3, 6, 1, 2, 1, 2, 2, 1, 2), tuple(ifDescr.name))
+
+    def testAModuleLoadsTheDependenciesItImports(self):
+        self.mibBuilder.loadModules("ENTITY-MIB")
+
+        (entPhysicalDescr,) = self.mibBuilder.importSymbols(
+            "ENTITY-MIB", "entPhysicalDescr"
+        )
+
+        self.assertEqual(
+            (1, 3, 6, 1, 2, 1, 47, 1, 1, 1, 1, 2), tuple(entPhysicalDescr.name)
+        )
