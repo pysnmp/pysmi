@@ -856,6 +856,13 @@ modules are left out despite having an RFC: ``COFFEE-POT-MIB`` (RFC 2325, an
 April Fools' RFC whose ASN.1 does not parse) and ``TCPIPX-MIB`` (RFC 1792,
 rooted under ``enterprises`` and so a vendor module in any case).
 
+``SNMPv2-SMI-v1`` and ``SNMPv2-TC-v1`` are left out for a third reason. They
+are widely imported -- 19 and 36 modules in the mirror name them -- but no
+body publishes them. Both are SMIC output from 1994, a tool's SNMPv1 rendering
+of RFC 1442, which RFC 1902 and then RFC 2578 obsoleted. There is nothing to
+fetch and nothing to check them against, and the rule that every bundled byte
+is traceable to a publisher is worth more than the two entries.
+
 All of them remain available from https://pysnmp.github.io/mibs/asn1/, which is
 where pysmi looks by default.
 """
