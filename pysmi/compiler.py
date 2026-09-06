@@ -644,6 +644,15 @@ class MibCompiler:
 
                         failedMibs.pop(mibname, None)
 
+                        # An earlier candidate that failed to parse left its
+                        # error as this module's status. This one parsed, so
+                        # that status is stale -- and it would otherwise
+                        # stand, since the statuses set further down only
+                        # fill in a module that has none yet. Without this a
+                        # module compiled from a fallback copy is written to
+                        # disk and still reported failed.
+                        processed.pop(mibname, None)
+
                         # The copy that parses is the copy that is used, and
                         # it is not always the first one found -- a candidate
                         # that fails to parse falls through to the next. So
