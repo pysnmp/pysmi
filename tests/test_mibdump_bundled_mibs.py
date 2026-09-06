@@ -207,6 +207,23 @@ class MibDumpShadowedSourceReportTestCase(unittest.TestCase):
             "decided by  source order; no MODULE-IDENTITY revision to compare", output
         )
 
+    def testTheCopyThatParsesIsTheCopyReportedAsUsed(self):
+        # The first candidate is not always the one used: one that fails to
+        # parse falls through to the next, and it is that one the report has
+        # to name. --prefer-mib-source puts the broken copy first.
+        (self.src / UNDATED).write_text("IPV6-TC DEFINITIONS ::= BEGIN\nnot asn.1\n")
+
+        _code, output = self._run(UNDATED, "--prefer-mib-source")
+
+        self.assertIn(f"WARNING: {UNDATED} resolved to pysmi's bundled copy", output)
+        self.assertIn(f"used        package://{BUNDLED_PACKAGE}/{UNDATED}", output)
+        self.assertIn(f"passed over file://{self.src}/{UNDATED}", output)
+        # The exit code is deliberately not asserted: the first candidate's
+        # parse error stays on the status even though a later candidate
+        # parsed, so the run still reports the module as failed. That is
+        # pysmi's own behaviour, unrelated to which copy gets reported, and
+        # is left alone here.
+
     def testOneSourceOnlyReportsNothing(self):
         (self.src / "TINY-TEST-MIB").write_text(TARGET_MIB)
 

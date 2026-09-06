@@ -156,8 +156,15 @@ class MibStatus(str):
 
         The module-level statuses are shared constants, so detail about one
         particular MIB is attached to a copy rather than to the original.
+
+        Detail already on this status is carried over, so a second call adds
+        to the first rather than replacing it -- a status is built up in more
+        than one place (what a module resolved to is known before whether it
+        compiled), and dropping the earlier half would take ``error`` off a
+        failure with it.
         """
         n = self.__class__(self)
+        n.__dict__.update(self.__dict__)
         for k, v in kwargs.items():
             setattr(n, k, v)
         return n
@@ -637,6 +644,24 @@ class MibCompiler:
 
                         failedMibs.pop(mibname, None)
 
+                        # The copy that parses is the copy that is used, and
+                        # it is not always the first one found -- a candidate
+                        # that fails to parse falls through to the next. So
+                        # the copies passed over, and the path used, are only
+                        # known here. Key them by the name the module turned
+                        # out to have, which is what everything downstream is
+                        # keyed by; the lookup name keeps its own entry, for
+                        # a strictSources failure to report.
+                        if shadowedMibs.get(mibname):
+                            shadowedMibs[mibInfo.name] = [
+                                info.path
+                                for _, info, _ in candidates
+                                if info.path != fileInfo.path
+                                and info.digest != fileInfo.digest
+                            ]
+                            precedenceOfMib[mibInfo.name] = precedenceOfMib[mibname]
+                            usedPathOfMib[mibInfo.name] = fileInfo.path
+
                         mibsToParse.extend(mibInfo.imported)
 
                         if fileInfo.name in mibnames:
@@ -1091,7 +1116,7 @@ class MibCompiler:
         for mibname, shadowed in shadowedMibs.items():
             status = processed.get(mibname)
 
-            if status is None or getattr(status, "shadowed", None):
+            if not shadowed or status is None or getattr(status, "shadowed", None):
                 continue
 
             carried: dict[str, Any] = {

@@ -234,9 +234,9 @@ Rule 1 compares only the copies pysmi actually reads. Once some source has
 the module, pysmi keeps reading further sources just to compare revisions
 while they are local -- file, zip, or the bundle itself -- and stops at the
 first one it would have to go over the network for. A remote --mib-source --
-http, https, ftp, sftp -- is therefore never fetched merely to compare
-revisions, and neither is anything listed after it: whatever revision that
-copy carries, it is not considered. This is why the default
+http or https -- is therefore never fetched merely to compare revisions, and
+neither is anything listed after it: whatever revision that copy carries, it
+is not considered. This is why the default
 https://pysnmp.github.io/mibs/asn1/@mib@ mirror does not override a bundled
 base MIB, and why a local --mib-source meant to override one should be given
 ahead of any remote source.
