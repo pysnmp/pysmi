@@ -119,22 +119,36 @@ class MibDumpBaseMibsTestCase(unittest.TestCase):
                 with self.subTest(mib=path.stem, imports=imported):
                     self.assertIn(imported, emitted)
 
-    def testTheReportNamesTheBaseMibsItWillWriteOut(self):
-        """A run says which base MIBs are coming, rather than leaving it to be found."""
+    def testTheReportNamesTheBaseMibsItMayWriteOut(self):
+        """A run says which base MIBs are in play, rather than leaving it to be found.
+
+        The line is the eligible set, not the subset this run reaches: it is
+        printed with the rest of the configuration, before anything is
+        compiled. Which of them were written is on the created/updated line.
+        """
         output = self._run()
 
-        line = output.split("Base MIBs written out with the modules importing them:")[
+        line = output.split("Base MIBs eligible to be written out from the bundle:")[
             1
         ].splitlines()[0]
 
+        created = output.split("Created/updated MIBs:")[1].splitlines()[0]
+
+        # SNMPv2-TC is eligible and this run reaches it; RFC1213-MIB is
+        # eligible and this run does not.
         self.assertIn("SNMPv2-TC", line)
+        self.assertIn("SNMPv2-TC", created)
+
+        self.assertIn("RFC1213-MIB", line)
+        self.assertNotIn("RFC1213-MIB", created)
+        self.assertFalse((self.dst / "RFC1213-MIB.json").exists())
 
     def testNoBaseMibsLeavesThemStubbedOut(self):
         """--no-base-mibs restores the behaviour of releases before 2.2."""
         output = self._run("--no-base-mibs")
 
         self.assertIn(
-            "Base MIBs written out with the modules importing them: none", output
+            "Base MIBs eligible to be written out from the bundle: none", output
         )
         self.assertFalse((self.dst / "SNMPv2-TC.json").exists())
         self.assertTrue((self.dst / "SELF-CONTAINED-TEST-MIB.json").is_file())
@@ -144,7 +158,7 @@ class MibDumpBaseMibsTestCase(unittest.TestCase):
         output = self._run("--mib-stub=SNMPv2-TC")
 
         self.assertIn(
-            "Base MIBs written out with the modules importing them: none", output
+            "Base MIBs eligible to be written out from the bundle: none", output
         )
         self.assertFalse((self.dst / "SNMPv2-TC.json").exists())
 
@@ -153,10 +167,23 @@ class MibDumpBaseMibsTestCase(unittest.TestCase):
         output = self._run("--no-python-compile", fmt="pysnmp")
 
         self.assertIn(
-            "Base MIBs written out with the modules importing them: none", output
+            "Base MIBs eligible to be written out from the bundle: none", output
         )
         self.assertFalse((self.dst / "SNMPv2-TC.py").exists())
         self.assertTrue((self.dst / "SELF-CONTAINED-TEST-MIB.py").is_file())
+
+    def testACustomMibStubLetsAPysnmpBaseMibThrough(self):
+        """The default stub list is what holds them back, not the pysnmp target.
+
+        --mib-stub replaces that list rather than adding to it, so a base MIB
+        the replacement omits is compiled and written like any other module --
+        on the pysnmp target too, where the result can shadow the
+        implementation pysnmp loads. Documented rather than prevented: the
+        caller asked for exactly this list.
+        """
+        self._run("--no-python-compile", "--mib-stub=NOTHING-AT-ALL", fmt="pysnmp")
+
+        self.assertTrue((self.dst / "SNMPv2-CONF.py").is_file())
 
     def testDroppingTheBundleDropsTheBaseMibsWithIt(self):
         """They are written out from the bundled copies or not at all.
@@ -175,7 +202,7 @@ class MibDumpBaseMibsTestCase(unittest.TestCase):
         )
 
         self.assertIn(
-            "Base MIBs written out with the modules importing them: none", output
+            "Base MIBs eligible to be written out from the bundle: none", output
         )
         self.assertFalse((self.dst / "SNMPv2-TC.json").exists())
 
