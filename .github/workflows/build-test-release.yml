@@ -208,11 +208,6 @@ jobs:
             conventional-changelog-conventionalcommits@8.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
-      - name: Move repository semver tags
-        if: env.DRY != 'true' && steps.semantic.outputs.new_release_published == 'true'
-        uses: haya14busa/action-update-semver@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.SEMREL_TOKEN }}
       # A dry run tags nothing and builds nothing, so the version the branch
       # would release is only ever a log line. Build it as a .devN and keep it,
       # so the release can be installed and tried before it is cut.
