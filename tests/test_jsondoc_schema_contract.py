@@ -213,6 +213,45 @@ class DocumentValidationTestCase(unittest.TestCase):
         """A schema branch no document reaches is a branch nothing tests."""
         self.assertEqual(self.declaredClasses() - self.sampledClasses(), set())
 
+    def testAgentCapabilitiesRequiresItsStatus(self):
+        """`status` is required, and the other three fields are not.
+
+        The grammar makes STATUS mandatory --
+        ``agentCapabilitiesClause : … STATUS Status …`` -- and ``Status`` is a
+        bare ``LOWERCASE_IDENTIFIER``, so it is never empty and the generator
+        always emits it. ``productrelease`` and ``capabilities`` look equally
+        mandatory and are not: the generator drops ``productrelease`` when the
+        MIB declares it as an empty string, and ``ModulePart_Capabilities`` is
+        an optional production, so a declaration with no SUPPORTS clause is
+        valid.
+
+        Asserted by mutation rather than by fixture, because the parser cannot
+        produce a document without a status to test against.
+        """
+        document = self.withTexts["CAPS-SCHEMA-MIB"]
+        symbol = document["capsCapability"]
+
+        self.assertEqual([], list(self.validator.iter_errors(document)))
+
+        without = {k: v for k, v in symbol.items() if k != "status"}
+        errors = list(
+            self.validator.iter_errors({**document, "capsCapability": without})
+        )
+        self.assertNotEqual([], errors, "a capability without a status must be refused")
+
+        for optional in ("productrelease", "capabilities"):
+            with self.subTest(field=optional):
+                self.assertIn(optional, symbol)
+                trimmed = {k: v for k, v in symbol.items() if k != optional}
+                self.assertEqual(
+                    [],
+                    list(
+                        self.validator.iter_errors(
+                            {**document, "capsCapability": trimmed}
+                        )
+                    ),
+                )
+
     def testTheSchemaDeclaresEveryClassTheGeneratorEmits(self):
         """And the converse, which is the direction that actually broke.
 
