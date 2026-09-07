@@ -10,6 +10,11 @@
     "prerelease": false
   },
   {
+    "version": "2.2.0-rc.3",
+    "url": "../2.2.0-rc.3/",
+    "prerelease": true
+  },
+  {
     "version": "2.2.0-rc.2",
     "url": "../2.2.0-rc.2/",
     "prerelease": true

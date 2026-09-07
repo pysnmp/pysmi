@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>PySMI documentation &#8212; SNMP SMI compiler 2.2.0rc3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
+    <script src="_static/documentation_options.js?v=84e01bfb"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The mibdump tool" href="mibdump.html" />
+    <link rel="prev" title="SNMP SMI compiler" href="contents.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="contents.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PySMI documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="contents.html">Documentation overview</a><ul>
+      <li>Previous: <a href="contents.html" title="previous chapter">SNMP SMI compiler</a></li>
+      <li>Next: <a href="mibdump.html" title="next chapter">The <em>mibdump</em> tool</a></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="pysmi-documentation">
+<h1>PySMI documentation<a class="headerlink" href="#pysmi-documentation" title="Link to this heading">¶</a></h1>
+<p>PySMI library is highly modular. The top-level component is called
+<em>compiler</em> and it acts as main user-facing object. Most of other
+components are plugged into the <em>compiler</em> object prior to its use.</p>
+<p>Normally, user asks <em>compiler</em> to perform certain transformation of
+named MIB module. Compiler will:</p>
+<ul class="simple">
+<li><p>Search its data sources for given MIB module (identified by name)
+noting their last modification times.</p></li>
+<li><p>Search compiler-managed repositories of already converted MIB modules
+for modules that are more recent than corresponding source MIB module.</p></li>
+<li><p>If freshly transformed MIB module is found, processing stops here.</p></li>
+<li><p>Otherwise compiler passes ASN.1 MIB module content to the <em>lexer</em>
+component.</p></li>
+<li><p>Lexer returns a sequence of tokenized ASN.1 MIB contents. Compiler
+then passes that sequence of tokens to the <em>parser</em> component.</p></li>
+<li><p>Parser runs LR algorithm on tokenized MIB thus transforming MIB
+contents into Abstract Syntax Tree (AST) and also noting what other
+MIB modules are referred to from the MIB being parsed.</p></li>
+<li><p>In case of parser failure, what is usually an indication of broken
+ASN.1 MIB syntax, compiler may attempt to fetch pre-transformed MIB
+contents from configured source. This process is called <em>borrowing</em>
+in PySMI.</p></li>
+<li><p>In case of successful parser completion, compiler will pass produced
+AST to <em>code generator</em> component.</p></li>
+<li><p>Code generator walks its input AST and performs actual data
+transformation.</p></li>
+<li><p>The above steps may be repeated for each of the MIB modules referred
+to as parser figures out. Once no more unresolved dependencies remain,
+compiler will call its <em>writer</em> component to store all transformed MIB
+modules.</p></li>
+</ul>
+<p>The location of ASN.1 MIB modules and flavor of their syntax, as well as
+desired transformation format, is determined by respective components
+chosen and configured to compiler.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="mibdump.html">The <em>mibdump</em> tool</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#specifying-mib-source">Specifying MIB source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#which-copy-of-a-mib-gets-compiled">Which copy of a MIB gets compiled</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#seeing-what-was-decided">Seeing what was decided</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#what-ends-up-in-the-destination-directory">What ends up in the destination directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#fuzzying-mib-module-names">Fuzzying MIB module names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#avoiding-excessive-transformation">Avoiding excessive transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#blacklisting-mibs">Blacklisting MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#dealing-with-broken-mibs">Dealing with broken MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#repairing-missing-imports">Repairing missing IMPORTS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#choosing-target-transformation">Choosing target transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#setting-destination-directory">Setting destination directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#performing-unconditional-transformation">Performing unconditional transformation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#ignoring-transformation-errors">Ignoring transformation errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#skipping-dependencies">Skipping dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#generating-mib-texts">Generating MIB texts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#building-mib-indices">Building MIB indices</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html#minor-speedups">Minor speedups</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mibcopy.html">The <em>mibcopy</em> tool</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html#specifying-mib-source">Specifying MIB source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html#setting-destination-directory">Setting destination directory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html#ignoring-transformation-errors">Ignoring transformation errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html#minor-speedups">Minor speedups</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html#inventory">Inventory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html#patched-modules">Patched modules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html#modules-maintained-here">Modules maintained here</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html#modules-pinned-to-an-obsoleted-rfc">Modules pinned to an obsoleted RFC</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html#not-bundled">Not bundled</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html#versioning">Versioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html#document-structure">Document structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html#symbols">Symbols</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html#shared-structures">Shared structures</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html#text-generation">Text generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html#module-identity">Module identity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html#the-oid-index">The OID index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html#validating-a-document">Validating a document</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#the-decision-under-review">The decision under review</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#three-schemas-not-one">Three schemas, not one</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#pysmi-already-defines-layer-1">pysmi already defines layer 1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#what-the-current-plan-gets-right">What the current plan gets right</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#where-it-goes-wrong">Where it goes wrong</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#the-base-mib-shape-has-three-copies">The base-MIB shape has three copies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#the-revised-layering">The revised layering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#revised-work-plan">Revised work plan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#sc4snmp-the-downstream-consumer">sc4snmp: the downstream consumer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#sequencing">Sequencing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html#open-questions">Open questions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="library-reference.html">PySMI library</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/compiler/mibcompiler.html">MIB compiler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/compiler/mibstatus.html">Compilation status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#method-naming">Method naming</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#mib-sources">MIB sources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#conditional-compilation">Conditional compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#parser-configuration">Parser configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#code-generators">Code generators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#borrow-pre-compiled-mibs">Borrow pre-compiled MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#write-compiled-mibs">Write compiled MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#extending-pysmi">Extending PySMI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#bundled-mibs">Bundled MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#exceptions">Exceptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html#examples">Examples</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

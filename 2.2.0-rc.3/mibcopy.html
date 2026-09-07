@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>The mibcopy tool &#8212; SNMP SMI compiler 2.2.0rc3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
+    <script src="_static/documentation_options.js?v=84e01bfb"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Bundled base MIBs" href="bundled-mibs.html" />
+    <link rel="prev" title="The mibdump tool" href="mibdump.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="contents.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="contents.html">Documentation overview</a><ul>
+  <li><a href="documentation.html">PySMI documentation</a><ul>
+      <li>Previous: <a href="mibdump.html" title="previous chapter">The <em>mibdump</em> tool</a></li>
+      <li>Next: <a href="bundled-mibs.html" title="next chapter">Bundled base MIBs</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="the-mibcopy-tool">
+<h1>The <em>mibcopy</em> tool<a class="headerlink" href="#the-mibcopy-tool" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>The <em>mibcopy</em> tool attempts to normalize the file name of the MIB file.</p>
+<p>It turned out that sometimes vendors name their MIBs in any possible way,
+not necessarily after the canonical MIB name. This causes problems to the
+MIB consumers as they may not be able to locate the MIB they need on the
+file system.</p>
+<p>The way how <em>mibcopy</em> works is that it tries to read the MIB from
+the given file (or all files from a given directory or archive), parse
+MIB’s canonical name from the contents of the file. Based on that, the
+tool tries to rename MIB file into the name which is the same as canonical
+MIB name. If <em>mibcopy</em> encounters the same named file already present
+on the file system, it reads it up to see its revision date. Then the
+tool compares the revision dates of the colliding MIB files and either
+overrides the offending file or drops the file being copied as outdated.</p>
+<p>The ultimate goal is to end up with the latest versions of the MIB files
+all named after their canonical names.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>mibcopy<span class="w"> </span>--help
+Synopsis:
+<span class="w">  </span>SNMP<span class="w"> </span>SMI/MIB<span class="w"> </span>files<span class="w"> </span>copying<span class="w"> </span>tool.<span class="w"> </span>When<span class="w"> </span>given<span class="w"> </span>MIB<span class="w"> </span>file<span class="o">(</span>s<span class="o">)</span><span class="w"> </span>or
+<span class="w">  </span>directory<span class="o">(</span>ies<span class="o">)</span><span class="w"> </span>on<span class="w"> </span>input<span class="w"> </span>and<span class="w"> </span>a<span class="w"> </span>destination<span class="w"> </span>directory,<span class="w"> </span>the<span class="w"> </span>tool
+<span class="w">  </span>parses<span class="w"> </span>MIBs<span class="w"> </span>to<span class="w"> </span>figure<span class="w"> </span>out<span class="w"> </span>their<span class="w"> </span>canonical<span class="w"> </span>MIB<span class="w"> </span>module<span class="w"> </span>name<span class="w"> </span>and
+<span class="w">  </span>the<span class="w"> </span>latest<span class="w"> </span>revision<span class="w"> </span>date,<span class="w"> </span><span class="k">then</span><span class="w"> </span>copies<span class="w"> </span>MIB<span class="w"> </span>module<span class="w"> </span>on<span class="w"> </span>input
+<span class="w">  </span>into<span class="w"> </span>the<span class="w"> </span>destination<span class="w"> </span>directory<span class="w"> </span>under<span class="w"> </span>its<span class="w"> </span>MIB<span class="w"> </span>module<span class="w"> </span>name
+<span class="w">  </span>*if*<span class="w"> </span>there<span class="w"> </span>is<span class="w"> </span>no<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>already<span class="w"> </span>or<span class="w"> </span>its<span class="w"> </span>revision<span class="w"> </span>date<span class="w"> </span>is
+<span class="w">  </span>older.
+
+Documentation:
+<span class="w">  </span>https://github.com/pysnmp/pysmi
+Usage:<span class="w"> </span>mibcopy<span class="w"> </span><span class="o">[</span>--help<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--version<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--verbose<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--quiet<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--debug<span class="o">=</span>&lt;all<span class="p">|</span>borrower<span class="p">|</span>codegen<span class="p">|</span>compiler<span class="p">|</span>grammar<span class="p">|</span>lexer<span class="p">|</span>
+<span class="w">                </span>parser<span class="p">|</span>reader<span class="p">|</span>searcher<span class="p">|</span>writer&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--mib-source<span class="o">=</span>&lt;URI&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--cache-directory<span class="o">=</span>&lt;DIRECTORY&gt;<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--ignore-errors<span class="o">]</span>
+<span class="w">      </span><span class="o">[</span>--dry-run<span class="o">]</span>
+<span class="w">      </span>&lt;SOURCE<span class="w"> </span><span class="o">[</span>SOURCE...<span class="o">]</span>&gt;<span class="w"> </span>&lt;DESTINATION&gt;
+Where:
+<span class="w">    </span>URI<span class="w">      </span>-<span class="w"> </span>file,<span class="w"> </span>zip,<span class="w"> </span>http,<span class="w"> </span>https<span class="w"> </span>schemes<span class="w"> </span>are
+<span class="w">               </span>supported.<span class="w"> </span>Use<span class="w"> </span>@mib@<span class="w"> </span>placeholder<span class="w"> </span>token<span class="w"> </span><span class="k">in</span><span class="w"> </span>URI<span class="w"> </span>to
+<span class="w">               </span>refer<span class="w"> </span>directly<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>required<span class="w"> </span>MIB<span class="w"> </span>module<span class="w"> </span>when
+<span class="w">               </span><span class="nb">source</span><span class="w"> </span>does<span class="w"> </span>not<span class="w"> </span>support<span class="w"> </span>directory<span class="w"> </span>listing
+<span class="w">               </span><span class="o">(</span>e.g.<span class="w"> </span>HTTP<span class="o">)</span>.
+</pre></div>
+</div>
+<section id="specifying-mib-source">
+<h2>Specifying MIB source<a class="headerlink" href="#specifying-mib-source" title="Link to this heading">¶</a></h2>
+<p>The –mib-source option can be given multiple times. Each instance of
+–mib-source must specify a URL where ASN.1 MIB modules should be
+looked up and downloaded from. At this moment three MIB sourcing
+methods are supported – a URL of any other scheme is rejected:</p>
+<ul class="simple">
+<li><p>Local files. This could be a top-level directory where MIB files are
+located. Subdirectories will be automatically traversed as well.
+Example: <a class="reference external" href="file:///usr/share/snmp">file:///usr/share/snmp</a></p></li>
+<li><p>ZIP archives containing MIB files. Subdirectories and embedded ZIP
+archives will be automatically traversed.
+Example: zip://mymibs.zip</p></li>
+<li><p>HTTP/HTTPS. A fully specified URL where MIB module name is specified by
+a &#64;mib&#64; placeholder. When specific MIB is looked up, PySMI will replace
+that placeholder with MIB module name it is looking for.
+Example: <a class="reference external" href="https://pysnmp.github.io/mibs/asn1">https://pysnmp.github.io/mibs/asn1/&#64;mib&#64;</a></p></li>
+</ul>
+<p>When trying to fetch a MIB module, the <em>mibcopy</em> tool will try each of
+configured –mib-source transports in order of specification till
+first successful hit.</p>
+<p>By default <em>mibcopy</em> will search:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="file:///usr/share/snmp">file:///usr/share/snmp</a></p></li>
+<li><p><a class="reference external" href="https://pysnmp.github.io/mibs/asn1">https://pysnmp.github.io/mibs/asn1</a>/&#64;mib&#64;</p></li>
+</ul>
+<p>Once another –mib-source option is given, those defaults will not be used
+and should be manually given to <em>mibcopy</em> if needed.</p>
+</section>
+<section id="setting-destination-directory">
+<h2>Setting destination directory<a class="headerlink" href="#setting-destination-directory" title="Link to this heading">¶</a></h2>
+<p>The <em>mibcopy</em> writes MIBs into the <em>&lt;DESTINATION&gt;</em> directory.</p>
+</section>
+<section id="ignoring-transformation-errors">
+<h2>Ignoring transformation errors<a class="headerlink" href="#ignoring-transformation-errors" title="Link to this heading">¶</a></h2>
+<p>By default PySMI will stop on first fatal error occurred during
+transformations of a series of MIBs. If you wish PySMI to ignore
+fatal errors and therefore skipping failed MIB, use the –ignore-errors
+option.</p>
+<p>Keep in mind that skipping transformation of MIBs that are imported
+by other MIBs might make dependant MIBs inconsistent for use.</p>
+</section>
+<section id="minor-speedups">
+<h2>Minor speedups<a class="headerlink" href="#minor-speedups" title="Link to this heading">¶</a></h2>
+<p>The –cache-directory option may be used to point to a temporary
+writable directory where PySMI parser (e.g. Ply) would store its
+lookup tables. That should improve PySMI performance a tad bit.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

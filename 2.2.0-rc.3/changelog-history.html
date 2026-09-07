@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Historical changelog &#8212; SNMP SMI compiler 2.2.0rc3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
+    <script src="_static/documentation_options.js?v=84e01bfb"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Changelog" href="changelog.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="contents.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="documentation.html">PySMI documentation</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="contents.html">Documentation overview</a><ul>
+      <li>Previous: <a href="changelog.html" title="previous chapter">Changelog</a></li>
+      <li>Next: <a href="license.html" title="next chapter">License</a></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="historical-changelog">
+<h1>Historical changelog<a class="headerlink" href="#historical-changelog" title="Link to this heading">¶</a></h1>
+<p>The narrative history of the project through 1.0.5. From 2.0.0-rc.1 onward see
+the generated <a class="reference internal" href="changelog.html"><span class="doc">Changelog</span></a>.</p>
+<section id="revision-2-0-0">
+<h2>Revision 2.0.0<a class="headerlink" href="#revision-2-0-0" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Renamed the public API from camelCase to snake_case
+(<code class="docutils literal notranslate"><span class="pre">addSources</span></code> becomes <code class="docutils literal notranslate"><span class="pre">add_sources</span></code>, <code class="docutils literal notranslate"><span class="pre">getMibVariants</span></code> becomes
+<code class="docutils literal notranslate"><span class="pre">get_mib_variants</span></code>, and so on). Every former name still works and
+warns with <code class="docutils literal notranslate"><span class="pre">DeprecationWarning</span></code>; a subclass that overrides a former
+name is installed under the new one, so existing overrides keep being
+called</p></li>
+<li><p>Generated MIBs are now reproducible: import and export symbol lists
+were emitted in <code class="docutils literal notranslate"><span class="pre">set</span></code> iteration order, so the same source produced
+different output from run to run</p></li>
+<li><p>The generated header no longer records the build clock, the
+interpreter version or the absolute source path. It carries
+<code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">digest</span> <span class="pre">sha256:...</span></code> instead, taken over the ASN.1 text with
+newlines normalised, so one MIB has one digest on every platform</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MibInfo</span></code> gained a <code class="docutils literal notranslate"><span class="pre">digest</span></code> field holding that value</p></li>
+<li><p>The JSON backend now emits the stand-in column it synthesises for an
+SMIv1 <code class="docutils literal notranslate"><span class="pre">INDEX</span></code> naming a bare type, matching the PySNMP backend</p></li>
+<li><p>PySMI no longer imports <code class="docutils literal notranslate"><span class="pre">pwd</span></code>, so it can be imported on Windows</p></li>
+<li><p>The JSON backend no longer nests a default value under two
+<code class="docutils literal notranslate"><span class="pre">default</span></code> keys. A default now reads at <code class="docutils literal notranslate"><span class="pre">obj[&quot;default&quot;]</span></code>, flat
+like every other clause, instead of <code class="docutils literal notranslate"><span class="pre">obj[&quot;default&quot;][&quot;default&quot;]</span></code></p></li>
+</ul>
+</section>
+<section id="revision-1-2-0-31-08-2026">
+<h2>Revision 1.2.0, 31-08-2026<a class="headerlink" href="#revision-1-2-0-31-08-2026" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Removed all Python 2 era code patterns and bumped minimum Python
+version to 3.10</p></li>
+<li><p>Migrated build system from Poetry to UV with the hatchling backend</p></li>
+<li><p>Replaced flake8/black/isort with ruff and pylint (configured in
+<code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>)</p></li>
+<li><p>Replaced <code class="docutils literal notranslate"><span class="pre">sys.exc_info()</span></code> with <code class="docutils literal notranslate"><span class="pre">except</span> <span class="pre">...</span> <span class="pre">as</span> <span class="pre">exc</span></code> and removed
+<code class="docutils literal notranslate"><span class="pre">try/except</span> <span class="pre">ImportError</span></code> import shims (<code class="docutils literal notranslate"><span class="pre">importlib</span></code>/<code class="docutils literal notranslate"><span class="pre">imp</span></code>,
+<code class="docutils literal notranslate"><span class="pre">json</span></code>/<code class="docutils literal notranslate"><span class="pre">simplejson</span></code>, <code class="docutils literal notranslate"><span class="pre">OrderedDict</span></code>)</p></li>
+<li><p>Dropped the <code class="docutils literal notranslate"><span class="pre">unittest2</span></code> fallback in favor of direct <code class="docutils literal notranslate"><span class="pre">unittest</span></code>
+with <code class="docutils literal notranslate"><span class="pre">pytest</span></code> as the test runner</p></li>
+<li><p>Updated CLI script shebangs to <code class="docutils literal notranslate"><span class="pre">python3</span></code> and refreshed the Copilot
+instructions to match the new toolchain</p></li>
+</ul>
+</section>
+<section id="revision-1-1-12-03-04-2024">
+<h2>Revision 1.1.12, 03-04-2024<a class="headerlink" href="#revision-1-1-12-03-04-2024" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix parsing path on windows</p></li>
+<li><p>Bump jinja2, pycryptodomex and black version</p></li>
+</ul>
+</section>
+<section id="revision-0-3-4-xx-01-2019">
+<h2>Revision 0.3.4, XX-01-2019<a class="headerlink" href="#revision-0-3-4-xx-01-2019" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Added <cite>implied</cite> key to JSON SNMP table index structure</p></li>
+<li><p>Rebased MIB importing code onto <cite>importlib</cite> because <cite>imp</cite> is long
+deprecated</p></li>
+<li><p>Fixed Py file borrower to become functional</p></li>
+</ul>
+</section>
+<section id="revision-0-3-3-29-12-2018">
+<h2>Revision 0.3.3, 29-12-2018<a class="headerlink" href="#revision-0-3-3-29-12-2018" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Added mibcopy.py documentation</p></li>
+<li><p>Copyright notice bumped up to year 2019</p></li>
+</ul>
+</section>
+<section id="revision-0-3-2-22-10-2018">
+<h2>Revision 0.3.2, 22-10-2018<a class="headerlink" href="#revision-0-3-2-22-10-2018" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Bumped upper Python version to 3.7 and enabled pip cache</p></li>
+<li><p>Exit code indication of the command-line tools aligned with
+sysexits.h to report more useful termination status</p></li>
+</ul>
+</section>
+<section id="revision-0-3-1-10-06-2018">
+<h2>Revision 0.3.1, 10-06-2018<a class="headerlink" href="#revision-0-3-1-10-06-2018" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fixed pysnmp lower version in test-requirements.txt</p></li>
+<li><p>Fixed compiler crash when building comments at a platform which
+has broken users/groups databases</p></li>
+</ul>
+</section>
+<section id="revision-0-3-0-29-04-2018">
+<h2>Revision 0.3.0, 29-04-2018<a class="headerlink" href="#revision-0-3-0-29-04-2018" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The <cite>mibcopy</cite> tool implemented to copy MIB modules from files with
+potentially messed up names into a directory under canonical MIB
+names picking up the latest MIB revision along the way.</p></li>
+<li><p>ZIP archive reader implemented to pull ASN.1 MIB files from .zip
+archives pretty much in the same way as from plain directories</p></li>
+<li><p>HTTP/S proxy support added (through respecting <cite>http_proxy</cite> environment
+variable) by switching from <cite>httplib</cite> to <cite>urllib2</cite> internally</p></li>
+<li><p>Copyright notice bumped up to year 2018</p></li>
+<li><p>Project site in the docs changes from SourceForge to snmplabs.com</p></li>
+<li><p>PRODUCT-RELEASE generation added to the JSON code generator</p></li>
+<li><p>Added special handling of BITS-like DEFVAL syntax for Integers
+that occurs in buggy MIBs</p></li>
+<li><p>Fixed missing REVISIONS generations in MODULE-IDENTITY</p></li>
+</ul>
+</section>
+<section id="revision-0-2-2-13-11-2017">
+<h2>Revision 0.2.2, 13-11-2017<a class="headerlink" href="#revision-0-2-2-13-11-2017" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Library documentation refactored and updated</p></li>
+<li><p>Fixed malformed Python code being produced by pysnmp code generator</p></li>
+</ul>
+</section>
+<section id="revision-0-2-1-11-11-2017">
+<h2>Revision 0.2.1, 11-11-2017<a class="headerlink" href="#revision-0-2-1-11-11-2017" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Added MIB <em>status</em>, <em>product release</em> and <em>revision description</em> set
+calls at pysnmp code generator</p></li>
+<li><p>Changed REVISION field format in JSON representation - it is now
+a list of dicts each with <em>revision</em> timestamp and <em>description</em> text</p></li>
+<li><p>MIB REFERENCE fields are only exported if –with-mib-text is on</p></li>
+<li><p>Sphinx documentation theme changed to Alabaster</p></li>
+<li><p>Multiple fixes to pysnmp codegen not to produce function calls
+with more than 255 parameters</p></li>
+</ul>
+</section>
+<section id="revision-0-1-4-14-10-2017">
+<h2>Revision 0.1.4, 14-10-2017<a class="headerlink" href="#revision-0-1-4-14-10-2017" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix to SMI lexer to treat tokens starting from a digit as belonging
+to a lower-cased class. This fixes sub-OID parsing bug (specifically,
+802dot3(10006))</p></li>
+<li><p>Fix to the mibdump.py local MIB path automatic injection in front
+of existing –mib-sources</p></li>
+</ul>
+</section>
+<section id="revision-0-1-3-19-05-2017">
+<h2>Revision 0.1.3, 19-05-2017<a class="headerlink" href="#revision-0-1-3-19-05-2017" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>INET-ADDRESS-MIB configured as pre-built at pysnmp codegen</p></li>
+<li><p>JSON codegen produces “nodetype” element for OBJECT-TYPE</p></li>
+<li><p>Fix to mibdump.py –destination-directory option</p></li>
+<li><p>Fix to pysnmp and JSON code generators to properly refer to MIB module
+defining particular MIB object</p></li>
+</ul>
+</section>
+<section id="revision-0-1-2-12-04-2017">
+<h2>Revision 0.1.2, 12-04-2017<a class="headerlink" href="#revision-0-1-2-12-04-2017" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>The &#64;mib&#64; magic in reader’s URL template made optional. If it is not present,
+MIB module name is just appended to URL template</p></li>
+<li><p>Send User-Agent containing pysmi and Python versions as well as platform name.</p></li>
+<li><p>Fixed missing STATUS/DISPLAY-HINT/REFERENCE/etc fields generation at pysnmp
+backend when running in the non-full-text mode</p></li>
+<li><p>Fixed broken <cite>ordereddict</cite> dependency on Python 2.6-</p></li>
+</ul>
+</section>
+<section id="revision-0-1-1-30-03-2017">
+<h2>Revision 0.1.1, 30-03-2017<a class="headerlink" href="#revision-0-1-1-30-03-2017" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Generate REFERENCE and STATUS fields at various SMI objects</p></li>
+<li><p>Generate DESCRIPTION field followed REVISION field at MODULE-IDENTITY objects</p></li>
+<li><p>Generate PRODUCT-RELEASE field at AGENT-CAPABILITIES objects</p></li>
+<li><p>Generated Python source aligned with PEP8</p></li>
+<li><p>MIB texts cleaned up by default, –keep-texts-layout preserves original formatting</p></li>
+<li><p>Fix to the <cite>ordereddict</cite> conditional dependency</p></li>
+<li><p>Missing test module recovered</p></li>
+<li><p>Failing tests fixed</p></li>
+</ul>
+</section>
+<section id="revision-0-1-0-25-03-2017">
+<h2>Revision 0.1.0, 25-03-2017<a class="headerlink" href="#revision-0-1-0-25-03-2017" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>JSON code generating backend implemented</p></li>
+<li><p>Experimental JSON OID-&gt;MIB indices generation implemented</p></li>
+<li><p>Package structure flattened for easier use</p></li>
+<li><p>Minor refactoring to the test suite</p></li>
+<li><p>Source code statically analyzed, hardened and PEP8-ized</p></li>
+<li><p>Files closed explicitly to mute ResourceWarnings</p></li>
+<li><p>Fixed to Python 2.4 (and aged ply) compatibility</p></li>
+<li><p>Added a workaround to avoid generating pysnmp TextualConvention classes
+inheriting from TextualConvention (when MIB defines a TEXTUAL-CONVENTION
+based on another TEXTUAL-CONVENTION as SYNTAX)</p></li>
+<li><p>Author’s e-mail changed, copyright extended to year 2017</p></li>
+</ul>
+</section>
+<section id="revision-0-0-7-12-02-2016">
+<h2>Revision 0.0.7, 12-02-2016<a class="headerlink" href="#revision-0-0-7-12-02-2016" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Crash on existing .py file handling fixed.</p></li>
+<li><p>Fix to __doc__ use in setup.py to make -O0 installation mode working.</p></li>
+<li><p>Fix to PyPackageSearcher not to fail on broken Python packages.</p></li>
+<li><p>Source code pep8’ed</p></li>
+<li><p>Copyright added to source files.</p></li>
+</ul>
+</section>
+<section id="revision-0-0-6-01-10-2015">
+<h2>Revision 0.0.6, 01-10-2015<a class="headerlink" href="#revision-0-0-6-01-10-2015" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Several typos fixed, source code linted again.</p></li>
+<li><p>Some dead code cleaned up.</p></li>
+</ul>
+</section>
+<section id="revision-0-0-5-28-09-2015">
+<h2>Revision 0.0.5, 28-09-2015<a class="headerlink" href="#revision-0-0-5-28-09-2015" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Wheel distribution format now supported.</p></li>
+<li><p>Handle the case of MIB symbols conflict with Python reserved words.</p></li>
+<li><p>Handle binary DEFVAL initializer for INTEGER’s.</p></li>
+<li><p>Generate LAST-UPDATED at pysnmp code generator.</p></li>
+</ul>
+</section>
+<section id="revision-0-0-4-01-07-2015">
+<h2>Revision 0.0.4, 01-07-2015<a class="headerlink" href="#revision-0-0-4-01-07-2015" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Fix to MRO compliance for mixin classes generation at pysnmp backend</p></li>
+<li><p>Fix to repeated imports in generated code at pysnmp backend</p></li>
+<li><p>Fix to mibdump tool to properly handle the –generate-mib-texts option.</p></li>
+<li><p>Fix to Python compile() - optimize flag is valid only past Python 3.1</p></li>
+<li><p>Fix to SMIv1 INDEX clause code generation for pysnmp backend.</p></li>
+<li><p>Tighten file creation security at pysmi.writer.pyfile</p></li>
+</ul>
+</section>
+<section id="revision-0-0-3-28-06-2015">
+<h2>Revision 0.0.3, 28-06-2015<a class="headerlink" href="#revision-0-0-3-28-06-2015" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Two-pass compiler design allows for much accurate code generation.</p></li>
+<li><p>Sphinx-based documentation first introduced</p></li>
+</ul>
+</section>
+<section id="revision-0-0-0-11-04-2015">
+<h2>Revision 0.0.0, 11-04-2015<a class="headerlink" href="#revision-0-0-0-11-04-2015" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>First public release, not fully operational yet</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

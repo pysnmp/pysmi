@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>PySMI library &#8212; SNMP SMI compiler 2.2.0rc3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
+    <script src="_static/documentation_options.js?v=84e01bfb"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="MIB compiler" href="pysmi/compiler/mibcompiler.html" />
+    <link rel="prev" title="MIBs as data: layering review" href="mibs-as-data.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="contents.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="contents.html">Documentation overview</a><ul>
+  <li><a href="documentation.html">PySMI documentation</a><ul>
+      <li>Previous: <a href="mibs-as-data.html" title="previous chapter">MIBs as data: layering review</a></li>
+      <li>Next: <a href="pysmi/compiler/mibcompiler.html" title="next chapter">MIB compiler</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="pysmi-library">
+<h1>PySMI library<a class="headerlink" href="#pysmi-library" title="Link to this heading">¶</a></h1>
+<p>The <em>MibCompiler</em> object is the top-most interface to PySMI library features.
+It holds together the otherwise isolated pieces of the compiler infrastructure
+and manages the workflow of ASN.1 MIB transformation.</p>
+<p>This example showcases some of its features:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.reader</span><span class="w"> </span><span class="kn">import</span> <span class="n">HttpReader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.searcher</span><span class="w"> </span><span class="kn">import</span> <span class="n">StubSearcher</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.writer</span><span class="w"> </span><span class="kn">import</span> <span class="n">CallbackWriter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">SmiStarParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.codegen</span><span class="w"> </span><span class="kn">import</span> <span class="n">JsonCodeGen</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.compiler</span><span class="w"> </span><span class="kn">import</span> <span class="n">MibCompiler</span>
+
+<span class="n">inputMibs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'IF-MIB'</span><span class="p">,</span> <span class="s1">'IP-MIB'</span><span class="p">]</span>
+
+<span class="n">httpSources</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'https://pysnmp.github.io/mibs/asn1/@mib@'</span><span class="p">]</span>
+
+<span class="c1"># store compiled MIBs by calling this function</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">store_mibs</span><span class="p">(</span><span class="n">mibName</span><span class="p">,</span> <span class="n">jsonDoc</span><span class="p">,</span> <span class="n">cbCtx</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">'# MIB module </span><span class="si">%s</span><span class="s1">'</span> <span class="o">%</span> <span class="n">mibName</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">jsonDoc</span><span class="p">)</span>
+
+<span class="n">mibCompiler</span> <span class="o">=</span> <span class="n">MibCompiler</span><span class="p">(</span>
+    <span class="n">SmiStarParser</span><span class="p">(),</span> <span class="n">JsonCodeGen</span><span class="p">(),</span> <span class="n">CallbackWriter</span><span class="p">(</span><span class="n">store_mibs</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="c1"># pull ASN.1 MIBs over HTTP</span>
+<span class="n">mibCompiler</span><span class="o">.</span><span class="n">add_sources</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">HttpReader</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">httpSources</span><span class="p">])</span>
+
+<span class="c1"># never recompile MIBs with ASN.1 MACROs</span>
+<span class="n">mibCompiler</span><span class="o">.</span><span class="n">add_searchers</span><span class="p">(</span><span class="n">StubSearcher</span><span class="p">(</span><span class="o">*</span><span class="n">JsonCodeGen</span><span class="o">.</span><span class="n">baseMibs</span><span class="p">))</span>
+
+<span class="n">status</span> <span class="o">=</span> <span class="n">mibCompiler</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="o">*</span><span class="n">inputMibs</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/compiler/mibcompiler.html">MIB compiler</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/compiler/mibcompiler.html#pysmi.compiler.MibCompiler"><code class="docutils literal notranslate"><span class="pre">MibCompiler</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/compiler/mibstatus.html">Compilation status</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/compiler/mibstatus.html#pysmi.compiler.MibStatus"><code class="docutils literal notranslate"><span class="pre">MibStatus</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="method-naming">
+<span id="camel-case-deprecation"></span><h2>Method naming<a class="headerlink" href="#method-naming" title="Link to this heading">¶</a></h2>
+<p>PySMI’s methods were camelCase – <code class="docutils literal notranslate"><span class="pre">addSources</span></code>, <code class="docutils literal notranslate"><span class="pre">getMibVariants</span></code>,
+<code class="docutils literal notranslate"><span class="pre">putData</span></code> and so on. They are snake_case now, as <span class="target" id="index-0"></span><a class="pep reference external" href="https://peps.python.org/pep-0008/"><strong>PEP 8</strong></a> calls for:
+<code class="docutils literal notranslate"><span class="pre">add_sources</span></code>, <code class="docutils literal notranslate"><span class="pre">get_mib_variants</span></code>, <code class="docutils literal notranslate"><span class="pre">put_data</span></code>.</p>
+<p>Every renamed method keeps its old name, so existing code goes on working:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mibCompiler</span><span class="o">.</span><span class="n">addSources</span><span class="p">(</span><span class="n">HttpReader</span><span class="p">(</span><span class="n">url</span><span class="p">))</span>   <span class="c1"># works, warns</span>
+<span class="n">mibCompiler</span><span class="o">.</span><span class="n">add_sources</span><span class="p">(</span><span class="n">HttpReader</span><span class="p">(</span><span class="n">url</span><span class="p">))</span>  <span class="c1"># the same thing, quietly</span>
+</pre></div>
+</div>
+<p>Calling the old name raises a <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#DeprecationWarning" title="(in Python v3.14)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">DeprecationWarning</span></code></a>, which Python hides
+by default. To see where your code still uses the old spelling, run it with
+warnings turned on:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">W</span> <span class="n">always</span><span class="p">::</span><span class="ne">DeprecationWarning</span> <span class="n">your_script</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+<p>The old names will be removed in a future major release.</p>
+<p>If you subclass a PySMI class and override a method under its old name, PySMI
+installs your override under the new name and warns, so it still runs. Renaming
+the override silences the warning.</p>
+</section>
+<section id="mib-sources">
+<h2>MIB sources<a class="headerlink" href="#mib-sources" title="Link to this heading">¶</a></h2>
+<p>PySMI offers a handful of distinct transport mechanisms for fetching MIBs by
+name from specific locations. In all cases MIB module name to file name match
+may not be exact – some name fuzzying can be performed to mitigate
+possible changes to MIB file name.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/reader/localfile/filereader.html">Local file reader</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/reader/localfile/filereader.html#pysmi.reader.localfile.FileReader"><code class="docutils literal notranslate"><span class="pre">FileReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/reader/zipreader/zipreader.html">ZIP archive reader</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/reader/zipreader/zipreader.html#pysmi.reader.zipreader.ZipReader"><code class="docutils literal notranslate"><span class="pre">ZipReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/reader/httpclient/httpreader.html">HTTP reader</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/reader/httpclient/httpreader.html#pysmi.reader.httpclient.HttpReader"><code class="docutils literal notranslate"><span class="pre">HttpReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/reader/callback/callbackreader.html">Callback reader</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/reader/callback/callbackreader.html#pysmi.reader.callback.CallbackReader"><code class="docutils literal notranslate"><span class="pre">CallbackReader</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/reader/package/packagereader.html">Package reader</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/reader/package/packagereader.html#pysmi.reader.package.PackageReader"><code class="docutils literal notranslate"><span class="pre">PackageReader</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="conditional-compilation">
+<h2>Conditional compilation<a class="headerlink" href="#conditional-compilation" title="Link to this heading">¶</a></h2>
+<p>There are cases when MIB transformation may or must not be performed.
+Such cases include:</p>
+<ul class="simple">
+<li><p>foundation MIBs containing manually implemented pieces or ASN.1 MACRO’s</p></li>
+<li><p>obsolete MIBs fully reimplemented within modern MIBs</p></li>
+<li><p>already transformed MIBs</p></li>
+</ul>
+<p><a class="reference internal" href="pysmi/compiler/mibcompiler.html#compiler-mibcompiler"><span class="std std-ref">MibCompiler</span></a> expects user to supply a
+<em>searcher</em> object that would allow or skip MIB transformation for particular
+name based on whatever reason it is aware of.</p>
+<p>In general, <em>searcher</em> logic is specific to target format. At the time being,
+only <a class="reference external" href="https://github.com/pysnmp/pysnmp">pysnmp</a> code generation backend requires
+such filtering.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/searcher/pyfile/pyfilesearcher.html">Python files searcher</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/searcher/pyfile/pyfilesearcher.html#pysmi.searcher.pyfile.PyFileSearcher"><code class="docutils literal notranslate"><span class="pre">PyFileSearcher</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/searcher/pypackage/pypackagesearcher.html">Search Python packages</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/searcher/pypackage/pypackagesearcher.html#pysmi.searcher.pypackage.PyPackageSearcher"><code class="docutils literal notranslate"><span class="pre">PyPackageSearcher</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/searcher/stub/stubsearcher.html">Unconditionally ignore MIBs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/searcher/stub/stubsearcher.html#pysmi.searcher.stub.StubSearcher"><code class="docutils literal notranslate"><span class="pre">StubSearcher</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="parser-configuration">
+<h2>Parser configuration<a class="headerlink" href="#parser-configuration" title="Link to this heading">¶</a></h2>
+<p>MIBs may be written in one of the two major SMI language versions (v1 and v2).
+Some MIBs may contain typical errors.</p>
+<p>PySMI offers a way to customize the parser to consume either of the major SMI
+grammars as well as to recover from well-known errors in MIB files.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/parser/smi/parserfactory.html">SMI parser</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/parser/smi/parserfactory.html#pysmi.parser.smi.SmiV2Parser"><code class="docutils literal notranslate"><span class="pre">SmiV2Parser</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/parser/smi/parserfactory.html#pysmi.parser.smi.parserFactory"><code class="docutils literal notranslate"><span class="pre">parserFactory()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/parser/smi/dialect.html">SMI language dialects</a></li>
+</ul>
+</div>
+</section>
+<section id="code-generators">
+<h2>Code generators<a class="headerlink" href="#code-generators" title="Link to this heading">¶</a></h2>
+<p>Once ASN.1 MIB is parsed up, AST is passed to a code generator which turns
+AST into desired representation of the MIB.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/codegen/jsondoc/jsoncodegen.html">JSON document generator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/codegen/jsondoc/jsoncodegen.html#pysmi.codegen.jsondoc.JsonCodeGen"><code class="docutils literal notranslate"><span class="pre">JsonCodeGen</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/codegen/pysnmp/pysnmpcodegen.html">PySNMP MIB generator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/codegen/pysnmp/pysnmpcodegen.html#pysmi.codegen.pysnmp.PySnmpCodeGen"><code class="docutils literal notranslate"><span class="pre">PySnmpCodeGen</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/codegen/null/nullcodegen.html">Code generation stub</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/codegen/null/nullcodegen.html#pysmi.codegen.null.NullCodeGen"><code class="docutils literal notranslate"><span class="pre">NullCodeGen</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/codegen/symtable/symtablecodegen.html">Symbol table generator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/codegen/symtable/symtablecodegen.html#pysmi.codegen.symtable.SymtableCodeGen"><code class="docutils literal notranslate"><span class="pre">SymtableCodeGen</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="borrow-pre-compiled-mibs">
+<h2>Borrow pre-compiled MIBs<a class="headerlink" href="#borrow-pre-compiled-mibs" title="Link to this heading">¶</a></h2>
+<p>Some MIBs in circulation appear broken beyond automatic repair. To
+handle such cases PySMI introduces the <em>MIB borrowing</em>
+functionality. When <a class="reference internal" href="pysmi/compiler/mibcompiler.html#compiler-mibcompiler"><span class="std std-ref">MibCompiler</span></a>
+gives up compiling a MIB, it can try to go out and take a copy of
+already transformed MIB to complete the request successfully.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/borrower/anyfile/anyfileborrower.html">Any file borrower</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/borrower/anyfile/anyfileborrower.html#pysmi.borrower.anyfile.AnyFileBorrower"><code class="docutils literal notranslate"><span class="pre">AnyFileBorrower</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/borrower/pyfile/pyfileborrower.html">Python file borrower</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/borrower/pyfile/pyfileborrower.html#pysmi.borrower.pyfile.PyFileBorrower"><code class="docutils literal notranslate"><span class="pre">PyFileBorrower</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="write-compiled-mibs">
+<h2>Write compiled MIBs<a class="headerlink" href="#write-compiled-mibs" title="Link to this heading">¶</a></h2>
+<p>Successfully transformed MIB modules’ contents will be passed to <em>writer</em>
+object given to <a class="reference internal" href="pysmi/compiler/mibcompiler.html#compiler-mibcompiler"><span class="std std-ref">MibCompiler</span></a> on instantiation.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/writer/localfile/filewriter.html">File writer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/writer/localfile/filewriter.html#pysmi.writer.localfile.FileWriter"><code class="docutils literal notranslate"><span class="pre">FileWriter</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/writer/pyfile/pyfilewriter.html">Python file writer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/writer/pyfile/pyfilewriter.html#pysmi.writer.pyfile.PyFileWriter"><code class="docutils literal notranslate"><span class="pre">PyFileWriter</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/writer/callback/callbackwriter.html">Callback writer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/writer/callback/callbackwriter.html#pysmi.writer.callback.CallbackWriter"><code class="docutils literal notranslate"><span class="pre">CallbackWriter</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="extending-pysmi">
+<h2>Extending PySMI<a class="headerlink" href="#extending-pysmi" title="Link to this heading">¶</a></h2>
+<p>Each stage of the compiler is defined by a small interface, so a MIB source,
+searcher, parser, code generator or writer of your own can be dropped in
+beside the ones PySMI ships.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/extending.html">Extension points</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/extending.html#mib-sources">MIB sources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/extending.html#conditional-compilation">Conditional compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/extending.html#parsers-and-lexers">Parsers and lexers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/extending.html#code-generators">Code generators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/extending.html#borrowers">Borrowers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/extending.html#writers">Writers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/extending.html#mib-metadata">MIB metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/extending.html#building-readers-from-urls">Building readers from URLs</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="bundled-mibs">
+<h2>Bundled MIBs<a class="headerlink" href="#bundled-mibs" title="Link to this heading">¶</a></h2>
+<p>The modules PySMI bundles carry a manifest recording where each one’s text
+comes from and, for those a later RFC replaced, which module took over.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/mibs.html">Bundled MIB manifest</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/mibs.html#pysmi.mibs.manifest"><code class="docutils literal notranslate"><span class="pre">manifest()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/mibs.html#pysmi.mibs.successors"><code class="docutils literal notranslate"><span class="pre">successors()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/mibs.html#pysmi.mibs.successor_for"><code class="docutils literal notranslate"><span class="pre">successor_for()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="exceptions">
+<h2>Exceptions<a class="headerlink" href="#exceptions" title="Link to this heading">¶</a></h2>
+<p>Every stage reports failure by raising an exception of its own, all of them
+derived from a single base class.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/error.html">Exceptions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/error.html#pysmi.error.PySmiError"><code class="docutils literal notranslate"><span class="pre">PySmiError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/error.html#lexer-and-parser">Lexer and parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/error.html#searcher">Searcher</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/error.html#reader">Reader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/error.html#code-generator">Code generator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/error.html#writer">Writer</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h2>
+<p>The following examples focus on various feature of the PySMI library.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/download-and-compile-smistar-mibs-into-json.html">Compile MIBs into JSON</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/build-json-index.html">Build a JSON index over compiled MIBs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/download-and-compile-smistar-mibs-into-pysnmp-files.html">Compile MIBs from web</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/compile-smistar-mibs-into-pysnmp-files-if-needed.html">Compile SMIv1/v2 MIBs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/compile-smiv2-mibs-from-text-into-pysnmp-code.html">Compile SMIv2 MIBs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/borrow-precompiled-pysnmp-files-on-failure.html">Borrow pysnmp MIBs on failure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/always-borrow-precompiled-pysnmp-files.html">Always borrow pysnmp MIBs</a></li>
+</ul>
+</div>
+<p>In case of any troubles or confusion, try enabling PySMI debugging
+and watch the output:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi</span><span class="w"> </span><span class="kn">import</span> <span class="n">debug</span>
+
+<span class="n">debug</span><span class="o">.</span><span class="n">enableDebugLogging</span><span class="p">(</span><span class="s1">'all'</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Pass the names of the subsystems you are interested in to keep the
+output down, prefixing a name with <code class="docutils literal notranslate"><span class="pre">!</span></code> to leave that one out:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">debug</span><span class="o">.</span><span class="n">enableDebugLogging</span><span class="p">(</span><span class="s1">'reader'</span><span class="p">,</span> <span class="s1">'compiler'</span><span class="p">)</span>
+<span class="n">debug</span><span class="o">.</span><span class="n">enableDebugLogging</span><span class="p">(</span><span class="s1">'all'</span><span class="p">,</span> <span class="s1">'!grammar'</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>PySMI logs through the standard <a class="reference external" href="https://docs.python.org/3/library/logging.html#module-logging" title="(in Python v3.14)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">logging</span></code></a> module, and each
+subsystem logs to the logger named after its package, so an
+application that already configures logging can select and route
+this output itself without going through PySMI at all:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">'pysmi.compiler'</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Messages carry their variable parts as structured fields on the log
+record – the name of the MIB being worked on as <code class="docutils literal notranslate"><span class="pre">mib</span></code>, the file
+being read or written as <code class="docutils literal notranslate"><span class="pre">path</span></code>, and so on – so a handler can pick
+them out individually:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MibHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">Handler</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">getMessage</span><span class="p">(),</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="s1">'mib'</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">debug.setLogger()</span></code> and <code class="docutils literal notranslate"><span class="pre">debug.Debug()</span></code> still work, but are
+deprecated in favour of <code class="docutils literal notranslate"><span class="pre">debug.enableDebugLogging()</span></code>.</p>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
