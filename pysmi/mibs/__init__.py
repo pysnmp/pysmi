@@ -41,11 +41,12 @@ def successors(module: str) -> dict[str, str]:
 
     **This is a statement about the module, not about any OID it defines.** A
     consumer ranking candidates for an OID must not read it as "demote this
-    module here". Half the recorded relations do not survive that reading: of
-    the sixteen in the manifest, nine name a successor that redefines every OID
-    the superseded module did, and six name one that shares no OID with it at
-    all -- the successor republished the material on a new arc, and the
-    superseded module remains the only definition of the old one. Demoting
+    module here". Six of the sixteen recorded relations do not survive that
+    reading: nine name a successor that redefines every OID the superseded
+    module did, six name one that shares no OID with it at all -- the successor
+    republished the material on a new arc, and the superseded module remains the
+    only definition of the old one -- and one names a successor pysmi does not
+    bundle, so nothing can be said about its coverage here. Demoting
     ``VRRP-MIB`` for ``1.3.6.1.2.1.68`` hands that arc to whatever else claims
     it, because ``VRRPV3-MIB`` does not.
 

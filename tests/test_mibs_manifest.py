@@ -135,13 +135,29 @@ class SupersessionIsNotPerOidTestCase(unittest.TestCase):
 
     @classmethod
     def _oids(cls, name, compiler, documents):
+        """Every OID *name* declares, or ``None`` when the bundle has no source.
+
+        The two answers have to stay distinguishable. A bundled module that
+        compiles to nothing is a failure, not an empty module, and returning an
+        empty set for it would make the assertion below pass without comparing
+        anything: ``len(shared)`` would be 0, and so would ``len(mine)``, so the
+        zero-overlap branch would accept it. Only a genuinely unbundled module
+        is skippable, and it says so with ``None``.
+        """
         if name not in cls.BUNDLED:
-            return set()
+            return None
 
         if name not in documents:
             compiler.compile(name, noDeps=True, rebuild=True)
 
-        document = documents.get(name, {})
+        if name not in documents:
+            raise AssertionError(
+                f"{name} is bundled but produced no document -- the compile "
+                f"failed, and treating that as an empty module would make this "
+                f"test pass without comparing anything"
+            )
+
+        document = documents[name]
 
         return {
             body["oid"]
@@ -152,6 +168,7 @@ class SupersessionIsNotPerOidTestCase(unittest.TestCase):
         }
 
     def testASuccessorCoversAllOfItsPredecessorsOidsOrNoneOfThem(self):
+        """Compare each recorded pair by the OIDs each module declares."""
         documents = {}
         compiler = compiler_module.MibCompiler(
             SmiV1CompatParser(),
@@ -169,10 +186,13 @@ class SupersessionIsNotPerOidTestCase(unittest.TestCase):
             for successor in sorted(set(entry.get("successors_reviewed", {}).values())):
                 mine = self._oids(name, compiler, documents)
                 theirs = self._oids(successor, compiler, documents)
-                if not theirs:
+                if theirs is None:
                     continue  # a successor the bundle does not carry
 
                 with self.subTest(module=name, successor=successor):
+                    self.assertIsNotNone(
+                        mine, f"{name} is in the manifest but not in the bundle"
+                    )
                     shared = mine & theirs
                     self.assertIn(
                         len(shared),
