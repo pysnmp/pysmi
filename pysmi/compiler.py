@@ -13,8 +13,10 @@ can be skipped and borrowers supply a pre-compiled module when compilation
 fails.
 """
 
+import copy
 import logging
 import re
+from collections import OrderedDict
 from functools import cache
 from importlib import resources
 from typing import Any, Final
@@ -217,6 +219,7 @@ class MibCompiler:
         writer: "AbstractWriter",
         useBundledMibs: bool = True,
         preferConfiguredSources: bool = False,
+        parseCacheSize: int = 256,
     ) -> None:
         """Creates an instance of *MibCompiler* class.
 
@@ -246,6 +249,14 @@ class MibCompiler:
                 (``SNMPv2-SMI`` and the other SMI modules among them), so
                 for those this is the difference between the caller's copy
                 being used and the bundled one.
+            parseCacheSize: how many parse trees to keep between
+                :py:meth:`compile` calls. A driver compiling many source sets
+                on one compiler -- see :py:meth:`set_sources` -- parses the
+                standard tree once instead of once per set. Entries are keyed
+                by source digest and evicted least-recently-used, so the
+                shared modules stay resident and the per-namespace ones do
+                not accumulate. A tree runs to tens of kilobytes, so the
+                default costs single-digit megabytes. Set to 0 to disable.
         """
         self._parser = parser
         self._codegen = codegen
@@ -257,6 +268,11 @@ class MibCompiler:
         self._borrowers: list[AbstractBorrower] = []
 
         self._preferConfiguredSources = preferConfiguredSources
+        #: Parse trees already built in this compiler's lifetime, keyed by the
+        #: digest of the text they came from and bounded to
+        #: ``parseCacheSize`` entries, least-recently-used evicted first.
+        self._parsedSources: OrderedDict[str, list[Any]] = OrderedDict()
+        self._parseCacheSize = parseCacheSize
         #: The reader serving the bundled copies, kept so that precedence can
         #: name it apart from anything the caller added. ``None`` when
         #: ``useBundledMibs`` was not asked for.
@@ -300,6 +316,92 @@ class MibCompiler:
         )
 
         return self
+
+    def set_sources(self, *sources: "AbstractReader") -> "MibCompiler":
+        """Replace the ASN.1 sources, keeping everything else about this compiler.
+
+        For a driver compiling many source sets in turn -- a corpus build over
+        several hundred vendor namespaces, each with its own directory and each
+        importing the same standard modules. Building a fresh compiler per set
+        re-parses that standard tree once per set, because the parse cache
+        lives in :py:meth:`compile` and dies with the call; swapping the
+        sources on one compiler keeps it.
+
+        Only :py:meth:`add_sources` readers are replaced.
+        :py:meth:`add_priority_sources` ones, the bundled base MIBs among them,
+        are left in place -- they are the part that does not vary between
+        namespaces, and re-registering them per set is what this exists to
+        avoid.
+
+        Swapping sources cannot make a stale answer reachable: the parse cache
+        is keyed by the digest of the text parsed, never by module name, so a
+        namespace carrying a different module under a name another namespace
+        used is different bytes and a different key. What a swap does change is
+        which sources are *asked*, and that takes effect immediately -- a
+        module only the previous set had stops resolving.
+
+        Args:
+            sources: reader object(s) to use from now on
+
+        Returns:
+            reference to itself (can be used for call chaining)
+
+        """
+        self._sources = list(sources)
+
+        logger.debug(
+            "MIB source(s) replaced with: %s",
+            ", ".join(str(x) for x in self._sources),
+            extra={"sources": [str(x) for x in self._sources]},
+        )
+
+        return self
+
+    def clear_parse_cache(self) -> "MibCompiler":
+        """Drop every parse tree held between :py:meth:`compile` calls.
+
+        Not needed for correctness -- the cache is content-addressed, so an
+        entry is only ever reused for the identical text. It is here for a
+        driver that wants the memory back at a known point.
+
+        Returns:
+            reference to itself (can be used for call chaining)
+
+        """
+        self._parsedSources.clear()
+
+        return self
+
+    def _parse_source(self, digest: str, data: str) -> list[Any]:
+        """The parse trees for *data*, reusing the ones already built for it.
+
+        Keyed on the digest of the text rather than on the module name, which
+        is what makes reuse safe across a :py:meth:`set_sources` swap: two
+        namespaces carrying different modules under one name hash differently
+        and cannot be served each other's tree.
+
+        A copy is handed out rather than the cached tree itself. Neither the
+        symbol generator nor the shipped code generators write to the tree they
+        are given, but a copy costs about a tenth of a parse, and that is
+        cheaper than depending on every present and future generator leaving it
+        alone.
+        """
+        if not self._parseCacheSize:
+            return list(self._parser.parse(data))
+
+        cached = self._parsedSources.get(digest)
+
+        if cached is None:
+            cached = list(self._parser.parse(data))
+            self._parsedSources[digest] = cached
+
+            while len(self._parsedSources) > self._parseCacheSize:
+                self._parsedSources.popitem(last=False)
+
+        else:
+            self._parsedSources.move_to_end(digest)
+
+        return copy.deepcopy(cached)
 
     def add_priority_sources(self, *sources: "AbstractReader") -> "MibCompiler":
         """Add ASN.1 MIB source repositories to be asked ahead of the rest.
@@ -633,7 +735,7 @@ class MibCompiler:
                 )
 
                 try:
-                    for mibTree in self._parser.parse(fileData):
+                    for mibTree in self._parse_source(fileInfo.digest, fileData):
                         mibInfo, symbolTable = self._symbolgen.gen_code(
                             mibTree,
                             symbolTableMap,
