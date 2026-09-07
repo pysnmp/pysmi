@@ -16,6 +16,73 @@ _PRODUCER_RE = re.compile(r"Produced by (?P<name>\S+?)-(?P<version>\S+)")
 _DIGEST_RE = re.compile(r"Source digest (?P<digest>\S+)")
 
 
+def strip_comments(text: str) -> str:
+    """Remove ASN.1 comments from *text*, leaving quoted strings intact.
+
+    A comment runs from ``--`` to the next ``--`` or to end of line (RFC 2578
+    Section 3.1). Inside a quoted string ``--`` is ordinary text, so this
+    tracks strings rather than matching ``--`` everywhere: a DESCRIPTION
+    reading ``"a -- b"`` must not swallow whatever follows it on the line.
+    ASN.1 writes a literal double quote as ``""``, which is handled the same
+    way -- it does not end the string.
+
+    Newlines are preserved, so line numbers and anything anchored to them
+    survive.
+
+    Args:
+        text: MIB source.
+
+    Returns:
+        The same text with comment spans removed.
+    """
+    out: list[str] = []
+    index = 0
+    length = len(text)
+    inString = False
+
+    while index < length:
+        char = text[index]
+
+        if inString:
+            if char == '"':
+                if index + 1 < length and text[index + 1] == '"':
+                    out.append('""')
+                    index += 2
+                    continue
+
+                inString = False
+
+            out.append(char)
+            index += 1
+            continue
+
+        if char == '"':
+            inString = True
+            out.append(char)
+            index += 1
+            continue
+
+        if char == "-" and index + 1 < length and text[index + 1] == "-":
+            index += 2
+
+            while index < length:
+                if text[index] == "\n":
+                    break
+
+                if text[index] == "-" and index + 1 < length and text[index + 1] == "-":
+                    index += 2
+                    break
+
+                index += 1
+
+            continue
+
+        out.append(char)
+        index += 1
+
+    return "".join(out)
+
+
 def normalise_revision(stamp: str) -> str:
     """Widen a MODULE-IDENTITY timestamp so that stamps sort chronologically.
 

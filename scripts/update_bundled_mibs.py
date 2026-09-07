@@ -153,6 +153,8 @@ import urllib.request
 from functools import cache
 from typing import Any
 
+from pysmi.mibinfo import strip_comments
+
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 DEST = ROOT / "pysmi" / "mibs" / "asn1"
@@ -429,8 +431,15 @@ def obsoleted_by(rfc: int) -> list[str]:
 
 
 def revision_of(data: bytes) -> str:
-    """The newest MODULE-IDENTITY revision in *data*, for the inventory page."""
-    found = _REVISION.findall(data.decode("utf-8", "replace"))
+    """The newest MODULE-IDENTITY revision in *data*, for the inventory page.
+
+    Comments are stripped first, for the same reason
+    :py:func:`pysmi.compiler.revision_of` strips them: ATM-FORUM-MIB and the
+    three LAN-EMULATION modules ship a commented-out MODULE-IDENTITY, and
+    reading a date out of it made the inventory table date a module that the
+    page's own header counts as undated.
+    """
+    found = _REVISION.findall(strip_comments(data.decode("utf-8", "replace")))
     if not found:
         return "--"
 
