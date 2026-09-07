@@ -16,6 +16,31 @@ _PRODUCER_RE = re.compile(r"Produced by (?P<name>\S+?)-(?P<version>\S+)")
 _DIGEST_RE = re.compile(r"Source digest (?P<digest>\S+)")
 
 
+def normalise_revision(stamp: str) -> str:
+    """Widen a MODULE-IDENTITY timestamp so that stamps sort chronologically.
+
+    RFC 2578 Section 2 allows both ``YYMMDDHHMMZ`` and ``YYYYMMDDHHMMZ``, and
+    the two do not compare against each other: ``"9908190000Z"`` sorts above
+    ``"200210160000Z"``, making a 1999 revision beat a 2002 one. Widening the
+    short form the way that section reads it -- two-digit years from 70 are
+    1900s, the rest 2000s -- makes plain string comparison correct.
+
+    24 of the 272 bundled modules carrying a MODULE-IDENTITY use the short
+    form, so this is not a theoretical case.
+
+    Args:
+        stamp: the timestamp as written in the MIB.
+
+    Returns:
+        The timestamp as ``YYYYMMDDHHMMZ``. Anything already that wide, or of
+        some other length entirely, is returned unchanged.
+    """
+    if len(stamp) == 11:
+        return ("19" if stamp[:2] >= "70" else "20") + stamp
+
+    return stamp
+
+
 def producer_of(text: str) -> tuple[str, str] | None:
     """Read back the "Produced by <package>-<version>" marker *compiler*
     records in every module it stores.

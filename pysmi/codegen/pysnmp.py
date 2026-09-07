@@ -44,7 +44,7 @@ from pysmi.codegen.base import (
     trap_type_oid,
     with_repaired_imports,
 )
-from pysmi.mibinfo import MibInfo
+from pysmi.mibinfo import MibInfo, normalise_revision
 
 logger = logging.getLogger(__name__)
 
@@ -636,7 +636,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if revisionsAndDescrs:
             last_revision, revisions, descriptions = revisionsAndDescrs
 
-            self._moduleRevision = last_revision
+            self._moduleRevision = normalise_revision(last_revision)
 
             if revisions:
                 outStr += name + revisions + "\n"
@@ -2127,6 +2127,11 @@ for _{name}_obj in [{objects}]:
         self._importMap.clear()
         self._out.clear()
         self._moduleIdentityOid = None
+        # Reset with the rest of the per-module state. It was not, and one
+        # codegen is reused across a whole corpus, so a module carrying no
+        # MODULE-IDENTITY inherited the previous module's revision -- into its
+        # MibInfo, and now into the constant emitted below.
+        self._moduleRevision = None
         self.moduleName[0], moduleOid, imports, declarations = ast
 
         out, importedModules = self.gen_imports(
@@ -2147,6 +2152,24 @@ for _{name}_obj in [{objects}]:
             out += self._out[sym]
 
         out += self.gen_exports()
+
+        # Annotated, because the reset above narrows the attribute to None for
+        # the rest of this function: mypy does not see the clause handlers
+        # assign it in between.
+        revision: str | None = self._moduleRevision
+
+        if revision:
+            # The module's newest MODULE-IDENTITY revision, as a module-level
+            # constant so a loader can read it without executing the module.
+            #
+            # pysmi picks between two copies of a module by comparing their
+            # revisions, but it reads that from the ASN.1 (`compiler.revision_of`).
+            # A loader handed generated Python has no ASN.1 to read, and the
+            # revision otherwise exists only as an argument to `setRevisions()`
+            # -- reachable by running the module, or by pattern-matching source.
+            # Stating it as data makes the same comparison available to anything
+            # that can parse Python. See pysnmp/pysnmp#198.
+            out = f"PYSNMP_MODULE_REVISION = {revision!r}\n\n" + out
 
         if "comments" in kwargs:
             out = "".join([f"# {x}\n" for x in kwargs["comments"]]) + "#\n" + out
