@@ -245,14 +245,17 @@
       "agentcapabilities": {
         "if": { "properties": { "class": { "const": "agentcapabilities" } }, "required": ["class"] },
         "then": {
-          "required": ["name", "oid", "class"],
+          "required": ["name", "oid", "class", "status"],
           "properties": {
             "oid": { "$ref": "#/$defs/oid" },
             "status": { "$ref": "#/$defs/status" },
-            "productrelease": { "type": "string" },
+            "productrelease": {
+              "type": "string",
+              "description": "PRODUCT-RELEASE. Mandatory in the grammar but omitted here when the MIB declares it as an empty string, so it is optional."
+            },
             "capabilities": {
               "type": "array",
-              "description": "One entry per SUPPORTS clause, in the order the clauses appear.",
+              "description": "One entry per SUPPORTS clause, in the order the clauses appear. Absent when the declaration has none: the grammar's ModulePart_Capabilities is optional. No minimum length for the same reason.",
               "items": {
                 "type": "object",
                 "required": ["module"],

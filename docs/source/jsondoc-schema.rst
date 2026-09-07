@@ -180,6 +180,8 @@ of the shape.
      - NOTIFICATION-GROUP
    * - ``modulecompliance``
      - MODULE-COMPLIANCE
+   * - ``agentcapabilities``
+     - AGENT-CAPABILITIES
 
 ``class`` and ``nodetype`` are independent axes and a consumer needs both.
 ``class`` says which SMI macro declared the symbol; ``nodetype``, which only
@@ -297,10 +299,11 @@ Field                Type      Notes
 ``name``             string    Required.
 ``oid``              string    Required.
 ``class``            string    Required.
-``status``           string    STATUS.
-``productrelease``   string    PRODUCT-RELEASE.
+``status``           string    Required. The grammar makes STATUS mandatory.
+``productrelease``   string    PRODUCT-RELEASE. Mandatory in the grammar, but
+                               omitted here when the MIB declares it empty.
 ``capabilities``     array     One entry per SUPPORTS clause, in the order the
-                               clauses appear.
+                               clauses appear. Absent when there are none.
 ``description``      string    Text-gated.
 ``reference``        string    Text-gated.
 ===================  ========  ======================================================
