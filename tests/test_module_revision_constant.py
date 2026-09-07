@@ -139,6 +139,69 @@ class NormaliseRevisionTestCase(unittest.TestCase):
         self.assertEqual("206901010000Z", normalise_revision("6901010000Z"))
 
 
+class AStampThatIsNotADateIsNotARevisionTestCase(unittest.TestCase):
+    """A revision is compared, so it has to denote a moment in time.
+
+    Comparison is lexicographic over the widened form, so a stamp that is only
+    the right *length* rides that comparison without ever being a date.
+    `HPR-MIB` is published with `LAST-UPDATED "970514000000Z"` -- thirteen
+    characters, so it was taken for the `YYYYMMDDHHMMZ` form and passed through
+    as year 9705, month 14. That sorts above every real date there will ever
+    be, so the copy carrying it beat every other copy of the same module,
+    permanently.
+
+    The code generator already refuses this value: `format_ext_utc_time` cannot
+    read it, substitutes the epoch and logs that it did. Precedence had no such
+    check.
+    """
+
+    def testTheStampFromHprMibIsRejected(self):
+        """Thirteen characters, and not a date: month 14 does not exist."""
+        self.assertIsNone(normalise_revision("970514000000Z"))
+
+    def testItNoLongerOutranksARealDate(self):
+        """The consequence, stated as the comparison precedence actually makes."""
+        malformed = normalise_revision("970514000000Z")
+        real = normalise_revision("202401010000Z")
+
+        self.assertIsNotNone(real)
+        self.assertFalse(malformed and malformed > real)
+
+    def testAnImpossibleMonthIsRejectedInEitherWidth(self):
+        self.assertIsNone(normalise_revision("209914010000Z"))
+        self.assertIsNone(normalise_revision("9914010000Z"))
+
+    def testAnImpossibleDayIsRejected(self):
+        self.assertIsNone(normalise_revision("202402300000Z"))
+
+    def testAnImpossibleTimeIsRejected(self):
+        self.assertIsNone(normalise_revision("202401012500Z"))
+        self.assertIsNone(normalise_revision("202401010060Z"))
+
+    def testAWrongLengthIsRejected(self):
+        """RFC 2578 Section 2 admits SIZE(11 | 13) and nothing else."""
+        for stamp in ("", "Z", "202401010000", "20240101000000Z", "240101000Z"):
+            self.assertIsNone(normalise_revision(stamp), stamp)
+
+    def testElevenCharactersIsTheShortForm(self):
+        """Guards the line above: 2401010000Z is 11 characters, so it is a date."""
+        self.assertEqual("202401010000Z", normalise_revision("2401010000Z"))
+
+    def testNonDigitsAreRejected(self):
+        self.assertIsNone(normalise_revision("20240101O000Z"))
+        self.assertIsNone(normalise_revision("9908190000z"))
+
+    def testEveryRealStampStillNormalises(self):
+        """The widening this function exists for is unchanged."""
+        self.assertEqual("199908190000Z", normalise_revision("9908190000Z"))
+        self.assertEqual("200210160000Z", normalise_revision("200210160000Z"))
+        self.assertEqual("202912310000Z", normalise_revision("202912310000Z"))
+
+    def testALeapDayIsARealDate(self):
+        self.assertEqual("202402290000Z", normalise_revision("202402290000Z"))
+        self.assertIsNone(normalise_revision("202302290000Z"))
+
+
 class ModuleRevisionConstantTestCase(unittest.TestCase):
     def testTheRevisionIsStated(self):
         self.assertEqual("200210160000Z", constant_in(render(REVISED_MIB)))
