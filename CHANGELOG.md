@@ -3,13 +3,22 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [2.3.0](https://github.com/pysnmp/pysmi/compare/v2.2.0...v2.3.0) (2026-09-06)
+
+### Features
+
+* **mibs:** ship the bundle manifest, and answer which module replaced a subtree ([ea4bded](https://github.com/pysnmp/pysmi/commit/ea4bdeda4bd7a20fe931d0112a3a66f4bea19d23)), closes [#174](https://github.com/pysnmp/pysmi/issues/174)
+
+### Bug Fixes
+
+* **mibs:** drop the three withdrawn IPv6 modules nothing imports ([c7c4fb7](https://github.com/pysnmp/pysmi/commit/c7c4fb7e05109fa48185cc4101ac94ab5e72ef90)), closes [#173](https://github.com/pysnmp/pysmi/issues/173)
+
 ## [2.2.0-rc.3](https://github.com/pysnmp/pysmi/compare/v2.2.0-rc.2...v2.2.0-rc.3) (2026-09-07)
 
 ### Features
 
 * **codegen:** canonical form and content hash over the module model ([965e559](https://github.com/pysnmp/pysmi/commit/965e55963d352e4cbc276f5edcb7f9cfccf3a740)), closes [#190](https://github.com/pysnmp/pysmi/issues/190) [#191](https://github.com/pysnmp/pysmi/issues/191) [#180](https://github.com/pysnmp/pysmi/issues/180)
 * **mibs:** bundle the SMIv1 compatibility shims ([ed27c8c](https://github.com/pysnmp/pysmi/commit/ed27c8caaf56a5c105a576a00e31e170c1e507c1)), closes [#161](https://github.com/pysnmp/pysmi/issues/161)
-* **mibs:** ship the bundle manifest, and answer which module replaced a subtree ([ea4bded](https://github.com/pysnmp/pysmi/commit/ea4bdeda4bd7a20fe931d0112a3a66f4bea19d23)), closes [#174](https://github.com/pysnmp/pysmi/issues/174)
 
 ### Bug Fixes
 
@@ -19,6 +28,27 @@ through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHAN
 * **mibs:** drop the three withdrawn IPv6 modules nothing imports ([c7c4fb7](https://github.com/pysnmp/pysmi/commit/c7c4fb7e05109fa48185cc4101ac94ab5e72ef90)), closes [#173](https://github.com/pysnmp/pysmi/issues/173)
 * **schema:** declare agentcapabilities, and make the schema itself valid ([54f85b1](https://github.com/pysnmp/pysmi/commit/54f85b1a0599d664aced5fa3671f5233f70aef22)), closes [#190](https://github.com/pysnmp/pysmi/issues/190)
 * **schema:** require status on agentcapabilities, and list it as a class ([126bf58](https://github.com/pysnmp/pysmi/commit/126bf589e1c90f4efd2e97ed1d48d5af3ff87b5a))
+
+## [2.2.0](https://github.com/pysnmp/pysmi/compare/v2.1.1...v2.2.0) (2026-09-06)
+
+### Features
+
+* **mibdump:** write out the base MIBs a JSON tree needs to stand alone ([d37c274](https://github.com/pysnmp/pysmi/commit/d37c2749740f6366bcbcc1db49fc5396cb6924a8))
+* **mibs:** bundle the standard MIB set, each pinned to its publisher ([4533c62](https://github.com/pysnmp/pysmi/commit/4533c626aa40d5b3875e2242ac89e6c7a3df65b9)), closes [#161](https://github.com/pysnmp/pysmi/issues/161)
+* **mibs:** compile the bundled MIBs into pysnmp modules at build time ([47e9891](https://github.com/pysnmp/pysmi/commit/47e9891d6008f4f2907992eafcc07a4b736be219))
+* **mibs:** report where the pysnmp/mibs mirror disagrees with the bundle ([a7c4853](https://github.com/pysnmp/pysmi/commit/a7c4853296afb97d6abac952f85d02bdfb5d651a)), closes [pysnmp/mibs#345](https://github.com/pysnmp/mibs/issues/345)
+* say which rule picked a MIB, and let --mib-source outrank the bundle ([b2b1448](https://github.com/pysnmp/pysmi/commit/b2b1448bf0f3493fcae754dde484b49cc3dec560)), closes [#155](https://github.com/pysnmp/pysmi/issues/155)
+
+### Bug Fixes
+
+* let a module compiled from a fallback copy report as compiled ([26b1927](https://github.com/pysnmp/pysmi/commit/26b1927003555c6f98d75aa586ab49255cb884b1)), closes [#157](https://github.com/pysnmp/pysmi/issues/157) [#155](https://github.com/pysnmp/pysmi/issues/155)
+* **mibdump:** report the base MIBs a run may write, not the ones it did ([01309b1](https://github.com/pysnmp/pysmi/commit/01309b134c0f3a865718743676f54cf5b56a699e))
+* **mibs:** bundle IANA-GBOND-TC-MIB, and make verify catch what hid it ([a2d077c](https://github.com/pysnmp/pysmi/commit/a2d077c98ca933e982532b8935054b99be6bef50)), closes [pysnmp/mibs#343](https://github.com/pysnmp/mibs/issues/343)
+* **mibs:** keep git's line-ending filters off the bundled MIB bytes ([f6741ce](https://github.com/pysnmp/pysmi/commit/f6741ceaa93bb20e0dded584b683fb191140d890))
+* **mibs:** track IEEE 802.1 at its current revision, not a pinned file ([579da07](https://github.com/pysnmp/pysmi/commit/579da07e54d0dee11c6a2d98d68cea19226743c6))
+* name the copy that actually parsed, under the name it parsed as ([f211f0d](https://github.com/pysnmp/pysmi/commit/f211f0dd106c998624ebbb06baf5cbfb85617558)), closes [#155](https://github.com/pysnmp/pysmi/issues/155)
+* **reader:** report an over-long MIB name as missing, not a crash ([82699fe](https://github.com/pysnmp/pysmi/commit/82699fef859c4642887a9185a9badb2aef61546d)), closes [#163](https://github.com/pysnmp/pysmi/issues/163)
+* report the resolved copy on runs that recompile nothing ([25e1e8e](https://github.com/pysnmp/pysmi/commit/25e1e8efbfd2aefb5682c9fdb84cb0cefbea83c4)), closes [#156](https://github.com/pysnmp/pysmi/issues/156) [#155](https://github.com/pysnmp/pysmi/issues/155)
 
 ## [2.2.0-rc.2](https://github.com/pysnmp/pysmi/compare/v2.2.0-rc.1...v2.2.0-rc.2) (2026-09-06)
 
