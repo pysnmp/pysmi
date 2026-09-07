@@ -3,6 +3,18 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [2.4.0-rc.2](https://github.com/pysnmp/pysmi/compare/v2.4.0-rc.1...v2.4.0-rc.2) (2026-09-07)
+
+### Features
+
+* **pysnmp:** state the MODULE-IDENTITY revision as a constant in emitted modules ([4ef57ca](https://github.com/pysnmp/pysmi/commit/4ef57ca6f5c1876e9bfb7d92ababb05d3a61b90a)), closes [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198)
+
+### Bug Fixes
+
+* **compiler:** make comment stripping string-aware, and apply it to the inventory ([d0f12fa](https://github.com/pysnmp/pysmi/commit/d0f12fa84179f891c57931d02febd0a47fc93a24)), closes [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198)
+* **pysnmp:** carry LAST-UPDATED in the revision constant, not the newest REVISION ([73f4202](https://github.com/pysnmp/pysmi/commit/73f42026dde84b630cf7778e061ce261acc8f2f8)), closes [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198)
+* **tests:** fail when a bundled module compiles to nothing ([62cedd6](https://github.com/pysnmp/pysmi/commit/62cedd6d7ff9fe39f815c53494605b2d53a7b78a)), closes [#203](https://github.com/pysnmp/pysmi/issues/203)
+
 ## [2.4.0-rc.1](https://github.com/pysnmp/pysmi/compare/v2.3.0...v2.4.0-rc.1) (2026-09-07)
 
 ### Features
