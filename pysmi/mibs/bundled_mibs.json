@@ -66,9 +66,45 @@
       "rfc": 2512,
       "source": "rfc"
     },
+    "ATM-DXI-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "ATM-FORUM-ADDR-REG": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "ATM-FORUM-ILMI40-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "ATM-FORUM-M4-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "ATM-FORUM-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "ATM-FORUM-SNMP-M4-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "ATM-FORUM-SRVC-REG": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "ATM-FORUM-TC-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
     "ATM-MIB": {
       "rfc": 2515,
       "source": "rfc"
+    },
+    "ATM-SOFT-PVC-MIB": {
+      "archived": true,
+      "source": "atm-forum"
     },
     "ATM-TC-MIB": {
       "rfc": 2514,
@@ -97,6 +133,14 @@
     "CHARACTER-MIB": {
       "rfc": 1658,
       "source": "rfc"
+    },
+    "CLAB-DEF-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/common/CLAB-DEF-MIB.mib"
+    },
+    "CLAB-TOPO-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/common/CLAB-TOPO-MIB.mib"
     },
     "CLNS-MIB": {
       "patch": "CLNS-MIB.patch",
@@ -162,6 +206,26 @@
       "rfc": 2024,
       "source": "rfc"
     },
+    "DMTF-DMI-MIB": {
+      "archived": true,
+      "source": "dmtf"
+    },
+    "DMTF-LAN-ADAPTER-MIB": {
+      "archived": true,
+      "source": "dmtf"
+    },
+    "DMTF-MOBILE-MIB": {
+      "archived": true,
+      "source": "dmtf"
+    },
+    "DMTF-MONITOR-MIB": {
+      "archived": true,
+      "source": "dmtf"
+    },
+    "DMTF-SERVICE-LAYER-MIB": {
+      "archived": true,
+      "source": "dmtf"
+    },
     "DNS-RESOLVER-MIB": {
       "rfc": 1612,
       "source": "rfc"
@@ -180,6 +244,14 @@
       "rfc": 4639,
       "source": "rfc"
     },
+    "DOCS-DIAG-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-DIAG-MIB.mib"
+    },
+    "DOCS-DRF-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-DRF-MIB.mib"
+    },
     "DOCS-IETF-BPI2-MIB": {
       "rfc": 4131,
       "source": "rfc"
@@ -192,9 +264,65 @@
       "rfc": 4323,
       "source": "rfc"
     },
+    "DOCS-IF-M-CMTS-MIB": {
+      "archived": true,
+      "reason": "Dropped from the live CableLabs directory; superseded by a later DOCSIS revision but still imported.",
+      "source": "cablelabs"
+    },
     "DOCS-IF-MIB": {
       "rfc": 4546,
       "source": "rfc"
+    },
+    "DOCS-IF3-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-IF3-MIB.mib"
+    },
+    "DOCS-IFEXT2-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-IFEXT2-MIB.mib"
+    },
+    "DOCS-L2VPN-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-L2VPN-MIB.mib"
+    },
+    "DOCS-LOADBAL3-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-LOADBAL3-MIB.mib"
+    },
+    "DOCS-LOADBALANCING-MIB": {
+      "archived": true,
+      "reason": "Dropped from the live CableLabs directory; superseded by a later DOCSIS revision but still imported.",
+      "source": "cablelabs"
+    },
+    "DOCS-MCAST-AUTH-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-MCAST-AUTH-MIB.mib"
+    },
+    "DOCS-MCAST-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-MCAST-MIB.mib"
+    },
+    "DOCS-QOS-MIB": {
+      "archived": true,
+      "reason": "Dropped from the live CableLabs directory; superseded by a later DOCSIS revision but still imported.",
+      "source": "cablelabs"
+    },
+    "DOCS-QOS3-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-QOS3-MIB.mib"
+    },
+    "DOCS-SEC-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-SEC-MIB.mib"
+    },
+    "DOCS-SUBMGT3-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-SUBMGT3-MIB.mib"
+    },
+    "DOCS-TEST-MIB": {
+      "archived": true,
+      "reason": "Dropped from the live CableLabs directory; superseded by a later DOCSIS revision but still imported.",
+      "source": "cablelabs"
     },
     "DOT12-IF-MIB": {
       "rfc": 2020,
@@ -230,6 +358,20 @@
       "successors_reviewed": {
         "RFC2605": "DIRECTORY-SERVER-MIB"
       }
+    },
+    "DSG-IF-MIB": {
+      "source": "cablelabs",
+      "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DSG-IF-MIB.mib"
+    },
+    "DTI-MIB": {
+      "archived": true,
+      "reason": "Dropped from the live CableLabs directory; superseded by a later DOCSIS revision but still imported.",
+      "source": "cablelabs"
+    },
+    "DVMRP-STD-MIB": {
+      "archived": true,
+      "draft": "draft-ietf-idmr-dvmrp-mib-11",
+      "source": "internet-draft"
     },
     "EBN-MIB": {
       "rfc": 2457,
@@ -274,6 +416,10 @@
     "FCIP-MGMT-MIB": {
       "rfc": 4404,
       "source": "rfc"
+    },
+    "FCMGMT-MIB": {
+      "archived": true,
+      "source": "fibre-alliance"
     },
     "FDDI-SMT73-MIB": {
       "patch": "FDDI-SMT73-MIB.patch",
@@ -414,6 +560,14 @@
       "source": "iana",
       "url": "https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib"
     },
+    "IEC-62439-3-MIB": {
+      "archived": true,
+      "source": "iec"
+    },
+    "IEEE-802DOT17-RPR-MIB": {
+      "archived": true,
+      "source": "ieee802.17"
+    },
     "IEEE8021-BRIDGE-MIB": {
       "revision": "202211080000",
       "source": "ieee802.1"
@@ -424,6 +578,11 @@
     },
     "IEEE8021-CFM-V2-MIB": {
       "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-CFMD8-MIB": {
+      "archived": true,
+      "reason": "Not in the IEEE 802.1 MIB directory under any revision, so the directory listing cannot track it.",
       "source": "ieee802.1"
     },
     "IEEE8021-CN-MIB": {
@@ -444,6 +603,11 @@
     },
     "IEEE8021-EVB-MIB": {
       "revision": "202211080000",
+      "source": "ieee802.1"
+    },
+    "IEEE8021-EVBB-MIB": {
+      "archived": true,
+      "reason": "Not in the IEEE 802.1 MIB directory under any revision, so the directory listing cannot track it.",
       "source": "ieee802.1"
     },
     "IEEE8021-FQTSS-MIB": {
@@ -534,13 +698,26 @@
       "revision": "202211080000",
       "source": "ieee802.1"
     },
+    "IEEE802171-CFM-MIB": {
+      "archived": true,
+      "reason": "Not in the IEEE 802.1 MIB directory under any revision, so the directory listing cannot track it.",
+      "source": "ieee802.1"
+    },
     "IEEE8021X-PAE-MIB": {
       "revision": "202002181507",
       "source": "ieee802.1"
     },
+    "IEEE8023-DOT3-LLDP-EXT-V2-MIB": {
+      "archived": true,
+      "source": "ieee802.3"
+    },
     "IEEE8023-LAG-MIB": {
       "revision": "201610120000",
       "source": "ieee802.1"
+    },
+    "IEEE802dot11-MIB": {
+      "archived": true,
+      "source": "ieee802.11"
     },
     "IF-INVERTED-STACK-MIB": {
       "rfc": 2864,
@@ -556,6 +733,10 @@
       "successors_reviewed": {
         "RFC5519": "MGMD-STD-MIB"
       }
+    },
+    "IMA-MIB": {
+      "archived": true,
+      "source": "atm-forum"
     },
     "INET-ADDRESS-MIB": {
       "rfc": 4001,
@@ -643,6 +824,22 @@
       "rfc": 2707,
       "source": "rfc"
     },
+    "LAN-EMULATION-BUS-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "LAN-EMULATION-CLIENT-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "LAN-EMULATION-ELAN-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
+    "LAN-EMULATION-LES-MIB": {
+      "archived": true,
+      "source": "atm-forum"
+    },
     "LANGTAG-TC-MIB": {
       "rfc": 5131,
       "source": "rfc"
@@ -650,6 +847,11 @@
     "LISP-MIB": {
       "rfc": 7052,
       "source": "rfc"
+    },
+    "LLDP-EXT-DCBX-MIB": {
+      "archived": true,
+      "reason": "Declares ORGANIZATION \"IEEE ??? Working Group\" -- a placeholder left in the text. DCBX was never published by IEEE under this module name.",
+      "source": "unattributed"
     },
     "LLDP-EXT-DOT1-EVB-EXTENSIONS-MIB": {
       "revision": "201806210000",
@@ -671,6 +873,19 @@
       "revision": "200906080000",
       "source": "ieee802.1"
     },
+    "LLDP-EXT-HM-MIB": {
+      "archived": true,
+      "reason": "Declares ORGANIZATION \"Hirschmann Automation & Control\" -- a vendor, not a standards body, despite the LLDP-EXT- name.",
+      "source": "hirschmann"
+    },
+    "LLDP-EXT-MED-MIB": {
+      "archived": true,
+      "source": "tia"
+    },
+    "LLDP-EXT-PNO-MIB": {
+      "archived": true,
+      "source": "profibus"
+    },
     "LLDP-MIB": {
       "revision": "200505060000",
       "source": "ieee802.1"
@@ -686,6 +901,18 @@
     "MAU-MIB": {
       "rfc": 4836,
       "source": "rfc"
+    },
+    "MEF-SOAM-PM-MIB": {
+      "archived": true,
+      "source": "mef"
+    },
+    "MEF-SOAM-TC-MIB": {
+      "archived": true,
+      "source": "mef"
+    },
+    "MEF-UNI-EVC-MIB": {
+      "archived": true,
+      "source": "mef"
     },
     "MGMD-STD-MIB": {
       "rfc": 5519,
@@ -717,6 +944,12 @@
       "rfc": 3815,
       "source": "rfc"
     },
+    "MPLS-LSR-MIB": {
+      "archived": true,
+      "draft": "draft-ietf-mpls-lsr-mib",
+      "reason": "The bundled text matches no archived revision closely (71% against -08, 66% against -09), so the working-group document is recorded rather than a revision that cannot be substantiated.",
+      "source": "internet-draft"
+    },
     "MPLS-LSR-STD-MIB": {
       "rfc": 3813,
       "source": "rfc"
@@ -729,9 +962,24 @@
       "rfc": 3811,
       "source": "rfc"
     },
+    "MPLS-TE-MIB": {
+      "archived": true,
+      "draft": "draft-ietf-mpls-te-mib",
+      "reason": "The bundled text matches no archived revision closely (64% against -09, 60% against -10), so the working-group document is recorded rather than a revision that cannot be substantiated.",
+      "source": "internet-draft"
+    },
     "MPLS-TE-STD-MIB": {
       "rfc": 3812,
       "source": "rfc"
+    },
+    "MPLS-VPN-MIB": {
+      "archived": true,
+      "draft": "draft-ietf-ppvpn-mpls-vpn-mib-03",
+      "source": "internet-draft"
+    },
+    "MPOA-MIB": {
+      "archived": true,
+      "source": "atm-forum"
     },
     "MSDP-MIB": {
       "rfc": 4624,
@@ -749,6 +997,10 @@
     },
     "NAT-MIB": {
       "rfc": 7658,
+      "source": "rfc"
+    },
+    "NATV2-MIB": {
+      "rfc": 7659,
       "source": "rfc"
     },
     "NETWORK-SERVICES-MIB": {
@@ -802,6 +1054,10 @@
     "PINT-MIB": {
       "rfc": 3055,
       "source": "rfc"
+    },
+    "PNNI-MIB": {
+      "archived": true,
+      "source": "atm-forum"
     },
     "POWER-ETHERNET-MIB": {
       "rfc": 3621,
@@ -1026,6 +1282,18 @@
     "RTP-MIB": {
       "rfc": 2959,
       "source": "rfc"
+    },
+    "SCTE-HMS-HEADENDIDENT-TC-MIB": {
+      "archived": true,
+      "source": "scte"
+    },
+    "SCTE-HMS-MPEG-MIB": {
+      "archived": true,
+      "source": "scte"
+    },
+    "SCTE-HMS-QAM-MIB": {
+      "archived": true,
+      "source": "scte"
     },
     "SCTP-MIB": {
       "rfc": 3873,
