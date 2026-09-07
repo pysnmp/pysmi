@@ -44,5 +44,6 @@ chosen and configured to compiler.
    /mibdump
    /mibcopy
    /bundled-mibs
+   /jsondoc-schema
    /mibs-as-data
    /library-reference

@@ -193,6 +193,7 @@ markers = ["pysnmp_consumer: loads a generated module under pysnmp; non-gating"]
 dev = [
     # hatch_build.py is exercised by the test suite, not only at release.
     "hatchling>=1.27",
+    "jsonschema>=4.26.0",
     "mypy>=1.14",
     "myst-parser>=4.0.1",
     "pysnmplib==6.0.0rc2",
