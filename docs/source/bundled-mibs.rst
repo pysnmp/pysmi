@@ -16,12 +16,13 @@ MODULE-IDENTITY revision -- not merely by being the caller's. See
 :doc:`/mibdump` for ``--prefer-mib-source`` and ``--no-bundled-mibs``, which
 override that outright.
 
-43 of the modules below carry no MODULE-IDENTITY at all, so there is
-no revision to compare and the bundled copy is the one that gets used. Every
-one of them is a pre-SMIv2 module or an SMI module proper, whose text was fixed
-when its RFC was published and cannot be revised except as a new module under a
-new name -- so the copy here cannot go stale under a caller who has a better
-one.
+47 of the modules below carry no MODULE-IDENTITY at all, so there is
+no revision to compare and the bundled copy is the one that gets used. Most are
+a pre-SMIv2 module or an SMI module proper, whose text was fixed when its RFC
+was published and cannot be revised except as a new module under a new name --
+so the copy here cannot go stale under a caller who has a better one. Four are
+undated for a different reason: ATM-FORUM-MIB and the three LAN-EMULATION
+modules ship their MODULE-IDENTITY commented out, so they declare none.
 
 Every module below is traceable to the publisher its text came from, named in
 the Source column: cut out of the RFC that currently defines it, fetched from

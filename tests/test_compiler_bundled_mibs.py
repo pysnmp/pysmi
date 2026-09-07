@@ -448,7 +448,7 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
     are asserted rather than trusted.
     """
 
-    def testTheBundleIsThreeHundredSixtyFiveModulesFortyThreeOfThemUndated(self):
+    def testTheBundleIsThreeHundredSixtyFiveModulesFortySevenOfThemUndated(self):
         names = bundled_mib_names(BUNDLED_PACKAGE)
         undated = {
             name
@@ -460,7 +460,11 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
         }
 
         self.assertEqual(365, len(names))
-        self.assertEqual(43, len(undated))
+        # 47, not 43: ATM-FORUM-MIB and the three LAN-EMULATION modules ship
+        # their MODULE-IDENTITY commented out. `revision_of` used to match
+        # inside the comment and report a revision for a module that declares
+        # none.
+        self.assertEqual(47, len(undated))
         self.assertIn("SNMPv2-SMI", undated)
 
     def testEveryUndatedBundledModulePredatesModuleIdentity(self):

@@ -13,15 +13,22 @@ output only as an argument to ``setRevisions()``, so getting it back means
 running the module or pattern-matching its source.
 
 ``PYSNMP_MODULE_REVISION`` states it as a module-level constant instead, so the
-same comparison is available to anything that can parse Python. See
+same comparison is available to anything that can parse Python. It carries
+LAST-UPDATED, because that is what ``revision_of`` compares -- a constant
+carrying anything else would let the two disagree about which copy wins. See
 pysnmp/pysnmp#198.
 """
 
 import ast
 import unittest
+from importlib import resources
 
 from pysmi.codegen import PySnmpCodeGen
+from pysmi.compiler import MibCompiler, revision_of
 from pysmi.mibinfo import normalise_revision
+from pysmi.parser import SmiV1CompatParser
+from pysmi.reader import PackageReader
+from pysmi.writer import CallbackWriter
 from tests.harness import symbol_table
 
 CONSTANT = "PYSNMP_MODULE_REVISION"
@@ -46,6 +53,30 @@ testModule MODULE-IDENTITY
 
 END
 """
+
+#: A MODULE-IDENTITY with no REVISION clause. RFC 2578 Section 5.5 requires
+#: LAST-UPDATED and makes REVISION optional, and 50 of the bundled modules are
+#: written this way.
+NO_REVISION_MIB = """
+NOREV-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    MODULE-IDENTITY
+        FROM SNMPv2-SMI;
+
+testModule MODULE-IDENTITY
+    LAST-UPDATED "200210160000Z"
+    ORGANIZATION "Org."
+    CONTACT-INFO "Contact."
+    DESCRIPTION  "No REVISION clause."
+    ::= { 1 3 0 }
+
+END
+"""
+
+#: LAST-UPDATED newer than the newest REVISION, as eight bundled modules are.
+LATER_UPDATE_MIB = REVISED_MIB.replace("TEST-MIB", "LATER-MIB").replace(
+    'LAST-UPDATED "200210160000Z"', 'LAST-UPDATED "202002181507Z"'
+)
 
 #: The two-digit-year form RFC 2578 Section 2 also allows.
 SHORT_YEAR_MIB = (
@@ -109,8 +140,26 @@ class NormaliseRevisionTestCase(unittest.TestCase):
 
 
 class ModuleRevisionConstantTestCase(unittest.TestCase):
-    def testTheNewestRevisionIsStated(self):
+    def testTheRevisionIsStated(self):
         self.assertEqual("200210160000Z", constant_in(render(REVISED_MIB)))
+
+    def testAModuleWithNoRevisionClauseStillStatesOne(self):
+        """LAST-UPDATED is what is carried, and REVISION is optional.
+
+        Reading the newest REVISION instead left 50 of the 365 bundled modules
+        with no constant at all, while `revision_of` had a LAST-UPDATED to
+        compare for every one of them -- so pysmi could choose between two
+        copies and a loader could not.
+        """
+        self.assertEqual("200210160000Z", constant_in(render(NO_REVISION_MIB)))
+
+    def testLastUpdatedWinsOverAnOlderRevisionClause(self):
+        """The two disagree in eight bundled modules, LAST-UPDATED newer each time.
+
+        `revision_of` compares LAST-UPDATED. A constant carrying the newest
+        REVISION would make a loader pick the other copy in exactly those cases.
+        """
+        self.assertEqual("202002181507Z", constant_in(render(LATER_UPDATE_MIB)))
 
     def testAModuleWithoutModuleIdentityStatesNothing(self):
         self.assertIsNone(constant_in(render(UNDATED_MIB)))
@@ -147,6 +196,85 @@ class ModuleRevisionConstantTestCase(unittest.TestCase):
 
         self.assertEqual("200210160000Z", constant_in(dated))
         self.assertIsNone(constant_in(undated))
+
+
+class CommentedOutModuleIdentityTestCase(unittest.TestCase):
+    """`revision_of` reads raw text, so it has to skip ASN.1 comments.
+
+    ATM-FORUM-MIB and the three LAN-EMULATION modules carry a MODULE-IDENTITY
+    that is commented out with ``--``. The parser ignores it and emits no
+    constant, but the regex matched inside it, so pysmi reported a revision for
+    a module that has none -- and would have let a commented-out timestamp
+    decide which copy of a module wins.
+    """
+
+    COMMENTED = """
+COMMENTED-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    OBJECT-TYPE, Integer32
+        FROM SNMPv2-SMI;
+
+--  commentedModule MODULE-IDENTITY
+--      LAST-UPDATED "200003010000Z"
+--      ORGANIZATION "Org."
+--      ::= { 1 3 0 }
+
+testObject OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "An object."
+    ::= { 1 3 1 }
+
+END
+"""
+
+    def testACommentedOutLastUpdatedIsNotARevision(self):
+        self.assertIsNone(revision_of(self.COMMENTED))
+
+    def testARealLastUpdatedIsStillFound(self):
+        self.assertEqual("200210160000Z", revision_of(NO_REVISION_MIB))
+
+
+class ConstantMatchesTheCompilerTestCase(unittest.TestCase):
+    """The property the constant exists for, over every module pysmi bundles.
+
+    A loader comparing constants has to reach the same answer the compiler
+    reaches comparing ASN.1. That only holds if the constant carries exactly
+    what `revision_of` returns, for every module and for the modules where it
+    returns nothing. Anything less and the two disagree about which copy of a
+    module wins, silently.
+    """
+
+    def testEveryBundledModuleAgreesWithRevisionOf(self):
+        sources = resources.files("pysmi.mibs.asn1")
+        names = sorted(
+            entry.name
+            for entry in sources.iterdir()
+            if entry.is_file() and not entry.name.startswith("__")
+        )
+        rendered = {}
+        compiler = MibCompiler(
+            SmiV1CompatParser(),
+            PySnmpCodeGen(),
+            CallbackWriter(
+                lambda mibname, data, cbCtx: rendered.__setitem__(mibname, data)
+            ),
+            useBundledMibs=False,
+        )
+        compiler.add_sources(PackageReader("pysmi.mibs.asn1"))
+        compiler.compile(*names, noDeps=True, rebuild=True)
+
+        self.assertTrue(rendered, "nothing compiled")
+
+        for name in names:
+            if name not in rendered:
+                continue
+
+            asn1 = sources.joinpath(name).read_text(encoding="utf-8", errors="replace")
+
+            with self.subTest(module=name):
+                self.assertEqual(revision_of(asn1), constant_in(rendered[name]))
 
 
 if __name__ == "__main__":

@@ -41,6 +41,13 @@ _AT_MIB_SUFFIX: Final = " at MIB %s"
 #: two copies of a module must not cost a parse of each.
 _LAST_UPDATED: Final = re.compile(r'LAST-UPDATED\s+"(\d{10}Z|\d{12}Z)"')
 
+#: An ASN.1 comment: from "--" to the next "--" or to end of line (RFC 2578
+#: Section 3.1). Stripped before looking for LAST-UPDATED, because four bundled
+#: modules -- ATM-FORUM-MIB and the three LAN-EMULATION ones -- carry a
+#: commented-out MODULE-IDENTITY, and matching inside it made this report a
+#: revision for a module that has none.
+_COMMENT: Final = re.compile(r"--.*?(?:--|$)", re.MULTILINE)
+
 
 #: Why one copy of a module was compiled and the others passed over. Carried
 #: on :py:attr:`MibStatus.precedence` and named in the log, so a build can show
@@ -84,7 +91,7 @@ def revision_of(mibData: str) -> str | None:
         no MODULE-IDENTITY -- every SMIv1 module, and the SMI modules
         themselves.
     """
-    match = _LAST_UPDATED.search(mibData)
+    match = _LAST_UPDATED.search(_COMMENT.sub("", mibData))
 
     if not match:
         return None
