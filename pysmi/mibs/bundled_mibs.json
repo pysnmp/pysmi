@@ -201,8 +201,6 @@
       "source": "rfc"
     },
     "DLSW-MIB": {
-      "patch": "DLSW-MIB.patch",
-      "reason": "RFC 2024 anchors the module under mib-2 but never imports it.",
       "rfc": 2024,
       "source": "rfc"
     },
@@ -422,8 +420,6 @@
       "source": "fibre-alliance"
     },
     "FDDI-SMT73-MIB": {
-      "patch": "FDDI-SMT73-MIB.patch",
-      "reason": "RFC 1512 anchors the module under transmission but never imports it.",
       "rfc": 1512,
       "source": "rfc"
     },
@@ -748,7 +744,7 @@
     },
     "INTEGRATED-SERVICES-MIB": {
       "patch": "INTEGRATED-SERVICES-MIB.patch",
-      "reason": "RFC 2213 uses TestAndIncr without importing it, and puts a numeric DISPLAY-HINT on an OCTET STRING.",
+      "reason": "RFC 2213 puts DISPLAY-HINT \"d\" on Port, whose SYNTAX is OCTET STRING; RFC 2579 section 3.1 allows that format only for an integer. Its missing TestAndIncr import is supplied by repairImports rather than here.",
       "rfc": 2213,
       "source": "rfc"
     },
@@ -765,8 +761,6 @@
       "source": "rfc"
     },
     "IPATM-IPMC-MIB": {
-      "patch": "IPATM-IPMC-MIB.patch",
-      "reason": "RFC 2417 anchors marsMIB under mib-2 but never imports it.",
       "rfc": 2417,
       "source": "rfc"
     },
@@ -924,7 +918,7 @@
     },
     "MIP-MIB": {
       "patch": "MIP-MIB.patch",
-      "reason": "RFC 2006 omits mib-2, Unsigned32 and NOTIFICATION-GROUP from IMPORTS, gives a plain object accessible-for-notify, and misspells mipSecNotificationsGroup.",
+      "reason": "RFC 2006 gives a plain object accessible-for-notify and declares mipSecNotifcationsGroup where its MODULE-COMPLIANCE names mipSecNotificationsGroup. Its missing mib-2, Unsigned32 and NOTIFICATION-GROUP imports are supplied by repairImports rather than here.",
       "rfc": 2006,
       "source": "rfc"
     },
@@ -1219,8 +1213,6 @@
       }
     },
     "RFC1316-MIB": {
-      "patch": "RFC1316-MIB.patch",
-      "reason": "RFC 1316 uses mib-2 without importing it.",
       "rfc": 1316,
       "source": "rfc",
       "successors_reviewed": {
@@ -1250,8 +1242,6 @@
       }
     },
     "RFC1414-MIB": {
-      "patch": "RFC1414-MIB.patch",
-      "reason": "RFC 1414 uses mib-2 without importing it.",
       "rfc": 1414,
       "source": "rfc"
     },
@@ -1318,8 +1308,6 @@
       "source": "rfc"
     },
     "SNA-NAU-MIB": {
-      "patch": "SNA-NAU-MIB.patch",
-      "reason": "RFC 1666 uses mib-2 without importing it.",
       "rfc": 1666,
       "source": "rfc"
     },
@@ -1533,7 +1521,7 @@
     },
     "UPS-MIB": {
       "patch": "UPS-MIB.patch",
-      "reason": "RFC 1628 omits mib-2 and TEXTUAL-CONVENTION from IMPORTS, and bounds two objects at 2147483648, one past the top of Integer32.",
+      "reason": "RFC 1628 bounds two objects at 2147483648, one past the top of Integer32; Erratum 3276. Its missing mib-2 and TEXTUAL-CONVENTION imports are supplied by repairImports rather than here.",
       "rfc": 1628,
       "source": "rfc"
     },

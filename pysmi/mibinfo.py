@@ -83,7 +83,7 @@ def strip_comments(text: str) -> str:
     return "".join(out)
 
 
-def normalise_revision(stamp: str) -> str:
+def normalise_revision(stamp: str) -> str | None:
     """Widen a MODULE-IDENTITY timestamp so that stamps sort chronologically.
 
     RFC 2578 Section 2 allows both ``YYMMDDHHMMZ`` and ``YYYYMMDDHHMMZ``, and
@@ -95,15 +95,41 @@ def normalise_revision(stamp: str) -> str:
     24 of the 272 bundled modules carrying a MODULE-IDENTITY use the short
     form, so this is not a theoretical case.
 
+    A stamp that does not denote a date is refused rather than widened. The
+    comparison this feeds is lexicographic, so a value that is merely the right
+    *length* rides it without ever being a time: ``HPR-MIB`` is published with
+    ``LAST-UPDATED "970514000000Z"``, thirteen characters, which read as the
+    wide form is year 9705 of month 14. That sorts above every date there will
+    ever be, so the copy carrying it won against every other copy of the module
+    for good. The code generator already refuses the same value --
+    :py:func:`~pysmi.codegen.base.format_ext_utc_time` cannot read it,
+    substitutes the epoch and logs that it did -- and this is that check on the
+    side that decides which copy is used.
+
+    Refusing is not a lost revision: a module whose revision cannot be placed
+    falls to source order, which is what
+    :py:meth:`~pysmi.compiler.MibCompiler.compile` already documents for a copy
+    carrying no revision at all. Treating an unreadable stamp as the newest one
+    possible is the alternative, and it is worse.
+
     Args:
         stamp: the timestamp as written in the MIB.
 
     Returns:
-        The timestamp as ``YYYYMMDDHHMMZ``. Anything already that wide, or of
-        some other length entirely, is returned unchanged.
+        The timestamp as ``YYYYMMDDHHMMZ``, or ``None`` when it is not one of
+        the two forms RFC 2578 admits or does not name a real date.
     """
     if len(stamp) == 11:
-        return ("19" if stamp[:2] >= "70" else "20") + stamp
+        stamp = ("19" if stamp[:2] >= "70" else "20") + stamp
+
+    if len(stamp) != 13:
+        return None
+
+    try:
+        datetime.strptime(stamp, "%Y%m%d%H%M%z")
+
+    except ValueError:
+        return None
 
     return stamp
 

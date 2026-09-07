@@ -771,7 +771,7 @@ class MibCompiler:
                         mibInfo, symbolTable = self._symbolgen.gen_code(
                             mibTree,
                             symbolTableMap,
-                            repairImports=options.get("repairImports"),
+                            repairImports=options.get("repairImports", True),
                         )
 
                         symbolTableMap[mibInfo.name] = symbolTable

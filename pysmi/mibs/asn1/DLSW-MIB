@@ -6,7 +6,7 @@ IMPORTS
         TEXTUAL-CONVENTION                FROM SNMPv2-TC
         Counter32, Gauge32, TimeTicks,
         OBJECT-TYPE, MODULE-IDENTITY,
-        NOTIFICATION-TYPE, mib-2          FROM SNMPv2-SMI
+        NOTIFICATION-TYPE                 FROM SNMPv2-SMI
         MODULE-COMPLIANCE, OBJECT-GROUP,
         NOTIFICATION-GROUP                FROM SNMPv2-CONF
         ifIndex                           FROM IF-MIB

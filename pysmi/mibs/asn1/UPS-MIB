@@ -2,10 +2,10 @@
 
    IMPORTS
        MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
-    OBJECT-IDENTITY, Counter32, Gauge32, Integer32, mib-2
+       OBJECT-IDENTITY, Counter32, Gauge32, Integer32
            FROM SNMPv2-SMI
        DisplayString, TimeStamp, TimeInterval, TestAndIncr,
-      AutonomousType, TEXTUAL-CONVENTION
+         AutonomousType
            FROM SNMPv2-TC
        MODULE-COMPLIANCE, OBJECT-GROUP
            FROM SNMPv2-CONF;
@@ -1008,7 +1008,7 @@
        ::= { upsControl 1 }
 
    upsShutdownAfterDelay OBJECT-TYPE
-    SYNTAX     INTEGER (-1..2147483647)
+       SYNTAX     INTEGER (-1..2147483647)
        UNITS      "seconds"
        MAX-ACCESS read-write
        STATUS     current
@@ -1036,7 +1036,7 @@
        ::= { upsControl 2 }
 
    upsStartupAfterDelay OBJECT-TYPE
-    SYNTAX     INTEGER (-1..2147483647)
+       SYNTAX     INTEGER (-1..2147483647)
        UNITS      "seconds"
        MAX-ACCESS read-write
        STATUS     current

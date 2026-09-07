@@ -2,13 +2,12 @@
 
     IMPORTS
         Counter32, Gauge32, Integer32, IpAddress, experimental,
-        MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, mib-2,
-        Unsigned32
+        MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE
                                         FROM SNMPv2-SMI
         RowStatus, TruthValue, TimeStamp,
         TEXTUAL-CONVENTION
                                         FROM SNMPv2-TC
-        MODULE-COMPLIANCE, OBJECT-GROUP, NOTIFICATION-GROUP
+        MODULE-COMPLIANCE, OBJECT-GROUP
                                         FROM SNMPv2-CONF;
 
     mipMIB    MODULE-IDENTITY

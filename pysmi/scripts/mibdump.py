@@ -75,7 +75,7 @@ def start() -> None:
     ignoreErrorsFlag = False
     buildIndexFlag = False
     writeMibsFlag = True
-    repairImportsFlag = False
+    repairImportsFlag = True
     strictSourcesFlag = False
 
     helpMessage = """\
@@ -105,7 +105,7 @@ def start() -> None:
         [--no-mib-writes]
         [--generate-mib-texts]
         [--keep-texts-layout]
-        [--repair-imports]
+        [--strict-imports]
         [--strict-sources]
         <MIB-NAME> [MIB-NAME [...]]]
     Where:
@@ -153,12 +153,15 @@ def start() -> None:
                 all. --no-bundled-mibs is: it drops the bundle as a
                 source, so a base MIB the replacement list leaves
                 unstubbed has to come from --mib-source or it is missing.
-        --repair-imports - supply the import a MIB should have carried for
-                any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
-                without naming it in IMPORTS, which RFC 2578 Section 3.2
-                does not allow. Off by default, so a MIB broken this way
-                fails rather than being silently patched; what was
-                repaired is listed in the report.
+        --strict-imports - fail a MIB that uses an SNMPv2-SMI, SNMPv2-TC or
+                SNMPv2-CONF symbol without naming it in IMPORTS, which RFC
+                2578 Section 3.2 does not allow. Without this the import is
+                supplied, which is the default because the repair is forced:
+                the symbol is undefined, unimported, and exactly one base
+                module exports it, so there is nothing to guess. Every
+                repair is listed on the "Repaired MIBs" line of the report,
+                so a supplied import is never silent. Use this when
+                validating a MIB rather than consuming one.
         --strict-sources - fail a MIB that more than one source has a
                 different copy of. Without this, the precedence above picks
                 one and the copies passed over are named on the "MIBs found
@@ -197,7 +200,7 @@ def start() -> None:
                 "generate-mib-texts",
                 "disable-fuzzy-source",
                 "keep-texts-layout",
-                "repair-imports",
+                "strict-imports",
                 "strict-sources",
             ],
         )
@@ -309,8 +312,8 @@ def start() -> None:
         if opt[0] == "--keep-texts-layout":
             keepTextsLayout = True
 
-        if opt[0] == "--repair-imports":
-            repairImportsFlag = True
+        if opt[0] == "--strict-imports":
+            repairImportsFlag = False
 
         if opt[0] == "--strict-sources":
             strictSourcesFlag = True
