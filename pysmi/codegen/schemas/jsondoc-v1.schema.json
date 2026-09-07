@@ -64,7 +64,8 @@
             "type",
             "objectgroup",
             "notificationgroup",
-            "modulecompliance"
+            "modulecompliance",
+            "agentcapabilities"
           ]
         }
       },
@@ -72,12 +73,13 @@
         { "$ref": "#/$defs/byClass/objecttype" },
         { "$ref": "#/$defs/byClass/moduleidentity" },
         { "$ref": "#/$defs/byClass/textualconvention" },
-        { "$ref": "#/$defs/byClass/type" },
+        { "$ref": "#/$defs/byClass/typeSymbol" },
         { "$ref": "#/$defs/byClass/objectidentity" },
         { "$ref": "#/$defs/byClass/notificationtype" },
         { "$ref": "#/$defs/byClass/objectgroup" },
         { "$ref": "#/$defs/byClass/notificationgroup" },
-        { "$ref": "#/$defs/byClass/modulecompliance" }
+        { "$ref": "#/$defs/byClass/modulecompliance" },
+        { "$ref": "#/$defs/byClass/agentcapabilities" }
       ]
     },
 
@@ -149,7 +151,7 @@
         }
       },
 
-      "type": {
+      "typeSymbol": {
         "if": { "properties": { "class": { "const": "type" } }, "required": ["class"] },
         "then": {
           "required": ["name", "class", "type"],
@@ -232,7 +234,44 @@
             "refinements": {
               "type": "array",
               "items": { "$ref": "#/$defs/refinement" },
-              "description": "GROUP and OBJECT clauses. See the specification: an entry whose only payload is a DESCRIPTION is omitted entirely when texts are not generated."
+              "description": "GROUP and OBJECT clauses. An entry is present whether or not it has a description: which groups a compliance statement refines is structure, not prose."
+            },
+            "description": { "type": "string" },
+            "reference": { "type": "string" }
+          }
+        }
+      },
+
+      "agentcapabilities": {
+        "if": { "properties": { "class": { "const": "agentcapabilities" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "oid", "class"],
+          "properties": {
+            "oid": { "$ref": "#/$defs/oid" },
+            "status": { "$ref": "#/$defs/status" },
+            "productrelease": { "type": "string" },
+            "capabilities": {
+              "type": "array",
+              "description": "One entry per SUPPORTS clause, in the order the clauses appear.",
+              "items": {
+                "type": "object",
+                "required": ["module"],
+                "properties": {
+                  "module": {
+                    "type": "string",
+                    "description": "The module the SUPPORTS clause names. Not necessarily one this document defines, and not necessarily one that was read."
+                  },
+                  "includes": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "The INCLUDES groups, by name."
+                  },
+                  "variations": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/variation" }
+                  }
+                }
+              }
             },
             "description": { "type": "string" },
             "reference": { "type": "string" }
@@ -359,6 +398,43 @@
         "module": { "type": "string" },
         "object": { "type": "string" }
       }
+    },
+
+    "variation": {
+      "type": "object",
+      "description": "One VARIATION sub-clause of a SUPPORTS clause.",
+      "required": ["object"],
+      "properties": {
+        "object": { "type": "string" },
+        "syntax": { "$ref": "#/$defs/typeSpec" },
+        "writesyntax": { "$ref": "#/$defs/typeSpec" },
+        "access": {
+          "$ref": "#/$defs/variationAccess",
+          "description": "The ACCESS clause. Wider than maxaccess: RFC 2580 section 6.5.2 adds 'not-implemented', which no OBJECT-TYPE can declare."
+        },
+        "creationrequires": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "CREATION-REQUIRES, by object name."
+        },
+        "default": { "$ref": "#/$defs/defval" },
+        "description": {
+          "type": "string",
+          "description": "RFC 2580 section 6.5.2 makes this mandatory in the MIB, so a variation that refines nothing else carries only 'object' once texts are suppressed. The entry is still emitted: which objects a clause varies is structure."
+        }
+      }
+    },
+
+    "variationAccess": {
+      "enum": [
+        "not-implemented",
+        "not-accessible",
+        "accessible-for-notify",
+        "read-only",
+        "read-write",
+        "read-create",
+        "write-only"
+      ]
     },
 
     "refinement": {

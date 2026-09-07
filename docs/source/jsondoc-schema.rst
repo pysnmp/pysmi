@@ -288,6 +288,51 @@ Flattening the MODULE clauses loses which module a MANDATORY-GROUPS entry was
 declared under. Each entry is still attributed to the module defining the group,
 so the information is recoverable; the grouping is not.
 
+agentcapabilities
+~~~~~~~~~~~~~~~~~
+
+===================  ========  ======================================================
+Field                Type      Notes
+===================  ========  ======================================================
+``name``             string    Required.
+``oid``              string    Required.
+``class``            string    Required.
+``status``           string    STATUS.
+``productrelease``   string    PRODUCT-RELEASE.
+``capabilities``     array     One entry per SUPPORTS clause, in the order the
+                               clauses appear.
+``description``      string    Text-gated.
+``reference``        string    Text-gated.
+===================  ========  ======================================================
+
+Each ``capabilities`` entry carries ``module`` -- the module the SUPPORTS clause
+names, which is not necessarily one this document defines and not necessarily one
+that was read -- plus ``includes``, the INCLUDES groups by name, and
+``variations``.
+
+A ``variations`` entry describes one VARIATION sub-clause:
+
+====================  ========  =====================================================
+Field                 Type      Notes
+====================  ========  =====================================================
+``object``            string    Required, and the only required field.
+``syntax``            object    SYNTAX, as a :ref:`jsondoc-typespec`.
+``writesyntax``       object    WRITE-SYNTAX, likewise.
+``access``            string    ACCESS. Wider than ``maxaccess``: RFC 2580 section
+                                6.5.2 adds ``not-implemented``, which no
+                                OBJECT-TYPE can declare.
+``creationrequires``  array     CREATION-REQUIRES, by object name.
+``default``           object    DEFVAL, as a :ref:`jsondoc-defval`.
+``description``       string    Text-gated.
+====================  ========  =====================================================
+
+``object`` alone being required is not an accident of the encoding. RFC 2580
+section 6.5.2 makes DESCRIPTION mandatory on a VARIATION, so a variation that
+records implementation without refining syntax or access carries nothing else --
+and once texts are suppressed, nothing at all beyond the object. The entry is
+still emitted, because which objects a SUPPORTS clause varies is structure. See
+:ref:`jsondoc-texts`.
+
 
 Shared structures
 -----------------
