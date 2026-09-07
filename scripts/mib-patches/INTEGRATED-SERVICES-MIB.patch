@@ -1,0 +1,11 @@
+--- a/INTEGRATED-SERVICES-MIB
++++ b/INTEGRATED-SERVICES-MIB
+@@ -84,7 +84,7 @@
+        SYNTAX   INTEGER (1..255)
+ 
+     Port ::= TEXTUAL-CONVENTION
+-        DISPLAY-HINT "d"
++        -- DISPLAY-HINT "d" ---- illegal for OCTET STRING.
+         STATUS   current
+         DESCRIPTION
+            "The value of the UDP or TCP Source or Destina-

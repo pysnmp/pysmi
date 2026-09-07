@@ -743,6 +743,8 @@
       "source": "rfc"
     },
     "INTEGRATED-SERVICES-MIB": {
+      "patch": "INTEGRATED-SERVICES-MIB.patch",
+      "reason": "RFC 2213 puts DISPLAY-HINT \"d\" on Port, whose SYNTAX is OCTET STRING; RFC 2579 section 3.1 allows that format only for an integer. Its missing TestAndIncr import is supplied by repairImports rather than here.",
       "rfc": 2213,
       "source": "rfc"
     },
@@ -915,6 +917,8 @@
       "source": "rfc"
     },
     "MIP-MIB": {
+      "patch": "MIP-MIB.patch",
+      "reason": "RFC 2006 gives a plain object accessible-for-notify and declares mipSecNotifcationsGroup where its MODULE-COMPLIANCE names mipSecNotificationsGroup. Its missing mib-2, Unsigned32 and NOTIFICATION-GROUP imports are supplied by repairImports rather than here.",
       "rfc": 2006,
       "source": "rfc"
     },
@@ -1516,6 +1520,8 @@
       "source": "rfc"
     },
     "UPS-MIB": {
+      "patch": "UPS-MIB.patch",
+      "reason": "RFC 1628 bounds two objects at 2147483648, one past the top of Integer32; Erratum 3276. Its missing mib-2 and TEXTUAL-CONVENTION imports are supplied by repairImports rather than here.",
       "rfc": 1628,
       "source": "rfc"
     },

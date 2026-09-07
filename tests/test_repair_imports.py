@@ -359,7 +359,7 @@ class MibDumpRepairTestCase(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def _run(self, *extra):
+    def _run(self, *extra, modules=("REPAIR-TC-MIB",)):
         out, err = io.StringIO(), io.StringIO()
         argv = sys.argv
         sys.argv = [
@@ -369,7 +369,7 @@ class MibDumpRepairTestCase(unittest.TestCase):
             "--no-python-compile",
             "--rebuild",
             *extra,
-            "REPAIR-TC-MIB",
+            *modules,
         ]
 
         try:
@@ -401,10 +401,14 @@ class MibDumpRepairTestCase(unittest.TestCase):
         self.assertIn("Failed MIBs: REPAIR-TC-MIB", output)
 
     def testAnUnrepairedMibIsNotNamedOnTheRepairedLine(self):
+        # Compiled explicitly. _run() asks for REPAIR-TC-MIB alone, so writing
+        # the clean module to the source directory and not naming it here would
+        # keep it off the Repaired line by never compiling it -- an assertion
+        # that passes without reaching the report it is about.
         (self.src / "REPAIR-CLEAN-MIB").write_text(
             module("REPAIR-CLEAN-MIB", "OBJECT-TYPE, Opaque", "Opaque", "1 3 3")
         )
-        code, output = self._run()
+        code, output = self._run(modules=("REPAIR-TC-MIB", "REPAIR-CLEAN-MIB"))
 
         self.assertEqual(0, code, output)
 

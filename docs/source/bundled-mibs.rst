@@ -39,7 +39,7 @@ public MIB directory, DMTF and SCTE behind a 403, IEC behind a paywall, expired
 Internet-Drafts. ``--check`` stays quiet about those. Five more are maintained
 in this repository outright and listed under :ref:`bundled-mib-local`.
 
-7 modules carry a patch, listed under :ref:`bundled-mib-patches` below,
+10 modules carry a patch, listed under :ref:`bundled-mib-patches` below,
 because their published text does not compile as published.
 
 The same modules ship compiled too. A wheel carries ``pysmi/mibs/pysnmp/``,
@@ -260,7 +260,7 @@ Inventory
    "IMA-MIB", "ATM Forum", "1999-02-11", ""
    "INET-ADDRESS-MIB", ":rfc:`4001`", "2005-02-04", ""
    "INTEGRATED-SERVICES-GUARANTEED-MIB", ":rfc:`2214`", "1995-11-03", ""
-   "INTEGRATED-SERVICES-MIB", ":rfc:`2213`", "1995-11-03", ""
+   "INTEGRATED-SERVICES-MIB", ":rfc:`2213`", "1995-11-03", "yes"
    "INTERFACETOPN-MIB", ":rfc:`3144`", "2001-03-27", ""
    "IP-FORWARD-MIB", ":rfc:`4292`", "2006-02-01", ""
    "IP-MIB", ":rfc:`4293`", "2006-02-02", ""
@@ -301,7 +301,7 @@ Inventory
    "MEF-UNI-EVC-MIB", "MEF", "2013-01-25", ""
    "MGMD-STD-MIB", ":rfc:`5519`", "2009-03-30", ""
    "MIOX25-MIB", ":rfc:`1461`", "--", ""
-   "MIP-MIB", ":rfc:`2006`", "1996-06-04", ""
+   "MIP-MIB", ":rfc:`2006`", "1996-06-04", "yes"
    "MPLS-ID-STD-MIB", ":rfc:`7453`", "2015-02-02", ""
    "MPLS-L3VPN-STD-MIB", ":rfc:`4382`", "2006-01-23", ""
    "MPLS-LDP-GENERIC-STD-MIB", ":rfc:`3815`", "2004-06-03", ""
@@ -436,7 +436,7 @@ Inventory
    "TRANSPORT-ADDRESS-MIB", ":rfc:`3419`", "2002-11-01", ""
    "TUNNEL-MIB", ":rfc:`4087`", "2005-05-16", ""
    "UDP-MIB", ":rfc:`4113`", "2005-05-20", ""
-   "UPS-MIB", ":rfc:`1628`", "1994-02-23", ""
+   "UPS-MIB", ":rfc:`1628`", "1994-02-23", "yes"
    "URI-TC-MIB", ":rfc:`5017`", "2007-09-10", ""
    "UUID-TC-MIB", ":rfc:`6933`", "2013-04-05", ""
    "VDSL-LINE-MIB", ":rfc:`3728`", "2004-02-19", ""
@@ -469,6 +469,12 @@ fail rather than silently fuzzing. The defect each one repairs:
 ``HPR-MIB``
     RFC 2238 gives LAST-UPDATED a 12-digit value that is neither form RFC 2578 allows, and one comment line lost its leading ``--``.
 
+``INTEGRATED-SERVICES-MIB``
+    RFC 2213 puts DISPLAY-HINT "d" on Port, whose SYNTAX is OCTET STRING; RFC 2579 section 3.1 allows that format only for an integer. Its missing TestAndIncr import is supplied by repairImports rather than here.
+
+``MIP-MIB``
+    RFC 2006 gives a plain object accessible-for-notify and declares mipSecNotifcationsGroup where its MODULE-COMPLIANCE names mipSecNotificationsGroup. Its missing mib-2, Unsigned32 and NOTIFICATION-GROUP imports are supplied by repairImports rather than here.
+
 ``Modem-MIB``
     RFC 1696 spells the module's own root mdmMIB in one OID and mdmMib everywhere else, leaving the OID tree self-referential.
 
@@ -477,6 +483,9 @@ fail rather than silently fuzzing. The defect each one repairs:
 
 ``SMUX-MIB``
     RFC 1227 imports OBJECT-TYPE ``FROM RFC1212``, a module name nothing publishes -- the bundled compat module is RFC-1212.
+
+``UPS-MIB``
+    RFC 1628 bounds two objects at 2147483648, one past the top of Integer32; Erratum 3276. Its missing mib-2 and TEXTUAL-CONVENTION imports are supplied by repairImports rather than here.
 
 .. _bundled-mib-local:
 

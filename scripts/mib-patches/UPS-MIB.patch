@@ -1,0 +1,20 @@
+--- a/UPS-MIB
++++ b/UPS-MIB
+@@ -1008,7 +1008,7 @@
+        ::= { upsControl 1 }
+ 
+    upsShutdownAfterDelay OBJECT-TYPE
+-       SYNTAX     INTEGER (-1..2147483648)
++       SYNTAX     INTEGER (-1..2147483647)
+        UNITS      "seconds"
+        MAX-ACCESS read-write
+        STATUS     current
+@@ -1036,7 +1036,7 @@
+        ::= { upsControl 2 }
+ 
+    upsStartupAfterDelay OBJECT-TYPE
+-       SYNTAX     INTEGER (-1..2147483648)
++       SYNTAX     INTEGER (-1..2147483647)
+        UNITS      "seconds"
+        MAX-ACCESS read-write
+        STATUS     current
