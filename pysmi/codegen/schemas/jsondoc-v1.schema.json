@@ -1,0 +1,379 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.pysnmp.com/pysmi/schemas/jsondoc-v1.schema.json",
+  "title": "pysmi JSON MIB document, schema version 1",
+  "description": "The document JsonCodeGen.gen_code() emits for one MIB module. Keys other than 'meta' and 'imports' are MIB symbol names, and the symbol table order in which they were rendered is the order they appear in. See docs/source/jsondoc-schema.rst for the prose specification.",
+  "type": "object",
+  "required": ["meta"],
+  "properties": {
+    "meta": { "$ref": "#/$defs/meta" },
+    "imports": { "$ref": "#/$defs/imports" }
+  },
+  "additionalProperties": { "$ref": "#/$defs/symbol" },
+
+  "$defs": {
+    "meta": {
+      "type": "object",
+      "description": "Document metadata. Never a MIB symbol, because 'meta' is not a legal SMI descriptor.",
+      "required": ["schema"],
+      "properties": {
+        "schema": {
+          "type": "integer",
+          "const": 1,
+          "description": "The schema version this document was emitted against. A consumer gates on this."
+        },
+        "comments": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Present only when the caller passed comments. pysmi's own callers pass the ASN.1 source name, a 'Source digest sha256:<hex>' line, and a 'Produced by pysmi-<version>' line."
+        },
+        "module": {
+          "type": "string",
+          "description": "The canonical module name. Emitted alongside comments, not independently."
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "imports": {
+      "type": "object",
+      "description": "The module's IMPORTS clause, one key per source module, plus the fixed 'class' discriminator. Repaired imports are included: a symbol pysmi resolved on the module's behalf appears here as though the MIB had imported it.",
+      "required": ["class"],
+      "properties": {
+        "class": { "const": "imports" }
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Symbols imported from the module named by this key."
+      }
+    },
+
+    "symbol": {
+      "type": "object",
+      "required": ["name", "class"],
+      "properties": {
+        "name": { "type": "string" },
+        "class": {
+          "enum": [
+            "objecttype",
+            "objectidentity",
+            "moduleidentity",
+            "notificationtype",
+            "textualconvention",
+            "type",
+            "objectgroup",
+            "notificationgroup",
+            "modulecompliance"
+          ]
+        }
+      },
+      "allOf": [
+        { "$ref": "#/$defs/byClass/objecttype" },
+        { "$ref": "#/$defs/byClass/moduleidentity" },
+        { "$ref": "#/$defs/byClass/textualconvention" },
+        { "$ref": "#/$defs/byClass/type" },
+        { "$ref": "#/$defs/byClass/objectidentity" },
+        { "$ref": "#/$defs/byClass/notificationtype" },
+        { "$ref": "#/$defs/byClass/objectgroup" },
+        { "$ref": "#/$defs/byClass/notificationgroup" },
+        { "$ref": "#/$defs/byClass/modulecompliance" }
+      ]
+    },
+
+    "byClass": {
+      "objecttype": {
+        "if": { "properties": { "class": { "const": "objecttype" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "oid", "class", "nodetype", "maxaccess", "status"],
+          "properties": {
+            "oid": { "$ref": "#/$defs/oid" },
+            "nodetype": { "enum": ["scalar", "column", "row", "table"] },
+            "maxaccess": { "$ref": "#/$defs/maxaccess" },
+            "status": { "$ref": "#/$defs/status" },
+            "syntax": { "$ref": "#/$defs/typeSpec" },
+            "units": { "type": "string" },
+            "default": { "$ref": "#/$defs/defval" },
+            "indices": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/indexEntry" },
+              "description": "Present on nodetype 'row' that declares INDEX."
+            },
+            "augmentation": {
+              "$ref": "#/$defs/augmentation",
+              "description": "Present on nodetype 'row' that declares AUGMENTS. Mutually exclusive with indices."
+            },
+            "description": { "type": "string" },
+            "reference": { "type": "string" }
+          }
+        }
+      },
+
+      "moduleidentity": {
+        "if": { "properties": { "class": { "const": "moduleidentity" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "oid", "class"],
+          "properties": {
+            "oid": { "$ref": "#/$defs/oid" },
+            "lastupdated": { "$ref": "#/$defs/timestamp" },
+            "organization": { "type": "string" },
+            "contactinfo": { "type": "string" },
+            "revisions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["revision"],
+                "properties": {
+                  "revision": { "$ref": "#/$defs/timestamp" },
+                  "description": { "type": "string" }
+                }
+              }
+            },
+            "description": { "type": "string" },
+            "reference": { "type": "string" }
+          }
+        }
+      },
+
+      "textualconvention": {
+        "if": { "properties": { "class": { "const": "textualconvention" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "class", "type", "status"],
+          "properties": {
+            "type": { "$ref": "#/$defs/typeSpec" },
+            "status": { "$ref": "#/$defs/status" },
+            "displayhint": { "type": "string" },
+            "description": { "type": "string" },
+            "reference": { "type": "string" }
+          }
+        }
+      },
+
+      "type": {
+        "if": { "properties": { "class": { "const": "type" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "class", "type"],
+          "properties": {
+            "type": { "$ref": "#/$defs/typeSpec" }
+          }
+        }
+      },
+
+      "objectidentity": {
+        "if": { "properties": { "class": { "const": "objectidentity" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "oid", "class"],
+          "properties": {
+            "oid": { "$ref": "#/$defs/oid" },
+            "status": { "$ref": "#/$defs/status" },
+            "description": { "type": "string" },
+            "reference": { "type": "string" }
+          }
+        }
+      },
+
+      "notificationtype": {
+        "if": { "properties": { "class": { "const": "notificationtype" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "oid", "class", "status"],
+          "properties": {
+            "oid": { "$ref": "#/$defs/oid" },
+            "status": { "$ref": "#/$defs/status" },
+            "objects": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/symbolRef" }
+            },
+            "description": { "type": "string" },
+            "reference": { "type": "string" }
+          }
+        }
+      },
+
+      "objectgroup": {
+        "if": { "properties": { "class": { "const": "objectgroup" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "oid", "class", "objects", "status"],
+          "properties": {
+            "oid": { "$ref": "#/$defs/oid" },
+            "status": { "$ref": "#/$defs/status" },
+            "objects": { "type": "array", "items": { "$ref": "#/$defs/symbolRef" } },
+            "description": { "type": "string" },
+            "reference": { "type": "string" }
+          }
+        }
+      },
+
+      "notificationgroup": {
+        "if": { "properties": { "class": { "const": "notificationgroup" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "oid", "class", "objects", "status"],
+          "properties": {
+            "oid": { "$ref": "#/$defs/oid" },
+            "status": { "$ref": "#/$defs/status" },
+            "objects": { "type": "array", "items": { "$ref": "#/$defs/symbolRef" } },
+            "description": { "type": "string" },
+            "reference": { "type": "string" }
+          }
+        }
+      },
+
+      "modulecompliance": {
+        "if": { "properties": { "class": { "const": "modulecompliance" } }, "required": ["class"] },
+        "then": {
+          "required": ["name", "oid", "class", "modulecompliance", "status"],
+          "properties": {
+            "oid": { "$ref": "#/$defs/oid" },
+            "status": { "$ref": "#/$defs/status" },
+            "modulecompliance": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/symbolRef" },
+              "description": "The MANDATORY-GROUPS of every MODULE clause, flattened."
+            },
+            "refinements": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/refinement" },
+              "description": "GROUP and OBJECT clauses. See the specification: an entry whose only payload is a DESCRIPTION is omitted entirely when texts are not generated."
+            },
+            "description": { "type": "string" },
+            "reference": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "oid": {
+      "type": "string",
+      "description": "Dotted-decimal OID. A row's stand-in column carries a '%s' template instead, resolved against the row OID once it is known.",
+      "pattern": "^([0-9]+(\\.[0-9]+)*|%s(\\.[0-9]+)*)$"
+    },
+
+    "timestamp": {
+      "type": "string",
+      "description": "UTC time normalized to 'YYYY-MM-DD HH:MM'. Both the 11-character (YYMMDDHHMMZ) and 13-character (YYYYMMDDHHMMZ) ASN.1 forms normalize to this.",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$"
+    },
+
+    "status": {
+      "enum": ["mandatory", "optional", "obsolete", "deprecated", "current"]
+    },
+
+    "maxaccess": {
+      "enum": [
+        "not-accessible",
+        "accessible-for-notify",
+        "read-only",
+        "read-write",
+        "read-create",
+        "write-only"
+      ]
+    },
+
+    "typeSpec": {
+      "type": "object",
+      "description": "A syntax reference. 'type' is the SMI type name exactly as the MIB declares it -- a base type, or a TEXTUAL-CONVENTION or type name resolvable through 'imports'. It is never resolved to an implementation class here; that binding belongs to whatever consumes the model.",
+      "required": ["type", "class"],
+      "properties": {
+        "type": { "type": "string" },
+        "class": { "const": "type" },
+        "constraints": { "$ref": "#/$defs/constraints" },
+        "bits": {
+          "type": "object",
+          "description": "BITS named-bit positions, name to bit number.",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+
+    "constraints": {
+      "type": "object",
+      "description": "Subtype constraints. A type may carry more than one kind.",
+      "properties": {
+        "range": { "type": "array", "items": { "$ref": "#/$defs/bound" } },
+        "size": { "type": "array", "items": { "$ref": "#/$defs/bound" } },
+        "enumeration": {
+          "type": "object",
+          "additionalProperties": { "type": "integer" }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "bound": {
+      "type": "object",
+      "description": "One range or size interval. A single-value constraint is emitted with min equal to max.",
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "integer" },
+        "max": { "type": "integer" }
+      }
+    },
+
+    "defval": {
+      "type": "object",
+      "description": "DEFVAL. 'format' says how to read 'value'.",
+      "required": ["format", "value"],
+      "properties": {
+        "format": { "enum": ["decimal", "hex", "string", "oid", "enum", "bits"] },
+        "value": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "integer" },
+            { "$ref": "#/$defs/typeSpec" }
+          ],
+          "description": "An integer for 'decimal'; a string for 'hex', 'string', 'oid' and 'enum'; a typeSpec carrying 'bits' for 'bits'."
+        }
+      }
+    },
+
+    "symbolRef": {
+      "type": "object",
+      "description": "A reference to a symbol, attributed to the module that defines it.",
+      "required": ["module", "object"],
+      "properties": {
+        "module": { "type": "string" },
+        "object": { "type": "string" }
+      }
+    },
+
+    "indexEntry": {
+      "type": "object",
+      "description": "One INDEX element, in declaration order.",
+      "required": ["module", "object", "implied"],
+      "properties": {
+        "module": { "type": "string" },
+        "object": { "type": "string" },
+        "implied": {
+          "type": "integer",
+          "enum": [0, 1],
+          "description": "1 when the element was declared IMPLIED. Emitted as an integer, not a boolean."
+        }
+      }
+    },
+
+    "augmentation": {
+      "type": "object",
+      "description": "AUGMENTS. 'name' is the augmenting row; 'module' and 'object' name the row it augments.",
+      "required": ["name", "module", "object"],
+      "properties": {
+        "name": { "type": "string" },
+        "module": { "type": "string" },
+        "object": { "type": "string" }
+      }
+    },
+
+    "refinement": {
+      "type": "object",
+      "description": "One GROUP or OBJECT clause of a MODULE-COMPLIANCE.",
+      "required": ["module", "object", "kind"],
+      "properties": {
+        "module": { "type": "string" },
+        "object": { "type": "string" },
+        "kind": { "enum": ["group", "object"] },
+        "minaccess": { "$ref": "#/$defs/maxaccess" },
+        "syntax": { "$ref": "#/$defs/typeSpec" },
+        "writesyntax": { "$ref": "#/$defs/typeSpec" },
+        "description": { "type": "string" }
+      }
+    }
+  }
+}
