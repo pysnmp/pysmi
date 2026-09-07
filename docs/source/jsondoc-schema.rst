@@ -428,6 +428,98 @@ Until those are resolved, a consumer that needs the model rather than a
 rendering should generate texts and discard what it does not want.
 
 
+Module identity
+---------------
+
+A module needs an identity answering "is this the same module content?" The
+digest in ``meta.comments`` answers "is this the same file?", which is a
+different question: it covers raw ASN.1 bytes, so reindenting a MIB or fixing a
+typo in a comment changes it while changing nothing a consumer of the model can
+observe.
+
+Both are kept. The source digest establishes provenance of a file; the hashes
+below establish identity of a model.
+
+.. code-block:: python
+
+   from pysmi.codegen.normalized import module_hashes
+
+   module_hashes(document)
+   # {'normalization': 1,
+   #  'content':   '614f6b29...',
+   #  'structure': 'f74515e6...'}
+
+``content``
+    The model including prose. Two documents share it exactly when their models
+    are equal. This is a module's identity.
+
+``structure``
+    The model with prose removed. Two modules differing only in DESCRIPTION text
+    share it. The corpus ships descriptions as a separate artifact, so a build
+    that carries structure alone has an identity for what it carried.
+
+``normalization``
+    The version of the algorithm below. It travels with the hashes because a
+    hash without the algorithm that produced it compares to nothing.
+
+Canonical form
+~~~~~~~~~~~~~~
+
+The hash is SHA-256 over a canonical byte sequence. A non-pysmi implementation
+has to agree on all of this:
+
+1. ``meta`` is excluded. Every other top-level key -- ``imports`` and each
+   symbol -- is kept. Excluding ``meta`` is what keeps the hash stable across
+   pysmi releases, since it carries the producing version.
+2. For the structural form only, these fields are removed wherever they occur,
+   at any depth: ``description``, ``reference``, ``organization``,
+   ``contactinfo``. ``units`` and ``displayhint`` are **not** removed -- both
+   are machine-readable and both change how a value is interpreted.
+3. Object keys are sorted by Unicode code point.
+4. Arrays keep their order. Order is semantic throughout the model: INDEX
+   elements, revisions, ranges and object lists all mean something different
+   reordered.
+5. Separators are ``","`` and ``":"``, with no spaces.
+6. Non-ASCII characters are emitted as themselves, not escaped.
+7. The result is encoded UTF-8 and prefixed with
+   ``pysmi-normalized-v<N>\n``, where ``<N>`` is the normalization version.
+   The prefix is domain separation and pins the algorithm version into the
+   digest.
+
+Bumping the normalization version changes every hash even when no module
+changed. That is deliberate -- a consumer comparing across the change must be
+told rather than silently see everything move -- and it is a breaking change for
+anyone who pinned a hash.
+
+Properties
+~~~~~~~~~~
+
+Asserted in ``tests/test_normalized_hash.py``:
+
+* reindenting a MIB, adding a comment, or converting line endings does not
+  change either hash
+* changing a constraint, MAX-ACCESS, STATUS, UNITS, an OID, or a SYNTAX does
+* changing a DESCRIPTION changes ``content`` and not ``structure``
+* a module compiled alone and the same module compiled in a batch hash
+  identically, which is what makes a slim corpus a filter over a full one
+  rather than a rebuild
+* the producing pysmi version does not reach either hash
+
+.. warning::
+
+   ``structure`` is **defined** to be equal between a document generated with
+   texts and one generated without -- prose is the only thing that should differ
+   -- and it currently is not. A no-texts document is structurally lossy rather
+   than merely prose-free: MODULE-COMPLIANCE refinement entries are dropped
+   rather than stripped (pysnmp/pysmi#190), and ``lastupdated`` is suppressed
+   with the prose despite being a timestamp (pysnmp/pysmi#191).
+
+   Until both are fixed, compute hashes from a document generated **with** texts
+   and discard what you do not need. The test suite asserts the current
+   inequality deliberately, so fixing either defect fails a test rather than
+   silently changing hashes.
+
+
 The OID index
 -------------
 
