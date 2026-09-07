@@ -254,6 +254,55 @@ class NoDependencyLeaksAcrossASourceSwapTestCase(unittest.TestCase):
         self.assertEqual(processed["ONLY-HERE-MIB"], "missing")
 
 
+class PrioritySourcesSurviveASwapTestCase(unittest.TestCase):
+    """The half of `set_sources` that is about what it does *not* replace.
+
+    Priority sources are the part that does not vary between namespaces --
+    pysmi's bundled base MIBs are registered that way -- so a driver registers
+    them once and swaps only the rest. Nothing else in this file would notice
+    if a swap dropped them, because the bundled source would still answer for
+    the standard tree and the namespace reader for everything else.
+    """
+
+    def setUp(self):
+        self.shared = {"SITE-BASE-MIB": module("SITE-BASE-MIB", 6001, "site base")}
+        self.first = {"FIRST-MIB": module("FIRST-MIB", 6002, "first")}
+        self.second = {"SECOND-MIB": module("SECOND-MIB", 6003, "second")}
+
+    def testAPriorityOnlyModuleStillResolvesAfterASwap(self):
+        compiler = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *args, **kwargs: None),
+        )
+        compiler.add_priority_sources(reader(self.shared))
+
+        compiler.set_sources(reader(self.first))
+        compiler.compile("FIRST-MIB", rebuild=True)
+
+        compiler.set_sources(reader(self.second))
+        processed = compiler.compile("SITE-BASE-MIB", "SECOND-MIB", rebuild=True)
+
+        self.assertEqual(processed["SITE-BASE-MIB"], "compiled")
+        self.assertEqual(processed["SECOND-MIB"], "compiled")
+
+    def testSwappingDoesNotAccumulateSources(self):
+        """Replaces rather than appends, or a long build grows a source list."""
+        compiler = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *args, **kwargs: None),
+        )
+        compiler.add_priority_sources(reader(self.shared))
+
+        compiler.set_sources(reader(self.first))
+        after_first = len(compiler._all_sources())
+
+        compiler.set_sources(reader(self.second))
+
+        self.assertEqual(len(compiler._all_sources()), after_first)
+
+
 class TheSharedTreeIsParsedOncePerBuildTestCase(unittest.TestCase):
     """The outcome the issue asks for, measured rather than asserted."""
 

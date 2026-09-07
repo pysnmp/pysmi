@@ -13,9 +13,13 @@ Compiling many source sets
 
 A corpus build compiles a few hundred vendor namespaces, each with its own
 source directory, and every one of them imports the same handful of standard
-modules. Driven as a shell loop -- a fresh process per namespace -- that
-standard tree is parsed once per namespace, because the parse cache lives in
-:py:meth:`~pysmi.compiler.MibCompiler.compile` and dies with the call.
+modules.
+
+The parse cache belongs to the compiler, so it is kept across
+:py:meth:`~pysmi.compiler.MibCompiler.compile` calls and the standard tree is
+parsed once. What loses it is building a new compiler per namespace -- and a
+shell loop, which starts a fresh process each time, can do nothing else. That
+is the shape the standard tree ends up parsed once per namespace in.
 
 :py:meth:`~pysmi.compiler.MibCompiler.set_sources` replaces the configured
 sources on a compiler that is already built, so one compiler can be driven
@@ -28,6 +32,11 @@ across every namespace instead:
    from pysmi.parser import SmiV1CompatParser
    from pysmi.reader import FileReader
    from pysmi.writer import CallbackWriter
+
+   documents = {}
+
+   def store(mibname, data, cbCtx):
+       documents[mibname] = data
 
    compiler = MibCompiler(
        SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(store)
@@ -97,7 +106,7 @@ needs -- a fresh interpreter per namespace has nothing in memory to reuse:
    compiler = MibCompiler(
        SmiV1CompatParser(),
        JsonCodeGen(),
-       CallbackWriter(store),
+       CallbackWriter(store),          # as above
        parseCache=FileParseCache("/var/cache/pysmi"),
    )
 
