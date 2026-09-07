@@ -36,6 +36,13 @@ DEST = "pysmi/mibs/pysnmp"
 RECURSION_LIMIT = 20000
 
 
+def _ungeneratable():
+    """Modules this code generator cannot render, from the generator itself."""
+    from pysmi.codegen import PySnmpCodeGen
+
+    return frozenset(PySnmpCodeGen.constImports) - frozenset(PySnmpCodeGen.fakeMibs)
+
+
 class PrecompiledMibsHook(BuildHookInterface[Any]):
     """Render ``pysmi/mibs/asn1`` into ``pysmi/mibs/pysnmp`` for the wheel."""
 
@@ -77,6 +84,7 @@ def build(root: Path) -> Path:
     from pysmi.compiler import MibCompiler
     from pysmi.parser import SmiV1CompatParser
     from pysmi.reader import FileReader
+    from pysmi.searcher import StubSearcher
     from pysmi.writer import PyFileWriter
 
     asn1 = root / "pysmi" / "mibs" / "asn1"
@@ -85,6 +93,8 @@ def build(root: Path) -> Path:
         for entry in asn1.iterdir()
         if entry.is_file() and not entry.name.startswith("__")
     )
+
+    UNGENERATABLE = _ungeneratable()
 
     out = Path(tempfile.mkdtemp(prefix="pysmi-precompiled-"))
 
@@ -100,6 +110,17 @@ def build(root: Path) -> Path:
         useBundledMibs=False,
     )
     compiler.add_sources(FileReader(str(asn1)))
+    # A module the generator always imports *from* cannot be generated: the
+    # unconditional import becomes an import from itself, which can never
+    # resolve. constImports is that set, and subtracting the ASN.1 stand-ins
+    # leaves SNMPv2-SMI, SNMPv2-TC and SNMPv2-CONF -- the modules whose symbols
+    # pysnmp implements in code rather than deriving from the MIB.
+    #
+    # Derived rather than listed, so it stays right if constImports changes.
+    # Deliberately *not* PySnmpCodeGen.baseMibs, which is a precedence rule
+    # covering 11 further modules that generate perfectly well and that
+    # consumers want. See pysnmp/pysmi#196.
+    compiler.add_searchers(StubSearcher(*UNGENERATABLE))
 
     limit = sys.getrecursionlimit()
     sys.setrecursionlimit(RECURSION_LIMIT)
