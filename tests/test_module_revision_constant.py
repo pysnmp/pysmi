@@ -25,7 +25,7 @@ from importlib import resources
 
 from pysmi.codegen import PySnmpCodeGen
 from pysmi.compiler import MibCompiler, revision_of
-from pysmi.mibinfo import normalise_revision
+from pysmi.mibinfo import normalise_revision, strip_comments
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import PackageReader
 from pysmi.writer import CallbackWriter
@@ -236,6 +236,58 @@ END
         self.assertEqual("200210160000Z", revision_of(NO_REVISION_MIB))
 
 
+class StripCommentsTestCase(unittest.TestCase):
+    """`strip_comments` has to know where a string is.
+
+    None of the 365 bundled modules puts a ``--`` inside a quoted value ahead
+    of its LAST-UPDATED, so the whole-bundle comparison below passes just as
+    happily with a string-unaware stripper. These pin the property directly.
+    """
+
+    def testACommentRunsToEndOfLine(self):
+        self.assertEqual("a \nb", strip_comments("a -- comment\nb"))
+
+    def testASecondPairClosesTheComment(self):
+        self.assertEqual(" keep", strip_comments("-- gone -- keep"))
+
+    def testNewlinesSurvive(self):
+        self.assertEqual("a \nb \n", strip_comments("a -- x\nb -- y\n"))
+
+    def testHyphensInsideAStringAreNotAComment(self):
+        """The case that makes a regex wrong.
+
+        ``--.*?(?:--|$)`` deletes from the hyphens in the DESCRIPTION to the
+        end of the line, taking the LAST-UPDATED with it, and `revision_of`
+        then reports nothing for a module that states a revision.
+        """
+        line = 'DESCRIPTION "a -- b" LAST-UPDATED "200210160000Z"'
+
+        self.assertEqual(line, strip_comments(line))
+
+    def testADoubledQuoteDoesNotEndTheString(self):
+        line = 's "quote "" inside -- still" tail'
+
+        self.assertEqual(line, strip_comments(line))
+
+    def testRevisionOfSurvivesHyphensInAString(self):
+        mib = """
+HYPHEN-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    MODULE-IDENTITY
+        FROM SNMPv2-SMI;
+
+testModule MODULE-IDENTITY
+    DESCRIPTION "Range is 1--10." LAST-UPDATED "200210160000Z"
+    ORGANIZATION "Org."
+    CONTACT-INFO "Contact."
+    ::= { 1 3 0 }
+
+END
+"""
+
+        self.assertEqual("200210160000Z", revision_of(mib))
+
+
 class ConstantMatchesTheCompilerTestCase(unittest.TestCase):
     """The property the constant exists for, over every module pysmi bundles.
 
@@ -265,12 +317,12 @@ class ConstantMatchesTheCompilerTestCase(unittest.TestCase):
         compiler.add_sources(PackageReader("pysmi.mibs.asn1"))
         compiler.compile(*names, noDeps=True, rebuild=True)
 
-        self.assertTrue(rendered, "nothing compiled")
+        # Every bundled module has to render. Skipping the ones that did not
+        # would let a compile failure pass this test without its module ever
+        # being compared -- the same silent pass the constant exists to remove.
+        self.assertEqual(sorted(rendered), names)
 
         for name in names:
-            if name not in rendered:
-                continue
-
             asn1 = sources.joinpath(name).read_text(encoding="utf-8", errors="replace")
 
             with self.subTest(module=name):

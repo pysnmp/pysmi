@@ -463,9 +463,19 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
         # 47, not 43: ATM-FORUM-MIB and the three LAN-EMULATION modules ship
         # their MODULE-IDENTITY commented out. `revision_of` used to match
         # inside the comment and report a revision for a module that declares
-        # none.
+        # none. Named rather than only counted, so a regression that swaps one
+        # undated module for another cannot hold the count at 47.
         self.assertEqual(47, len(undated))
         self.assertIn("SNMPv2-SMI", undated)
+        self.assertLessEqual(
+            {
+                "ATM-FORUM-MIB",
+                "LAN-EMULATION-BUS-MIB",
+                "LAN-EMULATION-ELAN-MIB",
+                "LAN-EMULATION-LES-MIB",
+            },
+            undated,
+        )
 
     def testEveryUndatedBundledModulePredatesModuleIdentity(self):
         """An undated module is used over the caller's copy, with no comparison.
