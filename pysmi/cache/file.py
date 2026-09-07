@@ -62,14 +62,28 @@ class FileParseCache(AbstractParseCache):
         """Name the class and the directory."""
         return f"{self.__class__.__name__}({self._path!r})"
 
+    #: Prefixed onto every entry file. The directory may hold files this cache
+    #: did not write -- a build's own metadata, another tool's state -- and
+    #: :py:meth:`clear` must not remove them. Filtering on ``.pickle`` alone
+    #: would; filtering on the key's shape would not work either, since a key
+    #: is whatever the caller's compiler composed and need not look like a
+    #: digest. An owned prefix answers both.
+    ENTRY_PREFIX = "pysmi-parse-"
+
+    #: Extension for entry files. Names them for what they are, and keeps the
+    #: pickling visible to anyone looking at the directory.
+    ENTRY_SUFFIX = ".pickle"
+
     def _entry(self, key: str) -> str:
         """The file an entry lives in.
 
-        The key is a hex digest the compiler composed, so it is already a safe
-        file name; it is still confined to the cache directory by construction
-        rather than trusted to be.
+        The key is composed by the compiler and hashed, so it is already a safe
+        file name; ``basename`` confines it to the cache directory by
+        construction rather than trusting it to stay there.
         """
-        return os.path.join(self._path, os.path.basename(key) + ".pickle")
+        name = self.ENTRY_PREFIX + os.path.basename(key) + self.ENTRY_SUFFIX
+
+        return os.path.join(self._path, name)
 
     def get(self, key: str) -> list[Any] | None:
         """The trees stored under *key*, or ``None`` on a miss or any failure."""
@@ -144,10 +158,11 @@ class FileParseCache(AbstractParseCache):
             logger.debug("could not cache %s: %s", entry, exc, extra={"entry": entry})
 
     def clear(self) -> None:
-        """Remove every entry this cache wrote.
+        """Remove every entry this cache wrote, and nothing else.
 
-        Only files this class names are removed; anything else in the
-        directory is left alone.
+        Entries are recognised by :py:attr:`ENTRY_PREFIX`, so a file the
+        directory holds for some other reason survives -- including one that
+        happens to be a pickle.
         """
         try:
             names = os.listdir(self._path)
@@ -156,7 +171,9 @@ class FileParseCache(AbstractParseCache):
             return
 
         for name in names:
-            if not name.endswith(".pickle"):
+            if not (
+                name.startswith(self.ENTRY_PREFIX) and name.endswith(self.ENTRY_SUFFIX)
+            ):
                 continue
 
             try:

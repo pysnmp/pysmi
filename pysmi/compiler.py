@@ -284,8 +284,21 @@ class MibCompiler:
         #: offered to a different producer. Only a cache outliving this
         #: process can encounter that, and one of those is exactly what
         #: :py:class:`~pysmi.cache.file.FileParseCache` is.
-        self._parserId = (
-            f"{packageVersion}/{type(parser).__module__}.{type(parser).__qualname__}"
+        #:
+        #: The class alone is not enough to identify a parser.
+        #: :py:func:`~pysmi.parser.smi.parserFactory` names every
+        #: specialization it builds ``SmiParser``, so ``SmiV1Parser``,
+        #: ``SmiV1CompatParser`` and ``SmiV2Parser`` -- all three of the
+        #: shipped parsers -- share a module and qualname while accepting
+        #: different grammars. The relaxations and the start symbol are what
+        #: separate them.
+        self._parserId = "/".join(
+            (
+                packageVersion,
+                f"{type(parser).__module__}.{type(parser).__qualname__}",
+                ",".join(getattr(type(parser), "grammarOptions", ())),
+                str(getattr(parser, "startSym", "")),
+            )
         )
         #: The reader serving the bundled copies, kept so that precedence can
         #: name it apart from anything the caller added. ``None`` when

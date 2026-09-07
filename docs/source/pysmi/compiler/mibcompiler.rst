@@ -103,6 +103,8 @@ needs -- a fresh interpreter per namespace has nothing in memory to reuse:
 
 .. code-block:: python
 
+   from pysmi.cache import FileParseCache
+
    compiler = MibCompiler(
        SmiV1CompatParser(),
        JsonCodeGen(),
@@ -123,10 +125,17 @@ To write your own -- Redis, memcached, a shared filesystem, whatever a build
 already runs -- implement
 :py:class:`~pysmi.cache.base.AbstractParseCache`. No registration step exists
 because none is needed. Two things a provider does *not* have to do:
-invalidation, since the key already carries both the text and the identity of
-the parser and pysmi version that would parse it, so an entry written by another
-release is never read by this one; and defensive copying, since the compiler
-copies whatever it receives.
+invalidation, since the key already carries the text together with the identity
+of what would parse it -- the pysmi version, the parser class, its grammar
+relaxations and its start symbol -- so an entry written by another release, or
+by a different SMI dialect, is never read by this one; and defensive copying,
+since the compiler copies whatever it receives.
+
+The dialect matters as much as the version here. ``parserFactory`` names every
+specialization it builds ``SmiParser``, so all three shipped parsers share a
+class identity while accepting different grammars: a trailing comma in
+``IMPORTS`` parses under ``SmiV1CompatParser`` and raises under
+``SmiV2Parser``.
 
 :py:meth:`~pysmi.compiler.MibCompiler.clear_parse_cache` empties whichever
 provider is configured. It is never needed for correctness.

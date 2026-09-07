@@ -36,7 +36,7 @@ from pysmi.cache import (
 )
 from pysmi.codegen import JsonCodeGen
 from pysmi.compiler import MibCompiler
-from pysmi.parser import SmiV1CompatParser
+from pysmi.parser import SmiV1CompatParser, SmiV1Parser, SmiV2Parser
 from pysmi.reader import CallbackReader
 from pysmi.writer import CallbackWriter
 
@@ -524,16 +524,38 @@ class FileParseCacheTestCase(unittest.TestCase):
         self.assertIsNone(cache.get("k"))
 
     def testClearRemovesOnlyItsOwnEntries(self):
+        """A directory may hold files this cache did not write.
+
+        Filtering on `.pickle` alone would delete a build's own
+        `metadata.pickle`; filtering on the key's shape would not work either,
+        because a key is whatever the compiler composed. Entries carry an owned
+        prefix instead.
+        """
         cache = FileParseCache(self.directory)
         cache.set("k", [1])
-        keep = os.path.join(self.directory, "README")
-        with open(keep, "w") as fd:
-            fd.write("not ours")
+
+        foreign = {
+            os.path.join(self.directory, "README"): "not ours",
+            os.path.join(self.directory, "metadata.pickle"): "also not ours",
+        }
+        for path, text in foreign.items():
+            with open(path, "w") as fd:
+                fd.write(text)
 
         cache.clear()
 
         self.assertIsNone(cache.get("k"))
-        self.assertTrue(os.path.exists(keep))
+        for path in foreign:
+            self.assertTrue(os.path.exists(path), path)
+
+    def testEntriesAreNamedSoTheyCanBeRecognised(self):
+        cache = FileParseCache(self.directory)
+        cache.set("k", [1])
+
+        written = os.listdir(self.directory)
+
+        self.assertEqual(len(written), 1, written)
+        self.assertTrue(written[0].startswith(FileParseCache.ENTRY_PREFIX))
 
 
 class FailingToCacheIsNotACompilationFailureTestCase(unittest.TestCase):
@@ -663,6 +685,70 @@ class TheCacheKeyCarriesItsProducerTestCase(unittest.TestCase):
         compiler._parserId = "same-version/other.OtherParser"
 
         self.assertNotEqual(before, compiler._parse_cache_key("some-digest"))
+
+    def testEveryShippedDialectKeysDifferently(self):
+        """The class alone cannot tell them apart.
+
+        `parserFactory` names every specialization it builds `SmiParser`, so
+        all three shipped parsers are `pysmi.parser.smi.SmiParser`. They do not
+        accept the same grammar -- see the test below -- so a file cache keyed
+        on the class would serve one dialect's tree to another.
+        """
+        keys = {
+            name: MibCompiler(
+                parser(),
+                JsonCodeGen(),
+                CallbackWriter(lambda *args, **kwargs: None),
+            )._parse_cache_key("one-digest")
+            for name, parser in (
+                ("v1", SmiV1Parser),
+                ("v1compat", SmiV1CompatParser),
+                ("v2", SmiV2Parser),
+            )
+        }
+
+        self.assertEqual(len(set(keys.values())), 3, keys)
+
+    def testTheDialectsThoseKeysSeparateReallyDisagree(self):
+        """The premise of the test above, rather than an assumption.
+
+        A trailing comma in IMPORTS is tolerated by the relaxed dialect and
+        rejected by strict SMIv2. Sharing a cache between them would hand the
+        strict build a tree for text it should have refused.
+        """
+        trailing_comma = textwrap.dedent(
+            """\
+            COMMA-MIB DEFINITIONS ::= BEGIN
+            IMPORTS
+                OBJECT-TYPE,
+                Integer32,
+                    FROM SNMPv2-SMI;
+            testObj OBJECT-TYPE SYNTAX Integer32 MAX-ACCESS read-only
+                STATUS current DESCRIPTION "d" ::= { 1 3 6 1 4 1 9999 1 }
+            END
+            """
+        )
+
+        self.assertTrue(SmiV1CompatParser().parse(trailing_comma))
+
+        with self.assertRaises(error.PySmiParserError):
+            SmiV2Parser().parse(trailing_comma)
+
+    def testTheStartSymbolIsPartOfTheIdentity(self):
+        """It selects a grammar as surely as a relaxation does."""
+        default = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *args, **kwargs: None),
+        )
+        other = MibCompiler(
+            SmiV1CompatParser(startSym="mibFile"),
+            JsonCodeGen(),
+            CallbackWriter(lambda *args, **kwargs: None),
+        )
+        other._parserId = other._parserId.rsplit("/", 1)[0] + "/somethingElse"
+
+        self.assertNotEqual(default._parse_cache_key("d"), other._parse_cache_key("d"))
 
     def testTheSameProducerAndTextAgree(self):
         _, first = self._key()

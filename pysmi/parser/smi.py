@@ -90,6 +90,14 @@ class SmiV2Parser(AbstractParser):
 
     defaultLexer = lexerFactory()
 
+    #: Grammar relaxations mixed into this class, sorted. Empty on the strict
+    #: SMIv2 grammar. :py:func:`parserFactory` sets it on each specialization
+    #: it builds, because every one of those is named ``SmiParser`` and is
+    #: otherwise indistinguishable from the rest -- so anything identifying a
+    #: parser by its class alone would conflate dialects that parse the same
+    #: text differently.
+    grammarOptions: tuple[str, ...] = ()
+
     def __init__(self, startSym: str = "mibFile", tempdir: str = "") -> None:
         """Build the grammar, optionally caching its tables on disk.
 
@@ -113,6 +121,10 @@ class SmiV2Parser(AbstractParser):
                     raise error.PySmiError(
                         f"Failed to create cache directory {tempdir}: {exc}"
                     ) from exc
+
+        #: The grammar symbol parsing starts from. Retained because it selects
+        #: a grammar as surely as the relaxations do.
+        self.startSym = startSym
 
         self.lexer = self.defaultLexer(tempdir=tempdir)
 
@@ -1695,5 +1707,6 @@ def parserFactory(**grammarOptions: bool) -> type[SmiV2Parser]:
                 classAttr[func.__name__] = func
 
     classAttr["defaultLexer"] = lexerFactory(**grammarOptions)
+    classAttr["grammarOptions"] = tuple(sorted(enabled))
 
     return type("SmiParser", (SmiV2Parser,), classAttr)
