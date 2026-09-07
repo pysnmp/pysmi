@@ -62,9 +62,19 @@ entry names one of four sources:
     moved on, and the module would trail upstream with nothing able to say so.
 
 ``local``
-    Only RFC-1212 and RFC-1215. Both RFCs define a macro in prose rather than
-    shipping an ASN.1 module, so no publisher has a copy to fetch and the
-    compat module is maintained in this repository. The manifest records why.
+    Five compatibility modules that no publisher ships, so there is nothing to
+    fetch and ``--check`` has nothing to compare against. RFC-1212 and RFC-1215
+    exist because those RFCs define a macro in prose rather than as an ASN.1
+    module. SNMPv2-SMI-v1, SNMPv2-TC-v1 and SNMPv2-CONF-v1 are SMIC's 1994
+    SNMPv1 renderings of RFC 1442, 1443 and 1444, which the SMIv2 RFCs went on
+    to obsolete. The manifest records why for each.
+
+    None of the four can go stale, which is what makes them admissible. A
+    module with a publisher must be re-fetchable or a bundled copy could not be
+    told apart from an abandoned one; a module whose text was frozen by a tool
+    run in 1994, or by an RFC that never shipped ASN.1 at all, has no upstream
+    left to fall behind. The disqualifying case is a module still being revised
+    somewhere we cannot see -- not one nobody revises at all.
 
 A handful of entries also carry a ``patch``. The published text of those
 modules does not compile -- a truncated line left in the RFC, an IMPORTS clause
@@ -77,13 +87,15 @@ copy instead would have hidden all of that.
 What belongs in the bundle
 --------------------------
 
-A vendor-neutral module with a publisher we can re-fetch and diff. That is what
+A vendor-neutral module whose text cannot silently fall behind. That is what
 decides membership -- not which directory a mirror happens to file it under,
 which is how CableLabs, DMTF, MEF and SCTE modules end up misfiled as standard
-ones. A module with no live authoritative source is not bundled, however widely
-imported, because there would be no way to tell a stale copy from a current
-one. See ``docs/source/bundled-mibs.rst`` for the inventory and for what is
-deliberately left out.
+ones. Two ways to satisfy it: a publisher we can re-fetch and diff, or text
+that was frozen and has no upstream left to trail. What is disqualifying is a
+module still being revised somewhere ``--check`` cannot look, because then a
+stale copy and a current one are indistinguishable. See
+``docs/source/bundled-mibs.rst`` for the inventory and for what is deliberately
+left out.
 
 "Upstream still revises it" is not a reason to leave a module out
 ----------------------------------------------------------------
@@ -108,9 +120,10 @@ at all, because then neither mechanism has anything to work with.
 
 The one place the old argument still holds is a module with no MODULE-IDENTITY:
 there is no revision for ``--check`` to report against and none for a caller's
-copy to beat, so the bundled copy is simply used. All 34 such entries here are
+copy to beat, so the bundled copy is simply used. All 37 such entries here are
 pre-SMIv2 modules or SMI modules proper -- RFC1213-MIB, SNMPv2-SMI, the PPP and
-RFC1xxx-MIB modules -- whose text an RFC froze and which cannot be revised
+RFC1xxx-MIB modules, the SMIv1 shims -- whose text an RFC or a 1994 tool run
+froze and which cannot be revised
 except as a new module under a new name. An undated module that upstream still
 revises would shadow a caller's better copy for good; there is no such module
 here, and ``tests/test_compiler_bundled_mibs.py`` is what keeps it that way.
@@ -684,6 +697,9 @@ def docs() -> int:
     ]
 
     patched = sorted(name for name, entry in modules.items() if "patch" in entry)
+    local = sorted(
+        name for name, entry in modules.items() if entry["source"] == "local"
+    )
     historical = sorted(
         name for name, entry in modules.items() if "successors_reviewed" in entry
     )
@@ -705,6 +721,8 @@ def docs() -> int:
         "",
         PAGE_PATCHES,
         *(f"``{name}``\n    {modules[name]['reason']}\n" for name in patched),
+        PAGE_LOCAL,
+        *(f"``{name}``\n    {modules[name]['reason']}\n" for name in local),
         PAGE_HISTORICAL,
         *(
             f"``{name}``\n    "
@@ -752,13 +770,18 @@ when its RFC was published and cannot be revised except as a new module under a
 new name -- so the copy here cannot go stale under a caller who has a better
 one. That is the whole reason membership is restricted the way it is below.
 
-Every module below is traceable to a publisher: the text is cut out of the RFC
+Every module below is traceable to where its text came from: cut out of the RFC
 that currently defines it, or fetched from IANA's registry, or fetched from the
-IEEE 802.1 MIB directory. Nothing here is hand-authored MIB text, and
-``scripts/update_bundled_mibs.py --check`` re-fetches all of it and reports
-anything that no longer matches. RFC-sourced entries are also checked against
-the RFC Editor for obsoletion, since an RFC's text never changes but a later
-RFC can replace it.
+IEEE 802.1 MIB directory. ``scripts/update_bundled_mibs.py --check`` re-fetches
+all of it and reports anything that no longer matches. RFC-sourced entries are
+also checked against the RFC Editor for obsoletion, since an RFC's text never
+changes but a later RFC can replace it.
+
+Five modules are the exception and are maintained in this repository, listed
+under :ref:`bundled-mib-local` below. They are admissible for the same reason
+the undated modules above are: their text was frozen -- by an RFC that defined
+a macro in prose and shipped no ASN.1, or by a 1994 tool run -- so there is no
+upstream for them to fall behind.
 
 {patched} modules carry a patch, listed under :ref:`bundled-mib-patches` below,
 because their published text does not compile as published.
@@ -780,13 +803,15 @@ so the two cannot disagree. The ASN.1 stays because it is what the compiler
 reads -- resolving an IMPORTS clause means parsing the imported module's source
 -- so the compiled form joins it rather than replacing it.
 
-Membership is decided by whether a module has a publisher we can re-fetch and
-diff -- not by which directory a mirror files it under, and not by whether that
+Membership is decided by whether a module's text can silently fall behind --
+not by which directory a mirror files it under, and not by whether its
 publisher still revises it. MIB collections routinely file CableLabs, DMTF, MEF
-and SCTE modules as "standard", and a bundled copy of a module nobody publishes
-could never be told apart from a stale one. Modules with no live authoritative
-source are therefore not bundled, however widely they are imported; they remain
-available from https://pysnmp.github.io/mibs/asn1/ as before.
+and SCTE modules as "standard", and a bundled copy of a module still being
+revised out of view could never be told apart from a stale one. A module is
+bundled when it has a publisher to re-fetch and diff, or when its text is
+frozen and has no upstream left to trail; anything else stays out, however
+widely imported, and remains available from https://pysnmp.github.io/mibs/asn1/
+as before.
 
 A module its publisher still revises *is* bundled -- IANA's registries and the
 IEEE 802.1 directory are tracked at whatever they currently publish, not frozen
@@ -856,15 +881,22 @@ modules are left out despite having an RFC: ``COFFEE-POT-MIB`` (RFC 2325, an
 April Fools' RFC whose ASN.1 does not parse) and ``TCPIPX-MIB`` (RFC 1792,
 rooted under ``enterprises`` and so a vendor module in any case).
 
-``SNMPv2-SMI-v1`` and ``SNMPv2-TC-v1`` are left out for a third reason. They
-are widely imported -- 19 and 36 modules in the mirror name them -- but no
-body publishes them. Both are SMIC output from 1994, a tool's SNMPv1 rendering
-of RFC 1442, which RFC 1902 and then RFC 2578 obsoleted. There is nothing to
-fetch and nothing to check them against, and the rule that every bundled byte
-is traceable to a publisher is worth more than the two entries.
-
 All of them remain available from https://pysnmp.github.io/mibs/asn1/, which is
 where pysmi looks by default.
+"""
+
+PAGE_LOCAL = """\
+.. _bundled-mib-local:
+
+Modules maintained here
+-----------------------
+
+These five have no publisher to fetch from, so ``--check`` skips them and the
+copy in this repository is the only one. That is admissible because none of
+them has an upstream to fall behind: two are macros an RFC defined in prose
+without ever shipping ASN.1, and three are a 1994 tool's SNMPv1 rendering of
+SMIv2 base modules that the SMIv2 RFCs went on to obsolete. Nothing will revise
+any of them. Why each is here:
 """
 
 
