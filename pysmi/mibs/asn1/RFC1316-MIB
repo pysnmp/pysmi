@@ -3,7 +3,7 @@
                     IMPORTS
                             Counter, TimeTicks, Gauge
                                     FROM RFC1155-SMI
-                DisplayString, mib-2
+                            DisplayString
                                     FROM RFC1213-MIB
                             OBJECT-TYPE
                                     FROM RFC-1212;

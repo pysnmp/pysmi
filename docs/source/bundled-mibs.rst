@@ -39,7 +39,7 @@ public MIB directory, DMTF and SCTE behind a 403, IEC behind a paywall, expired
 Internet-Drafts. ``--check`` stays quiet about those. Five more are maintained
 in this repository outright and listed under :ref:`bundled-mib-local`.
 
-16 modules carry a patch, listed under :ref:`bundled-mib-patches` below,
+7 modules carry a patch, listed under :ref:`bundled-mib-patches` below,
 because their published text does not compile as published.
 
 The same modules ship compiled too. A wheel carries ``pysmi/mibs/pysnmp/``,
@@ -130,7 +130,7 @@ Inventory
    "DISMAN-SCHEDULE-MIB", ":rfc:`3231`", "2002-01-07", ""
    "DISMAN-SCRIPT-MIB", ":rfc:`3165`", "2001-08-21", ""
    "DISMAN-TRACEROUTE-MIB", ":rfc:`4560`", "2006-06-13", ""
-   "DLSW-MIB", ":rfc:`2024`", "1996-06-04", "yes"
+   "DLSW-MIB", ":rfc:`2024`", "1996-06-04", ""
    "DMTF-DMI-MIB", "DMTF", "1997-10-22", ""
    "DMTF-LAN-ADAPTER-MIB", "DMTF", "1997-10-22", ""
    "DMTF-MOBILE-MIB", "DMTF", "1997-10-22", ""
@@ -182,7 +182,7 @@ Inventory
    "FC-MGMT-MIB", ":rfc:`4044`", "2005-04-26", ""
    "FCIP-MGMT-MIB", ":rfc:`4404`", "2006-02-06", ""
    "FCMGMT-MIB", "Fibre Alliance", "--", ""
-   "FDDI-SMT73-MIB", ":rfc:`1512`", "--", "yes"
+   "FDDI-SMT73-MIB", ":rfc:`1512`", "--", ""
    "FIBRE-CHANNEL-FE-MIB", ":rfc:`2837`", "2000-05-18", ""
    "FLOAT-TC-MIB", ":rfc:`6340`", "2011-07-27", ""
    "FLOW-METER-MIB", ":rfc:`2720`", "1999-10-25", ""
@@ -260,11 +260,11 @@ Inventory
    "IMA-MIB", "ATM Forum", "1999-02-11", ""
    "INET-ADDRESS-MIB", ":rfc:`4001`", "2005-02-04", ""
    "INTEGRATED-SERVICES-GUARANTEED-MIB", ":rfc:`2214`", "1995-11-03", ""
-   "INTEGRATED-SERVICES-MIB", ":rfc:`2213`", "1995-11-03", "yes"
+   "INTEGRATED-SERVICES-MIB", ":rfc:`2213`", "1995-11-03", ""
    "INTERFACETOPN-MIB", ":rfc:`3144`", "2001-03-27", ""
    "IP-FORWARD-MIB", ":rfc:`4292`", "2006-02-01", ""
    "IP-MIB", ":rfc:`4293`", "2006-02-02", ""
-   "IPATM-IPMC-MIB", ":rfc:`2417`", "1998-09-01", "yes"
+   "IPATM-IPMC-MIB", ":rfc:`2417`", "1998-09-01", ""
    "IPMCAST-MIB", ":rfc:`5132`", "2007-11-09", ""
    "IPMROUTE-STD-MIB", ":rfc:`2932`", "2000-09-22", ""
    "IPOA-MIB", ":rfc:`2320`", "1998-02-09", ""
@@ -301,7 +301,7 @@ Inventory
    "MEF-UNI-EVC-MIB", "MEF", "2013-01-25", ""
    "MGMD-STD-MIB", ":rfc:`5519`", "2009-03-30", ""
    "MIOX25-MIB", ":rfc:`1461`", "--", ""
-   "MIP-MIB", ":rfc:`2006`", "1996-06-04", "yes"
+   "MIP-MIB", ":rfc:`2006`", "1996-06-04", ""
    "MPLS-ID-STD-MIB", ":rfc:`7453`", "2015-02-02", ""
    "MPLS-L3VPN-STD-MIB", ":rfc:`4382`", "2006-01-23", ""
    "MPLS-LDP-GENERIC-STD-MIB", ":rfc:`3815`", "2004-06-03", ""
@@ -362,12 +362,12 @@ Inventory
    "RFC1284-MIB", ":rfc:`1284`", "--", ""
    "RFC1285-MIB", ":rfc:`1285`", "--", ""
    "RFC1315-MIB", ":rfc:`1315`", "--", "yes"
-   "RFC1316-MIB", ":rfc:`1316`", "--", "yes"
+   "RFC1316-MIB", ":rfc:`1316`", "--", ""
    "RFC1381-MIB", ":rfc:`1381`", "--", ""
    "RFC1382-MIB", ":rfc:`1382`", "--", ""
    "RFC1389-MIB", ":rfc:`1389`", "--", ""
    "RFC1406-MIB", ":rfc:`1406`", "--", ""
-   "RFC1414-MIB", ":rfc:`1414`", "--", "yes"
+   "RFC1414-MIB", ":rfc:`1414`", "--", ""
    "RIPv2-MIB", ":rfc:`1724`", "1994-07-27", ""
    "RMON-MIB", ":rfc:`2819`", "2000-05-11", ""
    "RMON2-MIB", ":rfc:`4502`", "2006-05-02", ""
@@ -383,7 +383,7 @@ Inventory
    "SLAPM-MIB", ":rfc:`2758`", "2000-01-24", ""
    "SMON-MIB", ":rfc:`2613`", "1998-12-16", ""
    "SMUX-MIB", ":rfc:`1227`", "--", "yes"
-   "SNA-NAU-MIB", ":rfc:`1666`", "1994-05-12", "yes"
+   "SNA-NAU-MIB", ":rfc:`1666`", "1994-05-12", ""
    "SNA-SDLC-MIB", ":rfc:`1747`", "1994-11-15", ""
    "SNMP-COMMUNITY-MIB", ":rfc:`3584`", "2003-08-06", ""
    "SNMP-FRAMEWORK-MIB", ":rfc:`3411`", "2002-10-14", ""
@@ -436,7 +436,7 @@ Inventory
    "TRANSPORT-ADDRESS-MIB", ":rfc:`3419`", "2002-11-01", ""
    "TUNNEL-MIB", ":rfc:`4087`", "2005-05-16", ""
    "UDP-MIB", ":rfc:`4113`", "2005-05-20", ""
-   "UPS-MIB", ":rfc:`1628`", "1994-02-23", "yes"
+   "UPS-MIB", ":rfc:`1628`", "1994-02-23", ""
    "URI-TC-MIB", ":rfc:`5017`", "2007-09-10", ""
    "UUID-TC-MIB", ":rfc:`6933`", "2013-04-05", ""
    "VDSL-LINE-MIB", ":rfc:`3728`", "2004-02-19", ""
@@ -463,26 +463,11 @@ fail rather than silently fuzzing. The defect each one repairs:
 ``CLNS-MIB``
     RFC 1238 imports PhysAddress ``FROM RFC-1213``, a module name nothing publishes; the same IMPORTS clause spells RFC1155-SMI correctly.
 
-``DLSW-MIB``
-    RFC 2024 anchors the module under mib-2 but never imports it.
-
 ``DNS-SERVER-MIB``
     RFC 1611 imports from ``RFC-1213``, a module name nothing publishes, and gives INTEGER objects octet-count DISPLAY-HINTs.
 
-``FDDI-SMT73-MIB``
-    RFC 1512 anchors the module under transmission but never imports it.
-
 ``HPR-MIB``
     RFC 2238 gives LAST-UPDATED a 12-digit value that is neither form RFC 2578 allows, and one comment line lost its leading ``--``.
-
-``INTEGRATED-SERVICES-MIB``
-    RFC 2213 uses TestAndIncr without importing it, and puts a numeric DISPLAY-HINT on an OCTET STRING.
-
-``IPATM-IPMC-MIB``
-    RFC 2417 anchors marsMIB under mib-2 but never imports it.
-
-``MIP-MIB``
-    RFC 2006 omits mib-2, Unsigned32 and NOTIFICATION-GROUP from IMPORTS, gives a plain object accessible-for-notify, and misspells mipSecNotificationsGroup.
 
 ``Modem-MIB``
     RFC 1696 spells the module's own root mdmMIB in one OID and mdmMib everywhere else, leaving the OID tree self-referential.
@@ -490,20 +475,8 @@ fail rather than silently fuzzing. The defect each one repairs:
 ``RFC1315-MIB``
     RFC 1315 imports TimeTicks ``FROM RFC-1155``, a module name nothing publishes; the same IMPORTS clause spells RFC1213-MIB correctly.
 
-``RFC1316-MIB``
-    RFC 1316 uses mib-2 without importing it.
-
-``RFC1414-MIB``
-    RFC 1414 uses mib-2 without importing it.
-
 ``SMUX-MIB``
     RFC 1227 imports OBJECT-TYPE ``FROM RFC1212``, a module name nothing publishes -- the bundled compat module is RFC-1212.
-
-``SNA-NAU-MIB``
-    RFC 1666 uses mib-2 without importing it.
-
-``UPS-MIB``
-    RFC 1628 omits mib-2 and TEXTUAL-CONVENTION from IMPORTS, and bounds two objects at 2147483648, one past the top of Integer32.
 
 .. _bundled-mib-local:
 

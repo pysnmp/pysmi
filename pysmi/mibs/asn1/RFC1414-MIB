@@ -4,7 +4,7 @@
               OBJECT-TYPE
                   FROM RFC-1212
               tcpConnLocalAddress, tcpConnLocalPort,
-    tcpConnRemAddress, tcpConnRemPort, mib-2
+              tcpConnRemAddress, tcpConnRemPort
                       FROM RFC1213-MIB;
 
 

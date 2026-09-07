@@ -109,8 +109,84 @@ END
 """
 
 
-class StrictByDefaultTestCase(unittest.TestCase):
-    """Nothing is repaired unless the caller asks for it."""
+class RepairedByDefaultTestCase(unittest.TestCase):
+    """A forced repair is made without being asked for.
+
+    The repair is only ever applied where exactly one candidate resolves and
+    the symbol table proves it: the symbol is undefined, unimported, and one of
+    the SMIv2 base modules exports it. There is nothing to guess, so refusing
+    to do it bought strictness about RFC 2578 Section 3.2 at the cost of
+    failing on a MIB whose correct IMPORTS line is not in doubt.
+
+    It was also strictness the bundle did not have. Nine of pysmi's sixteen MIB
+    patches existed only to write these imports in by hand, which fixed them
+    for the bundled copies and for nobody else -- a caller pointing at their
+    own copy of the same module got the failure the patch existed to prevent.
+    See #185.
+    """
+
+    @staticmethod
+    def _compile(source, **options):
+        """Compile through `MibCompiler`, passing only what the test names.
+
+        Deliberately not `tests.harness.symbol_table`: that helper takes
+        `repairImports` as a parameter and therefore always passes one, so a
+        test written against it would assert the helper's default rather than
+        pysmi's. The default only means anything where a caller says nothing,
+        which is here.
+        """
+        from pysmi.codegen import JsonCodeGen
+        from pysmi.compiler import MibCompiler
+        from pysmi.parser import SmiV1CompatParser
+        from pysmi.reader import CallbackReader, PackageReader
+        from pysmi.writer import CallbackWriter
+
+        name = source.split(None, 1)[0]
+
+        def serve(mibname, context):
+            if mibname == name:
+                return source
+            raise error.PySmiReaderFileNotFoundError(mibname=mibname, reader=None)
+
+        compiler = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *args, **kwargs: None),
+        )
+        compiler.add_priority_sources(CallbackReader(serve))
+        compiler.add_sources(PackageReader("pysmi.mibs.asn1"))
+
+        return compiler.compile(name, rebuild=True, **options)[name]
+
+    def testEveryBrokenModuleCompiles(self):
+        for symbol, source in BROKEN.items():
+            with self.subTest(symbol=symbol):
+                status = self._compile(source)
+                self.assertEqual("compiled", status)
+                self.assertIn(symbol, getattr(status, "repaired", {}))
+
+    def testTheModuleWithNoImportsClauseCompiles(self):
+        status = self._compile(NO_IMPORTS_CLAUSE)
+
+        self.assertEqual("compiled", status)
+        self.assertTrue(getattr(status, "repaired", {}))
+
+    def testAskingForItExplicitlyChangesNothing(self):
+        self.assertEqual(
+            "compiled", self._compile(BROKEN["Opaque"], repairImports=True)
+        )
+
+    def testStrictIsStillReachableThroughTheCompiler(self):
+        """The opt-out has to work at the surface a caller actually uses."""
+        self.assertEqual("failed", self._compile(BROKEN["Opaque"], repairImports=False))
+
+
+class StrictOnRequestTestCase(unittest.TestCase):
+    """`repairImports=False` is the strict reading of RFC 2578 Section 3.2.
+
+    Kept because a caller validating a MIB rather than consuming it wants to be
+    told the IMPORTS clause is wrong, not handed a working module.
+    """
 
     def testEveryBrokenModuleFailsToCompile(self):
         for symbol, source in BROKEN.items():
@@ -118,11 +194,11 @@ class StrictByDefaultTestCase(unittest.TestCase):
                 self.subTest(symbol=symbol),
                 self.assertRaises(error.PySmiSemanticError),
             ):
-                symbol_table(source, deps=DEPS)
+                symbol_table(source, deps=DEPS, repairImports=False)
 
     def testTheModuleWithNoImportsClauseFailsToCompile(self):
         with self.assertRaises(error.PySmiSemanticError):
-            symbol_table(NO_IMPORTS_CLAUSE, deps=DEPS)
+            symbol_table(NO_IMPORTS_CLAUSE, deps=DEPS, repairImports=False)
 
 
 class RepairTestCase(unittest.TestCase):
@@ -308,14 +384,9 @@ class MibDumpRepairTestCase(unittest.TestCase):
 
         return code, out.getvalue() + err.getvalue()
 
-    def testWithoutTheFlagTheBrokenMibFails(self):
+    def testTheBrokenMibCompilesAndTheReportSaysWhatWasSupplied(self):
+        """The repair is the default, and it is never silent."""
         code, output = self._run()
-
-        self.assertNotEqual(0, code, output)
-        self.assertIn("Failed MIBs: REPAIR-TC-MIB", output)
-
-    def testTheFlagCompilesItAndTheReportSaysWhatWasSupplied(self):
-        code, output = self._run("--repair-imports")
 
         self.assertEqual(0, code, output)
         self.assertIn("Created/updated MIBs: REPAIR-TC-MIB", output)
@@ -323,11 +394,17 @@ class MibDumpRepairTestCase(unittest.TestCase):
             "Repaired MIBs: REPAIR-TC-MIB (TruthValue from SNMPv2-TC)", output
         )
 
+    def testStrictImportsFailsIt(self):
+        code, output = self._run("--strict-imports")
+
+        self.assertNotEqual(0, code, output)
+        self.assertIn("Failed MIBs: REPAIR-TC-MIB", output)
+
     def testAnUnrepairedMibIsNotNamedOnTheRepairedLine(self):
         (self.src / "REPAIR-CLEAN-MIB").write_text(
             module("REPAIR-CLEAN-MIB", "OBJECT-TYPE, Opaque", "Opaque", "1 3 3")
         )
-        code, output = self._run("--repair-imports")
+        code, output = self._run()
 
         self.assertEqual(0, code, output)
 
@@ -337,7 +414,7 @@ class MibDumpRepairTestCase(unittest.TestCase):
 
         self.assertNotIn("REPAIR-CLEAN-MIB", repaired)
 
-    def testTheUsageMessageDocumentsTheFlag(self):
+    def _usage(self):
         out, err = io.StringIO(), io.StringIO()
         argv = sys.argv
         sys.argv = ["mibdump", "--help"]
@@ -350,7 +427,18 @@ class MibDumpRepairTestCase(unittest.TestCase):
         finally:
             sys.argv = argv
 
-        self.assertIn("[--repair-imports]", out.getvalue() + err.getvalue())
+        return out.getvalue() + err.getvalue()
+
+    def testTheUsageMessageDocumentsTheFlag(self):
+        self.assertIn("[--strict-imports]", self._usage())
+
+    def testTheOldFlagIsGone(self):
+        """Replaced rather than kept as a no-op: it now names the default."""
+        self.assertNotIn("--repair-imports", self._usage())
+
+        code, output = self._run("--repair-imports")
+
+        self.assertNotEqual(0, code, output)
 
 
 if __name__ == "__main__":
