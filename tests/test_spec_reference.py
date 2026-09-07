@@ -11,10 +11,12 @@ NOTIFICATION-TYPE (section 8) a REFERENCE clause; RFC 2580 gives one to all
 four conformance macros; RFC 1215 gives one to TRAP-TYPE. So the clause is
 never optional to *record*.
 
-Emitting a ``setReference()`` call is a different question, and pysnmp answers
-it differently per class: three of the classes have no such setter, and a call
-to one raises AttributeError as the module loads. That split is a property of
-the emitted source, so it is read there. See pysnmp/pysmi#101.
+Emitting a ``setReference()`` call used to be a different question. Three
+classes had no such setter, so pysmi suppressed the call for them
+(pysnmp/pysmi#101) and their text survived only in the JSON document. pysnmp
+added the setters in pysnmp/pysnmp#133 and loader contract v1 states them, so
+the suppression was removed in pysnmp/pysmi#194 and every class that may carry
+a REFERENCE now emits one.
 """
 
 import re
@@ -127,23 +129,27 @@ TestConvention ::= TEXTUAL-CONVENTION
 END
 """
 
-#: The classes whose pysnmp counterpart implements setReference(), and the
-#: reference each one carries in MACROS_MIB.
+#: Every symbol in MACROS_MIB carrying a REFERENCE, and the text it carries.
+#: All of them reach both artifacts: loader contract v1 gives every class here
+#: a ``setReference()``.
 WITH_SET_REFERENCE = {
     "testObjectIdentity": "RFC 2578 Section 6",
     "testObjectType": "RFC 2578 Section 7",
     "testNotificationType": "RFC 2578 Section 8",
     "testAgentCapabilities": "RFC 2580 Section 6",
-}
-
-#: The classes whose pysnmp counterpart does not. RFC 2580 gives all three a
-#: REFERENCE clause; emitting the call anyway yields a module that raises
-#: AttributeError when loaded with texts. See pysnmp/pysnmp#133.
-WITHOUT_SET_REFERENCE = {
     "testObjectGroup": "RFC 2580 Section 3",
     "testNotificationGroup": "RFC 2580 Section 4",
     "testModuleCompliance": "RFC 2580 Section 5",
 }
+
+#: The three the generator used to suppress, kept named so the regression is
+#: asserted directly rather than only as part of the total. See
+#: pysnmp/pysmi#194.
+FORMERLY_SUPPRESSED = (
+    "testObjectGroup",
+    "testNotificationGroup",
+    "testModuleCompliance",
+)
 
 
 class DocumentTestCase(unittest.TestCase):
@@ -154,12 +160,7 @@ class DocumentTestCase(unittest.TestCase):
         cls.doc = render_json(MACROS_MIB)
 
     def testEveryMacroKeepsItsReference(self):
-        # What one consumer cannot hold is not a reason to drop the clause from
-        # the interchange format, which every other consumer reads.
-        for symbol, reference in {
-            **WITH_SET_REFERENCE,
-            **WITHOUT_SET_REFERENCE,
-        }.items():
+        for symbol, reference in WITH_SET_REFERENCE.items():
             with self.subTest(symbol=symbol):
                 self.assertEqual(self.doc[symbol]["reference"], reference)
 
@@ -175,28 +176,28 @@ class DocumentTestCase(unittest.TestCase):
             "reference", render_json(TC_MIB, genTexts=False)["TestConvention"]
         )
 
-    def testTheDocumentIsTheOnlyArtifactThatKeepsTheRestOfThem(self):
-        # ObjectGroup, NotificationGroup and ModuleCompliance have no setter, so
-        # the document is the only place their REFERENCE survives. pysnmp/mibs
-        # republishes the document, which makes this load-bearing. See
-        # pysnmp/pysmi#100.
+    def testTheEmittedSourceKeepsThemAsWell(self):
+        # The document used to be the only artifact carrying these three. It is
+        # not any more: pysnmp/pysmi#194 removed the suppression, so a consumer
+        # of the pysnmp format gets the text too.
         source = render_source(MACROS_MIB)
-        for symbol, reference in WITHOUT_SET_REFERENCE.items():
+        for symbol in FORMERLY_SUPPRESSED:
+            reference = WITH_SET_REFERENCE[symbol]
             with self.subTest(symbol=symbol):
                 self.assertEqual(self.doc[symbol]["reference"], reference)
-                self.assertNotIn(reference, source)
+                self.assertIn(reference, source)
 
     def testNoReferenceIsRecordedWithoutTexts(self):
         # REFERENCE is narrative: it points a reader at prose. A module compiled
         # without texts has no use for it.
         doc = render_json(MACROS_MIB, genTexts=False)
-        for symbol in {**WITH_SET_REFERENCE, **WITHOUT_SET_REFERENCE}:
+        for symbol in WITH_SET_REFERENCE:
             with self.subTest(symbol=symbol):
                 self.assertNotIn("reference", doc[symbol])
 
 
 class EmittedCallTestCase(unittest.TestCase):
-    """setReference() is emitted for exactly the classes that implement it."""
+    """setReference() is emitted for every macro that may carry one."""
 
     @classmethod
     def setUpClass(cls):
@@ -207,14 +208,14 @@ class EmittedCallTestCase(unittest.TestCase):
             with self.subTest(symbol=symbol):
                 self.assertEqual(self.source.count(f"{symbol}.setReference("), 1)
 
-    def testTheClassesWithoutASetterGetNone(self):
-        for symbol in WITHOUT_SET_REFERENCE:
+    def testTheFormerlySuppressedClassesGetOneToo(self):
+        for symbol in FORMERLY_SUPPRESSED:
             with self.subTest(symbol=symbol):
-                self.assertNotIn(f"{symbol}.setReference(", self.source)
+                self.assertEqual(self.source.count(f"{symbol}.setReference("), 1)
 
     def testNoOtherCallIsEmitted(self):
-        # Counting pins the two lists together: a new macro that starts
-        # emitting a call has to be classified rather than silently added.
+        # Counting pins the list: a new macro that starts emitting a call has
+        # to be added here rather than appearing silently.
         self.assertEqual(
             len(re.findall(r"\.setReference\(", self.source)), len(WITH_SET_REFERENCE)
         )

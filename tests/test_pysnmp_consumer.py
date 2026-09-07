@@ -115,17 +115,20 @@ testObjectGroup OBJECT-GROUP
     OBJECTS     { testScalar }
     STATUS      current
     DESCRIPTION "Object group."
+    REFERENCE   "RFC 2580 Section 3"
     ::= { testModule 5 }
 
 testNotificationGroup NOTIFICATION-GROUP
     NOTIFICATIONS { testNotification }
     STATUS        current
     DESCRIPTION   "Notification group."
+    REFERENCE     "RFC 2580 Section 4"
     ::= { testModule 6 }
 
 testCompliance MODULE-COMPLIANCE
     STATUS      current
     DESCRIPTION "Compliance."
+    REFERENCE   "RFC 2580 Section 5"
     MODULE
         MANDATORY-GROUPS { testObjectGroup }
     ::= { testModule 7 }
@@ -216,6 +219,20 @@ class PublicApiTestCase(unittest.TestCase):
 
     def testTheModuleIdentityCarriesItsRevisions(self):
         self.assertEqual(self.ctx["testModule"].getRevisions(), ("2000-01-10 00:00",))
+
+    def testTheConformanceClassesCarryTheirReference(self):
+        # The generator suppressed setReference() for these three, so the text
+        # reached the JSON document and nothing else. pysnmp gained the setters
+        # in pysnmp/pysnmp#133; this reads the value back off the loaded object,
+        # which is the half a source assertion cannot cover. See
+        # pysnmp/pysmi#194.
+        for symbol, reference in (
+            ("testObjectGroup", "RFC 2580 Section 3"),
+            ("testNotificationGroup", "RFC 2580 Section 4"),
+            ("testCompliance", "RFC 2580 Section 5"),
+        ):
+            with self.subTest(symbol=symbol):
+                self.assertEqual(self.ctx[symbol].getReference(), reference)
 
 
 class MaxAccessTestCase(unittest.TestCase):

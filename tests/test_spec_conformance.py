@@ -83,10 +83,15 @@ testCapability AGENT-CAPABILITIES
 END
 """
 
-#: The three classes RFC 2580 gives a REFERENCE that pysnmp cannot hold: their
-#: classes have no setReference, so pysmi carries the text to the JSON document
-#: instead of emitting a call that would fail on load. See pysnmp/pysmi#101.
-WITHOUT_SET_REFERENCE = ("testObjectGroup", "testNotificationGroup", "testCompliance")
+#: The three conformance classes whose REFERENCE pysmi used to drop. RFC 2580
+#: gives all three the clause; pysnmp gained the setters in pysnmp/pysnmp#133,
+#: and loader contract v1 states them, so the call is emitted now. See
+#: pysnmp/pysmi#194.
+CONFORMANCE_REFERENCES = (
+    "testObjectGroup",
+    "testNotificationGroup",
+    "testCompliance",
+)
 
 
 class ObjectGroupTestCase(unittest.TestCase):
@@ -261,18 +266,18 @@ class AgentCapabilitiesTestCase(unittest.TestCase):
             },
         )
 
-    def testTheEmittedObjectGuardsTheClausesOlderPysnmpLacks(self):
-        # setProductRelease and setStatus arrived after pysnmp 4.4.0, so the
-        # generated module has to keep loading on an older one.
+    def testTheEmittedObjectSetsItsProductReleaseUnguarded(self):
+        # setProductRelease is part of loader contract v1, so the call needs no
+        # version test. The guard it replaces named pysnmp 4.4.0.
         self.assertIn(
-            "if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):\n"
-            "    testCapability = testCapability.setProductRelease('Test produce')",
+            "testCapability = testCapability.setProductRelease('Test produce')",
             self.source,
         )
+        self.assertNotIn("getattr(mibBuilder, 'version'", self.source)
 
 
 class ReferenceTestCase(unittest.TestCase):
-    """REFERENCE is emitted only for the classes that can hold one."""
+    """REFERENCE reaches both artifacts for every conformance class."""
 
     @classmethod
     def setUpClass(cls):
@@ -280,17 +285,19 @@ class ReferenceTestCase(unittest.TestCase):
         cls.source = render_source(MIB)
 
     def testTheDocumentKeepsEveryReferenceTheMibWrote(self):
-        # RFC 2580 gives all three a REFERENCE clause, so dropping it from the
-        # document because one consumer cannot hold it would lose it for every
-        # other consumer too.
-        for symbol in WITHOUT_SET_REFERENCE:
+        # RFC 2580 gives all three a REFERENCE clause.
+        for symbol in CONFORMANCE_REFERENCES:
             with self.subTest(symbol=symbol):
                 self.assertTrue(self.doc[symbol]["reference"])
 
-    def testNoSetReferenceIsEmittedForTheClassesWithoutOne(self):
-        for symbol in WITHOUT_SET_REFERENCE:
+    def testTheEmittedSourceKeepsThemToo(self):
+        # It did not until pysnmp/pysmi#194: the generator suppressed the call
+        # for these three, so the text survived only in the JSON document.
+        for symbol in CONFORMANCE_REFERENCES:
             with self.subTest(symbol=symbol):
-                self.assertNotIn(f"{symbol}.setReference(", self.source)
+                self.assertIn(
+                    f"if mibBuilder.loadTexts: {symbol}.setReference(", self.source
+                )
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

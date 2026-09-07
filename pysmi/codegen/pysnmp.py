@@ -158,41 +158,24 @@ class PySnmpCodeGen(AbstractCodeGen):
     indent = " " * 4
     fakeidx = 1000  # starting index for fake symbols
 
-    # pysnmp SMI classes that do not implement setReference(). RFC 2580 allows
-    # REFERENCE on the conformance macros these back, but emitting the call
-    # yields a module that raises AttributeError when loaded with
-    # loadTexts=True. The text is still carried by the JSON codegen.
-    _NO_SET_REFERENCE = frozenset(
-        ("ModuleCompliance", "NotificationGroup", "ObjectGroup")
-    )
-
-    # Template for version-guarded status assignment (duplicated across many
-    # codegen methods; extracted to satisfy SonarQube S1192).
-    _STATUS_VERSION_TEMPLATE = """\
-if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
-    %(name)s = %(name)s%(status)s
+    # Template for the status assignment (duplicated across many codegen
+    # methods; extracted to satisfy SonarQube S1192).
+    _STATUS_TEMPLATE = """\
+%(name)s = %(name)s%(status)s
 """
 
     # Template for the setObjects loop block used when the number of objects
     # exceeds 255 (duplicated across several codegen methods).
     _SET_OBJECTS_LOOP_TEMPLATE = """
 for _%(name)s_obj in [%(objects)s]:
-    if getattr(mibBuilder, 'version', 0) < (4, 4, 2):
-        # WARNING: leading objects get lost here! Upgrade your pysnmp version!
-        %(name)s = %(name)s.setObjects(*_%(name)s_obj)
-    else:
-        %(name)s = %(name)s.setObjects(*_%(name)s_obj, **dict(append=True))\
+    %(name)s = %(name)s.setObjects(*_%(name)s_obj, **dict(append=True))\
 """
 
     # Variant of the setObjects loop template that ends with a newline rather
     # than a line-continuation backslash (used by gen_compliances).
     _SET_OBJECTS_LOOP_TEMPLATE_NL = """
 for _%(name)s_obj in [%(objects)s]:
-    if getattr(mibBuilder, 'version', 0) < (4, 4, 2):
-        # WARNING: leading objects get lost here! Upgrade your pysnmp version!
-        %(name)s = %(name)s.setObjects(*_%(name)s_obj)
-    else:
-        %(name)s = %(name)s.setObjects(*_%(name)s_obj, **dict(append=True))
+    %(name)s = %(name)s.setObjects(*_%(name)s_obj, **dict(append=True))
 
 """
 
@@ -537,25 +520,22 @@ for _%(name)s_obj in [%(objects)s]:
 
             return baseSymType, symSubtype
 
-    def _reference_line(
-        self, name: str, reference: str | None, pysnmpClass: str | None = None
-    ) -> str:
-        """Render the guarded ``setReference()`` assignment for a symbol.
+    def _reference_line(self, name: str, reference: str | None) -> str:
+        """Render the ``loadTexts``-guarded ``setReference()`` assignment.
+
+        Every class this generator emits implements ``setReference()`` under
+        loader contract v1, so the call is emitted wherever the MIB carries a
+        REFERENCE clause and texts are being generated.
 
         Args:
             name: translated symbol name
             reference: rendered REFERENCE clause; empty or ``None`` when
                 the clause is absent
-            pysnmpClass: pysnmp class backing the symbol; ``None`` when every
-                class the clause can produce implements ``setReference()``
 
         Returns:
             The assignment line, or an empty string when nothing is emitted.
         """
         if not (self.genRules["text"] and reference):
-            return ""
-
-        if pysnmpClass in self._NO_SET_REFERENCE:
             return ""
 
         return self.ifTextStr + name + reference + "\n"
@@ -584,18 +564,15 @@ for _%(name)s_obj in [%(objects)s]:
         outStr = name + " = AgentCapabilities(" + oidStr + ")" + label + "\n"
 
         if productRelease:
-            outStr += f"""\
-if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
-    {name} = {name}{productRelease}
-"""
+            outStr += f"{name} = {name}{productRelease}\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
+            outStr += self._STATUS_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "AgentCapabilities")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -643,10 +620,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                 outStr += name + revisions + "\n"
 
             if self.genRules["text"] and descriptions:
-                outStr += f"""
-if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
-    {self.ifTextStr}{name}{descriptions}
-"""
+                outStr += f"{self.ifTextStr}{name}{descriptions}\n"
 
         if lastUpdated:
             outStr += self.ifTextStr + name + lastUpdated + "\n"
@@ -687,12 +661,12 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         outStr += compliances + "\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
+            outStr += self._STATUS_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "ModuleCompliance")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -754,12 +728,12 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         outStr += "\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
+            outStr += self._STATUS_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "NotificationGroup")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -823,7 +797,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "NotificationType")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -869,14 +843,10 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                         "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
                     )
 
-                outStr += """
-for _{name}_obj in [{objects}]:
-    if getattr(mibBuilder, 'version', 0) < (4, 4, 2):
-        # WARNING: leading objects get lost here!
-        {name} = {name}.setObjects(*_{name}_obj)
-    else:
-        {name} = {name}.setObjects(*_{name}_obj, **dict(append=True))\
-""".format(name=name, objects=", ".join(objStrParts))
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % {
+                    "name": name,
+                    "objects": ", ".join(objStrParts),
+                }
 
             else:
                 outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
@@ -884,12 +854,12 @@ for _{name}_obj in [{objects}]:
         outStr += "\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
+            outStr += self._STATUS_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "ObjectGroup")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -922,7 +892,7 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "ObjectIdentity")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -1094,7 +1064,7 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "NotificationType")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, enterpriseStr)
 

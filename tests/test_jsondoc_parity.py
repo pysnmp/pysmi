@@ -139,11 +139,16 @@ class NotificationGroupJsonTestCase(unittest.TestCase):
         )
         self.assertIn(f".setObjects({emitted[:-2]})", self.source)
 
-    def testReferenceSurvivesWhereTheGeneratedSourceCannotTakeIt(self):
-        # pysnmp's NotificationGroup has no setReference(), so the pysnmp
-        # backend emits no call. The JSON document still carries it.
+    def testReferenceReachesBothArtifacts(self):
+        # It reached only the document until pysnmp/pysmi#194: pysnmp's
+        # NotificationGroup had no setReference(), so the pysnmp backend
+        # emitted no call.
         self.assertEqual(self.doc["testNotifyGroup"]["reference"], "RFC 2580 Section 4")
-        self.assertNotIn("testNotifyGroup.setReference(", self.source)
+        self.assertIn(
+            "if mibBuilder.loadTexts: "
+            "testNotifyGroup.setReference('RFC 2580 Section 4')",
+            self.source,
+        )
 
 
 TRAP_MIB = """
