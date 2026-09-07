@@ -299,11 +299,16 @@ class IeeeIndexTestCase(unittest.TestCase):
             update_bundled_mibs.ieee_current("IEEE8021-CFM-MIB")
 
     def testEveryIeeeEntryRecordsTheRevisionItWasTakenFrom(self):
-        """No URL to read it off, so the manifest is where that answer lives."""
+        """No URL to read it off, so the manifest is where that answer lives.
+
+        Only for the entries the directory actually carries. Three IEEE 802.1
+        modules are in no revision of it, so they are bundled ``archived`` and
+        there is no published revision to record.
+        """
         entries = {
             name: entry
             for name, entry in update_bundled_mibs.manifest().items()
-            if entry["source"] == "ieee802.1"
+            if entry["source"] == "ieee802.1" and not entry.get("archived")
         }
 
         self.assertTrue(entries)

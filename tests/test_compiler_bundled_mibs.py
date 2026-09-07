@@ -448,7 +448,7 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
     are asserted rather than trusted.
     """
 
-    def testTheBundleIsThreeHundredAndTwoModulesThirtySevenOfThemUndated(self):
+    def testTheBundleIsThreeHundredSixtyFiveModulesFortyThreeOfThemUndated(self):
         names = bundled_mib_names(BUNDLED_PACKAGE)
         undated = {
             name
@@ -459,17 +459,22 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
             is None
         }
 
-        self.assertEqual(302, len(names))
-        self.assertEqual(37, len(undated))
+        self.assertEqual(365, len(names))
+        self.assertEqual(43, len(undated))
         self.assertIn("SNMPv2-SMI", undated)
 
     def testEveryUndatedBundledModulePredatesModuleIdentity(self):
         """An undated module is used over the caller's copy, with no comparison.
 
-        That is only safe while every one of them is text an RFC froze -- a
-        pre-SMIv2 module, or an SMI module proper. One that is still revised
-        upstream would shadow a caller's better copy for good, so the property
-        is asserted here rather than left to the manifest reviewer.
+        That is only safe while every one of them is text nobody will revise --
+        frozen by the RFC that published it, by a tool run that will not happen
+        again, or by a publisher that no longer exists. One that is still
+        revised upstream would shadow a caller's better copy for good, so the
+        property is asserted here rather than left to the manifest reviewer.
+
+        Note this is about the publisher being *defunct*, not about the text
+        being hard to fetch. A live publisher we cannot fetch from still
+        revises; an undated module from one would be exactly the trap.
         """
         manifest = update_bundled_mibs.manifest()
 
@@ -479,6 +484,12 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
                 continue
 
             with self.subTest(mib=name):
-                # IANA and IEEE 802.1 revise their modules; an undated one from
-                # either would be exactly the trap described above.
-                self.assertIn(manifest[name]["source"], ("rfc", "local"))
+                # IANA, IEEE 802.1 and CableLabs all revise their modules; an
+                # undated one from any of them would be the trap above. The
+                # ATM Forum dissolved into the Broadband Forum and the Fibre
+                # Alliance into SNIA, neither of which republishes these under
+                # the names bundled here, so those two cannot be revised.
+                self.assertIn(
+                    manifest[name]["source"],
+                    ("atm-forum", "fibre-alliance", "local", "rfc"),
+                )

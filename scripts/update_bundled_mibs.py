@@ -36,7 +36,9 @@ Every bundled byte is traceable to a publisher
 ----------------------------------------------
 
 The rule this bundle keeps is that nothing here is hand-authored MIB text. Each
-entry names one of four sources:
+entry names the publisher its text came from in ``source``, and those that can
+be re-fetched carry the URL or RFC number to re-fetch them from. The kinds with
+machinery behind them:
 
 ``rfc``
     The module is cut out of the RFC that currently defines it. An RFC's text
@@ -69,12 +71,16 @@ entry names one of four sources:
     SNMPv1 renderings of RFC 1442, 1443 and 1444, which the SMIv2 RFCs went on
     to obsolete. The manifest records why for each.
 
-    None of the four can go stale, which is what makes them admissible. A
-    module with a publisher must be re-fetchable or a bundled copy could not be
-    told apart from an abandoned one; a module whose text was frozen by a tool
-    run in 1994, or by an RFC that never shipped ASN.1 at all, has no upstream
-    left to fall behind. The disqualifying case is a module still being revised
-    somewhere we cannot see -- not one nobody revises at all.
+``archived``
+    Not a source kind but a flag alongside one: the publisher is named and
+    real, but does not serve the text at a URL this script can fetch. CableLabs
+    modules dropped from the live directory, the ATM Forum set, the IEEE and
+    TIA modules absent from any public MIB directory, DMTF and SCTE behind a
+    403, IEC behind a paywall, and the expired Internet-Drafts all sit here.
+    ``--check`` skips them, and :py:func:`refetchable` is the one place that is
+    decided.
+
+    Any remaining entry is fetched from ``url``.
 
 A handful of entries also carry a ``patch``. The published text of those
 modules does not compile -- a truncated line left in the RFC, an IMPORTS clause
@@ -87,13 +93,21 @@ copy instead would have hidden all of that.
 What belongs in the bundle
 --------------------------
 
-A vendor-neutral module whose text cannot silently fall behind. That is what
-decides membership -- not which directory a mirror happens to file it under,
-which is how CableLabs, DMTF, MEF and SCTE modules end up misfiled as standard
-ones. Two ways to satisfy it: a publisher we can re-fetch and diff, or text
-that was frozen and has no upstream left to trail. What is disqualifying is a
-module still being revised somewhere ``--check`` cannot look, because then a
-stale copy and a current one are indistinguishable. See
+A module published by a standards body or a multivendor association, whose text
+is traceable to that publisher. Provenance is the gate.
+
+Re-fetchability is **not** a condition of membership. It is a property each
+entry records -- valuable, because it is what lets ``--check`` report drift,
+but its absence disqualifies nothing. A publisher that serves no MIB URL, or
+answers automated fetches with a 403, or puts the specification behind a
+paywall, has not thereby made its modules unfit to bundle; it has only made
+them modules ``--check`` stays quiet about. Roughly half the bundle's non-RFC
+entries are ``archived`` for one of those reasons.
+
+What is genuinely out of scope is a vendor's own MIB. The bundle is
+vendor-neutral, and the check for that is the module's ORGANIZATION clause, not
+the directory a mirror filed it under -- which is how LLDP-EXT-HM-MIB, authored
+by Hirschmann, came to sit among the standards. See
 ``docs/source/bundled-mibs.rst`` for the inventory and for what is deliberately
 left out.
 
@@ -115,8 +129,9 @@ argument obsolete for any module carrying a MODULE-IDENTITY:
 
 So a revised-upstream module is bundled like any other, and IANA's registries
 and the IEEE 802.1 directory are tracked at their current revision rather than
-frozen. What is actually disqualifying is having no publisher to re-fetch from
-at all, because then neither mechanism has anything to work with.
+frozen. Where a publisher serves nothing fetchable the first mechanism is
+unavailable, but the second still applies: a caller's dated, newer copy beats
+the bundled one regardless of whether ``--check`` could see the difference.
 
 The one place the old argument still holds is a module with no MODULE-IDENTITY:
 there is no revision for ``--check`` to report against and none for a caller's
@@ -291,6 +306,32 @@ def apply_patch(text: bytes, patch: str, mibname: str) -> bytes:
 
 IEEE_DIRECTORY = "https://www.ieee802.org/1/files/public/MIBs/"
 
+DRAFT_ARCHIVE = "https://www.ietf.org/archive/id/{}.txt"
+
+#: How each ``source`` kind is named on the inventory page. Taken from the
+#: module's own ORGANIZATION clause rather than from the directory a mirror
+#: filed it under, which is how an LLDP-EXT-\* module authored by a single
+#: vendor came to sit among the standards.
+PUBLISHERS = {
+    "atm-forum": "ATM Forum",
+    "cablelabs": "CableLabs",
+    "dmtf": "DMTF",
+    "fibre-alliance": "Fibre Alliance",
+    "hirschmann": "Hirschmann Automation & Control",
+    "iana": "IANA",
+    "iec": "IEC",
+    "ieee802.1": "IEEE 802.1",
+    "ieee802.11": "IEEE 802.11",
+    "ieee802.17": "IEEE 802.17",
+    "ieee802.3": "IEEE 802.3",
+    "internet-draft": "IETF Internet-Draft",
+    "mef": "MEF",
+    "profibus": "PROFIBUS International",
+    "scte": "SCTE",
+    "tia": "TIA",
+    "unattributed": "unattributed",
+}
+
 #: A file in the IEEE 802.1 MIB directory: module name, then the revision it
 #: carries. A few of the oldest are missing the trailing Z.
 IEEE_FILE = re.compile(r'href="((.+?)-(\d{12})Z?\.mib)"')
@@ -346,13 +387,25 @@ def as_utf8(data: bytes) -> bytes:
     return data
 
 
+def refetchable(entry: dict[str, Any]) -> bool:
+    """Whether *entry* names something ``--check`` can re-fetch and diff.
+
+    False for a ``local`` module, which no publisher ships, and for an
+    ``archived`` one, whose publisher does not serve the text at a URL. Neither
+    is a defect: see the module docstring on why re-fetchability is a property
+    the bundle records rather than a condition it imposes.
+    """
+    return entry["source"] != "local" and not entry.get("archived")
+
+
 def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
     """Fetch one module's authoritative text and apply its patch, if it has one.
 
-    A ``local`` module has no upstream to fetch, so the bundled copy is
-    returned unchanged and ``--check`` has nothing to compare it against.
+    A module that is not :py:func:`refetchable` has no upstream to fetch, so
+    the bundled copy is returned unchanged and ``--check`` has nothing to
+    compare it against.
     """
-    if entry["source"] == "local":
+    if not refetchable(entry):
         return (DEST / mibname).read_bytes()
 
     if entry["source"] == "rfc":
@@ -436,7 +489,7 @@ def check() -> int:
             stale.append(f"{mibname}: not bundled yet")
             continue
 
-        if entry["source"] == "local":
+        if not refetchable(entry):
             continue
 
         if path.read_bytes() != fetch(mibname, entry):
@@ -582,7 +635,7 @@ def record_ieee_revisions(modules: dict[str, dict[str, Any]]) -> None:
     changed = False
 
     for mibname, entry in modules.items():
-        if entry["source"] != "ieee802.1":
+        if entry["source"] != "ieee802.1" or not refetchable(entry):
             continue
 
         revision = ieee_current(mibname)[0]
@@ -674,14 +727,24 @@ def docs() -> int:
             return f":rfc:`{entry['rfc']}`"
         if entry["source"] == "local":
             return "maintained here"
-        if entry["source"] == "ieee802.1":
+        if entry["source"] == "ieee802.1" and refetchable(entry):
             # The pinned revision, not the directory: which file the bundled
             # copy came from is the thing a reader needs.
             revision = entry["revision"]
             return f"`IEEE 802.1 <{IEEE_DIRECTORY}{mibname}-{revision}Z.mib>`__"
+
+        publisher = PUBLISHERS[entry["source"]]
+
+        if "draft" in entry and entry["draft"].rsplit("-", 1)[-1].isdigit():
+            # Only a revision the bundled text was matched against gets a link;
+            # a bare working-group name has no single document to point at.
+            return f"`{publisher} <{DRAFT_ARCHIVE.format(entry['draft'])}>`__"
+        if not refetchable(entry):
+            return publisher
+
         # Anonymous, so that thirteen links labelled "IANA" do not each
         # register a duplicate target name.
-        return f"`IANA <{entry['url']}>`__"
+        return f"`{publisher} <{entry['url']}>`__"
 
     # A csv-table rather than an aligned one: the cells hold URLs, and padding
     # every row out to the longest of those would make the source unreadable
@@ -768,20 +831,22 @@ no revision to compare and the bundled copy is the one that gets used. Every
 one of them is a pre-SMIv2 module or an SMI module proper, whose text was fixed
 when its RFC was published and cannot be revised except as a new module under a
 new name -- so the copy here cannot go stale under a caller who has a better
-one. That is the whole reason membership is restricted the way it is below.
+one.
 
-Every module below is traceable to where its text came from: cut out of the RFC
-that currently defines it, or fetched from IANA's registry, or fetched from the
-IEEE 802.1 MIB directory. ``scripts/update_bundled_mibs.py --check`` re-fetches
-all of it and reports anything that no longer matches. RFC-sourced entries are
-also checked against the RFC Editor for obsoletion, since an RFC's text never
-changes but a later RFC can replace it.
+Every module below is traceable to the publisher its text came from, named in
+the Source column: cut out of the RFC that currently defines it, fetched from
+IANA's registry or the IEEE 802.1 MIB directory, or taken from the publisher
+named there. ``scripts/update_bundled_mibs.py --check`` re-fetches everything
+that has somewhere to re-fetch from and reports anything that no longer
+matches. RFC-sourced entries are also checked against the RFC Editor for
+obsoletion, since an RFC's text never changes but a later RFC can replace it.
 
-Five modules are the exception and are maintained in this repository, listed
-under :ref:`bundled-mib-local` below. They are admissible for the same reason
-the undated modules above are: their text was frozen -- by an RFC that defined
-a macro in prose and shipped no ASN.1, or by a 1994 tool run -- so there is no
-upstream for them to fall behind.
+A Source shown without a link is ``archived``: the publisher is named and real,
+but serves no MIB file this script can fetch -- CableLabs modules dropped from
+the live directory, the ATM Forum set, IEEE and TIA modules absent from any
+public MIB directory, DMTF and SCTE behind a 403, IEC behind a paywall, expired
+Internet-Drafts. ``--check`` stays quiet about those. Five more are maintained
+in this repository outright and listed under :ref:`bundled-mib-local`.
 
 {patched} modules carry a patch, listed under :ref:`bundled-mib-patches` below,
 because their published text does not compile as published.
@@ -803,21 +868,20 @@ so the two cannot disagree. The ASN.1 stays because it is what the compiler
 reads -- resolving an IMPORTS clause means parsing the imported module's source
 -- so the compiled form joins it rather than replacing it.
 
-Membership is decided by whether a module's text can silently fall behind --
-not by which directory a mirror files it under, and not by whether its
-publisher still revises it. MIB collections routinely file CableLabs, DMTF, MEF
-and SCTE modules as "standard", and a bundled copy of a module still being
-revised out of view could never be told apart from a stale one. A module is
-bundled when it has a publisher to re-fetch and diff, or when its text is
-frozen and has no upstream left to trail; anything else stays out, however
-widely imported, and remains available from https://pysnmp.github.io/mibs/asn1/
-as before.
+Membership is decided by provenance: a module published by a standards body or
+a multivendor association, whose text is traceable to that publisher. Whether
+the publisher serves it at a fetchable URL is recorded, not required -- it
+decides whether ``--check`` can watch the module, nothing more. What stays out
+is a vendor's own MIB, and the test for that is the module's ORGANIZATION
+clause rather than the directory a mirror files it under.
 
 A module its publisher still revises *is* bundled -- IANA's registries and the
 IEEE 802.1 directory are tracked at whatever they currently publish, not frozen
 at a dated file. Freezing would only make staleness undetectable: the whole
 point of ``--check`` is that a revision upstream gets reported, and a caller
-who has the newer copy already outranks the bundle on revision.
+who has the newer copy already outranks the bundle on revision. Where a
+publisher serves nothing fetchable that first protection is absent, but the
+second is not: a caller's dated, newer copy still wins.
 
 Inventory
 ---------
@@ -862,27 +926,37 @@ PAGE_FOOTER = """
 Not bundled
 -----------
 
-Membership turns on what other modules have to import to compile, not on how a
-collection files a module. A module rooted under ``enterprises`` is not that,
-whoever publishes it. CableLabs' ``DOCS-*`` and ``CLAB-*`` sit under
+What stays out is a vendor's own MIB. Being rooted under ``enterprises`` does
+not make a module one: CableLabs' ``DOCS-*`` and ``CLAB-*`` sit under
 ``enterprises 4491``, SCTE's ``SCTE-HMS-*`` under 5591, MEF's ``MEF-*`` under
-15007; across the 5,500 modules at https://pysnmp.github.io/mibs/, three of the
-eighteen CableLabs modules are imported from outside their own directory and
-none of the SCTE or MEF ones are at all. That is why they are left out.
-Publisher availability is not the reason and should not be read as one:
-CableLabs publishes at https://mibs.cablelabs.com/MIBs/, free and live, and 14
-of those 18 can be fetched there today.
+15007, and all of them are bundled -- they are published by an association, and
+that is what counts. The test is the module's ORGANIZATION clause.
 
-Where the publisher itself is gone or paywalled the modules are out on that
-ground as well -- ATM Forum, DMTF, IEC. So are draft-named predecessors of
-modules the IETF went on to publish under a different name: ``MPLS-LSR-MIB``
-for ``MPLS-LSR-STD-MIB``, ``IGMP-MIB`` for ``IGMP-STD-MIB``, and so on. Two
-modules are left out despite having an RFC: ``COFFEE-POT-MIB`` (RFC 2325, an
-April Fools' RFC whose ASN.1 does not parse) and ``TCPIPX-MIB`` (RFC 1792,
-rooted under ``enterprises`` and so a vendor module in any case).
+Nor is publisher availability a reason. ATM Forum has dissolved, DMTF and SCTE
+answer automated fetches with a 403, IEC 62439-3 is behind a paywall; those
+modules are bundled anyway, marked ``archived`` so ``--check`` knows to stay
+quiet about them rather than to keep failing.
 
-All of them remain available from https://pysnmp.github.io/mibs/asn1/, which is
-where pysmi looks by default.
+Draft-named modules are bundled where the published successor renamed the
+symbols, because then no substitution is possible: ``MPLS-VPN-MIB``,
+``MPLS-LSR-MIB`` and ``MPLS-TE-MIB`` are all imported by current vendor modules
+that ``MPLS-L3VPN-STD-MIB`` and friends cannot satisfy. A draft whose successor
+kept the symbols -- ``IGMP-MIB`` for ``IGMP-STD-MIB`` -- stays out, since the
+successor is already here and serves the same imports.
+
+Two modules are left out despite having an RFC. ``TCPIPX-MIB`` (RFC 1792) is
+rooted under ``enterprises`` and is a vendor module. ``COFFEE-POT-MIB``
+(RFC 2325) is an April Fools' RFC and an example rather than a MIB anyone
+manages devices with; it is deliberately excluded and should not be proposed
+again.
+
+One bundled module is vendor-authored: ``LLDP-EXT-HM-MIB`` declares
+ORGANIZATION "Hirschmann Automation & Control". It came across with the LLDP
+extension set and is recorded as ``source: hirschmann`` so that the exception
+is visible rather than buried.
+
+Everything left out remains available from https://pysnmp.github.io/mibs/asn1/,
+which is where pysmi looks by default.
 """
 
 PAGE_LOCAL = """\

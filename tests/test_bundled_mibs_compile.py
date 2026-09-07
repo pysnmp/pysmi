@@ -30,7 +30,7 @@ from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import PackageReader
 from pysmi.writer import CallbackWriter
-from scripts.update_bundled_mibs import PATCHES, manifest
+from scripts.update_bundled_mibs import PATCHES, PUBLISHERS, manifest
 
 BUNDLED = sorted(manifest())
 
@@ -113,14 +113,27 @@ class BundledMibsCompileTestCase(unittest.TestCase):
 
         self.assertEqual(set(BUNDLED), onDisk)
 
-    def testEveryManifestEntryNamesASourceItCanBeRefetchedFrom(self):
+    def testEveryManifestEntryNamesThePublisherItsTextCameFrom(self):
+        """Provenance is the invariant; re-fetchability is recorded, not required.
+
+        An entry says who published the text. Where that publisher serves it
+        somewhere fetchable the entry says where, so ``--check`` can diff it;
+        where it does not, the entry is marked ``archived`` and ``--check``
+        skips it. An archived entry is not a defect -- roughly half the
+        non-RFC bundle is one -- but it still has to name a real publisher,
+        which is what stops "archived" becoming a place to file text nobody
+        can account for.
+        """
         for mibname, entry in sorted(manifest().items()):
             with self.subTest(mib=mibname):
-                if entry["source"] == "rfc":
-                    self.assertIsInstance(entry["rfc"], int)
-                elif entry["source"] == "local":
+                if entry["source"] == "local":
                     # Nothing to re-fetch, so the manifest owes an explanation.
                     self.assertTrue(entry.get("reason"))
+                elif entry.get("archived"):
+                    self.assertIn(entry["source"], PUBLISHERS)
+                    self.assertNotIn("url", entry)
+                elif entry["source"] == "rfc":
+                    self.assertIsInstance(entry["rfc"], int)
                 elif entry["source"] == "ieee802.1":
                     # No URL: the source is whatever the IEEE directory
                     # currently publishes, and this records what we took.
