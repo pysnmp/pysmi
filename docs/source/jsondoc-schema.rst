@@ -217,17 +217,19 @@ Field                Type      Notes
 ``name``             string    Required.
 ``oid``              string    Required.
 ``class``            string    Required. ``"moduleidentity"``.
-``lastupdated``      string    LAST-UPDATED. Text-gated -- see :ref:`jsondoc-texts`.
+``lastupdated``      string    LAST-UPDATED. A timestamp, so it is emitted in
+                               both modes -- see :ref:`jsondoc-texts`.
 ``organization``     string    Text-gated.
 ``contactinfo``      string    Text-gated.
 ``revisions``        array     REVISION clauses, newest first. Each entry has
-                               ``revision`` and ``description``.
+                               ``revision``, and ``description`` when texts are
+                               generated.
 ``description``      string    Text-gated.
 ===================  ========  ======================================================
 
-Revision *timestamps* are emitted whether or not texts are generated; revision
-*descriptions* are emitted too, which is inconsistent with every other
-description in the document (pysnmp/pysmi#192).
+Revision *timestamps* are emitted whether or not texts are generated. Revision
+*descriptions* are text-gated like every other description in the document
+(pysnmp/pysmi#192).
 
 textualconvention and type
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -403,6 +405,7 @@ absent:
 * ``organization`` and ``contactinfo`` on ``moduleidentity``
 * ``description`` on a ``revisions`` entry
 * ``description`` on a ``refinements`` entry
+* ``description`` on a ``variations`` entry
 
 Descriptions are roughly a third of a generated module's bytes and many
 consumers discard them, so suppressing them is worth having.
@@ -421,6 +424,12 @@ survives, including the two fields that look textual and are not:
 A MODULE-COMPLIANCE ``refinements`` entry is emitted whether or not it has a
 description, including a GROUP clause whose only other content is the group it
 names. Which groups a compliance statement refines is structure.
+
+An AGENT-CAPABILITIES ``variations`` entry likewise. RFC 2580 section 6.5.2
+makes DESCRIPTION mandatory on a VARIATION, so a variation that records
+implementation without refining syntax or access carries nothing else -- and
+which objects a SUPPORTS clause varies is structure, so the entry stays
+(pysnmp/pysmi#198).
 
 The property is asserted directly rather than described: stripping the prose
 fields from a document generated with texts yields, exactly, the document

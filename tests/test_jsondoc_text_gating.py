@@ -17,8 +17,11 @@ structurally from one generated with them, in three ways:
 * a MODULE-COMPLIANCE GROUP clause was dropped entirely rather than emitted
   without its description, so the compliance statement referenced fewer groups
   than the MIB declares (pysnmp/pysmi#190)
+* an AGENT-CAPABILITIES VARIATION carrying only its mandatory DESCRIPTION was
+  dropped the same way, so a no-texts document said the agent implements the
+  module with no variation at all (pysnmp/pysmi#198)
 
-The first and third are structure, not prose. Together they meant a no-texts
+The first, third and fourth are structure, not prose. Together they meant a no-texts
 document was lossy, and that the structural content hash could not be equal
 across the two modes -- which is what pysnmp/pysmi#180 needs it to be.
 
@@ -79,6 +82,56 @@ testCompliance MODULE-COMPLIANCE
         MIN-ACCESS  read-only
         DESCRIPTION "Write access is not required."
     ::= { testMib 3 }
+
+END
+"""
+
+#: AGENT-CAPABILITIES, which no bundled module declares -- ``SNMPv2-CONF`` only
+#: defines the macro. So this shape can only be reached through a fixture, and a
+#: wider CORPUS would not have caught pysnmp/pysmi#198.
+#:
+#: Two variations on purpose: one refining syntax and access, one carrying
+#: nothing but the DESCRIPTION that RFC 2580 section 6.5.2 makes mandatory. The
+#: second is the one that used to vanish.
+CAPABILITIES_MIB = """
+CAPS-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    AGENT-CAPABILITIES
+        FROM SNMPv2-CONF
+    OBJECT-TYPE, Integer32
+        FROM SNMPv2-SMI;
+
+refinedObject OBJECT-TYPE
+    SYNTAX      Integer32 (0..100)
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "An object a variation refines."
+    ::= { 1 3 1 }
+
+plainObject OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "An object a variation only mentions."
+    ::= { 1 3 2 }
+
+capsCapability AGENT-CAPABILITIES
+    PRODUCT-RELEASE "Test product"
+    STATUS          current
+    DESCRIPTION     "The capabilities."
+
+    SUPPORTS        CAPS-MIB
+    INCLUDES        { capsGroup }
+
+    VARIATION       refinedObject
+    SYNTAX          Integer32 (0..10)
+    ACCESS          read-only
+    DESCRIPTION     "Narrowed."
+
+    VARIATION       plainObject
+    DESCRIPTION     "Implemented, with no refinement."
+
+    ::= { 1 3 3 }
 
 END
 """
@@ -218,6 +271,51 @@ class ComplianceRefinementTestCase(unittest.TestCase):
                         len(node["refinements"]),
                         len(withoutTexts[name][symbol].get("refinements", [])),
                     )
+
+
+class CapabilitiesVariationTestCase(unittest.TestCase):
+    """A VARIATION is a statement about an object, not only a description."""
+
+    def variations(self, genTexts):
+        capabilities = render_json(CAPABILITIES_MIB, genTexts=genTexts)[
+            "capsCapability"
+        ]["capabilities"]
+
+        return capabilities[0]["variations"]
+
+    def testADescriptionOnlyVariationSurvivesWithoutTexts(self):
+        """The case that used to disappear.
+
+        RFC 2580 section 6.5.2 makes DESCRIPTION mandatory, so a variation
+        recording implementation without refining anything carries only that
+        description. Dropping it lost the fact that the object was named at all.
+        """
+        self.assertEqual(
+            ["refinedObject", "plainObject"],
+            [variation["object"] for variation in self.variations(genTexts=False)],
+        )
+
+        # And the description-only one carries nothing else, so the entry is
+        # the whole of what it says.
+        self.assertEqual({"object": "plainObject"}, self.variations(genTexts=False)[1])
+
+    def testARefiningVariationKeepsItsRefinementsWithoutTexts(self):
+        refined = self.variations(genTexts=False)[0]
+
+        self.assertEqual("read-only", refined["access"])
+        self.assertNotIn("description", refined)
+
+    def testDescriptionsAreCarriedWithTexts(self):
+        self.assertEqual(
+            ["Narrowed.", "Implemented, with no refinement."],
+            [variation["description"] for variation in self.variations(genTexts=True)],
+        )
+
+    def testVariationCountsMatchAcrossTextModes(self):
+        self.assertEqual(
+            len(self.variations(genTexts=True)),
+            len(self.variations(genTexts=False)),
+        )
 
 
 class NoTextsIsProseFreeTestCase(unittest.TestCase):

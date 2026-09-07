@@ -1048,7 +1048,6 @@ class JsonCodeGen(AbstractCodeGen):
             outDict["includes"] = [self.trans_opers(group) for group in groups]
 
             rendered = [self.gen_capabilities_variation(module, v) for v in variations]
-            rendered = [v for v in rendered if v]
 
             if rendered:
                 outDict["variations"] = rendered
@@ -1059,7 +1058,7 @@ class JsonCodeGen(AbstractCodeGen):
 
     def gen_capabilities_variation(
         self, module: str, variation: CapabilitiesVariation
-    ) -> "OrderedDict[str, Any] | None":
+    ) -> "OrderedDict[str, Any]":
         """Render one VARIATION sub-clause of a SUPPORTS clause.
 
         Args:
@@ -1067,8 +1066,9 @@ class JsonCodeGen(AbstractCodeGen):
             variation: the sub-clause
 
         Returns:
-            The sub-clause as a JSON object, or ``None`` when its texts are
-            suppressed and it qualifies nothing.
+            The sub-clause as a JSON object. Always an object: which objects a
+            clause varies is structure, so the entry survives even when texts
+            are suppressed and its DESCRIPTION was all it carried.
         """
         name, syntax, writeSyntax, access, creation, defVal, description = variation
 
@@ -1094,12 +1094,13 @@ class JsonCodeGen(AbstractCodeGen):
                 module, outDict["object"], defVal
             )
 
-        # RFC 2580 section 6.5.2 requires the DESCRIPTION, and a variation that
-        # refines nothing else says only what that description says.
-        if not self.genRules["text"]:
-            return outDict if len(outDict) > 1 else None
-
-        outDict["description"] = self.textFilter("description", description)
+        # Which objects a SUPPORTS clause varies is structure, so the entry
+        # survives text suppression even when its DESCRIPTION -- required by
+        # RFC 2580 section 6.5.2 -- is the only thing it carries. Dropping it
+        # made a no-texts document claim the agent implements the module
+        # without variation, which is a different statement (pysnmp/pysmi#198).
+        if self.genRules["text"]:
+            outDict["description"] = self.textFilter("description", description)
 
         return outDict
 
