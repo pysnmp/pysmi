@@ -27,7 +27,9 @@ venv*
 .coverage
 .tox/
 out
-cache
+# Anchored: a bare `cache` matches that segment at any depth, which hid the
+# pysmi/cache source package. This is the scratch directory at the root.
+/cache
 *.log
 index.*
 report.md
