@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>MIBs as data: layering review &#8212; SNMP SMI compiler 2.4.0rc1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
+    <script src="_static/documentation_options.js?v=e20d6256"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PySMI library" href="library-reference.html" />
+    <link rel="prev" title="JSON document schema" href="jsondoc-schema.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="contents.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MIBs as data: layering review</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="contents.html">Documentation overview</a><ul>
+  <li><a href="documentation.html">PySMI documentation</a><ul>
+      <li>Previous: <a href="jsondoc-schema.html" title="previous chapter">JSON document schema</a></li>
+      <li>Next: <a href="library-reference.html" title="next chapter">PySMI library</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="mibs-as-data-layering-review">
+<span id="mibs-as-data"></span><h1>MIBs as data: layering review<a class="headerlink" href="#mibs-as-data-layering-review" title="Link to this heading">¶</a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Status: <strong>proposal</strong>. Nothing described here is implemented. This page
+reviews the plan recorded in pysnmp/pysnmp#148 and its child issues and
+proposes a different placement for one element of it, the schema. It is
+recorded in pysmi because pysmi is the repository the proposal assigns the
+schema to.</p>
+</div>
+<p>The effort under review replaces compiled-<code class="docutils literal notranslate"><span class="pre">.py</span></code> MIB distribution with a
+queryable corpus, so that OID-to-name translation no longer requires every
+module to be preloaded. That objective is not in question, and neither is the
+majority of the plan. One ownership decision is.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#the-decision-under-review" id="id1">The decision under review</a></p></li>
+<li><p><a class="reference internal" href="#three-schemas-not-one" id="id2">Three schemas, not one</a></p></li>
+<li><p><a class="reference internal" href="#pysmi-already-defines-layer-1" id="id3">pysmi already defines layer 1</a></p></li>
+<li><p><a class="reference internal" href="#what-the-current-plan-gets-right" id="id4">What the current plan gets right</a></p></li>
+<li><p><a class="reference internal" href="#where-it-goes-wrong" id="id5">Where it goes wrong</a></p></li>
+<li><p><a class="reference internal" href="#the-base-mib-shape-has-three-copies" id="id6">The base-MIB shape has three copies</a></p></li>
+<li><p><a class="reference internal" href="#the-revised-layering" id="id7">The revised layering</a></p></li>
+<li><p><a class="reference internal" href="#revised-work-plan" id="id8">Revised work plan</a></p></li>
+<li><p><a class="reference internal" href="#sc4snmp-the-downstream-consumer" id="id9">sc4snmp: the downstream consumer</a></p></li>
+<li><p><a class="reference internal" href="#sequencing" id="id10">Sequencing</a></p></li>
+<li><p><a class="reference internal" href="#open-questions" id="id11">Open questions</a></p></li>
+</ul>
+</nav>
+<section id="the-decision-under-review">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">The decision under review</a><a class="headerlink" href="#the-decision-under-review" title="Link to this heading">¶</a></h2>
+<p>pysnmp/pysnmp#147 places the corpus schema, the corpus writer, the corpus
+reader and <code class="docutils literal notranslate"><span class="pre">.py</span></code> code generation in pysnmp. Its stated reason:</p>
+<blockquote>
+<div><p>Whoever owns the schema must own both sides of it.</p>
+</div></blockquote>
+<p>and, in the same issue:</p>
+<blockquote>
+<div><p><code class="docutils literal notranslate"><span class="pre">pysmi/codegen/pysnmp.py</span></code> means pysmi knows pysnmp’s runtime shape,
+which is the actual inversion. pysmi should emit neutral IR; pysnmp
+should turn IR into pysnmp-shaped artifacts.</p>
+</div></blockquote>
+<p>The second statement is accurate. The conclusion drawn from it does not follow.
+The coupling identified in pysmi is that pysmi encodes pysnmp’s loader
+interface. Removing that coupling requires pysnmp to define its loader
+interface. It does not require pysmi’s data model to move to pysnmp, which is a
+separate transfer in the opposite direction.</p>
+</section>
+<section id="three-schemas-not-one">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Three schemas, not one</a><a class="headerlink" href="#three-schemas-not-one" title="Link to this heading">¶</a></h2>
+<p>The term <em>schema</em> denotes three distinct artifacts in the current plan. The
+ownership argument applies to one of them.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17.9%" />
+<col style="width: 56.4%" />
+<col style="width: 25.6%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Layer</p></th>
+<th class="head"><p>Definition</p></th>
+<th class="head"><p>Derived from</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>SMI model</strong></p></td>
+<td><p>The meaning of a MIB module: node classes, node types, syntax, subtype
+constraints, INDEX/AUGMENTS/IMPLIED, TEXTUAL-CONVENTIONs, DISPLAY-HINT,
+MAX-ACCESS, STATUS, UNITS, DEFVAL, revision history, per-symbol IMPORTS
+attribution.</p></td>
+<td><p>RFC 2578-2580</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Corpus serialization</strong></p></td>
+<td><p>The layout of that model for lookup: table structure, sortable OID key,
+indexes, core/text split, manifest, publish state.</p></td>
+<td><p>the model above, plus
+SQLite</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Runtime object shape</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MibScalar</span></code> / <code class="docutils literal notranslate"><span class="pre">MibTableColumn</span></code> / <code class="docutils literal notranslate"><span class="pre">MibTableRow</span></code> / <code class="docutils literal notranslate"><span class="pre">MibTable</span></code>,
+class identity per <code class="docutils literal notranslate"><span class="pre">(module,</span> <span class="pre">typename)</span></code>, <code class="docutils literal notranslate"><span class="pre">prettyPrint</span></code> / <code class="docutils literal notranslate"><span class="pre">prettyIn</span></code>
+behaviour, the override table, <code class="docutils literal notranslate"><span class="pre">loadTexts</span></code>.</p></td>
+<td><p>pysnmp</p></td>
+</tr>
+</tbody>
+</table>
+<p>The premise “whoever owns the schema must own both sides of it” holds for layer
+3. Layer 1 is derived from the SMI standards and has consumers that do not
+depend on pysnmp.</p>
+<p>Layer 2 has two sides, and they are not the writer and SQLite. They are pysmi’s
+<strong>writer</strong> and pysnmp’s <strong>reader</strong>, which must agree on application-level
+semantics: the manifest, the schema version, the OID key encoding and the
+publish state. Compatibility and validation belong to that boundary, and this
+proposal assigns them there.</p>
+<p>Co-location of the two sides in one repository is a separate question.
+<code class="docutils literal notranslate"><span class="pre">sqlite3</span></code> is in the standard library, so the reader requires the format
+rather than the producer. The agreement is therefore expressible as a published
+specification plus a conformance fixture executed by the reader’s own CI.</p>
+<p>Placing layer 1 in pysnmp requires any component that interprets a MIB row to
+depend on an SNMP protocol engine. Current consumers in that category include
+<code class="docutils literal notranslate"><span class="pre">mibdump</span> <span class="pre">--destination-format=json</span></code> users and splunk-connect-for-snmp.</p>
+</section>
+<section id="pysmi-already-defines-layer-1">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">pysmi already defines layer 1</a><a class="headerlink" href="#pysmi-already-defines-layer-1" title="Link to this heading">¶</a></h2>
+<p>The proposal does not assign pysmi a new responsibility. It names one that
+already exists and is undocumented as a contract.</p>
+<p><strong>The jsondoc schema is versioned and negotiable.</strong> <code class="docutils literal notranslate"><span class="pre">JsonCodeGen</span></code> defines
+<code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSIONS</span></code> and <code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSION</span></code>, accepts <code class="docutils literal notranslate"><span class="pre">schemaVersion=</span></code> on
+<code class="docutils literal notranslate"><span class="pre">gen_code()</span></code> and <code class="docutils literal notranslate"><span class="pre">gen_index()</span></code>, raises <code class="docutils literal notranslate"><span class="pre">PySmiCodegenError</span></code> for an
+unsupported version, and records the emitted version in <code class="docutils literal notranslate"><span class="pre">meta.schema</span></code> of every
+document and index. <code class="docutils literal notranslate"><span class="pre">tests/test_jsondoc_schema_version.py</span></code> covers this
+behaviour. The class docstring states the intent:</p>
+<blockquote>
+<div><p>A consumer that has to keep working across pysmi releases asks for the one
+it understands and is told, rather than left to infer the shape from the
+document.</p>
+</div></blockquote>
+<p>This is a versioned contract with a compatibility gate, which is what
+pysnmp/pysnmp#141 proposes to create.</p>
+<p><strong>The model is complete.</strong> <code class="docutils literal notranslate"><span class="pre">IF-MIB</span></code>, <code class="docutils literal notranslate"><span class="pre">ENTITY-MIB</span></code>, <code class="docutils literal notranslate"><span class="pre">SNMPv2-MIB</span></code> and
+<code class="docutils literal notranslate"><span class="pre">DISMAN-EVENT-MIB</span></code> compiled with both back ends at pysmi 2.3.0 produce equal
+node counts – 94, 73, 70 and 122 respectively, matching each module’s
+<code class="docutils literal notranslate"><span class="pre">exportSymbols</span></code> call. Across that sample the JSON carries every field
+enumerated in pysnmp/pysnmp#142:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">class</span></code> – <code class="docutils literal notranslate"><span class="pre">objecttype</span></code>, <code class="docutils literal notranslate"><span class="pre">objectidentity</span></code>, <code class="docutils literal notranslate"><span class="pre">moduleidentity</span></code>,
+<code class="docutils literal notranslate"><span class="pre">notificationtype</span></code>, <code class="docutils literal notranslate"><span class="pre">textualconvention</span></code>, <code class="docutils literal notranslate"><span class="pre">type</span></code>, <code class="docutils literal notranslate"><span class="pre">objectgroup</span></code>,
+<code class="docutils literal notranslate"><span class="pre">notificationgroup</span></code>, <code class="docutils literal notranslate"><span class="pre">modulecompliance</span></code>, <code class="docutils literal notranslate"><span class="pre">imports</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nodetype</span></code> – <code class="docutils literal notranslate"><span class="pre">scalar</span></code>, <code class="docutils literal notranslate"><span class="pre">column</span></code>, <code class="docutils literal notranslate"><span class="pre">row</span></code>, <code class="docutils literal notranslate"><span class="pre">table</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">syntax</span></code> with <code class="docutils literal notranslate"><span class="pre">constraints</span></code> (<code class="docutils literal notranslate"><span class="pre">range</span></code>, <code class="docutils literal notranslate"><span class="pre">size</span></code>, <code class="docutils literal notranslate"><span class="pre">enumeration</span></code>) and
+<code class="docutils literal notranslate"><span class="pre">bits</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">displayhint</span></code>, <code class="docutils literal notranslate"><span class="pre">units</span></code>, <code class="docutils literal notranslate"><span class="pre">default</span></code> (DEFVAL), <code class="docutils literal notranslate"><span class="pre">maxaccess</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code>,
+<code class="docutils literal notranslate"><span class="pre">reference</span></code>, <code class="docutils literal notranslate"><span class="pre">refinements</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">indices</span></code> as <code class="docutils literal notranslate"><span class="pre">{module,</span> <span class="pre">object,</span> <span class="pre">implied}</span></code>, and <code class="docutils literal notranslate"><span class="pre">augmentation</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">objects</span></code> as <code class="docutils literal notranslate"><span class="pre">{module,</span> <span class="pre">object}</span></code> for NOTIFICATION-TYPE</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">revisions</span></code>, <code class="docutils literal notranslate"><span class="pre">lastupdated</span></code>, <code class="docutils literal notranslate"><span class="pre">organization</span></code>, <code class="docutils literal notranslate"><span class="pre">contactinfo</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imports</span></code> as a module-to-symbol-list mapping, attributing each imported
+symbol to its source module</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">class</span></code> and <code class="docutils literal notranslate"><span class="pre">nodetype</span></code> are independent axes and both are required. The
+pysnmp/pysnmp#141 measurement comment reaches the same conclusion
+independently.</p>
+<p><strong>Provenance is emitted.</strong> <code class="docutils literal notranslate"><span class="pre">meta.comments</span></code> carries a <code class="docutils literal notranslate"><span class="pre">sha256</span></code> digest of the
+ASN.1 source and the producing pysmi version. pysnmp/pysnmp#147 proposes to
+introduce both in the builder.</p>
+<p><strong>The reverse index exists.</strong> <code class="docutils literal notranslate"><span class="pre">JsonCodeGen.gen_index()</span></code> produces the
+OID-to-module index that pysnmp/pysnmp#148 describes as absent, with
+deterministic ordering, prefix compression, mergeable output and a
+<code class="docutils literal notranslate"><span class="pre">meta.schema</span></code> stamp. pysnmp/pysnmp#149 proposes to reimplement it in pysnmp
+because <code class="docutils literal notranslate"><span class="pre">index.py</span></code> in the <em>mibs</em> repository is nondeterministic; <code class="docutils literal notranslate"><span class="pre">index.py</span></code>
+is a separate implementation, not this one.</p>
+<p><strong>pysmi distributes the standard corpus.</strong> As of 2.3.0 pysmi bundles 299 RFC,
+IANA and IEEE modules in <code class="docutils literal notranslate"><span class="pre">pysmi/mibs/asn1/</span></code>. <code class="docutils literal notranslate"><span class="pre">bundled_mibs.json</span></code> records
+each module’s publisher and, for superseded modules, which module took over
+each subtree. <code class="docutils literal notranslate"><span class="pre">pysmi.mibs.successor_for()</span></code> answers which module currently
+defines a given OID, which is a runtime question. Two premises in earlier issues
+are superseded by this: pysnmp/pysmi#161’s statement that bundling would make
+pysmi a MIB distributor rather than a base-layer provider, and the assumption in
+pysnmp/mibs#322 that <code class="docutils literal notranslate"><span class="pre">src/standard</span></code> is the only location of the standard tree.</p>
+<p>Two elements of layer 1 are not yet defined and are required:</p>
+<ul class="simple">
+<li><p>a <strong>canonical normalized form and content hash</strong>. The existing digest covers
+raw ASN.1 bytes, so whitespace and comment changes register as content
+changes. A hash over normalized rows is required, as the plan states.</p></li>
+<li><p>the <strong>corpus serialization</strong> (layer 2). No DDL exists in any repository.</p></li>
+</ul>
+</section>
+<section id="what-the-current-plan-gets-right">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">What the current plan gets right</a><a class="headerlink" href="#what-the-current-plan-gets-right" title="Link to this heading">¶</a></h2>
+<p>The following are retained without modification and are not re-argued below.</p>
+<ul class="simple">
+<li><p><strong>pyasn1 has no role.</strong> It contains no SMI, MIB or OID knowledge.</p></li>
+<li><p><strong>The generated ``.py`` contains no MIB semantics absent from the JSON.</strong>
+What it adds is runtime shape: <code class="docutils literal notranslate"><span class="pre">PYSNMP_MODULE_ID</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mibBuilder.importSymbols</span></code> and <code class="docutils literal notranslate"><span class="pre">exportSymbols</span></code> calls,
+<code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">mibBuilder.loadTexts:</span></code> guards, <code class="docutils literal notranslate"><span class="pre">getattr(mibBuilder,</span> <span class="pre">'version',</span> <span class="pre">...)</span></code>
+compatibility branches, and the binding of each SMI type name to a pysnmp
+implementation class. jsondoc retains the type name as declared,
+<code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;INTEGER&quot;,</span> <span class="pre">&quot;class&quot;:</span> <span class="pre">&quot;type&quot;}</span></code>; the pysnmp back end resolves it to
+the implementing class. <code class="docutils literal notranslate"><span class="pre">tests/test_codegen_fake_index.py</span></code> asserts this as
+the difference between the two back ends. That binding is layer-3 knowledge
+and is a case for the loader contract to state explicitly. The conclusion
+drawn from this observation in pysnmp/pysmi#132 does not hold; see
+<a class="reference internal" href="#the-base-mib-shape"><span class="std std-ref">The base-MIB shape has three copies</span></a>.</p></li>
+<li><p><strong>The runtime design.</strong> <code class="docutils literal notranslate"><span class="pre">MibStore</span></code> / <code class="docutils literal notranslate"><span class="pre">CompositeStore</span></code>, longest-prefix OID
+resolution across all stores with precedence as tie-break only,
+one-module-one-store, the class cache keyed <code class="docutils literal notranslate"><span class="pre">(module,</span> <span class="pre">typename)</span></code>, the
+override table consulted before synthesis, per-module provenance, and engine
+MIBs excluded from scope. This is the content of pysnmp/pysnmp#144,
+pysnmp/pysnmp#145 and pysnmp/pysnmp#146 and none of it changes.</p></li>
+<li><p><strong>SQLite rather than DuckDB</strong>, on the measured reasoning recorded in
+pysnmp/pysnmp#146.</p></li>
+<li><p><strong>The determinism defects</strong> identified in pysnmp/pysnmp#149: the
+shared-directory race, the bootstrap from published output, <code class="docutils literal notranslate"><span class="pre">--ignore-errors</span></code>
+applied to one pass only, and <code class="docutils literal notranslate"><span class="pre">listdir</span></code>-ordered index collisions.</p></li>
+<li><p><strong>Opt-in behaviour throughout</strong>, with byte-identical default resolution.</p></li>
+<li><p><strong>pysnmp/pysnmp#140</strong> is independent of the corpus work and can ship
+separately.</p></li>
+</ul>
+</section>
+<section id="where-it-goes-wrong">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Where it goes wrong</a><a class="headerlink" href="#where-it-goes-wrong" title="Link to this heading">¶</a></h2>
+<p><strong>1. It defines a second SMI model.</strong> With the schema in pysnmp there are two
+descriptions of a MIB module’s meaning, jsondoc v1 and corpus v1, and a
+normalization step between them owned by neither repository. pysnmp/pysnmp#142
+exists to determine whether the two agree. A single model makes the question
+definitional and the spike unnecessary.</p>
+<p><strong>2. It increases the dependency it aims to remove.</strong> pysnmp/pysnmp#148’s
+ownership table states that pysnmp requires neither pysmi nor mibs at runtime.
+<code class="docutils literal notranslate"><span class="pre">pysnmp-pysmi</span></code> is currently a required runtime dependency of pysnmp, declared
+in <code class="docutils literal notranslate"><span class="pre">[tool.poetry.dependencies]</span></code> rather than as an extra. A builder in pysnmp
+that parses raw <code class="docutils literal notranslate"><span class="pre">.mib</span></code> (pysnmp/pysnmp#149) adds a build-time dependency on
+pysmi’s parser. Retaining the builder in pysmi permits the runtime dependency to
+be removed, since the reader requires only the format.</p>
+<p><strong>3. It couples corpus rebuilds to a protocol library’s release cadence.</strong>
+pysnmp/mibs#323 states that conflating schema version with corpus version forces
+a pysnmp release on every corpus rebuild. pysnmp/pysnmp#147 ships the builder as
+a <code class="docutils literal notranslate"><span class="pre">pysnmp[compile]</span></code> console script, which produces the same coupling through
+packaging. The corpus rebuilds on a weekly cadence.</p>
+<p><strong>4. The dependency graph is blocked on a spike that cannot close.</strong>
+pysnmp/pysnmp#141 blocks seven issues across two repositories. Its prerequisite
+section states that the schema should not freeze until a post-deduplication node
+count exists, and that count is produced by a corpus build that is itself being
+redesigned.</p>
+<p><strong>5. It reimplements existing functionality.</strong> The OID index (<code class="docutils literal notranslate"><span class="pre">gen_index</span></code>),
+the schema version negotiation (<code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSIONS</span></code>), the provenance stamp
+(<code class="docutils literal notranslate"><span class="pre">meta.comments</span></code>) and module supersession (<code class="docutils literal notranslate"><span class="pre">bundled_mibs.json</span></code>) exist in
+pysmi and appear as new work in the pysnmp issues.</p>
+<p><strong>6. Two independent changes are treated as one.</strong> Removing the pysnmp format
+from <code class="docutils literal notranslate"><span class="pre">mibdump</span></code> narrows pysmi to neutral output. Moving the schema to pysnmp
+widens pysnmp to own neutral output. These are opposite changes and the plan
+couples them.</p>
+<p><strong>7. Soft deprecation of the pysnmp back end is not achievable.</strong>
+pysnmp/pysmi#132 proposes that <code class="docutils literal notranslate"><span class="pre">codegen/pysnmp.py</span></code> fade by disuse. pysmi
+executes that generator during its own wheel build, and it is the runtime
+compilation path for splunk-connect-for-snmp.</p>
+</section>
+<section id="the-base-mib-shape-has-three-copies">
+<span id="the-base-mib-shape"></span><h2><a class="toc-backref" href="#id6" role="doc-backlink">The base-MIB shape has three copies</a><a class="headerlink" href="#the-base-mib-shape-has-three-copies" title="Link to this heading">¶</a></h2>
+<p>pysmi produces and distributes the pysnmp artifact shape. <code class="docutils literal notranslate"><span class="pre">hatch_build.py</span></code>
+runs <code class="docutils literal notranslate"><span class="pre">PySnmpCodeGen</span></code> over all 299 bundled ASN.1 modules during the wheel build
+and force-includes the output as <code class="docutils literal notranslate"><span class="pre">pysmi/mibs/pysnmp/</span></code>. Its docstring states
+the rationale: a consumer that needs to load one of the 299 standard modules
+rather than compile it should not have to run the compiler first. Generating
+rather than committing the modules makes their correspondence to the ASN.1
+verifiable by construction.</p>
+<p>The pysnmp-shaped base layer therefore exists in three copies, from three
+producers.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 29.5%" />
+<col style="width: 13.6%" />
+<col style="width: 34.1%" />
+<col style="width: 22.7%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Copy</p></th>
+<th class="head"><p>Modules</p></th>
+<th class="head"><p>Producer</p></th>
+<th class="head"><p>Consumer</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pysmi/mibs/pysnmp/</span></code></p></td>
+<td><p>299</p></td>
+<td><p>the current generator over the current ASN.1, during the wheel build</p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pysnmp/smi/mibs/</span></code></p></td>
+<td><p>26</p></td>
+<td><p>pysmi 0.1.2 / 0.1.3, April 2017; not regenerated since</p></td>
+<td><p>pysnmp’s <code class="docutils literal notranslate"><span class="pre">MibBuilder</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>sc4snmp runtime</p></td>
+<td><p>on demand</p></td>
+<td><p>pysmi in-process, from ASN.1 retrieved over HTTP per module</p></td>
+<td><p>sc4snmp</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">MibBuilder</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">('pysnmp.smi.mibs.instances',</span> <span class="pre">'pysnmp.smi.mibs')</span></code>
+and contains no reference to <code class="docutils literal notranslate"><span class="pre">pysmi.mibs</span></code>. The generated copy in the wheel
+pysnmp depends on is therefore unused.</p>
+<p>The copies have diverged. Compiling pysmi’s bundled ASN.1 with the current
+generator and comparing against the 2017 files:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 34.1%" />
+<col style="width: 13.6%" />
+<col style="width: 13.6%" />
+<col style="width: 38.6%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Module</p></th>
+<th class="head"><p>frozen</p></th>
+<th class="head"><p>current</p></th>
+<th class="head"><p>exported symbols</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SNMPv2-MIB</span></code></p></td>
+<td><p>204 L</p></td>
+<td><p>158 L</p></td>
+<td><p>71 / 71, equal</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SNMP-COMMUNITY-MIB</span></code></p></td>
+<td><p>91 L</p></td>
+<td><p>75 L</p></td>
+<td><p>27 / 27, equal</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SNMP-NOTIFICATION-MIB</span></code></p></td>
+<td><p>98 L</p></td>
+<td><p>79 L</p></td>
+<td><p>30 / 30, equal</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">SNMP-PROXY-MIB</span></code></p></td>
+<td><p>68 L</p></td>
+<td><p>52 L</p></td>
+<td><p>19 / 19, equal</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SNMP-VIEW-BASED-ACM-MIB</span></code></p></td>
+<td><p>129 L</p></td>
+<td><p>90 L</p></td>
+<td><p>40 / 39; frozen copy defines <code class="docutils literal notranslate"><span class="pre">vacmContextStatus</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RFC1213-MIB</span></code></p></td>
+<td><p>417 L</p></td>
+<td><p>410 L</p></td>
+<td><p>135 / 203; disjoint in both directions</p></td>
+</tr>
+</tbody>
+</table>
+<p>These are line counts and exported symbol sets. They do not establish
+equivalence: they do not cover subtype constraints, DEFVALs, INDEX and AUGMENTS
+wiring, resolved IMPORTS, the SMI-type-to-class binding, or behaviour in the
+modules that contain code. Two modules disagree on symbols alone. Eight of the
+26 contain hand-written behaviour: <code class="docutils literal notranslate"><span class="pre">SNMPv2-SMI</span></code>, <code class="docutils literal notranslate"><span class="pre">SNMPv2-TC</span></code>,
+<code class="docutils literal notranslate"><span class="pre">SNMPv2-CONF</span></code>, <code class="docutils literal notranslate"><span class="pre">SNMPv2-TM</span></code>, <code class="docutils literal notranslate"><span class="pre">SNMP-FRAMEWORK-MIB</span></code>, <code class="docutils literal notranslate"><span class="pre">SNMP-TARGET-MIB</span></code>,
+<code class="docutils literal notranslate"><span class="pre">INET-ADDRESS-MIB</span></code> and <code class="docutils literal notranslate"><span class="pre">TRANSPORT-ADDRESS-MIB</span></code>.</p>
+<p>The table therefore establishes that the copies have diverged. It does not
+establish that any individual module can be substituted safely. Substitution
+requires an equivalence check covering the properties listed above, applied per
+module.</p>
+<p><strong>Consequence for the inversion argument.</strong> A code generator that targets a
+runtime encodes that runtime’s shape; this is the definition of a back end. The
+specific defect is narrower and visible in the emitted output:
+<code class="docutils literal notranslate"><span class="pre">getattr(mibBuilder,</span> <span class="pre">'version',</span> <span class="pre">(0,</span> <span class="pre">0,</span> <span class="pre">0))</span> <span class="pre">&gt;</span> <span class="pre">(4,</span> <span class="pre">4,</span> <span class="pre">0)</span></code> guards indicate that
+pysmi is inferring pysnmp’s loader behaviour across versions, because pysnmp has
+not specified which setters exist or what <code class="docutils literal notranslate"><span class="pre">exportSymbols</span></code> accepts. The
+correction is for pysnmp to publish and version that loader contract and for
+pysmi to target a declared version of it. The version-inference branches are
+then removable, and one generated artifact serves pysmi’s bundle, pysnmp’s base
+layer and sc4snmp.</p>
+</section>
+<section id="the-revised-layering">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">The revised layering</a><a class="headerlink" href="#the-revised-layering" title="Link to this heading">¶</a></h2>
+<p>Ownership follows the layer.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 19.0%" />
+<col style="width: 54.8%" />
+<col style="width: 26.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Repository</p></th>
+<th class="head"><p>Owns</p></th>
+<th class="head"><p>Does not own</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>pysmi</strong></p></td>
+<td><p>The SMI model and its version negotiation. The canonical normalized form
+and content hash. The corpus DDL, as a rendering of the model. The corpus
+writer. The OID-to-module index. Bundled base sources and their manifest.
+Every artifact shape – <code class="docutils literal notranslate"><span class="pre">json</span></code>, <code class="docutils literal notranslate"><span class="pre">.py</span></code>, <code class="docutils literal notranslate"><span class="pre">.db</span></code> – each targeting a
+contract published by its consumer.</p></td>
+<td><p>Any consumer’s
+loader contract</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>pysnmp</strong></p></td>
+<td><p>The corpus reader. <code class="docutils literal notranslate"><span class="pre">MibStore</span></code> / <code class="docutils literal notranslate"><span class="pre">CompositeStore</span></code>, class synthesis,
+the override table, class identity, provenance API, <code class="docutils literal notranslate"><span class="pre">loadTexts</span></code>, engine
+MIBs. The loader contract <code class="docutils literal notranslate"><span class="pre">codegen/pysnmp.py</span></code> targets, and the
+behavioural base modules.</p></td>
+<td><p>The model, the DDL,
+the builder, its own
+generated modules</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>mibs</strong></p></td>
+<td><p>Raw <code class="docutils literal notranslate"><span class="pre">.mib</span></code> sources, selection configs, CI.</p></td>
+<td><p>Build code</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>pyasn1</strong></p></td>
+<td><p>Nothing in this effort.</p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>The dependency direction becomes <code class="docutils literal notranslate"><span class="pre">mibs</span></code> to <code class="docutils literal notranslate"><span class="pre">pysmi</span></code>, with pysnmp depending on
+neither at runtime and reading a documented file format with a standard-library
+driver.</p>
+<p>Three consequences follow.</p>
+<p><em>The contract is data.</em> pysmi ships the DDL and a JSON Schema for the document
+form as package data, versioned by the mechanism jsondoc already implements.
+pysnmp’s reader gates on the <code class="docutils literal notranslate"><span class="pre">schema_version</span></code> in the corpus manifest table as
+a jsondoc consumer gates on <code class="docutils literal notranslate"><span class="pre">meta.schema</span></code>. Neither repository imports the
+other to satisfy it.</p>
+<p><em>Drift is held by a conformance fixture.</em> pysmi publishes a corpus built from a
+fixed module set with the expected results. pysnmp’s reader executes it in
+pysnmp’s CI. This is the standard mechanism for a cross-repository format and
+does not require the repositories to merge.</p>
+<p><em>The corpus back end is neutral.</em> <code class="docutils literal notranslate"><span class="pre">--destination-format=sqlite</span></code> emits OIDs,
+names, node types, syntax, constraints, indices and texts. None of these are
+pysnmp-specific. A requirement for the writer to know what a <code class="docutils literal notranslate"><span class="pre">MibTableColumn</span></code>
+is would indicate a layering violation in the new code.</p>
+</section>
+<section id="revised-work-plan">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Revised work plan</a><a class="headerlink" href="#revised-work-plan" title="Link to this heading">¶</a></h2>
+<p><strong>pysmi – new work.</strong> Each item added here corresponds to an item removed from
+pysnmp.</p>
+<ul class="simple">
+<li><p>Publish the SMI model as a specification: a written spec and a JSON Schema
+file shipped as package data, describing schema v1 as jsondoc emits it. This
+documents existing behaviour and changes none of it.</p></li>
+<li><p>Define the canonical normalized form and the content hash over it. The hash
+must be stable across pysmi versions and identical between a full corpus and a
+subset filtered from it. It supersedes the raw-source digest for identity
+purposes; the source digest remains as a separate fact.</p></li>
+<li><p>Corpus DDL v1, the SQLite rendering: sortable OID key, core/text split,
+manifest table with schema version and corpus version held separately, and
+publish state permitting <code class="docutils literal notranslate"><span class="pre">immutable=1</span></code>. <code class="docutils literal notranslate"><span class="pre">immutable=1</span></code> disables locking and
+change detection, so a file modified beneath a reader produces incorrect
+results or <code class="docutils literal notranslate"><span class="pre">SQLITE_CORRUPT</span></code> rather than a contention error. The invariant is
+that a corpus is sealed before publication, published atomically, and never
+updated in place; a new corpus is a new file.</p></li>
+<li><p>Corpus writer as a code generation back end.</p></li>
+<li><p>Batch compilation with a warm dependency cache, the outstanding half of
+pysnmp/pysmi#133. Under this plan it becomes a requirement of pysmi’s own
+corpus build rather than a cross-repository request.</p></li>
+<li><p>A corpus driver over multiple source namespaces, deterministic by
+construction: a fixed immutable input set, no writes into a directory that is
+concurrently a source, and no network source. The defects catalogued in
+pysnmp/pysnmp#149 are corrected here.</p></li>
+<li><p>Conformance fixture for downstream readers.</p></li>
+</ul>
+<p><strong>pysmi – retained.</strong> <code class="docutils literal notranslate"><span class="pre">codegen/pysnmp.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">mibdump</span> <span class="pre">--destination-format=pysnmp</span></code> remain supported and maintained.</p>
+<p><strong>pysnmp – unchanged from the current plan.</strong> pysnmp/pysnmp#144,
+pysnmp/pysnmp#145 and pysnmp/pysnmp#146 stand as written. pysnmp/pysnmp#140
+ships independently.</p>
+<p><strong>pysnmp – added by this review.</strong> Publish and version the loader contract that
+<code class="docutils literal notranslate"><span class="pre">codegen/pysnmp.py</span></code> targets. Converge the base layer: retain the eight
+behavioural modules and the override set as hand-written code and take the
+remainder from <code class="docutils literal notranslate"><span class="pre">pysmi/mibs/pysnmp/</span></code> rather than the 2017 files, behind the
+equivalence check the drift table requires. This resolves the coupling; a second
+emitter in pysnmp does not.</p>
+<p><strong>pysnmp – changed.</strong> pysnmp/pysnmp#141 narrows to the runtime half: the
+version-mismatch policy applied by a reader, and the override table format,
+which is pysnmp’s because it names pysnmp modules. The DDL moves to pysmi.
+pysnmp/pysnmp#147 retains the reader and loses the builder. pysnmp/pysnmp#149
+moves to pysmi with its defect list intact.</p>
+<p><code class="docutils literal notranslate"><span class="pre">pysnmp[compile]</span></code> and the <code class="docutils literal notranslate"><span class="pre">pysnmp-mib-build</span></code> console script were proposals
+in pysnmp/pysnmp#147 and were never implemented. Neither appears in any release,
+so no interface is removed or deprecated and no caller requires migration.
+<code class="docutils literal notranslate"><span class="pre">mibdump</span></code> is the supported tool for compiling MIBs and is unaffected by this
+proposal.</p>
+<p><strong>pysnmp/pysnmp#142 closes.</strong> Its question, whether jsondoc carries what the
+corpus requires, is meaningful only while the two are separate schemas. Under a
+single model the answer is definitional. The sample audit recorded above stands
+as evidence that the fields are present. The remaining gap it would have
+identified, the normalized hash, is listed as pysmi work.</p>
+<p><strong>mibs – as planned, with one substitution.</strong> pysnmp/mibs#322,
+pysnmp/mibs#323, pysnmp/mibs#324 and pysnmp/mibs#325 stand. CI invokes pysmi
+rather than <code class="docutils literal notranslate"><span class="pre">pysnmp-mib-build</span></code>. pysnmp/mibs#326 is independent.
+pysnmp/mibs#335 is unaffected.</p>
+</section>
+<section id="sc4snmp-the-downstream-consumer">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">sc4snmp: the downstream consumer</a><a class="headerlink" href="#sc4snmp-the-downstream-consumer" title="Link to this heading">¶</a></h2>
+<p><a class="reference external" href="https://github.com/splunk/splunk-connect-for-snmp">splunk-connect-for-snmp</a>
+is the largest downstream consumer and an instance of the problem statement.
+<code class="docutils literal notranslate"><span class="pre">splunk_connect_for_snmp/snmp/manager.py</span></code> binds three artifacts of the <em>mibs</em>
+repository:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 21.3%" />
+<col style="width: 36.2%" />
+<col style="width: 42.6%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Use</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MIB_SOURCES</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://pysnmp.github.io/mibs/asn1/&#64;mib&#64;</span></code></p></td>
+<td><p>passed to <code class="docutils literal notranslate"><span class="pre">compiler.addMibCompiler()</span></code>; pysmi compiles ASN.1 to pysnmp
+modules in process, per module, at runtime</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MIB_INDEX</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://pysnmp.github.io/mibs/index.csv</span></code></p></td>
+<td><p>parsed into <code class="docutils literal notranslate"><span class="pre">mib_map</span></code> as OID-to-module</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MIB_STANDARD</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">https://pysnmp.github.io/mibs/standard.txt</span></code></p></td>
+<td><p>the standard module list</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">is_mib_known()</span></code> truncates the OID one arc at a time, longest prefix first,
+looks each candidate up in <code class="docutils literal notranslate"><span class="pre">mib_map</span></code>, and calls <code class="docutils literal notranslate"><span class="pre">builder.loadModules()</span></code> on
+the module found. This is <code class="docutils literal notranslate"><span class="pre">find_module(oid)</span></code> followed by a lazy load,
+implemented against an index built by <code class="docutils literal notranslate"><span class="pre">index.py</span></code>. The <code class="docutils literal notranslate"><span class="pre">1.3.6.1.6.3.1</span></code>
+collision catalogued in pysnmp/pysnmp#149 resolves to <code class="docutils literal notranslate"><span class="pre">RAPID-CITY</span></code> rather than
+<code class="docutils literal notranslate"><span class="pre">SNMPv2-MIB</span></code>, and this is the code path that consumes that result.</p>
+<p>Three consequences follow.</p>
+<p><em>The corpus addresses an existing requirement.</em> It replaces <code class="docutils literal notranslate"><span class="pre">mib_map</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MIB_SOURCES</span></code> and the runtime compilation with one mounted file and one
+lookup.</p>
+<p><em>A compatibility break is acceptable given a stated reason and a migration
+route.</em> The reason is that the current path performs a network fetch and a full
+ASN.1 compilation on the trap path, keyed against an index with a known
+incorrect entry. The route is additive and staged:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">index.csv</span></code>, <code class="docutils literal notranslate"><span class="pre">asn1/</span></code> and <code class="docutils literal notranslate"><span class="pre">standard.txt</span></code> continue to be published, and
+the determinism corrections fix <code class="docutils literal notranslate"><span class="pre">index.csv</span></code> in place. sc4snmp receives the
+<code class="docutils literal notranslate"><span class="pre">1.3.6.1.6.3.1</span></code> correction without any change on its side.</p></li>
+<li><p>sc4snmp mounts <code class="docutils literal notranslate"><span class="pre">core.db</span></code> and configures the corpus source. <code class="docutils literal notranslate"><span class="pre">mib_map</span></code> and
+<code class="docutils literal notranslate"><span class="pre">is_mib_known()</span></code> reduce to a store lookup; <code class="docutils literal notranslate"><span class="pre">MIB_SOURCES</span></code> and the runtime
+compiler leave the trap path; <code class="docutils literal notranslate"><span class="pre">MIB_INDEX</span></code> and <code class="docutils literal notranslate"><span class="pre">MIB_STANDARD</span></code> become
+unnecessary rather than unsupported.</p></li>
+<li><p>The HTTP endpoints and the mibserver are withdrawn only after stage 2 has
+shipped and been adopted, per pysnmp/mibs#325, which states that the
+retirement window depends on remaining consumers. This document identifies
+sc4snmp as one such consumer, by default, on every deployment.</p></li>
+</ol>
+<p><em>The Helm chart is part of the contract.</em> <code class="docutils literal notranslate"><span class="pre">charts/mibserver</span></code>,
+<code class="docutils literal notranslate"><span class="pre">local_mibs.sh</span></code> and the <code class="docutils literal notranslate"><span class="pre">localMibs.pathToMibs</span></code> / <code class="docutils literal notranslate"><span class="pre">existingClaim</span></code> behaviour
+are deployed by sc4snmp users. pysnmp/mibs#208 and any other change affecting
+them is a compatibility surface.</p>
+</section>
+<section id="sequencing">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Sequencing</a><a class="headerlink" href="#sequencing" title="Link to this heading">¶</a></h2>
+<p>Under this proposal the critical path is not a single spike.</p>
+<ol class="arabic simple">
+<li><p><strong>Unblocked, no dependencies:</strong> pysnmp/pysnmp#140; pysnmp/mibs#326; the
+pysnmp/pysnmp#144 and pysnmp/pysnmp#145 stories that run against an in-memory
+fixture; the SMI model specification, which documents shipped behaviour.</p></li>
+<li><p><strong>Next:</strong> the normalized form and content hash. This is the gate for
+duplicate detection, shadow warnings and subset stability, and is a smaller
+artifact to freeze than a DDL, since the model beneath it exists and has
+consumers.</p></li>
+<li><p><strong>Then:</strong> corpus DDL v1 and the writer, reviewed by pysnmp and mibs before
+dependent work starts. The post-deduplication node count is measured here, by
+the deterministic corpus driver, rather than being a prerequisite for
+starting.</p></li>
+<li><p><strong>Then:</strong> pysnmp’s SQLite reader against the conformance fixture, and the
+mibs pipeline cutover behind legacy-compatible output.</p></li>
+<li><p><strong>Last:</strong> pysnmp/mibs#325.</p></li>
+</ol>
+</section>
+<section id="open-questions">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Open questions</a><a class="headerlink" href="#open-questions" title="Link to this heading">¶</a></h2>
+<p>Unchanged by this proposal:</p>
+<ul class="simple">
+<li><p>Post-deduplication node count. Size estimates and some column widths depend on
+it.</p></li>
+<li><p>External consumers of the published OID index and the <code class="docutils literal notranslate"><span class="pre">asn1</span></code> HTTP endpoints,
+beyond sc4snmp. This gates the retirement window in pysnmp/mibs#325 and the
+<code class="docutils literal notranslate"><span class="pre">gh-pages</span></code> history decision in pysnmp/mibs#326.</p></li>
+<li><p>Schema version mismatch policy: whether a runtime refuses a newer corpus or
+reads the subset it understands. This is a property of the reader rather than
+of the schema, but remains undecided.</p></li>
+<li><p>Override table format, which is pysnmp’s and remains unspecified.</p></li>
+</ul>
+<p>Raised by this proposal:</p>
+<ul class="simple">
+<li><p>Whether the corpus back end is a <code class="docutils literal notranslate"><span class="pre">mibdump</span></code> destination format or a separate
+console script. A corpus build takes a source set and a selection config
+rather than a module list, so <code class="docutils literal notranslate"><span class="pre">mibdump</span></code> may not be the appropriate entry
+point.</p></li>
+<li><p>Whether pysmi bundling 299 modules changes the purpose of <code class="docutils literal notranslate"><span class="pre">src/standard</span></code> in
+the mibs repository. The two now overlap, and one of them must be
+authoritative for a given module.</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

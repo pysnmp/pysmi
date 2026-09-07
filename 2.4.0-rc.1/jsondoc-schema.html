@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>JSON document schema &#8212; SNMP SMI compiler 2.4.0rc1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
+    <script src="_static/documentation_options.js?v=e20d6256"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="MIBs as data: layering review" href="mibs-as-data.html" />
+    <link rel="prev" title="Bundled base MIBs" href="bundled-mibs.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="contents.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="contents.html">Documentation overview</a><ul>
+  <li><a href="documentation.html">PySMI documentation</a><ul>
+      <li>Previous: <a href="bundled-mibs.html" title="previous chapter">Bundled base MIBs</a></li>
+      <li>Next: <a href="mibs-as-data.html" title="next chapter">MIBs as data: layering review</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="json-document-schema">
+<span id="jsondoc-schema"></span><h1>JSON document schema<a class="headerlink" href="#json-document-schema" title="Link to this heading">¶</a></h1>
+<p><a class="reference internal" href="pysmi/codegen/jsondoc/jsoncodegen.html#pysmi.codegen.jsondoc.JsonCodeGen" title="pysmi.codegen.jsondoc.JsonCodeGen"><code class="xref py py-class docutils literal notranslate"><span class="pre">JsonCodeGen</span></code></a> renders a MIB module as a JSON
+document describing the SMI model: what the module declares, and what each
+declaration means. This page specifies that document.</p>
+<p>The specification exists because the document is a contract. Consumers outside
+pysmi build against it – <code class="docutils literal notranslate"><span class="pre">mibdump</span> <span class="pre">--destination-format=json</span></code> users, and the
+corpus work described in <a class="reference internal" href="mibs-as-data.html"><span class="doc">MIBs as data: layering review</span></a> – and a consumer should be able
+to write a reader from this page without reading <code class="docutils literal notranslate"><span class="pre">jsondoc.py</span></code>.</p>
+<p>Machine-readable schemas ship beside it as package data, so a consumer can
+validate a document rather than trust it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.codegen.schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">schema</span>
+
+<span class="n">document_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="p">(</span><span class="s2">"document"</span><span class="p">)</span>
+<span class="n">index_schema</span> <span class="o">=</span> <span class="n">schema</span><span class="p">(</span><span class="s2">"index"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Where the prose and the schema disagree, the prose states intent and the schema
+states what is emitted. Such a disagreement is a defect in one of them.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#versioning" id="id1">Versioning</a></p>
+<ul>
+<li><p><a class="reference internal" href="#compatibility-policy" id="id2">Compatibility policy</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#document-structure" id="id3">Document structure</a></p>
+<ul>
+<li><p><a class="reference internal" href="#meta" id="id4">meta</a></p></li>
+<li><p><a class="reference internal" href="#imports" id="id5">imports</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#symbols" id="id6">Symbols</a></p>
+<ul>
+<li><p><a class="reference internal" href="#objecttype" id="id7">objecttype</a></p></li>
+<li><p><a class="reference internal" href="#moduleidentity" id="id8">moduleidentity</a></p></li>
+<li><p><a class="reference internal" href="#textualconvention-and-type" id="id9">textualconvention and type</a></p></li>
+<li><p><a class="reference internal" href="#objectidentity" id="id10">objectidentity</a></p></li>
+<li><p><a class="reference internal" href="#notificationtype-objectgroup-notificationgroup" id="id11">notificationtype, objectgroup, notificationgroup</a></p></li>
+<li><p><a class="reference internal" href="#modulecompliance" id="id12">modulecompliance</a></p></li>
+<li><p><a class="reference internal" href="#agentcapabilities" id="id13">agentcapabilities</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#shared-structures" id="id14">Shared structures</a></p>
+<ul>
+<li><p><a class="reference internal" href="#oids" id="id15">OIDs</a></p></li>
+<li><p><a class="reference internal" href="#status" id="id16">status</a></p></li>
+<li><p><a class="reference internal" href="#maxaccess" id="id17">maxaccess</a></p></li>
+<li><p><a class="reference internal" href="#type-specifications" id="id18">Type specifications</a></p></li>
+<li><p><a class="reference internal" href="#defval" id="id19">DEFVAL</a></p></li>
+<li><p><a class="reference internal" href="#symbol-references" id="id20">Symbol references</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#text-generation" id="id21">Text generation</a></p></li>
+<li><p><a class="reference internal" href="#module-identity" id="id22">Module identity</a></p>
+<ul>
+<li><p><a class="reference internal" href="#canonical-form" id="id23">Canonical form</a></p></li>
+<li><p><a class="reference internal" href="#properties" id="id24">Properties</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#the-oid-index" id="id25">The OID index</a></p></li>
+<li><p><a class="reference internal" href="#validating-a-document" id="id26">Validating a document</a></p></li>
+</ul>
+</nav>
+<section id="versioning">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Versioning</a><a class="headerlink" href="#versioning" title="Link to this heading">¶</a></h2>
+<p>Every document records the schema version it was emitted against:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">"meta"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"schema"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>A consumer reads <code class="docutils literal notranslate"><span class="pre">meta.schema</span></code> and selects its handling from that. It does not
+infer the shape from the document in front of it.</p>
+<p>A caller may ask for a specific version:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">info</span><span class="p">,</span> <span class="n">document</span> <span class="o">=</span> <span class="n">JsonCodeGen</span><span class="p">()</span><span class="o">.</span><span class="n">gen_code</span><span class="p">(</span><span class="n">ast</span><span class="p">,</span> <span class="n">symbolTable</span><span class="p">,</span> <span class="n">schemaVersion</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="pysmi/codegen/jsondoc/jsoncodegen.html#pysmi.codegen.jsondoc.JsonCodeGen.SCHEMA_VERSIONS" title="pysmi.codegen.jsondoc.JsonCodeGen.SCHEMA_VERSIONS"><code class="xref py py-attr docutils literal notranslate"><span class="pre">SCHEMA_VERSIONS</span></code></a> lists what the
+installed pysmi can emit and <a class="reference internal" href="pysmi/codegen/jsondoc/jsoncodegen.html#pysmi.codegen.jsondoc.JsonCodeGen.SCHEMA_VERSION" title="pysmi.codegen.jsondoc.JsonCodeGen.SCHEMA_VERSION"><code class="xref py py-attr docutils literal notranslate"><span class="pre">SCHEMA_VERSION</span></code></a>
+is the newest, which is the default. Asking for a version outside that set
+raises <a class="reference internal" href="pysmi/error.html#pysmi.error.PySmiCodegenError" title="pysmi.error.PySmiCodegenError"><code class="xref py py-class docutils literal notranslate"><span class="pre">PySmiCodegenError</span></code></a> rather than silently emitting
+something else.</p>
+<section id="compatibility-policy">
+<h3><a class="toc-backref" href="#id2" role="doc-backlink">Compatibility policy</a><a class="headerlink" href="#compatibility-policy" title="Link to this heading">¶</a></h3>
+<p>Within a schema version:</p>
+<ul class="simple">
+<li><p>a field that is documented as present will not be removed</p></li>
+<li><p>a field’s type will not change</p></li>
+<li><p>the members of a closed enumeration – <code class="docutils literal notranslate"><span class="pre">class</span></code>, <code class="docutils literal notranslate"><span class="pre">nodetype</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code>,
+<code class="docutils literal notranslate"><span class="pre">maxaccess</span></code>, <code class="docutils literal notranslate"><span class="pre">kind</span></code>, DEFVAL <code class="docutils literal notranslate"><span class="pre">format</span></code> – will not change meaning</p></li>
+</ul>
+<p>New <em>optional</em> fields may be added within a version. A consumer must therefore
+ignore fields it does not recognize rather than reject a document for carrying
+them. This is the one direction in which a version can move, and it is why
+<code class="docutils literal notranslate"><span class="pre">additionalProperties</span></code> is open on symbol objects in the shipped schema.</p>
+<p>Anything else – removing a field, changing a type, narrowing an enumeration,
+changing what a field means – requires a new schema version, and both versions
+are then emittable for as long as <code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSIONS</span></code> lists them.</p>
+</section>
+</section>
+<section id="document-structure">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Document structure</a><a class="headerlink" href="#document-structure" title="Link to this heading">¶</a></h2>
+<p>A document is a JSON object. Its keys are:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">meta</span></code></dt><dd><p>Document metadata. Always present. Never a MIB symbol, because <code class="docutils literal notranslate"><span class="pre">meta</span></code> is
+not a legal SMI descriptor.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">imports</span></code></dt><dd><p>The module’s IMPORTS clause. Absent for a module that imports nothing.</p>
+</dd>
+<dt>everything else</dt><dd><p>One key per MIB symbol, keyed by descriptor. Symbols appear in the order the
+module’s symbol table rendered them, which follows declaration order.</p>
+</dd>
+</dl>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"imports"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"class"</span><span class="p">:</span><span class="w"> </span><span class="s2">"imports"</span><span class="p">,</span><span class="w"> </span><span class="nt">"SNMPv2-SMI"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"OBJECT-TYPE"</span><span class="p">,</span><span class="w"> </span><span class="s2">"mib-2"</span><span class="p">]},</span>
+<span class="w">  </span><span class="nt">"ifNumber"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ifNumber"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"oid"</span><span class="p">:</span><span class="w"> </span><span class="s2">"1.3.6.1.2.1.2.1"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"nodetype"</span><span class="p">:</span><span class="w"> </span><span class="s2">"scalar"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"class"</span><span class="p">:</span><span class="w"> </span><span class="s2">"objecttype"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"syntax"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Integer32"</span><span class="p">,</span><span class="w"> </span><span class="nt">"class"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type"</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"maxaccess"</span><span class="p">:</span><span class="w"> </span><span class="s2">"read-only"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"current"</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"meta"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"schema"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<section id="meta">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">meta</a><a class="headerlink" href="#meta" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">schema</span></code></p></td>
+<td><p>integer</p></td>
+<td><p>Required. The version this document follows.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">comments</span></code></p></td>
+<td><p>array</p></td>
+<td><p>Present when the caller passed <code class="docutils literal notranslate"><span class="pre">comments</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">module</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Emitted alongside <code class="docutils literal notranslate"><span class="pre">comments</span></code>, not alone.</p></td>
+</tr>
+</tbody>
+</table>
+<p>pysmi’s own callers pass three comment lines: the ASN.1 source name, a
+<code class="docutils literal notranslate"><span class="pre">Source</span> <span class="pre">digest</span> <span class="pre">sha256:&lt;hex&gt;</span></code> line over the source bytes, and a
+<code class="docutils literal notranslate"><span class="pre">Produced</span> <span class="pre">by</span> <span class="pre">pysmi-&lt;version&gt;</span></code> line.</p>
+<p>The digest covers the <strong>raw ASN.1 bytes</strong>. It answers “is this the same file?”,
+which is not the same question as “is this the same module content?” –
+reindenting a MIB changes it. A hash over normalized model rows is separate work
+(pysnmp/pysmi#180).</p>
+</section>
+<section id="imports">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">imports</a><a class="headerlink" href="#imports" title="Link to this heading">¶</a></h3>
+<p>An object with the fixed key <code class="docutils literal notranslate"><span class="pre">class</span></code> set to <code class="docutils literal notranslate"><span class="pre">&quot;imports&quot;</span></code>, plus one key per
+source module whose value is the list of symbols taken from it.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"class"</span><span class="p">:</span><span class="w"> </span><span class="s2">"imports"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"SNMPv2-SMI"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"Counter32"</span><span class="p">,</span><span class="w"> </span><span class="s2">"MODULE-IDENTITY"</span><span class="p">,</span><span class="w"> </span><span class="s2">"OBJECT-TYPE"</span><span class="p">,</span><span class="w"> </span><span class="s2">"mib-2"</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"SNMPv2-TC"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"DisplayString"</span><span class="p">,</span><span class="w"> </span><span class="s2">"TEXTUAL-CONVENTION"</span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Symbols pysmi repaired are included as though the MIB had imported them. A
+module whose IMPORTS omits a symbol it uses – common in older MIBs – yields a
+document in which the import is present, because that is what the module means
+rather than what it says. The compilation summary reports such a module as
+repaired.</p>
+<p>This section is what makes <code class="docutils literal notranslate"><span class="pre">syntax.type</span></code> resolvable: a type name that is not a
+base type is defined either in this module or in exactly one module named here.</p>
+</section>
+</section>
+<section id="symbols">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Symbols</a><a class="headerlink" href="#symbols" title="Link to this heading">¶</a></h2>
+<p>Every symbol object carries <code class="docutils literal notranslate"><span class="pre">name</span></code> and <code class="docutils literal notranslate"><span class="pre">class</span></code>. <code class="docutils literal notranslate"><span class="pre">class</span></code> selects the rest
+of the shape.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 78.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">class</span></code></p></th>
+<th class="head"><p>Declares</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">objecttype</span></code></p></td>
+<td><p>OBJECT-TYPE: a scalar, a table, a conceptual row, or a column</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">objectidentity</span></code></p></td>
+<td><p>OBJECT-IDENTITY, and plain OID value assignments</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">moduleidentity</span></code></p></td>
+<td><p>MODULE-IDENTITY</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">notificationtype</span></code></p></td>
+<td><p>NOTIFICATION-TYPE, and SMIv1 TRAP-TYPE</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">textualconvention</span></code></p></td>
+<td><p>TEXTUAL-CONVENTION</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">type</span></code></p></td>
+<td><p>A type assignment that is not a TEXTUAL-CONVENTION</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">objectgroup</span></code></p></td>
+<td><p>OBJECT-GROUP</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">notificationgroup</span></code></p></td>
+<td><p>NOTIFICATION-GROUP</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">modulecompliance</span></code></p></td>
+<td><p>MODULE-COMPLIANCE</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">agentcapabilities</span></code></p></td>
+<td><p>AGENT-CAPABILITIES</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">class</span></code> and <code class="docutils literal notranslate"><span class="pre">nodetype</span></code> are independent axes and a consumer needs both.
+<code class="docutils literal notranslate"><span class="pre">class</span></code> says which SMI macro declared the symbol; <code class="docutils literal notranslate"><span class="pre">nodetype</span></code>, which only
+<code class="docutils literal notranslate"><span class="pre">objecttype</span></code> carries, says its role in the conceptual-table structure:
+<code class="docutils literal notranslate"><span class="pre">scalar</span></code>, <code class="docutils literal notranslate"><span class="pre">table</span></code>, <code class="docutils literal notranslate"><span class="pre">row</span></code> or <code class="docutils literal notranslate"><span class="pre">column</span></code>.</p>
+<section id="objecttype">
+<h3><a class="toc-backref" href="#id7" role="doc-backlink">objecttype</a><a class="headerlink" href="#objecttype" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">oid</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required. See <a class="reference internal" href="#jsondoc-oid"><span class="std std-ref">OIDs</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nodetype</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required. <code class="docutils literal notranslate"><span class="pre">scalar</span></code>, <code class="docutils literal notranslate"><span class="pre">table</span></code>, <code class="docutils literal notranslate"><span class="pre">row</span></code>, <code class="docutils literal notranslate"><span class="pre">column</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">class</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required. <code class="docutils literal notranslate"><span class="pre">&quot;objecttype&quot;</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">maxaccess</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required. See <a class="reference internal" href="#jsondoc-maxaccess"><span class="std std-ref">maxaccess</span></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">status</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required. See <a class="reference internal" href="#jsondoc-status"><span class="std std-ref">status</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">syntax</span></code></p></td>
+<td><p>object</p></td>
+<td><p>A <a class="reference internal" href="#jsondoc-typespec"><span class="std std-ref">Type specifications</span></a>. Absent on <code class="docutils literal notranslate"><span class="pre">table</span></code> and
+<code class="docutils literal notranslate"><span class="pre">row</span></code>, which have no SYNTAX of their own.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">units</span></code></p></td>
+<td><p>string</p></td>
+<td><p>UNITS.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>object</p></td>
+<td><p>DEFVAL. See <a class="reference internal" href="#jsondoc-defval"><span class="std std-ref">DEFVAL</span></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">indices</span></code></p></td>
+<td><p>array</p></td>
+<td><p>INDEX, in declaration order. <code class="docutils literal notranslate"><span class="pre">row</span></code> only.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">augmentation</span></code></p></td>
+<td><p>object</p></td>
+<td><p>AUGMENTS. <code class="docutils literal notranslate"><span class="pre">row</span></code> only, exclusive with <code class="docutils literal notranslate"><span class="pre">indices</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated. See <a class="reference internal" href="#jsondoc-texts"><span class="std std-ref">Text generation</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">reference</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="moduleidentity">
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">moduleidentity</a><a class="headerlink" href="#moduleidentity" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">oid</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">class</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required. <code class="docutils literal notranslate"><span class="pre">&quot;moduleidentity&quot;</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lastupdated</span></code></p></td>
+<td><p>string</p></td>
+<td><p>LAST-UPDATED. A timestamp, so it is emitted in
+both modes – see <a class="reference internal" href="#jsondoc-texts"><span class="std std-ref">Text generation</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">organization</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">contactinfo</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">revisions</span></code></p></td>
+<td><p>array</p></td>
+<td><p>REVISION clauses, newest first. Each entry has
+<code class="docutils literal notranslate"><span class="pre">revision</span></code>, and <code class="docutils literal notranslate"><span class="pre">description</span></code> when texts are
+generated.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Revision <em>timestamps</em> are emitted whether or not texts are generated. Revision
+<em>descriptions</em> are text-gated like every other description in the document
+(pysnmp/pysmi#192).</p>
+</section>
+<section id="textualconvention-and-type">
+<h3><a class="toc-backref" href="#id9" role="doc-backlink">textualconvention and type</a><a class="headerlink" href="#textualconvention-and-type" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">class</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">type</span></code></p></td>
+<td><p>object</p></td>
+<td><p>Required. A <a class="reference internal" href="#jsondoc-typespec"><span class="std std-ref">Type specifications</span></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">status</span></code></p></td>
+<td><p>string</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">textualconvention</span></code> only, required.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">displayhint</span></code></p></td>
+<td><p>string</p></td>
+<td><p>DISPLAY-HINT. <code class="docutils literal notranslate"><span class="pre">textualconvention</span></code> only.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated. <code class="docutils literal notranslate"><span class="pre">textualconvention</span></code> only.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">reference</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated. <code class="docutils literal notranslate"><span class="pre">textualconvention</span></code> only.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Neither carries an <code class="docutils literal notranslate"><span class="pre">oid</span></code>: a type declaration names no node in the OID tree.</p>
+</section>
+<section id="objectidentity">
+<h3><a class="toc-backref" href="#id10" role="doc-backlink">objectidentity</a><a class="headerlink" href="#objectidentity" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">oid</span></code> and <code class="docutils literal notranslate"><span class="pre">class</span></code> are required. <code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">description</span></code> and
+<code class="docutils literal notranslate"><span class="pre">reference</span></code> appear when the module declared them – a bare OID value
+assignment such as <code class="docutils literal notranslate"><span class="pre">mib-2</span> <span class="pre">OBJECT</span> <span class="pre">IDENTIFIER</span> <span class="pre">::=</span> <span class="pre">{</span> <span class="pre">mgmt</span> <span class="pre">1</span> <span class="pre">}</span></code> carries none of
+the three, which is why they are optional here and required on OBJECT-TYPE.</p>
+</section>
+<section id="notificationtype-objectgroup-notificationgroup">
+<h3><a class="toc-backref" href="#id11" role="doc-backlink">notificationtype, objectgroup, notificationgroup</a><a class="headerlink" href="#notificationtype-objectgroup-notificationgroup" title="Link to this heading">¶</a></h3>
+<p>All three carry <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">oid</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code>, and an <code class="docutils literal notranslate"><span class="pre">objects</span></code>
+array of <a class="reference internal" href="#jsondoc-symbolref"><span class="std std-ref">Symbol references</span></a>. <code class="docutils literal notranslate"><span class="pre">objects</span></code> is required on the two group
+classes and optional on <code class="docutils literal notranslate"><span class="pre">notificationtype</span></code>, where a notification may carry no
+OBJECTS clause.</p>
+</section>
+<section id="modulecompliance">
+<h3><a class="toc-backref" href="#id12" role="doc-backlink">modulecompliance</a><a class="headerlink" href="#modulecompliance" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">oid</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">class</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">status</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">modulecompliance</span></code></p></td>
+<td><p>array</p></td>
+<td><p>Required. MANDATORY-GROUPS across every MODULE
+clause, flattened to a list of
+<a class="reference internal" href="#jsondoc-symbolref"><span class="std std-ref">Symbol references</span></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">refinements</span></code></p></td>
+<td><p>array</p></td>
+<td><p>GROUP and OBJECT clauses.</p></td>
+</tr>
+</tbody>
+</table>
+<p>A refinement entry carries <code class="docutils literal notranslate"><span class="pre">module</span></code>, <code class="docutils literal notranslate"><span class="pre">object</span></code> and <code class="docutils literal notranslate"><span class="pre">kind</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;group&quot;</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&quot;object&quot;</span></code>), plus any of <code class="docutils literal notranslate"><span class="pre">minaccess</span></code> (MIN-ACCESS), <code class="docutils literal notranslate"><span class="pre">syntax</span></code> (SYNTAX),
+<code class="docutils literal notranslate"><span class="pre">writesyntax</span></code> (WRITE-SYNTAX) and <code class="docutils literal notranslate"><span class="pre">description</span></code>.</p>
+<p>Flattening the MODULE clauses loses which module a MANDATORY-GROUPS entry was
+declared under. Each entry is still attributed to the module defining the group,
+so the information is recoverable; the grouping is not.</p>
+</section>
+<section id="agentcapabilities">
+<h3><a class="toc-backref" href="#id13" role="doc-backlink">agentcapabilities</a><a class="headerlink" href="#agentcapabilities" title="Link to this heading">¶</a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">oid</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">class</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">status</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required. The grammar makes STATUS mandatory.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">productrelease</span></code></p></td>
+<td><p>string</p></td>
+<td><p>PRODUCT-RELEASE. Mandatory in the grammar, but
+omitted here when the MIB declares it empty.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">capabilities</span></code></p></td>
+<td><p>array</p></td>
+<td><p>One entry per SUPPORTS clause, in the order the
+clauses appear. Absent when there are none.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">reference</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Each <code class="docutils literal notranslate"><span class="pre">capabilities</span></code> entry carries <code class="docutils literal notranslate"><span class="pre">module</span></code> – the module the SUPPORTS clause
+names, which is not necessarily one this document defines and not necessarily one
+that was read – plus <code class="docutils literal notranslate"><span class="pre">includes</span></code>, the INCLUDES groups by name, and
+<code class="docutils literal notranslate"><span class="pre">variations</span></code>.</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">variations</span></code> entry describes one VARIATION sub-clause:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">object</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Required, and the only required field.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">syntax</span></code></p></td>
+<td><p>object</p></td>
+<td><p>SYNTAX, as a <a class="reference internal" href="#jsondoc-typespec"><span class="std std-ref">Type specifications</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">writesyntax</span></code></p></td>
+<td><p>object</p></td>
+<td><p>WRITE-SYNTAX, likewise.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">access</span></code></p></td>
+<td><p>string</p></td>
+<td><p>ACCESS. Wider than <code class="docutils literal notranslate"><span class="pre">maxaccess</span></code>: RFC 2580 section
+6.5.2 adds <code class="docutils literal notranslate"><span class="pre">not-implemented</span></code>, which no
+OBJECT-TYPE can declare.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">creationrequires</span></code></p></td>
+<td><p>array</p></td>
+<td><p>CREATION-REQUIRES, by object name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>object</p></td>
+<td><p>DEFVAL, as a <a class="reference internal" href="#jsondoc-defval"><span class="std std-ref">DEFVAL</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+<td><p>string</p></td>
+<td><p>Text-gated.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">object</span></code> alone being required is not an accident of the encoding. RFC 2580
+section 6.5.2 makes DESCRIPTION mandatory on a VARIATION, so a variation that
+records implementation without refining syntax or access carries nothing else –
+and once texts are suppressed, nothing at all beyond the object. The entry is
+still emitted, because which objects a SUPPORTS clause varies is structure. See
+<a class="reference internal" href="#jsondoc-texts"><span class="std std-ref">Text generation</span></a>.</p>
+</section>
+</section>
+<section id="shared-structures">
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">Shared structures</a><a class="headerlink" href="#shared-structures" title="Link to this heading">¶</a></h2>
+<section id="oids">
+<span id="jsondoc-oid"></span><h3><a class="toc-backref" href="#id15" role="doc-backlink">OIDs</a><a class="headerlink" href="#oids" title="Link to this heading">¶</a></h3>
+<p>Dotted decimal, as a string: <code class="docutils literal notranslate"><span class="pre">&quot;1.3.6.1.2.1.2.2.1.1&quot;</span></code>.</p>
+<p>One exception. When pysmi synthesizes a stand-in column for an SMIv1 table whose
+INDEX names a type rather than a column, that column’s <code class="docutils literal notranslate"><span class="pre">oid</span></code> is a template
+containing <code class="docutils literal notranslate"><span class="pre">%s</span></code>, resolved against the row OID once it is known. Such symbols
+are named <code class="docutils literal notranslate"><span class="pre">pysmiFakeCol&lt;n&gt;</span></code> starting at 1000.</p>
+</section>
+<section id="status">
+<span id="jsondoc-status"></span><h3><a class="toc-backref" href="#id16" role="doc-backlink">status</a><a class="headerlink" href="#status" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">current</span></code>, <code class="docutils literal notranslate"><span class="pre">deprecated</span></code>, <code class="docutils literal notranslate"><span class="pre">obsolete</span></code> for SMIv2; <code class="docutils literal notranslate"><span class="pre">mandatory</span></code>, <code class="docutils literal notranslate"><span class="pre">optional</span></code>,
+<code class="docutils literal notranslate"><span class="pre">obsolete</span></code>, <code class="docutils literal notranslate"><span class="pre">deprecated</span></code> for SMIv1. pysmi does not translate between the two
+vocabularies, so a consumer sees the module’s own.</p>
+</section>
+<section id="maxaccess">
+<span id="jsondoc-maxaccess"></span><h3><a class="toc-backref" href="#id17" role="doc-backlink">maxaccess</a><a class="headerlink" href="#maxaccess" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">not-accessible</span></code>, <code class="docutils literal notranslate"><span class="pre">accessible-for-notify</span></code>, <code class="docutils literal notranslate"><span class="pre">read-only</span></code>, <code class="docutils literal notranslate"><span class="pre">read-write</span></code>,
+<code class="docutils literal notranslate"><span class="pre">read-create</span></code>, and <code class="docutils literal notranslate"><span class="pre">write-only</span></code>, which is SMIv1 only.</p>
+</section>
+<section id="type-specifications">
+<span id="jsondoc-typespec"></span><h3><a class="toc-backref" href="#id18" role="doc-backlink">Type specifications</a><a class="headerlink" href="#type-specifications" title="Link to this heading">¶</a></h3>
+<p>The value of <code class="docutils literal notranslate"><span class="pre">syntax</span></code> on an OBJECT-TYPE and of <code class="docutils literal notranslate"><span class="pre">type</span></code> on a
+TEXTUAL-CONVENTION or type assignment.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"INTEGER"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"class"</span><span class="p">:</span><span class="w"> </span><span class="s2">"type"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"constraints"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"enumeration"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"up"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"down"</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="nt">"testing"</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">}}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">type</span></code> is the SMI type name <strong>exactly as the MIB declares it</strong>: a base type, or
+the name of a TEXTUAL-CONVENTION or type assignment resolvable through the
+module’s own declarations or its <code class="docutils literal notranslate"><span class="pre">imports</span></code>. It is never resolved to an
+implementation class. That binding belongs to whatever consumes this model, and
+keeping it out is what makes the document neutral.</p>
+<p><code class="docutils literal notranslate"><span class="pre">constraints</span></code> carries any of:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">range</span></code></dt><dd><p>Array of <code class="docutils literal notranslate"><span class="pre">{&quot;min&quot;:</span> <span class="pre">&lt;int&gt;,</span> <span class="pre">&quot;max&quot;:</span> <span class="pre">&lt;int&gt;}</span></code>, for numeric subtyping. A
+single-value constraint has <code class="docutils literal notranslate"><span class="pre">min</span></code> equal to <code class="docutils literal notranslate"><span class="pre">max</span></code>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">size</span></code></dt><dd><p>Array of the same shape, for OCTET STRING length.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">enumeration</span></code></dt><dd><p>Object mapping label to integer, for INTEGER named values.</p>
+</dd>
+</dl>
+<p><code class="docutils literal notranslate"><span class="pre">bits</span></code>, when present, sits beside <code class="docutils literal notranslate"><span class="pre">constraints</span></code> rather than inside it, and
+maps bit label to bit position.</p>
+</section>
+<section id="defval">
+<span id="jsondoc-defval"></span><h3><a class="toc-backref" href="#id19" role="doc-backlink">DEFVAL</a><a class="headerlink" href="#defval" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">{&quot;format&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;value&quot;:</span> <span class="pre">...}</span></code>, where <code class="docutils literal notranslate"><span class="pre">format</span></code> says how to read <code class="docutils literal notranslate"><span class="pre">value</span></code>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">format</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">decimal</span></code></p></td>
+<td><p>integer</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hex</span></code></p></td>
+<td><p>string of hex digits, no <code class="docutils literal notranslate"><span class="pre">0x</span></code> prefix</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p>string</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">oid</span></code></p></td>
+<td><p>dotted-decimal string</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enum</span></code></p></td>
+<td><p>string, a label from the type’s enumeration</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bits</span></code></p></td>
+<td><p>a type specification carrying <code class="docutils literal notranslate"><span class="pre">bits</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="symbol-references">
+<span id="jsondoc-symbolref"></span><h3><a class="toc-backref" href="#id20" role="doc-backlink">Symbol references</a><a class="headerlink" href="#symbol-references" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">{&quot;module&quot;:</span> <span class="pre">...,</span> <span class="pre">&quot;object&quot;:</span> <span class="pre">...}</span></code>. Used by <code class="docutils literal notranslate"><span class="pre">objects</span></code>, <code class="docutils literal notranslate"><span class="pre">modulecompliance</span></code>,
+<code class="docutils literal notranslate"><span class="pre">refinements</span></code>, <code class="docutils literal notranslate"><span class="pre">indices</span></code> and <code class="docutils literal notranslate"><span class="pre">augmentation</span></code>. Every reference is attributed
+to the module that <em>defines</em> the symbol, not the one referring to it, so a
+consumer resolves cross-module references without re-deriving them from
+<code class="docutils literal notranslate"><span class="pre">imports</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">indices</span></code> entries add <code class="docutils literal notranslate"><span class="pre">implied</span></code>, an integer 0 or 1 rather than a boolean,
+recording whether the element was declared IMPLIED. <code class="docutils literal notranslate"><span class="pre">augmentation</span></code> adds
+<code class="docutils literal notranslate"><span class="pre">name</span></code>, the augmenting row’s own descriptor.</p>
+</section>
+</section>
+<section id="text-generation">
+<span id="jsondoc-texts"></span><h2><a class="toc-backref" href="#id21" role="doc-backlink">Text generation</a><a class="headerlink" href="#text-generation" title="Link to this heading">¶</a></h2>
+<p>Human-readable text is emitted only when the caller asks for it – <code class="docutils literal notranslate"><span class="pre">genTexts</span></code>
+on the API, <code class="docutils literal notranslate"><span class="pre">--generate-mib-texts</span></code> on <code class="docutils literal notranslate"><span class="pre">mibdump</span></code>. Without it these fields are
+absent:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> and <code class="docutils literal notranslate"><span class="pre">reference</span></code>, on every class that can carry them</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">organization</span></code> and <code class="docutils literal notranslate"><span class="pre">contactinfo</span></code> on <code class="docutils literal notranslate"><span class="pre">moduleidentity</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> on a <code class="docutils literal notranslate"><span class="pre">revisions</span></code> entry</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> on a <code class="docutils literal notranslate"><span class="pre">refinements</span></code> entry</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">description</span></code> on a <code class="docutils literal notranslate"><span class="pre">variations</span></code> entry</p></li>
+</ul>
+<p>Descriptions are roughly a third of a generated module’s bytes and many
+consumers discard them, so suppressing them is worth having.</p>
+<p><strong>Suppression removes prose and nothing else.</strong> Everything that is not prose
+survives, including the two fields that look textual and are not:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">lastupdated</span></code></dt><dd><p>A normalized timestamp, and the field date-based source precedence
+compares. Emitted whether or not texts are.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">revisions[].revision</span></code></dt><dd><p>Likewise. A revision entry without texts carries its timestamp and no
+description.</p>
+</dd>
+</dl>
+<p>A MODULE-COMPLIANCE <code class="docutils literal notranslate"><span class="pre">refinements</span></code> entry is emitted whether or not it has a
+description, including a GROUP clause whose only other content is the group it
+names. Which groups a compliance statement refines is structure.</p>
+<p>An AGENT-CAPABILITIES <code class="docutils literal notranslate"><span class="pre">variations</span></code> entry likewise. RFC 2580 section 6.5.2
+makes DESCRIPTION mandatory on a VARIATION, so a variation that records
+implementation without refining syntax or access carries nothing else – and
+which objects a SUPPORTS clause varies is structure, so the entry stays
+(pysnmp/pysmi#198).</p>
+<p>The property is asserted directly rather than described: stripping the prose
+fields from a document generated with texts yields, exactly, the document
+generated without them. <code class="docutils literal notranslate"><span class="pre">tests/test_jsondoc_text_gating.py</span></code> checks that over
+a sample of real modules, and it is what makes the structural hash under
+<a class="reference internal" href="#module-identity">Module identity</a> independent of the mode a document was generated in.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Three defects made this untrue in earlier releases. A no-texts document
+suppressed <code class="docutils literal notranslate"><span class="pre">lastupdated</span></code> with the prose (pysnmp/pysmi#191), emitted
+<code class="docutils literal notranslate"><span class="pre">revisions[].description</span></code> when every other description was suppressed
+(pysnmp/pysmi#192), and dropped MODULE-COMPLIANCE GROUP entries entirely
+rather than emitting them without their description (pysnmp/pysmi#190) –
+so <code class="docutils literal notranslate"><span class="pre">SNMPv2-MIB</span></code>’s <code class="docutils literal notranslate"><span class="pre">snmpBasicCompliance</span></code> lost <code class="docutils literal notranslate"><span class="pre">snmpCommunityGroup</span></code>
+altogether.</p>
+<p>A consumer comparing no-texts documents across that boundary sees the
+structural content change once, in the release carrying those fixes.</p>
+</div>
+</section>
+<section id="module-identity">
+<h2><a class="toc-backref" href="#id22" role="doc-backlink">Module identity</a><a class="headerlink" href="#module-identity" title="Link to this heading">¶</a></h2>
+<p>A module needs an identity answering “is this the same module content?” The
+digest in <code class="docutils literal notranslate"><span class="pre">meta.comments</span></code> answers “is this the same file?”, which is a
+different question: it covers raw ASN.1 bytes, so reindenting a MIB or fixing a
+typo in a comment changes it while changing nothing a consumer of the model can
+observe.</p>
+<p>Both are kept. The source digest establishes provenance of a file; the hashes
+below establish identity of a model.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.codegen.normalized</span><span class="w"> </span><span class="kn">import</span> <span class="n">module_hashes</span>
+
+<span class="n">module_hashes</span><span class="p">(</span><span class="n">document</span><span class="p">)</span>
+<span class="c1"># {'normalization': 1,</span>
+<span class="c1">#  'content':   '614f6b29...',</span>
+<span class="c1">#  'structure': 'f74515e6...'}</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">content</span></code></dt><dd><p>The model including prose. Two documents share it exactly when their models
+are equal. This is a module’s identity.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">structure</span></code></dt><dd><p>The model with prose removed. Two modules differing only in DESCRIPTION text
+share it. The corpus ships descriptions as a separate artifact, so a build
+that carries structure alone has an identity for what it carried.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">normalization</span></code></dt><dd><p>The version of the algorithm below. It travels with the hashes because a
+hash without the algorithm that produced it compares to nothing.</p>
+</dd>
+</dl>
+<section id="canonical-form">
+<h3><a class="toc-backref" href="#id23" role="doc-backlink">Canonical form</a><a class="headerlink" href="#canonical-form" title="Link to this heading">¶</a></h3>
+<p>The hash is SHA-256 over a canonical byte sequence. A non-pysmi implementation
+has to agree on all of this:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">meta</span></code> is excluded. Every other top-level key – <code class="docutils literal notranslate"><span class="pre">imports</span></code> and each
+symbol – is kept. Excluding <code class="docutils literal notranslate"><span class="pre">meta</span></code> is what keeps the hash stable across
+pysmi releases, since it carries the producing version.</p></li>
+<li><p>For the structural form only, these fields are removed wherever they occur,
+at any depth: <code class="docutils literal notranslate"><span class="pre">description</span></code>, <code class="docutils literal notranslate"><span class="pre">reference</span></code>, <code class="docutils literal notranslate"><span class="pre">organization</span></code>,
+<code class="docutils literal notranslate"><span class="pre">contactinfo</span></code>. <code class="docutils literal notranslate"><span class="pre">units</span></code> and <code class="docutils literal notranslate"><span class="pre">displayhint</span></code> are <strong>not</strong> removed – both
+are machine-readable and both change how a value is interpreted.</p></li>
+<li><p>Object keys are sorted by Unicode code point.</p></li>
+<li><p>Arrays keep their order. Order is semantic throughout the model: INDEX
+elements, revisions, ranges and object lists all mean something different
+reordered.</p></li>
+<li><p>Separators are <code class="docutils literal notranslate"><span class="pre">&quot;,&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;:&quot;</span></code>, with no spaces.</p></li>
+<li><p>Non-ASCII characters are emitted as themselves, not escaped.</p></li>
+<li><p>The result is encoded UTF-8 and prefixed with
+<code class="docutils literal notranslate"><span class="pre">pysmi-normalized-v&lt;N&gt;\n</span></code>, where <code class="docutils literal notranslate"><span class="pre">&lt;N&gt;</span></code> is the normalization version.
+The prefix is domain separation and pins the algorithm version into the
+digest.</p></li>
+</ol>
+<p>Bumping the normalization version changes every hash even when no module
+changed. That is deliberate – a consumer comparing across the change must be
+told rather than silently see everything move – and it is a breaking change for
+anyone who pinned a hash.</p>
+</section>
+<section id="properties">
+<h3><a class="toc-backref" href="#id24" role="doc-backlink">Properties</a><a class="headerlink" href="#properties" title="Link to this heading">¶</a></h3>
+<p>Asserted in <code class="docutils literal notranslate"><span class="pre">tests/test_normalized_hash.py</span></code>:</p>
+<ul class="simple">
+<li><p>reindenting a MIB, adding a comment, or converting line endings does not
+change either hash</p></li>
+<li><p>changing a constraint, MAX-ACCESS, STATUS, UNITS, an OID, or a SYNTAX does</p></li>
+<li><p>changing a DESCRIPTION changes <code class="docutils literal notranslate"><span class="pre">content</span></code> and not <code class="docutils literal notranslate"><span class="pre">structure</span></code></p></li>
+<li><p>a module compiled alone and the same module compiled in a batch hash
+identically, which is what makes a slim corpus a filter over a full one
+rather than a rebuild</p></li>
+<li><p>the producing pysmi version does not reach either hash</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">structure</span></code> is equal between a document generated with texts and one
+generated without: prose is the only thing that differs between them. See
+<a class="reference internal" href="#jsondoc-texts"><span class="std std-ref">Text generation</span></a>, which is where that property is established and where the
+three defects that used to break it are recorded.</p>
+</section>
+</section>
+<section id="the-oid-index">
+<h2><a class="toc-backref" href="#id25" role="doc-backlink">The OID index</a><a class="headerlink" href="#the-oid-index" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="pysmi/codegen/jsondoc/jsoncodegen.html#pysmi.codegen.jsondoc.JsonCodeGen.gen_index" title="pysmi.codegen.jsondoc.JsonCodeGen.gen_index"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gen_index()</span></code></a> emits a separate
+document: the OID-to-module reverse index over a set of compiled modules.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"meta"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"schema"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"identity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"1.3.6.1.2.1.31"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"IF-MIB"</span><span class="p">]},</span>
+<span class="w">  </span><span class="nt">"enterprise"</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">  </span><span class="nt">"compliance"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"1.3.6.1.2.1.31.2.2.1"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"IF-MIB"</span><span class="p">]},</span>
+<span class="w">  </span><span class="nt">"notification"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"1.3.6.1.6.3.1.1.5.3"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"IF-MIB"</span><span class="p">]},</span>
+<span class="w">  </span><span class="nt">"oids"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"1.3.6.1.2.1.2"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"IF-MIB"</span><span class="p">]}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>All five sections map a dotted-decimal OID to a <strong>list</strong> of module names, because
+more than one module can claim an OID. The index records that rather than
+choosing, and leaves the precedence decision to the consumer.</p>
+<p><code class="docutils literal notranslate"><span class="pre">oids</span></code> is prefix-compressed: an OID is omitted when a shorter prefix already
+present maps to a module set that is a superset of its own. This keeps the index
+proportional to the number of subtrees rather than the number of nodes.</p>
+<p>Ordering is deterministic. Keys sort numerically when they are all OIDs and
+lexicographically otherwise, and lists are sorted and deduplicated, so two runs
+over the same input produce identical bytes.</p>
+<p>An existing index can be merged into rather than replaced, via
+<code class="docutils literal notranslate"><span class="pre">old_index_data</span></code>. <code class="docutils literal notranslate"><span class="pre">meta.schema</span></code> is rewritten on merge, so a merged index
+carries the version of the run that last wrote it.</p>
+</section>
+<section id="validating-a-document">
+<h2><a class="toc-backref" href="#id26" role="doc-backlink">Validating a document</a><a class="headerlink" href="#validating-a-document" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">jsonschema</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.codegen.schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">schema</span>
+
+<span class="n">document</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+<span class="n">jsonschema</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">document</span><span class="p">,</span> <span class="n">schema</span><span class="p">(</span><span class="s2">"document"</span><span class="p">,</span> <span class="n">document</span><span class="p">[</span><span class="s2">"meta"</span><span class="p">][</span><span class="s2">"schema"</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">tests/test_jsondoc_schema_contract.py</span></code> does this over a module sample chosen
+to reach every class and every awkward construct – AUGMENTS, IMPLIED indices,
+BITS, each constraint kind, each DEFVAL format, compliance refinements, and
+SMIv1 alongside SMIv2 – in both text modes. That test is what keeps this page
+and the emitter from drifting apart.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
