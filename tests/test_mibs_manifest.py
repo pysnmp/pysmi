@@ -14,9 +14,16 @@ only resolves in a checkout would leave every consumer of ``successor_for``
 answering ``None`` in production and passing in CI.
 """
 
+import importlib.resources
+import json
 import unittest
 
+from pysmi import compiler as compiler_module
 from pysmi import mibs
+from pysmi.codegen import JsonCodeGen
+from pysmi.parser import SmiV1CompatParser
+from pysmi.reader import PackageReader
+from pysmi.writer import CallbackWriter
 from scripts import update_bundled_mibs
 
 
@@ -95,6 +102,85 @@ class SupersessionTestCase(unittest.TestCase):
                     self.assertTrue(
                         all(arc.isdigit() for arc in prefix.split(".")),
                         f"{prefix} is not a dotted OID",
+                    )
+
+
+class SupersessionIsNotPerOidTestCase(unittest.TestCase):
+    """The property :py:func:`pysmi.mibs.successors` documents, asserted.
+
+    ``successors_reviewed`` says a later RFC replaced a module. It does not say
+    the successor took over the module's OIDs, and for six of the sixteen
+    recorded relations it did not -- the successor republished the material on
+    a new arc and the superseded module is still the only definition of the old
+    one. A consumer that reads supersession as "demote this module for this
+    OID" gets those six wrong.
+
+    What makes a safe per-OID rule possible is that the split is clean: a
+    successor redefines *all* of its predecessor's OIDs or *none* of them. So
+    "demote only if the successor also claims this OID" is exact rather than a
+    heuristic. If a partial overlap ever appeared, that rule would start
+    silently dropping definitions -- which is what this test is here to catch.
+    """
+
+    #: The ASN.1 the bundle actually carries. ``successors_reviewed`` is
+    #: history and may name a module pysmi does not ship -- RFC1284-MIB records
+    #: RFC1398-MIB, which later RFCs replaced in turn -- so a name is checked
+    #: against the sources before it is compiled, rather than compiled and the
+    #: failure swallowed.
+    BUNDLED = frozenset(
+        path.name
+        for path in importlib.resources.files("pysmi.mibs.asn1").iterdir()
+        if path.is_file()
+    )
+
+    @classmethod
+    def _oids(cls, name, compiler, documents):
+        if name not in cls.BUNDLED:
+            return set()
+
+        if name not in documents:
+            compiler.compile(name, noDeps=True, rebuild=True)
+
+        document = documents.get(name, {})
+
+        return {
+            body["oid"]
+            for symbol, body in document.items()
+            if symbol not in ("meta", "imports")
+            and isinstance(body, dict)
+            and body.get("oid")
+        }
+
+    def testASuccessorCoversAllOfItsPredecessorsOidsOrNoneOfThem(self):
+        documents = {}
+        compiler = compiler_module.MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(
+                lambda mibname, data, cbCtx: documents.__setitem__(
+                    mibname, json.loads(data)
+                )
+            ),
+            useBundledMibs=False,
+        )
+        compiler.add_sources(PackageReader("pysmi.mibs.asn1"))
+
+        for name, entry in sorted(mibs.manifest().items()):
+            for successor in sorted(set(entry.get("successors_reviewed", {}).values())):
+                mine = self._oids(name, compiler, documents)
+                theirs = self._oids(successor, compiler, documents)
+                if not theirs:
+                    continue  # a successor the bundle does not carry
+
+                with self.subTest(module=name, successor=successor):
+                    shared = mine & theirs
+                    self.assertIn(
+                        len(shared),
+                        (0, len(mine)),
+                        f"{successor} redefines {len(shared)} of {name}'s "
+                        f"{len(mine)} OIDs -- supersession is no longer all "
+                        f"or nothing, and a per-OID demotion rule built on it "
+                        f"would drop the rest",
                     )
 
 

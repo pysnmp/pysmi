@@ -38,6 +38,28 @@ def successors(module: str) -> dict[str, str]:
     """The modules that replaced ``module``, keyed by the RFC that did it.
 
     Empty for a module still current, and for one pysmi does not bundle.
+
+    **This is a statement about the module, not about any OID it defines.** A
+    consumer ranking candidates for an OID must not read it as "demote this
+    module here". Half the recorded relations do not survive that reading: of
+    the sixteen in the manifest, nine name a successor that redefines every OID
+    the superseded module did, and six name one that shares no OID with it at
+    all -- the successor republished the material on a new arc, and the
+    superseded module remains the only definition of the old one. Demoting
+    ``VRRP-MIB`` for ``1.3.6.1.2.1.68`` hands that arc to whatever else claims
+    it, because ``VRRPV3-MIB`` does not.
+
+    The split is clean -- a successor covers all of the predecessor's OIDs or
+    none of them, never some -- and ``tests/test_mibs_manifest.py`` holds it
+    that way, so a per-OID consumer has a safe rule available: demote only when
+    the named successor is in the corpus *and* claims the same OID.
+
+    :py:func:`successor_for` is the per-OID form. Where a module was split
+    rather than replaced, its manifest entry carries ``successors_by_oid`` and
+    that function answers from the longest matching prefix.
+
+    One recorded successor, ``RFC1398-MIB``, is not bundled. A caller that
+    resolves the name against the corpus must tolerate a miss.
     """
     entry = manifest().get(module, {})
     reviewed: dict[str, str] = entry.get("successors_reviewed", {})
