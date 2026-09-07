@@ -1119,6 +1119,10 @@
       "rfc": 2580,
       "source": "rfc"
     },
+    "SNMPv2-CONF-v1": {
+      "reason": "SMIC's 1994 SNMPv1 rendering of RFC 1444's conformance macros, which have no SNMPv1 equivalent -- so the module is empty and defines nothing. Bundled because SMIC-converted MIBs name it in their IMPORTS and no publisher ships it under its own name; the mirror carries it only inside SNMPv2-TC-v1, where nothing looking for it by module name can find it.",
+      "source": "local"
+    },
     "SNMPv2-MIB": {
       "rfc": 3418,
       "source": "rfc"
@@ -1127,9 +1131,17 @@
       "rfc": 2578,
       "source": "rfc"
     },
+    "SNMPv2-SMI-v1": {
+      "reason": "SMIC's 1994 SNMPv1 rendering of RFC 1442's SMI, which RFC 1902 and then RFC 2578 obsoleted; no publisher ships it, so this compat module is maintained here.",
+      "source": "local"
+    },
     "SNMPv2-TC": {
       "rfc": 2579,
       "source": "rfc"
+    },
+    "SNMPv2-TC-v1": {
+      "reason": "SMIC's 1994 SNMPv1 rendering of RFC 1443's textual conventions, which RFC 1903 and then RFC 2579 obsoleted; no publisher ships it, so this compat module is maintained here. The mirror serves it concatenated with SNMPv2-CONF-v1, which is bundled as its own file so that each file here holds exactly one module.",
+      "source": "local"
     },
     "SNMPv2-TM": {
       "rfc": 3417,
