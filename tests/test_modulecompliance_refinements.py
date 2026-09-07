@@ -191,14 +191,26 @@ class WithoutTextsTestCase(unittest.TestCase):
         self.doc = render_json(MIB, genTexts=False)
         self.refinements = self.doc["testCompliance"]["refinements"]
 
-    def testAGroupIsDroppedBecauseItsConditionIsAllItHas(self):
-        self.assertEqual([r["kind"] for r in self.refinements], ["object", "object"])
+    def testAGroupSurvivesWithoutItsCondition(self):
+        """The GROUP reference is structure; only its description is prose.
+
+        This used to assert the group was dropped, on the reasoning that a
+        GROUP "says nothing but the condition it applies under". It also says
+        *which group* the compliance statement refines, and that is not prose:
+        dropping it made a no-texts document claim the MIB refines fewer
+        groups than it does. See pysnmp/pysmi#190.
+        """
+        self.assertEqual(
+            [r["kind"] for r in self.refinements], ["group", "object", "object"]
+        )
 
     def testAnObjectSurvivesBecauseItsRefinementIsStructural(self):
-        self.assertEqual(self.refinements[0]["object"], "testObject")
-        self.assertEqual(self.refinements[0]["minaccess"], "read-only")
+        objects = [r for r in self.refinements if r["kind"] == "object"]
+
+        self.assertEqual(objects[0]["object"], "testObject")
+        self.assertEqual(objects[0]["minaccess"], "read-only")
         self.assertEqual(
-            self.refinements[0]["syntax"]["constraints"],
+            objects[0]["syntax"]["constraints"],
             {"range": [{"min": 0, "max": 7}]},
         )
 

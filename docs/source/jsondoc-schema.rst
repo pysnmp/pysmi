@@ -401,31 +401,45 @@ absent:
 
 * ``description`` and ``reference``, on every class that can carry them
 * ``organization`` and ``contactinfo`` on ``moduleidentity``
-* ``lastupdated`` on ``moduleidentity``
+* ``description`` on a ``revisions`` entry
 * ``description`` on a ``refinements`` entry
 
 Descriptions are roughly a third of a generated module's bytes and many
-consumers discard them, so suppressing them is worth having. Three consequences
-of *how* it is currently done are worth stating plainly, because a consumer will
-otherwise meet them as surprises:
+consumers discard them, so suppressing them is worth having.
 
-**LAST-UPDATED is suppressed with the prose.** It is a timestamp, not text, and
-it is what date-based module precedence compares. A consumer that needs it must
-generate texts (pysnmp/pysmi#191).
+**Suppression removes prose and nothing else.** Everything that is not prose
+survives, including the two fields that look textual and are not:
 
-**Revision descriptions are not suppressed**, though every other description is
-(pysnmp/pysmi#192).
+``lastupdated``
+    A normalized timestamp, and the field date-based source precedence
+    compares. Emitted whether or not texts are.
 
-**Refinement entries can disappear entirely.** A MODULE-COMPLIANCE GROUP clause
-whose only payload is a DESCRIPTION is omitted from ``refinements`` altogether
-without texts, rather than appearing without its description. The compliance
-statement then references fewer groups than the MIB declares -- in ``SNMPv2-MIB``
-``snmpBasicCompliance`` loses ``snmpCommunityGroup`` entirely. This is a
-semantic difference between the two modes, not a presentational one
-(pysnmp/pysmi#190).
+``revisions[].revision``
+    Likewise. A revision entry without texts carries its timestamp and no
+    description.
 
-Until those are resolved, a consumer that needs the model rather than a
-rendering should generate texts and discard what it does not want.
+A MODULE-COMPLIANCE ``refinements`` entry is emitted whether or not it has a
+description, including a GROUP clause whose only other content is the group it
+names. Which groups a compliance statement refines is structure.
+
+The property is asserted directly rather than described: stripping the prose
+fields from a document generated with texts yields, exactly, the document
+generated without them. ``tests/test_jsondoc_text_gating.py`` checks that over
+a sample of real modules, and it is what makes the structural hash under
+`Module identity`_ independent of the mode a document was generated in.
+
+.. note::
+
+   Three defects made this untrue in earlier releases. A no-texts document
+   suppressed ``lastupdated`` with the prose (pysnmp/pysmi#191), emitted
+   ``revisions[].description`` when every other description was suppressed
+   (pysnmp/pysmi#192), and dropped MODULE-COMPLIANCE GROUP entries entirely
+   rather than emitting them without their description (pysnmp/pysmi#190) --
+   so ``SNMPv2-MIB``'s ``snmpBasicCompliance`` lost ``snmpCommunityGroup``
+   altogether.
+
+   A consumer comparing no-texts documents across that boundary sees the
+   structural content change once, in the release carrying those fixes.
 
 
 Module identity
@@ -505,19 +519,10 @@ Asserted in ``tests/test_normalized_hash.py``:
   rather than a rebuild
 * the producing pysmi version does not reach either hash
 
-.. warning::
-
-   ``structure`` is **defined** to be equal between a document generated with
-   texts and one generated without -- prose is the only thing that should differ
-   -- and it currently is not. A no-texts document is structurally lossy rather
-   than merely prose-free: MODULE-COMPLIANCE refinement entries are dropped
-   rather than stripped (pysnmp/pysmi#190), and ``lastupdated`` is suppressed
-   with the prose despite being a timestamp (pysnmp/pysmi#191).
-
-   Until both are fixed, compute hashes from a document generated **with** texts
-   and discard what you do not need. The test suite asserts the current
-   inequality deliberately, so fixing either defect fails a test rather than
-   silently changing hashes.
+``structure`` is equal between a document generated with texts and one
+generated without: prose is the only thing that differs between them. See
+:ref:`jsondoc-texts`, which is where that property is established and where the
+three defects that used to break it are recorded.
 
 
 The OID index
