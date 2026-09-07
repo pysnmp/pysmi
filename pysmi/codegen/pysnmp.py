@@ -219,6 +219,7 @@ for _%(name)s_obj in [%(objects)s]:
         self._out: dict[str, Any] = {}  # k, v = name, generated code
         self._moduleIdentityOid: str | None = None
         self._moduleRevision: str | None = None
+        self._moduleLastUpdated: str | None = None
         self.moduleName: list[str] = ["DUMMY"]
         self.genRules: dict[str, Any] = {"text": True}
         self.symbolTable: dict[str, Any] = {}
@@ -1863,6 +1864,11 @@ for _{name}_obj in [{objects}]:
     def gen_last_updated(self, data: TextClause, classmode: bool = False) -> str:
         """Render a LAST-UPDATED clause.
 
+        The raw timestamp is kept as well as rendered. It is the value
+        ``compiler.revision_of`` reads out of the ASN.1 to choose between two
+        copies of a module, so it is what ``PYSNMP_MODULE_REVISION`` has to
+        carry for a loader to reach the same answer.
+
         Args:
             data: rendered clause values
             classmode: unused
@@ -1870,6 +1876,8 @@ for _{name}_obj in [{objects}]:
         Returns:
             A ``setLastUpdated()`` call.
         """
+        self._moduleLastUpdated = normalise_revision(data[0])
+
         return (
             ".setLastUpdated("
             + dorepr(format_ext_utc_time(data[0], self.moduleName[0]))
@@ -2132,6 +2140,7 @@ for _{name}_obj in [{objects}]:
         # MODULE-IDENTITY inherited the previous module's revision -- into its
         # MibInfo, and now into the constant emitted below.
         self._moduleRevision = None
+        self._moduleLastUpdated = None
         self.moduleName[0], moduleOid, imports, declarations = ast
 
         out, importedModules = self.gen_imports(
@@ -2156,7 +2165,7 @@ for _{name}_obj in [{objects}]:
         # Annotated, because the reset above narrows the attribute to None for
         # the rest of this function: mypy does not see the clause handlers
         # assign it in between.
-        revision: str | None = self._moduleRevision
+        revision: str | None = self._moduleLastUpdated
 
         if revision:
             # The module's newest MODULE-IDENTITY revision, as a module-level
