@@ -16,8 +16,8 @@ fails.
 import copy
 import logging
 import re
-from collections import OrderedDict
 from functools import cache
+from hashlib import sha256
 from importlib import resources
 from typing import Any, Final
 
@@ -26,6 +26,8 @@ from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.borrower.base import AbstractBorrower
+from pysmi.cache.base import AbstractParseCache
+from pysmi.cache.memory import InMemoryParseCache
 from pysmi.codegen.base import REPAIRED_IMPORTS_KEY, AbstractCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.mibinfo import (
@@ -219,7 +221,7 @@ class MibCompiler:
         writer: "AbstractWriter",
         useBundledMibs: bool = True,
         preferConfiguredSources: bool = False,
-        parseCacheSize: int = 256,
+        parseCache: "AbstractParseCache | None" = None,
     ) -> None:
         """Creates an instance of *MibCompiler* class.
 
@@ -249,14 +251,20 @@ class MibCompiler:
                 (``SNMPv2-SMI`` and the other SMI modules among them), so
                 for those this is the difference between the caller's copy
                 being used and the bundled one.
-            parseCacheSize: how many parse trees to keep between
-                :py:meth:`compile` calls. A driver compiling many source sets
-                on one compiler -- see :py:meth:`set_sources` -- parses the
-                standard tree once instead of once per set. Entries are keyed
-                by source digest and evicted least-recently-used, so the
-                shared modules stay resident and the per-namespace ones do
-                not accumulate. A tree runs to tens of kilobytes, so the
-                default costs single-digit megabytes. Set to 0 to disable.
+            parseCache: where to keep parse trees between :py:meth:`compile`
+                calls, as an :py:class:`~pysmi.cache.base.AbstractParseCache`.
+                A driver compiling many source sets on one compiler -- see
+                :py:meth:`set_sources` -- then parses the standard tree once
+                instead of once per set. Defaults to
+                :py:class:`~pysmi.cache.memory.InMemoryParseCache`;
+                :py:class:`~pysmi.cache.file.FileParseCache` survives process
+                exit, for a build that is a shell loop rather than one
+                process; :py:class:`~pysmi.cache.null.NullParseCache` turns
+                caching off. A provider is used as passed and never resolved
+                by name or from configuration, so the trust boundary is the
+                caller's own code -- which matters, because a provider that
+                stores trees outside this process reconstructs arbitrary
+                Python objects when it reads them back.
         """
         self._parser = parser
         self._codegen = codegen
@@ -268,11 +276,17 @@ class MibCompiler:
         self._borrowers: list[AbstractBorrower] = []
 
         self._preferConfiguredSources = preferConfiguredSources
-        #: Parse trees already built in this compiler's lifetime, keyed by the
-        #: digest of the text they came from and bounded to
-        #: ``parseCacheSize`` entries, least-recently-used evicted first.
-        self._parsedSources: OrderedDict[str, list[Any]] = OrderedDict()
-        self._parseCacheSize = parseCacheSize
+        #: Where parse trees are kept between :py:meth:`compile` calls.
+        self._parseCache: AbstractParseCache = (
+            InMemoryParseCache() if parseCache is None else parseCache
+        )
+        #: Identifies what would do the parsing, so a cached tree is never
+        #: offered to a different producer. Only a cache outliving this
+        #: process can encounter that, and one of those is exactly what
+        #: :py:class:`~pysmi.cache.file.FileParseCache` is.
+        self._parserId = (
+            f"{packageVersion}/{type(parser).__module__}.{type(parser).__qualname__}"
+        )
         #: The reader serving the bundled copies, kept so that precedence can
         #: name it apart from anything the caller added. ``None`` when
         #: ``useBundledMibs`` was not asked for.
@@ -358,48 +372,53 @@ class MibCompiler:
         return self
 
     def clear_parse_cache(self) -> "MibCompiler":
-        """Drop every parse tree held between :py:meth:`compile` calls.
+        """Drop every parse tree the configured cache holds.
 
-        Not needed for correctness -- the cache is content-addressed, so an
-        entry is only ever reused for the identical text. It is here for a
-        driver that wants the memory back at a known point.
+        Never needed for correctness -- a key is derived from the text and its
+        producer, so an entry is only ever reused for identical input. It is
+        here for a caller that wants the space back at a known point.
 
         Returns:
             reference to itself (can be used for call chaining)
 
         """
-        self._parsedSources.clear()
+        self._parseCache.clear()
 
         return self
 
-    def _parse_source(self, digest: str, data: str) -> list[Any]:
-        """The parse trees for *data*, reusing the ones already built for it.
+    def _parse_cache_key(self, digest: str) -> str:
+        """The cache key for text with the given digest.
 
-        Keyed on the digest of the text rather than on the module name, which
-        is what makes reuse safe across a :py:meth:`set_sources` swap: two
-        namespaces carrying different modules under one name hash differently
-        and cannot be served each other's tree.
+        The digest alone would be enough within one process, and is what makes
+        reuse safe across a :py:meth:`set_sources` swap: two namespaces
+        carrying different modules under one name are different text and so a
+        different key.
+
+        The producer is folded in for the caches that outlive a process. A
+        parse tree is this parser's output at this pysmi version, not a
+        versioned interchange format, so an entry written by a different
+        release must not be readable by this one. Putting that in the key means
+        a provider never has to reason about invalidation, and cannot get it
+        wrong.
+        """
+        return sha256(f"{self._parserId}\n{digest}".encode()).hexdigest()
+
+    def _parse_source(self, digest: str, data: str) -> list[Any]:
+        """The parse trees for *data*, reusing any the cache already holds.
 
         A copy is handed out rather than the cached tree itself. Neither the
         symbol generator nor the shipped code generators write to the tree they
         are given, but a copy costs about a tenth of a parse, and that is
         cheaper than depending on every present and future generator leaving it
-        alone.
+        alone. It also means an in-process cache can hand back its own object
+        without a provider having to know why that would otherwise be unsafe.
         """
-        if not self._parseCacheSize:
-            return list(self._parser.parse(data))
-
-        cached = self._parsedSources.get(digest)
+        key = self._parse_cache_key(digest)
+        cached = self._parseCache.get(key)
 
         if cached is None:
             cached = list(self._parser.parse(data))
-            self._parsedSources[digest] = cached
-
-            while len(self._parsedSources) > self._parseCacheSize:
-                self._parsedSources.popitem(last=False)
-
-        else:
-            self._parsedSources.move_to_end(digest)
+            self._parseCache.set(key, cached)
 
         return copy.deepcopy(cached)
 

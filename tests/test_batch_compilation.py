@@ -20,10 +20,20 @@ previous namespace's copy of a name.
 
 import hashlib
 import json
+import os
+import pickle
+import shutil
+import tempfile
 import textwrap
 import unittest
 
 from pysmi import error
+from pysmi.cache import (
+    AbstractParseCache,
+    FileParseCache,
+    InMemoryParseCache,
+    NullParseCache,
+)
 from pysmi.codegen import JsonCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
@@ -285,3 +295,234 @@ class TheSharedTreeIsParsedOncePerBuildTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ParseCacheProvidersTestCase(unittest.TestCase):
+    """The cache is a component, not a fixed behaviour of the compiler."""
+
+    def setUp(self):
+        self.modules = {"PROVIDER-MIB": module("PROVIDER-MIB", 4001, "provider")}
+
+    def _compiler(self, **kwargs):
+        compiler = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *args, **kwargs: None),
+            **kwargs,
+        )
+        compiler.add_sources(reader(self.modules))
+
+        return compiler
+
+    def testTheDefaultProviderIsInMemory(self):
+        self.assertIsInstance(self._compiler()._parseCache, InMemoryParseCache)
+
+    def testTheNullProviderParsesEveryTime(self):
+        compiler = self._compiler(parseCache=NullParseCache())
+
+        with ParseCounter() as counter:
+            compiler.compile(*self.modules, rebuild=True)
+            compiler.compile(*self.modules, rebuild=True)
+
+        self.assertEqual(counter.redundant, counter.distinct)
+
+    def testACustomProviderIsAskedAndFilled(self):
+        """A provider written outside pysmi works with no registration step."""
+
+        class Recording(AbstractParseCache):
+            def __init__(self):
+                self.gets = []
+                self.sets = []
+                self.entries = {}
+
+            def get(self, key):
+                self.gets.append(key)
+                return self.entries.get(key)
+
+            def set(self, key, trees):
+                self.sets.append(key)
+                self.entries[key] = trees
+
+            def clear(self):
+                self.entries.clear()
+
+        recording = Recording()
+        compiler = self._compiler(parseCache=recording)
+        compiler.compile(*self.modules, rebuild=True)
+
+        self.assertTrue(recording.gets)
+        self.assertEqual(sorted(set(recording.sets)), sorted(recording.entries))
+
+    def testAProviderThatAlwaysMissesStillCompiles(self):
+        """A cache is an optimisation; failing to cache is not a failure."""
+
+        class AlwaysMisses(AbstractParseCache):
+            def get(self, key):
+                return None
+
+            def set(self, key, trees):
+                pass
+
+            def clear(self):
+                pass
+
+        compiler = self._compiler(parseCache=AlwaysMisses())
+        processed = compiler.compile(*self.modules, rebuild=True)
+
+        self.assertEqual(processed["PROVIDER-MIB"], "compiled")
+
+    def testClearParseCacheReachesTheProvider(self):
+        cache = InMemoryParseCache()
+        compiler = self._compiler(parseCache=cache)
+        compiler.compile(*self.modules, rebuild=True)
+
+        self.assertTrue(cache._entries)
+
+        compiler.clear_parse_cache()
+
+        self.assertFalse(cache._entries)
+
+
+class BoundedInMemoryCacheTestCase(unittest.TestCase):
+    """Least-recently-used eviction, so a long build does not accumulate."""
+
+    def testTheBoundIsHonoured(self):
+        cache = InMemoryParseCache(maxEntries=2)
+        cache.set("a", ["A"])
+        cache.set("b", ["B"])
+        cache.set("c", ["C"])
+
+        self.assertIsNone(cache.get("a"))
+        self.assertEqual(cache.get("b"), ["B"])
+        self.assertEqual(cache.get("c"), ["C"])
+
+    def testReadingAnEntryKeepsIt(self):
+        """What the shared standard tree relies on: it is read every namespace."""
+        cache = InMemoryParseCache(maxEntries=2)
+        cache.set("shared", ["S"])
+        cache.set("first", ["1"])
+
+        cache.get("shared")
+        cache.set("second", ["2"])
+
+        self.assertEqual(cache.get("shared"), ["S"])
+        self.assertIsNone(cache.get("first"))
+
+    def testZeroMeansUnbounded(self):
+        cache = InMemoryParseCache(maxEntries=0)
+        for n in range(50):
+            cache.set(str(n), [n])
+
+        self.assertEqual(cache.get("0"), [0])
+
+
+class FileParseCacheTestCase(unittest.TestCase):
+    """The provider for a build that spans processes."""
+
+    def setUp(self):
+        self.directory = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.directory, ignore_errors=True)
+        self.modules = {"ON-DISK-MIB": module("ON-DISK-MIB", 5001, "disk")}
+
+    def _compile(self, cache):
+        documents = {}
+        compiler = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(
+                lambda mibname, data, cbCtx: documents.__setitem__(mibname, data)
+            ),
+            parseCache=cache,
+        )
+        compiler.add_sources(reader(self.modules))
+        compiler.compile(*self.modules, rebuild=True)
+
+        return documents
+
+    def testASecondCompilerReusesTheFirstsTrees(self):
+        """The point of it: a fresh process, an already-warm cache."""
+        first = self._compile(FileParseCache(self.directory))
+
+        with ParseCounter() as counter:
+            second = self._compile(FileParseCache(self.directory))
+
+        self.assertEqual(
+            counter.total, 0, "a fresh compiler still parsed with a warm cache"
+        )
+        self.assertEqual(
+            json.loads(first["ON-DISK-MIB"]), json.loads(second["ON-DISK-MIB"])
+        )
+
+    def testACorruptEntryIsAMissNotAFailure(self):
+        self._compile(FileParseCache(self.directory))
+
+        for name in os.listdir(self.directory):
+            with open(os.path.join(self.directory, name), "wb") as fd:
+                fd.write(b"not a pickle")
+
+        documents = self._compile(FileParseCache(self.directory))
+
+        self.assertIn("ON-DISK-MIB", documents)
+
+    def testAnEntryOfTheWrongShapeIsIgnored(self):
+        """Written by something else, or by a version whose trees differed."""
+        cache = FileParseCache(self.directory)
+        cache.set("k", [1, 2])
+
+        with open(cache._entry("k"), "wb") as fd:
+            pickle.dump({"not": "a list"}, fd)
+
+        self.assertIsNone(cache.get("k"))
+
+    def testClearRemovesOnlyItsOwnEntries(self):
+        cache = FileParseCache(self.directory)
+        cache.set("k", [1])
+        keep = os.path.join(self.directory, "README")
+        with open(keep, "w") as fd:
+            fd.write("not ours")
+
+        cache.clear()
+
+        self.assertIsNone(cache.get("k"))
+        self.assertTrue(os.path.exists(keep))
+
+
+class TheCacheKeyCarriesItsProducerTestCase(unittest.TestCase):
+    """A persisted tree must not outlive the parser that made it.
+
+    A parse tree is one parser's output at one pysmi version, not a versioned
+    interchange format. Within a process that can never bite; a cache on disk
+    outlives the release that filled it, so the producer goes in the key.
+    """
+
+    def _key(self, **kwargs):
+        compiler = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *args, **kwargs: None),
+            **kwargs,
+        )
+        return compiler, compiler._parse_cache_key("some-digest")
+
+    def testTheKeyIsNotTheBareDigest(self):
+        _, key = self._key()
+
+        self.assertNotEqual(key, "some-digest")
+
+    def testADifferentPysmiVersionKeysDifferently(self):
+        compiler, before = self._key()
+        compiler._parserId = compiler._parserId.replace("2.", "99.")
+
+        self.assertNotEqual(before, compiler._parse_cache_key("some-digest"))
+
+    def testADifferentParserKeysDifferently(self):
+        compiler, before = self._key()
+        compiler._parserId = "same-version/other.OtherParser"
+
+        self.assertNotEqual(before, compiler._parse_cache_key("some-digest"))
+
+    def testTheSameProducerAndTextAgree(self):
+        _, first = self._key()
+        _, second = self._key()
+
+        self.assertEqual(first, second)

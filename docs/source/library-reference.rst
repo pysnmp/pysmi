@@ -91,6 +91,30 @@ possible changes to MIB file name.
    /pysmi/reader/callback/callbackreader
    /pysmi/reader/package/packagereader
 
+Parse caches
+------------
+
+Parsing ASN.1 is the expensive part of a compile, and a build over many source
+sets presents the same standard modules again for every set. A *parse cache*
+holds the trees so that text is parsed once per build rather than once per set;
+see :ref:`Compiling many source sets <compiler.batch>` for the pattern.
+
+The provider is a component like any other: pass one to
+:py:class:`~pysmi.compiler.MibCompiler`, or write your own against
+:py:class:`~pysmi.cache.base.AbstractParseCache`. The compiler uses the object
+it is handed and never resolves a provider by name, from an entry point or from
+configuration, so the trust boundary is your own code -- which matters, because
+a provider that stores trees outside the process reconstructs arbitrary Python
+objects when it reads them back.
+
+.. toctree::
+   :maxdepth: 2
+
+   /pysmi/cache/abstractparsecache
+   /pysmi/cache/inmemoryparsecache
+   /pysmi/cache/fileparsecache
+   /pysmi/cache/nullparsecache
+
 Conditional compilation
 -----------------------
 
