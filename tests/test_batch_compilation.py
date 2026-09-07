@@ -735,18 +735,23 @@ class TheCacheKeyCarriesItsProducerTestCase(unittest.TestCase):
             SmiV2Parser().parse(trailing_comma)
 
     def testTheStartSymbolIsPartOfTheIdentity(self):
-        """It selects a grammar as surely as a relaxation does."""
+        """It selects a grammar as surely as a relaxation does.
+
+        Two real parsers, differing only in where they start: `mibFile` reads a
+        file of modules, `module` reads one. Nothing is mutated, so the
+        assertion fails if `_parserId` ever stops carrying the start symbol --
+        which is the whole point of having it.
+        """
         default = MibCompiler(
             SmiV1CompatParser(),
             JsonCodeGen(),
             CallbackWriter(lambda *args, **kwargs: None),
         )
         other = MibCompiler(
-            SmiV1CompatParser(startSym="mibFile"),
+            SmiV1CompatParser(startSym="module"),
             JsonCodeGen(),
             CallbackWriter(lambda *args, **kwargs: None),
         )
-        other._parserId = other._parserId.rsplit("/", 1)[0] + "/somethingElse"
 
         self.assertNotEqual(default._parse_cache_key("d"), other._parse_cache_key("d"))
 
