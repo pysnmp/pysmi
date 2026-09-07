@@ -5,18 +5,16 @@ MIBs as data: layering review
 
 .. note::
 
-   Status: **proposal**. This reviews the plan recorded in pysnmp/pysnmp#148
-   and its child issues, and proposes a different placement for one thing in
-   it -- the schema. Nothing here is implemented. It is written down in pysmi
-   because pysmi is the repository the proposal gives the schema to, and
-   because a contract four repositories build against should be published by
-   the one that produces it.
+   Status: **proposal**. Nothing described here is implemented. This page
+   reviews the plan recorded in pysnmp/pysnmp#148 and its child issues and
+   proposes a different placement for one element of it, the schema. It is
+   recorded in pysmi because pysmi is the repository the proposal assigns the
+   schema to.
 
 The effort under review replaces compiled-``.py`` MIB distribution with a
-queryable corpus, so that OID-to-name translation stops requiring every module
-to be preloaded. That goal is not in question here, and neither is most of the
-plan. What is in question is a single ownership decision, and the argument
-that produced it.
+queryable corpus, so that OID-to-name translation no longer requires every
+module to be preloaded. That objective is not in question, and neither is the
+majority of the plan. One ownership decision is.
 
 .. contents::
    :local:
@@ -27,7 +25,7 @@ The decision under review
 -------------------------
 
 pysnmp/pysnmp#147 places the corpus schema, the corpus writer, the corpus
-reader and ``.py`` code generation in pysnmp, and gives the reason:
+reader and ``.py`` code generation in pysnmp. Its stated reason:
 
     Whoever owns the schema must own both sides of it.
 
@@ -37,34 +35,35 @@ and, in the same issue:
     which is the actual inversion. pysmi should emit neutral IR; pysnmp
     should turn IR into pysnmp-shaped artifacts.
 
-The second observation is correct. The first does not follow from it. The
-inversion in pysmi is that pysmi knows what a ``mibBuilder`` is; the remedy
-for that is to remove pysnmp's shape from pysmi, not to move pysmi's shape
-into pysnmp. The plan does both, and the second move is the one that costs.
+The second statement is accurate. The conclusion drawn from it does not follow.
+The coupling identified in pysmi is that pysmi encodes pysnmp's loader
+interface. Removing that coupling requires pysnmp to define its loader
+interface. It does not require pysmi's data model to move to pysnmp, which is a
+separate transfer in the opposite direction.
 
 
 Three schemas, not one
 ----------------------
 
-The word *schema* is doing three jobs in the current plan, and the ownership
-argument is only valid for one of them.
+The term *schema* denotes three distinct artifacts in the current plan. The
+ownership argument applies to one of them.
 
 .. list-table::
    :header-rows: 1
    :widths: 14 44 20
 
    * - Layer
-     - What it fixes
+     - Definition
      - Derived from
    * - **SMI model**
-     - What a MIB module *means*: node classes, node types, syntax, subtype
+     - The meaning of a MIB module: node classes, node types, syntax, subtype
        constraints, INDEX/AUGMENTS/IMPLIED, TEXTUAL-CONVENTIONs, DISPLAY-HINT,
-       MAX-ACCESS, STATUS, UNITS, DEFVAL, revisions, per-symbol IMPORTS
+       MAX-ACCESS, STATUS, UNITS, DEFVAL, revision history, per-symbol IMPORTS
        attribution.
      - RFC 2578-2580
    * - **Corpus serialization**
-     - How that model is laid out for lookup: table layout, the sortable OID
-       key, indexes, the core/text split, the manifest, publish state.
+     - The layout of that model for lookup: table structure, sortable OID key,
+       indexes, core/text split, manifest, publish state.
      - the model above, plus
        SQLite
    * - **Runtime object shape**
@@ -73,161 +72,175 @@ argument is only valid for one of them.
        behaviour, the override table, ``loadTexts``.
      - pysnmp
 
-"Whoever owns the schema must own both sides of it" is true of layer 3 and
-only layer 3. Layer 1 is standards-derived and has consumers that will never
-import pysnmp. Layer 2 is a file format; its two sides are a writer and
-``sqlite3``, which is in the standard library.
+The premise "whoever owns the schema must own both sides of it" holds for layer
+3. Layer 1 is derived from the SMI standards and has consumers that do not
+depend on pysnmp.
 
-Putting layer 1 in pysnmp means that anything wanting to know what a MIB row
-means -- ``mibdump --destination-format=json`` users, splunk-connect-for-snmp,
-libsmi-adjacent tooling, any future non-pysnmp reader -- depends on an SNMP
-protocol engine to find out. That is a larger inversion than the one being
-fixed, and it is pointed the same way.
+Layer 2 has two sides, and they are not the writer and SQLite. They are pysmi's
+**writer** and pysnmp's **reader**, which must agree on application-level
+semantics: the manifest, the schema version, the OID key encoding and the
+publish state. Compatibility and validation belong to that boundary, and this
+proposal assigns them there.
+
+Co-location of the two sides in one repository is a separate question.
+``sqlite3`` is in the standard library, so the reader requires the format
+rather than the producer. The agreement is therefore expressible as a published
+specification plus a conformance fixture executed by the reader's own CI.
+
+Placing layer 1 in pysnmp requires any component that interprets a MIB row to
+depend on an SNMP protocol engine. Current consumers in that category include
+``mibdump --destination-format=json`` users and splunk-connect-for-snmp.
 
 
 pysmi already defines layer 1
 -----------------------------
 
-This is not a proposal to give pysmi a new responsibility. It is a proposal to
-name one it already has and stopped noticing.
+The proposal does not assign pysmi a new responsibility. It names one that
+already exists and is undocumented as a contract.
 
-**The jsondoc schema is versioned and negotiable.** ``JsonCodeGen`` carries
-``SCHEMA_VERSIONS`` and ``SCHEMA_VERSION``, accepts ``schemaVersion=`` on both
-``gen_code()`` and ``gen_index()``, refuses a version it cannot emit, and
-stamps what it emitted into ``meta.schema`` of every document and index. The
-docstring already states the intent: *"A consumer that has to keep working
-across pysmi releases asks for the one it understands and is told, rather than
-left to infer the shape from the document."* That is a published contract with
-a compatibility gate, which is exactly what pysnmp/pysnmp#141 sets out to
-create.
+**The jsondoc schema is versioned and negotiable.** ``JsonCodeGen`` defines
+``SCHEMA_VERSIONS`` and ``SCHEMA_VERSION``, accepts ``schemaVersion=`` on
+``gen_code()`` and ``gen_index()``, raises ``PySmiCodegenError`` for an
+unsupported version, and records the emitted version in ``meta.schema`` of every
+document and index. ``tests/test_jsondoc_schema_version.py`` covers this
+behaviour. The class docstring states the intent:
 
-**The model is complete.** Compiling ``IF-MIB``, ``ENTITY-MIB``,
-``SNMPv2-MIB`` and ``DISMAN-EVENT-MIB`` to both back ends at pysmi 2.3.0 gives
-symbol parity -- 94, 73, 70 and 122 nodes respectively in the JSON, matching
-each module's ``exportSymbols`` call. Across that sample the JSON carries every
-field pysnmp/pysnmp#142 was filed to go looking for:
+    A consumer that has to keep working across pysmi releases asks for the one
+    it understands and is told, rather than left to infer the shape from the
+    document.
+
+This is a versioned contract with a compatibility gate, which is what
+pysnmp/pysnmp#141 proposes to create.
+
+**The model is complete.** ``IF-MIB``, ``ENTITY-MIB``, ``SNMPv2-MIB`` and
+``DISMAN-EVENT-MIB`` compiled with both back ends at pysmi 2.3.0 produce equal
+node counts -- 94, 73, 70 and 122 respectively, matching each module's
+``exportSymbols`` call. Across that sample the JSON carries every field
+enumerated in pysnmp/pysnmp#142:
 
 * ``class`` -- ``objecttype``, ``objectidentity``, ``moduleidentity``,
   ``notificationtype``, ``textualconvention``, ``type``, ``objectgroup``,
   ``notificationgroup``, ``modulecompliance``, ``imports``
 * ``nodetype`` -- ``scalar``, ``column``, ``row``, ``table``
-* ``syntax`` with ``constraints`` -- ``range``, ``size``, ``enumeration`` --
-  and ``bits``
+* ``syntax`` with ``constraints`` (``range``, ``size``, ``enumeration``) and
+  ``bits``
 * ``displayhint``, ``units``, ``default`` (DEFVAL), ``maxaccess``, ``status``,
   ``reference``, ``refinements``
 * ``indices`` as ``{module, object, implied}``, and ``augmentation``
 * ``objects`` as ``{module, object}`` for NOTIFICATION-TYPE
 * ``revisions``, ``lastupdated``, ``organization``, ``contactinfo``
-* ``imports`` as module-to-symbol-list, so every imported symbol is
-  attributable to its source module
+* ``imports`` as a module-to-symbol-list mapping, attributing each imported
+  symbol to its source module
 
-The ``class`` / ``nodetype`` split that the pysnmp/pysnmp#141 measurement
-comment identifies as necessary -- *"The schema needs both -- they are not the
-same axis"* -- is a jsondoc distinction being rediscovered downstream.
+``class`` and ``nodetype`` are independent axes and both are required. The
+pysnmp/pysnmp#141 measurement comment reaches the same conclusion
+independently.
 
-**Provenance is already emitted.** ``meta.comments`` carries a
-``sha256`` digest of the ASN.1 source and the producing pysmi version. The
-builder in pysnmp/pysnmp#147 proposes to invent both.
+**Provenance is emitted.** ``meta.comments`` carries a ``sha256`` digest of the
+ASN.1 source and the producing pysmi version. pysnmp/pysnmp#147 proposes to
+introduce both in the builder.
 
-**The reverse index already exists.** ``JsonCodeGen.gen_index()`` produces the
-OID-to-module index that pysnmp/pysnmp#148 describes as missing, with
-deterministic ordering, prefix compression, mergeable output and its own
-``meta.schema`` stamp. pysnmp/pysnmp#149 proposes to rebuild it in pysnmp
-because the *mibs* repository's ``index.py`` is nondeterministic -- but
-``index.py`` is a separate reimplementation, not the pysmi one.
+**The reverse index exists.** ``JsonCodeGen.gen_index()`` produces the
+OID-to-module index that pysnmp/pysnmp#148 describes as absent, with
+deterministic ordering, prefix compression, mergeable output and a
+``meta.schema`` stamp. pysnmp/pysnmp#149 proposes to reimplement it in pysnmp
+because ``index.py`` in the *mibs* repository is nondeterministic; ``index.py``
+is a separate implementation, not this one.
 
-**pysmi already ships the standard corpus.** As of 2.3.0 pysmi bundles **299**
-RFC, IANA and IEEE modules in ``pysmi/mibs/asn1/``, with
-``bundled_mibs.json`` recording each module's publisher and, for superseded
-ones, which module took over each subtree. ``pysmi.mibs.successor_for()``
-answers "which module defines this OID now" -- a runtime question, answered
-from pysmi, today. Two premises in the older issues did not survive this:
-pysnmp/pysmi#161's "bundling them makes pysmi a MIB distributor rather than a
-base-layer provider", and the assumption in pysnmp/mibs#322 that
-``src/standard`` is the only home for the standard tree.
+**pysmi distributes the standard corpus.** As of 2.3.0 pysmi bundles 299 RFC,
+IANA and IEEE modules in ``pysmi/mibs/asn1/``. ``bundled_mibs.json`` records
+each module's publisher and, for superseded modules, which module took over
+each subtree. ``pysmi.mibs.successor_for()`` answers which module currently
+defines a given OID, which is a runtime question. Two premises in earlier issues
+are superseded by this: pysnmp/pysmi#161's statement that bundling would make
+pysmi a MIB distributor rather than a base-layer provider, and the assumption in
+pysnmp/mibs#322 that ``src/standard`` is the only location of the standard tree.
 
-What pysmi does **not** yet define, and would need to:
+Two elements of layer 1 are not yet defined and are required:
 
-* a **canonical normalized form and content hash**. The current digest is over
-  raw ASN.1 bytes, so whitespace and comment churn read as content changes.
-  The plan is right to want a hash over normalized rows; it is a real gap.
-* the **corpus serialization** (layer 2) -- no DDL exists anywhere yet.
+* a **canonical normalized form and content hash**. The existing digest covers
+  raw ASN.1 bytes, so whitespace and comment changes register as content
+  changes. A hash over normalized rows is required, as the plan states.
+* the **corpus serialization** (layer 2). No DDL exists in any repository.
 
 
 What the current plan gets right
 --------------------------------
 
-Kept whole, and not re-argued below:
+The following are retained without modification and are not re-argued below.
 
-* **pyasn1 owns nothing here.** No SMI, MIB or OID knowledge belongs there.
-* **The generated ``.py`` carries no MIB semantics the JSON lacks.** Confirmed
-  by the sample above: the only things it adds are ``PYSNMP_MODULE_ID``,
-  ``mibBuilder.importSymbols`` / ``exportSymbols`` calls,
-  ``if mibBuilder.loadTexts:`` guards and
-  ``getattr(mibBuilder, 'version', ...)`` compatibility branches. All four are
-  pysnmp runtime shape. (What follows from that is *not* that the back end
-  should fade -- see :ref:`the-base-mib-shape` -- but the observation itself
-  holds.)
-* **The runtime design.** ``MibStore`` / ``CompositeStore``, longest-prefix
-  OID resolution across all stores with precedence only as tie-break,
+* **pyasn1 has no role.** It contains no SMI, MIB or OID knowledge.
+* **The generated ``.py`` contains no MIB semantics absent from the JSON.**
+  What it adds is runtime shape: ``PYSNMP_MODULE_ID``,
+  ``mibBuilder.importSymbols`` and ``exportSymbols`` calls,
+  ``if mibBuilder.loadTexts:`` guards, ``getattr(mibBuilder, 'version', ...)``
+  compatibility branches, and the binding of each SMI type name to a pysnmp
+  implementation class. jsondoc retains the type name as declared,
+  ``{"type": "INTEGER", "class": "type"}``; the pysnmp back end resolves it to
+  the implementing class. ``tests/test_codegen_fake_index.py`` asserts this as
+  the difference between the two back ends. That binding is layer-3 knowledge
+  and is a case for the loader contract to state explicitly. The conclusion
+  drawn from this observation in pysnmp/pysmi#132 does not hold; see
+  :ref:`the-base-mib-shape`.
+* **The runtime design.** ``MibStore`` / ``CompositeStore``, longest-prefix OID
+  resolution across all stores with precedence as tie-break only,
   one-module-one-store, the class cache keyed ``(module, typename)``, the
-  override table consulted before synthesis, per-module provenance, engine MIBs
-  explicitly out of scope. This is the substance of pysnmp/pysnmp#144,
-  pysnmp/pysnmp#145 and pysnmp/pysnmp#146 and none of it moves.
-* **SQLite over DuckDB**, on the measured reasoning given.
-* **The determinism defects** in pysnmp/pysnmp#149 -- the shared-directory race,
-  the bootstrap off published output, ``--ignore-errors`` on only one pass,
-  ``listdir``-ordered index collisions. All real, all still to be fixed.
-* **Opt-in throughout**, with byte-identical default behaviour.
-* **pysnmp/pysnmp#140** is independent of all of this and should ship now.
+  override table consulted before synthesis, per-module provenance, and engine
+  MIBs excluded from scope. This is the content of pysnmp/pysnmp#144,
+  pysnmp/pysnmp#145 and pysnmp/pysnmp#146 and none of it changes.
+* **SQLite rather than DuckDB**, on the measured reasoning recorded in
+  pysnmp/pysnmp#146.
+* **The determinism defects** identified in pysnmp/pysnmp#149: the
+  shared-directory race, the bootstrap from published output, ``--ignore-errors``
+  applied to one pass only, and ``listdir``-ordered index collisions.
+* **Opt-in behaviour throughout**, with byte-identical default resolution.
+* **pysnmp/pysnmp#140** is independent of the corpus work and can ship
+  separately.
 
 
 Where it goes wrong
 -------------------
 
-**1. It creates a second SMI model.** With the schema in pysnmp there are two
-descriptions of what a MIB module means -- jsondoc v1 and corpus v1 -- and a
-normalization step between them that neither repository owns. The whole of
-pysnmp/pysnmp#142 exists to check whether they agree. With one model there is
-nothing to check: the serialization is a rendering of the model, and drift is
-not expressible.
+**1. It defines a second SMI model.** With the schema in pysnmp there are two
+descriptions of a MIB module's meaning, jsondoc v1 and corpus v1, and a
+normalization step between them owned by neither repository. pysnmp/pysnmp#142
+exists to determine whether the two agree. A single model makes the question
+definitional and the spike unnecessary.
 
-**2. It deepens the dependency it wants to remove.** pysnmp/pysnmp#148's
-ownership table says *"pysnmp needs neither at runtime"*, but today
-``pysnmp-pysmi`` is a hard runtime dependency of pysnmp, not an extra. A
-builder in pysnmp that parses raw ``.mib`` (pysnmp/pysnmp#149) makes pysnmp
-depend on pysmi's parser more heavily, not less, while pysmi is stripped of
-the ability to emit its own canonical form. Leaving the builder in pysmi lets
-that dependency actually be dropped: SQLite is in the standard library, so a
-reader needs the *format*, not the producer.
+**2. It increases the dependency it aims to remove.** pysnmp/pysnmp#148's
+ownership table states that pysnmp requires neither pysmi nor mibs at runtime.
+``pysnmp-pysmi`` is currently a required runtime dependency of pysnmp, declared
+in ``[tool.poetry.dependencies]`` rather than as an extra. A builder in pysnmp
+that parses raw ``.mib`` (pysnmp/pysnmp#149) adds a build-time dependency on
+pysmi's parser. Retaining the builder in pysmi permits the runtime dependency to
+be removed, since the reader requires only the format.
 
-**3. It puts corpus rebuilds on a protocol library's release cadence.**
-pysnmp/mibs#323 argues -- correctly -- that conflating schema version with
-corpus version *"forces a pysnmp release on every corpus rebuild"*. But
-pysnmp/pysnmp#147 ships the builder as a ``pysnmp[compile]`` console script, so
-a builder fix ships as a pysnmp release regardless. A corpus rebuilds weekly; an
-SNMP engine should not.
+**3. It couples corpus rebuilds to a protocol library's release cadence.**
+pysnmp/mibs#323 states that conflating schema version with corpus version forces
+a pysnmp release on every corpus rebuild. pysnmp/pysnmp#147 ships the builder as
+a ``pysnmp[compile]`` console script, which produces the same coupling through
+packaging. The corpus rebuilds on a weekly cadence.
 
-**4. It blocks everything behind one spike that cannot close.**
-pysnmp/pysnmp#141 blocks seven issues across two repositories, and its own
-"Prerequisite" section says the schema should not freeze until a post-dedup node
-count exists. Nothing downstream can start, and the thing that would unblock it
-is a measurement over a corpus whose build is itself being redesigned.
+**4. The dependency graph is blocked on a spike that cannot close.**
+pysnmp/pysnmp#141 blocks seven issues across two repositories. Its prerequisite
+section states that the schema should not freeze until a post-deduplication node
+count exists, and that count is produced by a corpus build that is itself being
+redesigned.
 
-**5. It re-implements what exists.** The OID index (``gen_index``), the schema
-version negotiation (``SCHEMA_VERSIONS``), the provenance stamp
-(``meta.comments``) and module supersession (``bundled_mibs.json``) are all
-already in pysmi and all appear as new work in the pysnmp issues.
+**5. It reimplements existing functionality.** The OID index (``gen_index``),
+the schema version negotiation (``SCHEMA_VERSIONS``), the provenance stamp
+(``meta.comments``) and module supersession (``bundled_mibs.json``) exist in
+pysmi and appear as new work in the pysnmp issues.
 
-**6. ``mibdump --destination-format=pysnmp`` and the schema are separable.**
-The plan treats "remove the pysnmp format from mibdump" and "move the schema to
-pysnmp" as the same move. They are opposite moves. The first narrows pysmi to
-neutral output; the second widens pysnmp to own neutral output.
+**6. Two independent changes are treated as one.** Removing the pysnmp format
+from ``mibdump`` narrows pysmi to neutral output. Moving the schema to pysnmp
+widens pysnmp to own neutral output. These are opposite changes and the plan
+couples them.
 
-**7. Soft deprecation of the pysnmp back end is not available.** pysnmp/pysmi#132
-proposes to let ``codegen/pysnmp.py`` "fade by disuse". It cannot: pysmi runs it
-itself on every wheel build, and it is the live runtime path for the largest
-downstream consumer. See below.
+**7. Soft deprecation of the pysnmp back end is not achievable.**
+pysnmp/pysmi#132 proposes that ``codegen/pysnmp.py`` fade by disuse. pysmi
+executes that generator during its own wheel build, and it is the runtime
+compilation path for splunk-connect-for-snmp.
 
 
 .. _the-base-mib-shape:
@@ -235,16 +248,16 @@ downstream consumer. See below.
 The base-MIB shape has three copies
 -----------------------------------
 
-pysmi does not merely *know* the pysnmp shape. As of 2.3.0 it **produces and
-ships** it: ``hatch_build.py`` runs ``PySnmpCodeGen`` over all 299 bundled ASN.1
-modules during the wheel build and force-includes the result as
-``pysmi/mibs/pysnmp/``. Its own docstring gives the reason -- *"a consumer
-wanting to load one of the 299 standard modules rather than compile it does not
-have to run the compiler first"* -- and generating rather than committing them
-is what makes "do these match the ASN.1 they came from?" answerable.
+pysmi produces and distributes the pysnmp artifact shape. ``hatch_build.py``
+runs ``PySnmpCodeGen`` over all 299 bundled ASN.1 modules during the wheel build
+and force-includes the output as ``pysmi/mibs/pysnmp/``. Its docstring states
+the rationale: a consumer that needs to load one of the 299 standard modules
+rather than compile it should not have to run the compiler first. Generating
+rather than committing the modules makes their correspondence to the ASN.1
+verifiable by construction.
 
-So the pysnmp-shaped base layer exists three times over, from three different
-producers, and no two agree:
+The pysnmp-shaped base layer therefore exists in three copies, from three
+producers.
 
 .. list-table::
    :header-rows: 1
@@ -252,28 +265,27 @@ producers, and no two agree:
 
    * - Copy
      - Modules
-     - Produced by
-     - Consumed by
+     - Producer
+     - Consumer
    * - ``pysmi/mibs/pysnmp/``
      - 299
-     - this tree's code generator over this tree's ASN.1, seconds before the
-       wheel is sealed
-     - **nobody**
+     - the current generator over the current ASN.1, during the wheel build
+     - none
    * - ``pysnmp/smi/mibs/``
      - 26
-     - pysmi 0.1.2 / 0.1.3, April 2017, never regenerated
+     - pysmi 0.1.2 / 0.1.3, April 2017; not regenerated since
      - pysnmp's ``MibBuilder``
    * - sc4snmp runtime
      - on demand
-     - pysmi in-process, from ASN.1 fetched over HTTP per MIB
+     - pysmi in-process, from ASN.1 retrieved over HTTP per module
      - sc4snmp
 
-pysnmp's ``MibBuilder`` defaults to ``('pysnmp.smi.mibs.instances',
-'pysnmp.smi.mibs')`` and contains no reference to ``pysmi.mibs`` anywhere, so
-the freshly generated copy in the wheel it depends on is inert.
+``MibBuilder`` defaults to ``('pysnmp.smi.mibs.instances', 'pysnmp.smi.mibs')``
+and contains no reference to ``pysmi.mibs``. The generated copy in the wheel
+pysnmp depends on is therefore unused.
 
-**The copies have measurably diverged.** Compiling pysmi's bundled ASN.1 with
-the current generator and comparing against pysnmp's 2017 freeze:
+The copies have diverged. Compiling pysmi's bundled ASN.1 with the current
+generator and comparing against the 2017 files:
 
 .. list-table::
    :header-rows: 1
@@ -286,46 +298,51 @@ the current generator and comparing against pysnmp's 2017 freeze:
    * - ``SNMPv2-MIB``
      - 204 L
      - 158 L
-     - 71 / 71, identical
+     - 71 / 71, equal
    * - ``SNMP-COMMUNITY-MIB``
      - 91 L
      - 75 L
-     - 27 / 27, identical
+     - 27 / 27, equal
    * - ``SNMP-NOTIFICATION-MIB``
      - 98 L
      - 79 L
-     - 30 / 30, identical
+     - 30 / 30, equal
    * - ``SNMP-PROXY-MIB``
      - 68 L
      - 52 L
-     - 19 / 19, identical
+     - 19 / 19, equal
    * - ``SNMP-VIEW-BASED-ACM-MIB``
      - 129 L
      - 90 L
-     - 40 / 39 -- frozen copy has ``vacmContextStatus``
+     - 40 / 39; frozen copy defines ``vacmContextStatus``
    * - ``RFC1213-MIB``
      - 417 L
      - 410 L
-     - 135 / 203 -- disjoint both ways
+     - 135 / 203; disjoint in both directions
 
-Most of the difference is eight years of code generator churn and is safe. Two
-modules differ semantically, and eight of the 26 carry hand-written behaviour
-(``SNMPv2-SMI``, ``SNMPv2-TC``, ``SNMPv2-CONF``, ``SNMPv2-TM``,
-``SNMP-FRAMEWORK-MIB``, ``SNMP-TARGET-MIB``, ``INET-ADDRESS-MIB``,
-``TRANSPORT-ADDRESS-MIB``). A blind swap breaks pysnmp; an equivalence gate is
-what makes it safe, and the drift above is the argument for having one.
+These are line counts and exported symbol sets. They do not establish
+equivalence: they do not cover subtype constraints, DEFVALs, INDEX and AUGMENTS
+wiring, resolved IMPORTS, the SMI-type-to-class binding, or behaviour in the
+modules that contain code. Two modules disagree on symbols alone. Eight of the
+26 contain hand-written behaviour: ``SNMPv2-SMI``, ``SNMPv2-TC``,
+``SNMPv2-CONF``, ``SNMPv2-TM``, ``SNMP-FRAMEWORK-MIB``, ``SNMP-TARGET-MIB``,
+``INET-ADDRESS-MIB`` and ``TRANSPORT-ADDRESS-MIB``.
 
-**This reframes the inversion.** A code generator targeting a runtime knows that
-runtime's shape -- that is what a back end *is*, and pysmi doubling down on it
-was the right call. The actual defect is narrower and visible in the emitted
-code: ``getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0)`` guards mean
-pysmi is *guessing* at pysnmp's loader across versions, because pysnmp has never
-stated what ``exportSymbols`` accepts or which setters exist. The fix is for
-pysnmp to publish that loader contract and version it, and for pysmi to target a
-declared version of it. Then the sniffing branches go away, and the same
-generated artifact serves pysmi's bundle, pysnmp's base layer and sc4snmp.
+The table therefore establishes that the copies have diverged. It does not
+establish that any individual module can be substituted safely. Substitution
+requires an equivalence check covering the properties listed above, applied per
+module.
 
-One producer, one shape, three consumers.
+**Consequence for the inversion argument.** A code generator that targets a
+runtime encodes that runtime's shape; this is the definition of a back end. The
+specific defect is narrower and visible in the emitted output:
+``getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0)`` guards indicate that
+pysmi is inferring pysnmp's loader behaviour across versions, because pysnmp has
+not specified which setters exist or what ``exportSymbols`` accepts. The
+correction is for pysnmp to publish and version that loader contract and for
+pysmi to target a declared version of it. The version-inference branches are
+then removable, and one generated artifact serves pysmi's bundle, pysnmp's base
+layer and sc4snmp.
 
 
 The revised layering
@@ -341,121 +358,126 @@ Ownership follows the layer.
      - Owns
      - Does not own
    * - **pysmi**
-     - The SMI model and its version negotiation. The canonical normalized
-       form and content hash. The corpus DDL, as a rendering of the model.
-       The corpus writer. The OID-to-module index. Bundled base sources and
-       their manifest. **Every artifact shape** -- ``json``, ``.py``, ``.db`` --
-       each targeting a contract its consumer publishes.
+     - The SMI model and its version negotiation. The canonical normalized form
+       and content hash. The corpus DDL, as a rendering of the model. The corpus
+       writer. The OID-to-module index. Bundled base sources and their manifest.
+       Every artifact shape -- ``json``, ``.py``, ``.db`` -- each targeting a
+       contract published by its consumer.
      - Any consumer's
        loader contract
    * - **pysnmp**
-     - The corpus *reader*. ``MibStore`` / ``CompositeStore``, class synthesis,
-       the override table, class identity, provenance API, ``loadTexts``,
-       engine MIBs. **The loader contract** ``codegen/pysnmp.py`` targets, and
-       the behavioural base modules.
+     - The corpus reader. ``MibStore`` / ``CompositeStore``, class synthesis,
+       the override table, class identity, provenance API, ``loadTexts``, engine
+       MIBs. The loader contract ``codegen/pysnmp.py`` targets, and the
+       behavioural base modules.
      - The model, the DDL,
        the builder, its own
        generated modules
    * - **mibs**
-     - Raw ``.mib`` sources, selection configs, CI. No Python.
+     - Raw ``.mib`` sources, selection configs, CI.
      - Build code
    * - **pyasn1**
      - Nothing in this effort.
      -
 
-Dependency direction becomes ``mibs`` → ``pysmi``, and ``pysnmp`` → nothing.
-pysnmp reads a documented file format with a stdlib driver.
+The dependency direction becomes ``mibs`` to ``pysmi``, with pysnmp depending on
+neither at runtime and reading a documented file format with a standard-library
+driver.
 
-Three concrete consequences:
+Three consequences follow.
 
-*The contract is data, not code.* pysmi ships the DDL and a JSON Schema for
-the document form as package data, versioned by the mechanism jsondoc already
-has. pysnmp's reader gates on the ``schema_version`` in the corpus manifest
-table exactly as a jsondoc consumer gates on ``meta.schema``. Neither repository
-imports the other to honour it.
+*The contract is data.* pysmi ships the DDL and a JSON Schema for the document
+form as package data, versioned by the mechanism jsondoc already implements.
+pysnmp's reader gates on the ``schema_version`` in the corpus manifest table as
+a jsondoc consumer gates on ``meta.schema``. Neither repository imports the
+other to satisfy it.
 
-*Drift is held by a conformance fixture, not by co-location.* pysmi publishes a
-small corpus built from a fixed module set, with the expected rows. pysnmp's
-reader runs it in pysnmp's own CI. That is how a cross-repository contract is
-normally held, and it does not require merging the repositories to get it.
+*Drift is held by a conformance fixture.* pysmi publishes a corpus built from a
+fixed module set with the expected results. pysnmp's reader executes it in
+pysnmp's CI. This is the standard mechanism for a cross-repository format and
+does not require the repositories to merge.
 
 *The corpus back end is neutral.* ``--destination-format=sqlite`` emits OIDs,
-names, node types, syntax, constraints, indices and texts. There is nothing in
-that list a libsmi user would call pysnmp-specific. If it ever needs to know
-what a ``MibTableColumn`` is, the layering has been violated and the review
-above applies to the new code.
+names, node types, syntax, constraints, indices and texts. None of these are
+pysnmp-specific. A requirement for the writer to know what a ``MibTableColumn``
+is would indicate a layering violation in the new code.
 
 
 Revised work plan
 -----------------
 
-**pysmi -- new work.** These are the items the replan adds here; each is
-matched by an item it removes from pysnmp.
+**pysmi -- new work.** Each item added here corresponds to an item removed from
+pysnmp.
 
-* Publish the SMI model as a specification: written spec plus a JSON Schema
-  file shipped in the package, describing schema v1 as jsondoc emits it today.
-  Documentation of existing behaviour, not a change to it.
-* Define the canonical normalized form and the content hash over it. Must be
-  stable across pysmi versions and identical between a full corpus and a subset
-  filtered from it. Supersedes the raw-source digest for identity purposes;
-  the source digest stays, as a different fact.
-* Corpus DDL v1 -- the SQLite rendering. Sortable OID key, core/text split,
-  manifest table with schema version and corpus version kept separate, publish
-  state that permits ``immutable=1``.
+* Publish the SMI model as a specification: a written spec and a JSON Schema
+  file shipped as package data, describing schema v1 as jsondoc emits it. This
+  documents existing behaviour and changes none of it.
+* Define the canonical normalized form and the content hash over it. The hash
+  must be stable across pysmi versions and identical between a full corpus and a
+  subset filtered from it. It supersedes the raw-source digest for identity
+  purposes; the source digest remains as a separate fact.
+* Corpus DDL v1, the SQLite rendering: sortable OID key, core/text split,
+  manifest table with schema version and corpus version held separately, and
+  publish state permitting ``immutable=1``. ``immutable=1`` disables locking and
+  change detection, so a file modified beneath a reader produces incorrect
+  results or ``SQLITE_CORRUPT`` rather than a contention error. The invariant is
+  that a corpus is sealed before publication, published atomically, and never
+  updated in place; a new corpus is a new file.
 * Corpus writer as a code generation back end.
-* Batch compilation with a warm dependency cache -- the outstanding half of
-  pysnmp/pysmi#133. Under this plan it stops being a cross-repository ask and
-  becomes how pysmi's own corpus build works.
-* A corpus driver over many source namespaces, deterministic by construction:
-  fixed immutable input set, no writes into a directory that is concurrently a
-  source, no network source. The defects catalogued in pysnmp/pysnmp#149 are
-  fixed here rather than reproduced there.
+* Batch compilation with a warm dependency cache, the outstanding half of
+  pysnmp/pysmi#133. Under this plan it becomes a requirement of pysmi's own
+  corpus build rather than a cross-repository request.
+* A corpus driver over multiple source namespaces, deterministic by
+  construction: a fixed immutable input set, no writes into a directory that is
+  concurrently a source, and no network source. The defects catalogued in
+  pysnmp/pysnmp#149 are corrected here.
 * Conformance fixture for downstream readers.
 
-**pysmi -- the pysnmp back end stays and is maintained.** ``codegen/pysnmp.py``
-and ``mibdump --destination-format=pysnmp`` are not deprecated: pysmi runs the
-generator itself on every wheel build, and it is sc4snmp's live runtime path.
-Once pysnmp publishes a loader contract, pysmi targets a declared version of it
-and drops the ``getattr(mibBuilder, 'version', ...)`` sniffing.
+**pysmi -- retained.** ``codegen/pysnmp.py`` and
+``mibdump --destination-format=pysnmp`` remain supported and maintained.
 
 **pysnmp -- unchanged from the current plan.** pysnmp/pysnmp#144,
 pysnmp/pysnmp#145 and pysnmp/pysnmp#146 stand as written. pysnmp/pysnmp#140
 ships independently.
 
 **pysnmp -- added by this review.** Publish and version the loader contract that
-``codegen/pysnmp.py`` targets. Then converge the base layer: keep the eight
-behavioural modules plus the override set as hand-written code, take the rest
-from ``pysmi/mibs/pysnmp/`` instead of the 2017 freeze, behind an equivalence
-gate that the drift table above shows is necessary. This is what actually
-resolves the coupling -- not a second emitter.
+``codegen/pysnmp.py`` targets. Converge the base layer: retain the eight
+behavioural modules and the override set as hand-written code and take the
+remainder from ``pysmi/mibs/pysnmp/`` rather than the 2017 files, behind the
+equivalence check the drift table requires. This resolves the coupling; a second
+emitter in pysnmp does not.
 
 **pysnmp -- changed.** pysnmp/pysnmp#141 narrows to the runtime half: the
-version-mismatch policy a reader applies, and the override table format, which
-is genuinely pysnmp's because it names pysnmp modules. The DDL itself moves to
-pysmi. pysnmp/pysnmp#147 loses the builder and keeps the reader;
-``pysnmp[compile]`` is not needed, since a reader needs no compiler.
-pysnmp/pysnmp#149 moves to pysmi with its defect list intact.
+version-mismatch policy applied by a reader, and the override table format,
+which is pysnmp's because it names pysnmp modules. The DDL moves to pysmi.
+pysnmp/pysnmp#147 retains the reader and loses the builder. pysnmp/pysnmp#149
+moves to pysmi with its defect list intact.
 
-**pysnmp/pysnmp#142 closes.** Its question -- does jsondoc carry what the corpus
-needs -- is only meaningful when the two are separate schemas. Under one model
-the answer is definitional. The sample audit above stands as the record that
-the fields are in fact present; the remaining gap it would have found, the
-normalized hash, is listed above as pysmi work.
+``pysnmp[compile]`` and the ``pysnmp-mib-build`` console script were proposals
+in pysnmp/pysnmp#147 and were never implemented. Neither appears in any release,
+so no interface is removed or deprecated and no caller requires migration.
+``mibdump`` is the supported tool for compiling MIBs and is unaffected by this
+proposal.
+
+**pysnmp/pysnmp#142 closes.** Its question, whether jsondoc carries what the
+corpus requires, is meaningful only while the two are separate schemas. Under a
+single model the answer is definitional. The sample audit recorded above stands
+as evidence that the fields are present. The remaining gap it would have
+identified, the normalized hash, is listed as pysmi work.
 
 **mibs -- as planned, with one substitution.** pysnmp/mibs#322,
-pysnmp/mibs#323, pysnmp/mibs#324 and pysnmp/mibs#325 stand. The repository's CI
-calls pysmi rather than ``pysnmp-mib-build``; nothing else about them changes.
-pysnmp/mibs#326 is independent and should proceed. pysnmp/mibs#335, freshness,
-is unaffected either way.
+pysnmp/mibs#323, pysnmp/mibs#324 and pysnmp/mibs#325 stand. CI invokes pysmi
+rather than ``pysnmp-mib-build``. pysnmp/mibs#326 is independent.
+pysnmp/mibs#335 is unaffected.
 
 
-sc4snmp: the consumer this is all for
--------------------------------------
+sc4snmp: the downstream consumer
+--------------------------------
 
 `splunk-connect-for-snmp <https://github.com/splunk/splunk-connect-for-snmp>`_
-is the largest downstream consumer and, as it happens, an exact instance of the
-problem statement. ``splunk_connect_for_snmp/snmp/manager.py`` binds to three
-artifacts of the *mibs* repository:
+is the largest downstream consumer and an instance of the problem statement.
+``splunk_connect_for_snmp/snmp/manager.py`` binds three artifacts of the *mibs*
+repository:
 
 .. list-table::
    :header-rows: 1
@@ -463,11 +485,11 @@ artifacts of the *mibs* repository:
 
    * - Variable
      - Default
-     - Used for
+     - Use
    * - ``MIB_SOURCES``
      - ``https://pysnmp.github.io/mibs/asn1/@mib@``
      - passed to ``compiler.addMibCompiler()``; pysmi compiles ASN.1 to pysnmp
-       modules **in process, per MIB, at runtime**
+       modules in process, per module, at runtime
    * - ``MIB_INDEX``
      - ``https://pysnmp.github.io/mibs/index.csv``
      - parsed into ``mib_map`` as OID-to-module
@@ -475,84 +497,84 @@ artifacts of the *mibs* repository:
      - ``https://pysnmp.github.io/mibs/standard.txt``
      - the standard module list
 
-``is_mib_known()`` then chops the OID tail arc by arc, longest prefix first,
-looking each candidate up in ``mib_map``, and lazily calls
-``builder.loadModules()`` on the module it finds. That is ``find_module(oid)``
-followed by a lazy load -- hand-rolled, over HTTP, against an index built by the
-nondeterministic ``index.py``. The ``1.3.6.1.6.3.1`` collision catalogued in
-pysnmp/pysnmp#149 resolves to ``RAPID-CITY`` rather than ``SNMPv2-MIB``, and
-this is the code path where that answer is consumed.
+``is_mib_known()`` truncates the OID one arc at a time, longest prefix first,
+looks each candidate up in ``mib_map``, and calls ``builder.loadModules()`` on
+the module found. This is ``find_module(oid)`` followed by a lazy load,
+implemented against an index built by ``index.py``. The ``1.3.6.1.6.3.1``
+collision catalogued in pysnmp/pysnmp#149 resolves to ``RAPID-CITY`` rather than
+``SNMPv2-MIB``, and this is the code path that consumes that result.
 
-Three things follow.
+Three consequences follow.
 
-*The corpus is not a speculative feature.* It replaces ``mib_map``,
-``MIB_SOURCES`` and the runtime compile with one mounted file and one call.
+*The corpus addresses an existing requirement.* It replaces ``mib_map``,
+``MIB_SOURCES`` and the runtime compilation with one mounted file and one
+lookup.
 
-*Breaking sc4snmp is on the table, with a reason and a route.* The reason is
-that its current path is a network fetch and a full ASN.1 compile on the trap
-hot path, keyed off an index with a known-wrong entry. The route is additive
-and can be taken a step at a time:
+*A compatibility break is acceptable given a stated reason and a migration
+route.* The reason is that the current path performs a network fetch and a full
+ASN.1 compilation on the trap path, keyed against an index with a known
+incorrect entry. The route is additive and staged:
 
-1. **Nothing breaks yet.** ``index.csv``, ``asn1/`` and ``standard.txt`` keep
-   being published, and the determinism fixes correct ``index.csv`` in place.
-   sc4snmp gets the ``1.3.6.1.6.3.1`` fix for free, with no change on its side.
-2. **Opt in.** sc4snmp mounts ``core.db`` and sets the corpus source. ``mib_map``
-   and ``is_mib_known()`` collapse into a store lookup; ``MIB_SOURCES`` and the
-   runtime compiler are no longer on the hot path. ``MIB_INDEX`` and
-   ``MIB_STANDARD`` become unnecessary rather than unsupported.
-3. **Retire.** Only once step 2 has shipped and been taken do the HTTP endpoints
-   and the mibserver go, per pysnmp/mibs#325 -- which already says the
-   retirement window depends on who is still consuming them. This document
-   answers that question for the one consumer we can see: sc4snmp is, on every
-   deployment, by default.
+1. ``index.csv``, ``asn1/`` and ``standard.txt`` continue to be published, and
+   the determinism corrections fix ``index.csv`` in place. sc4snmp receives the
+   ``1.3.6.1.6.3.1`` correction without any change on its side.
+2. sc4snmp mounts ``core.db`` and configures the corpus source. ``mib_map`` and
+   ``is_mib_known()`` reduce to a store lookup; ``MIB_SOURCES`` and the runtime
+   compiler leave the trap path; ``MIB_INDEX`` and ``MIB_STANDARD`` become
+   unnecessary rather than unsupported.
+3. The HTTP endpoints and the mibserver are withdrawn only after stage 2 has
+   shipped and been adopted, per pysnmp/mibs#325, which states that the
+   retirement window depends on remaining consumers. This document identifies
+   sc4snmp as one such consumer, by default, on every deployment.
 
-*The Helm chart is part of the contract.* ``charts/mibserver``, ``local_mibs.sh``
-and the ``localMibs.pathToMibs`` / ``existingClaim`` behaviour are deployed by
-sc4snmp users, so pysnmp/mibs#208 and anything else touching them is a
-compatibility surface, not repository housekeeping.
+*The Helm chart is part of the contract.* ``charts/mibserver``,
+``local_mibs.sh`` and the ``localMibs.pathToMibs`` / ``existingClaim`` behaviour
+are deployed by sc4snmp users. pysnmp/mibs#208 and any other change affecting
+them is a compatibility surface.
 
 
 Sequencing
 ----------
 
-The point of the replan is that the critical path stops being one spike.
+Under this proposal the critical path is not a single spike.
 
-1. **Now, in parallel, nothing blocking:** pysnmp/pysnmp#140. pysnmp/mibs#326.
-   The pysnmp/pysnmp#144 and pysnmp/pysnmp#145 stories that run against an
-   in-memory fixture. Writing down the SMI model spec, which is documentation
-   of shipped behaviour.
-2. **Then:** the normalized form and content hash. This is the real gate -- it
-   is what duplicate detection, shadow warnings and subset stability rest on --
-   and it is a much smaller thing to freeze than a whole DDL, because the model
-   underneath it already exists and already has consumers.
+1. **Unblocked, no dependencies:** pysnmp/pysnmp#140; pysnmp/mibs#326; the
+   pysnmp/pysnmp#144 and pysnmp/pysnmp#145 stories that run against an in-memory
+   fixture; the SMI model specification, which documents shipped behaviour.
+2. **Next:** the normalized form and content hash. This is the gate for
+   duplicate detection, shadow warnings and subset stability, and is a smaller
+   artifact to freeze than a DDL, since the model beneath it exists and has
+   consumers.
 3. **Then:** corpus DDL v1 and the writer, reviewed by pysnmp and mibs before
-   dependent work starts. The post-dedup node count is measured here, from the
-   deterministic corpus driver, rather than being a prerequisite for starting.
+   dependent work starts. The post-deduplication node count is measured here, by
+   the deterministic corpus driver, rather than being a prerequisite for
+   starting.
 4. **Then:** pysnmp's SQLite reader against the conformance fixture, and the
    mibs pipeline cutover behind legacy-compatible output.
-5. **Last, unchanged:** pysnmp/mibs#325.
+5. **Last:** pysnmp/mibs#325.
 
 
 Open questions
 --------------
 
-Unchanged by this proposal and still open:
+Unchanged by this proposal:
 
-* Post-dedup node count. Every size figure and some column widths depend on it.
-* External consumers of the published OID index and the ``asn1`` HTTP
-  endpoints. Gates the retirement window in pysnmp/mibs#325 and the
+* Post-deduplication node count. Size estimates and some column widths depend on
+  it.
+* External consumers of the published OID index and the ``asn1`` HTTP endpoints,
+  beyond sc4snmp. This gates the retirement window in pysnmp/mibs#325 and the
   ``gh-pages`` history decision in pysnmp/mibs#326.
-* Schema-version mismatch policy -- refuse a newer corpus outright, or read the
-  subset understood. Now a pysnmp question about its reader rather than a
-  schema question, but no more decided than before.
-* Override table format. pysnmp's, and still unspecified.
+* Schema version mismatch policy: whether a runtime refuses a newer corpus or
+  reads the subset it understands. This is a property of the reader rather than
+  of the schema, but remains undecided.
+* Override table format, which is pysnmp's and remains unspecified.
 
 Raised by this proposal:
 
-* Whether the corpus back end is a ``mibdump`` destination format or its own
+* Whether the corpus back end is a ``mibdump`` destination format or a separate
   console script. A corpus build takes a source set and a selection config
-  rather than a module list, so the argument shapes differ enough that
-  ``mibdump`` may be the wrong front door.
-* Whether pysmi bundling 299 modules changes what ``src/standard`` in the mibs
-  repository is for. Not a blocker, but the two now overlap and only one can be
+  rather than a module list, so ``mibdump`` may not be the appropriate entry
+  point.
+* Whether pysmi bundling 299 modules changes the purpose of ``src/standard`` in
+  the mibs repository. The two now overlap, and one of them must be
   authoritative for a given module.
