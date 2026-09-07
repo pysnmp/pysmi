@@ -536,6 +536,100 @@ class FileParseCacheTestCase(unittest.TestCase):
         self.assertTrue(os.path.exists(keep))
 
 
+class FailingToCacheIsNotACompilationFailureTestCase(unittest.TestCase):
+    """A cache is an optimisation, so every way it can fail is a miss.
+
+    The claim is made in `AbstractParseCache` and relied on by
+    `FileParseCache`, which touches a filesystem and can therefore fail in
+    ways an in-memory provider cannot.
+    """
+
+    def setUp(self):
+        self.directory = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.directory, ignore_errors=True)
+
+    def testAnUnwritableDirectoryDoesNotRaise(self):
+        """The directory is removed rather than chmod-ed: the suite may run as
+        root, where mode bits are not enforced and the test would pass for the
+        wrong reason."""
+        cache = FileParseCache(self.directory)
+        shutil.rmtree(self.directory)
+
+        cache.set("k", [1])
+
+        self.assertIsNone(cache.get("k"))
+
+    def testAnUnwritableDirectoryStillCompiles(self):
+        """The property that matters: output does not depend on the cache."""
+        cache = FileParseCache(self.directory)
+        shutil.rmtree(self.directory)
+
+        modules = {"UNWRITABLE-MIB": module("UNWRITABLE-MIB", 7001, "unwritable")}
+        compiler = MibCompiler(
+            SmiV1CompatParser(),
+            JsonCodeGen(),
+            CallbackWriter(lambda *args, **kwargs: None),
+            parseCache=cache,
+        )
+        compiler.add_sources(reader(modules))
+        processed = compiler.compile(*modules, rebuild=True)
+
+        self.assertEqual(processed["UNWRITABLE-MIB"], "compiled")
+
+    def testAnUnpicklableValueIsNotAnError(self):
+        cache = FileParseCache(self.directory)
+
+        cache.set("k", [lambda: None])
+
+        self.assertIsNone(cache.get("k"))
+
+    def testNoPartialFileIsLeftBehind(self):
+        """A failed write must not leave a temporary for the next run to read."""
+        cache = FileParseCache(self.directory)
+
+        cache.set("k", [lambda: None])
+
+        self.assertEqual(
+            [n for n in os.listdir(self.directory) if n.endswith(".partial")], []
+        )
+
+    def testClearingAMissingDirectoryDoesNotRaise(self):
+        cache = FileParseCache(self.directory)
+        shutil.rmtree(self.directory)
+
+        cache.clear()
+
+
+class TheInterfaceIsAbstractTestCase(unittest.TestCase):
+    """A provider that forgets a method fails loudly, not silently."""
+
+    def testEveryMethodMustBeImplemented(self):
+        incomplete = AbstractParseCache()
+
+        for call in (
+            lambda: incomplete.get("k"),
+            lambda: incomplete.set("k", []),
+            incomplete.clear,
+        ):
+            with self.assertRaises(NotImplementedError):
+                call()
+
+
+class TheProvidersDescribeThemselvesTestCase(unittest.TestCase):
+    """`repr` names the provider and its configuration, for a build log."""
+
+    def testEachReprNamesItsClass(self):
+        directory = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, directory, ignore_errors=True)
+
+        for cache, expected in (
+            (InMemoryParseCache(maxEntries=8), "InMemoryParseCache(maxEntries=8)"),
+            (NullParseCache(), "NullParseCache()"),
+            (FileParseCache(directory), f"FileParseCache({directory!r})"),
+        ):
+            self.assertEqual(repr(cache), expected)
+
+
 class TheCacheKeyCarriesItsProducerTestCase(unittest.TestCase):
     """A persisted tree must not outlive the parser that made it.
 
