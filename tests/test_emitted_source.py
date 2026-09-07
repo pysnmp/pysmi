@@ -130,22 +130,24 @@ NARRATIVE_SETTERS = (
     "setContactInfo",
 )
 
-#: RFC 2580 gives these three a REFERENCE clause, but pysnmp has nowhere to put
-#: it: their classes have no ``setReference``. pysmi carries the text to the JSON
-#: document instead of emitting a call that would fail on load. See
-#: pysnmp/pysmi#101 and pysnmp/pysnmp#133.
-WITHOUT_SET_REFERENCE = (
+#: RFC 2580 gives these three a REFERENCE clause. pysmi used to drop it,
+#: because their pysnmp classes had no ``setReference``; pysnmp added the
+#: setters in pysnmp/pysnmp#133 and loader contract v1 states them, so the call
+#: is emitted now. See pysnmp/pysmi#101 and pysnmp/pysmi#194.
+FORMERLY_SUPPRESSED = (
     "testObjectGroup",
     "testNotificationGroup",
     "testModuleCompliance",
 )
 
-#: The macros whose pysnmp classes do take a REFERENCE.
+#: Every macro in MACROS_MIB whose pysnmp class takes a REFERENCE, which under
+#: loader contract v1 is every macro that may carry the clause.
 WITH_SET_REFERENCE = (
     "testObjectIdentity",
     "testObjectType",
     "testNotificationType",
     "testAgentCapabilities",
+    *FORMERLY_SUPPRESSED,
 )
 
 
@@ -193,15 +195,15 @@ class NarrativeGuardTestCase(unittest.TestCase):
 
 
 class ConformanceReferenceTestCase(unittest.TestCase):
-    """REFERENCE is emitted only for the classes that can hold one."""
+    """REFERENCE is emitted for every macro that may carry one."""
 
     def setUp(self):
         self.pycode = render_source(MACROS_MIB)
 
-    def testTheClassesWithoutASetterGetNoCall(self):
-        for name in WITHOUT_SET_REFERENCE:
+    def testTheFormerlySuppressedClassesGetACall(self):
+        for name in FORMERLY_SUPPRESSED:
             with self.subTest(symbol=name):
-                self.assertNotIn(f"{name}.setReference(", self.pycode)
+                self.assertEqual(self.pycode.count(f"{name}.setReference("), 1)
 
     def testTheClassesWithASetterGetOne(self):
         for name in WITH_SET_REFERENCE:

@@ -173,9 +173,10 @@ The following are retained without modification and are not re-argued below.
 * **The generated ``.py`` contains no MIB semantics absent from the JSON.**
   What it adds is runtime shape: ``PYSNMP_MODULE_ID``,
   ``mibBuilder.importSymbols`` and ``exportSymbols`` calls,
-  ``if mibBuilder.loadTexts:`` guards, ``getattr(mibBuilder, 'version', ...)``
-  compatibility branches, and the binding of each SMI type name to a pysnmp
-  implementation class. jsondoc retains the type name as declared,
+  ``if mibBuilder.loadTexts:`` guards, and the binding of each SMI type name to
+  a pysnmp implementation class. It also carried
+  ``getattr(mibBuilder, 'version', ...)`` compatibility branches until the
+  loader contract replaced them; see below. jsondoc retains the type name as declared,
   ``{"type": "INTEGER", "class": "type"}``; the pysnmp back end resolves it to
   the implementing class. ``tests/test_codegen_fake_index.py`` asserts this as
   the difference between the two back ends. That binding is layer-3 knowledge
@@ -335,14 +336,19 @@ module.
 
 **Consequence for the inversion argument.** A code generator that targets a
 runtime encodes that runtime's shape; this is the definition of a back end. The
-specific defect is narrower and visible in the emitted output:
-``getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0)`` guards indicate that
-pysmi is inferring pysnmp's loader behaviour across versions, because pysnmp has
-not specified which setters exist or what ``exportSymbols`` accepts. The
-correction is for pysnmp to publish and version that loader contract and for
-pysmi to target a declared version of it. The version-inference branches are
-then removable, and one generated artifact serves pysmi's bundle, pysnmp's base
-layer and sc4snmp.
+specific defect was narrower and visible in the emitted output:
+``getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0)`` guards indicated that
+pysmi was inferring pysnmp's loader behaviour across versions, because pysnmp
+had not specified which setters exist or what ``exportSymbols`` accepts.
+
+That correction has been applied. pysnmp publishes the loader contract and
+exposes ``MibBuilder.loaderContract``; pysmi targets v1 and emits the setters it
+names without testing for them. The inference had already gone stale in both
+directions by the time it was removed: the version branches named releases from
+2017 and 2018, and a separate list of classes believed to lack
+``setReference()`` was dropping REFERENCE text from three conformance macros
+that had gained the setter (pysnmp/pysmi#194). One generated artifact now serves
+pysmi's bundle, pysnmp's base layer and sc4snmp.
 
 
 The revised layering

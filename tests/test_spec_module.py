@@ -106,23 +106,24 @@ class ModuleIdentityTestCase(unittest.TestCase):
             "PYSNMP_MODULE_ID=testModule", self.source.rsplit("exportSymbols(", 1)[1]
         )
 
-    def testTheRevisionsAreNotGuardedButTheirDescriptionsAre(self):
+    def testTheRevisionsAreUnconditionalButTheirDescriptionsFollowLoadTexts(self):
         # A revision date says which version of the module this is, so it is
         # structural. The prose attached to it is not.
         self.assertIn("testModule.setRevisions(('2000-01-10 00:00',))", self.source)
         self.assertIn(
-            "    if mibBuilder.loadTexts: "
+            "if mibBuilder.loadTexts: "
             "testModule.setRevisionsDescriptions(('Initial version published as RFC 2742.',))",
             self.source,
         )
 
-    def testTheRevisionDescriptionsAreGuardedForOlderPysnmp(self):
-        # setRevisionsDescriptions arrived after pysnmp 4.4.0.
+    def testTheRevisionDescriptionsAreEmittedUnguarded(self):
+        # setRevisionsDescriptions is part of loader contract v1, so the call
+        # needs no version test. The guard it replaces named pysnmp 4.4.0.
         self.assertIn(
-            "if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):\n"
-            "    if mibBuilder.loadTexts: testModule.setRevisionsDescriptions(",
+            "if mibBuilder.loadTexts: testModule.setRevisionsDescriptions(",
             self.source,
         )
+        self.assertNotIn("getattr(mibBuilder, 'version'", self.source)
 
 
 class ObjectIdentityTestCase(unittest.TestCase):
