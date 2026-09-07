@@ -305,30 +305,23 @@ class PinnedHashTestCase(unittest.TestCase):
 
 
 class TextModeTestCase(unittest.TestCase):
-    """The structural hash is not yet mode-independent, and this records why."""
+    """Prose is the only thing text suppression removes."""
 
-    def testStructuralHashDiffersBetweenTextModes(self):
-        """Two open defects make a no-texts document structurally lossy.
+    def testStructuralHashAgreesBetweenTextModes(self):
+        """The structural hash does not depend on whether prose was generated.
 
-        The structural hash is *defined* to be equal across text modes -- prose
-        is the only thing that should differ. It is not, because a no-texts
-        document loses MODULE-COMPLIANCE refinement entries entirely
-        (pysnmp/pysmi#190) and loses ``lastupdated`` (pysnmp/pysmi#191), both of
-        which are structure rather than prose.
-
-        This test asserts the current, wrong behaviour deliberately. When either
-        defect is fixed it fails, which is the signal to check whether the
-        remaining difference is gone and to invert this into an equality.
+        It is *defined* as the model minus prose, so this must hold. It did
+        not until pysnmp/pysmi#190, #191 and #192 landed: a no-texts document
+        was structurally lossy, dropping MODULE-COMPLIANCE refinement entries
+        and ``lastupdated``. This test previously asserted that inequality
+        deliberately, and is inverted now that the cause is gone.
         """
-        with_texts = build("SNMPv2-MIB", genTexts=True)["SNMPv2-MIB"]
-        without_texts = build("SNMPv2-MIB", genTexts=False)["SNMPv2-MIB"]
-
-        self.assertNotEqual(
-            structure_hash(with_texts),
-            structure_hash(without_texts),
-            "structural hashes now agree across text modes -- if pysnmp/pysmi#190 "
-            "and pysnmp/pysmi#191 are fixed, invert this assertion",
-        )
+        for module in ("SNMPv2-MIB", "HOST-RESOURCES-MIB", "IF-MIB"):
+            with self.subTest(module=module):
+                self.assertEqual(
+                    structure_hash(build(module, genTexts=True)[module]),
+                    structure_hash(build(module, genTexts=False)[module]),
+                )
 
     def testContentHashDiffersBetweenTextModes(self):
         """Expected and permanent: prose is content, so omitting it changes it."""

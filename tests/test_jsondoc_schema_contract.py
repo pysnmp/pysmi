@@ -32,6 +32,7 @@ from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import PackageReader
 from pysmi.writer import CallbackWriter
+from tests.harness import render_json
 
 try:
     import jsonschema
@@ -89,6 +90,54 @@ def compile_modules(genTexts):
     return documents
 
 
+#: AGENT-CAPABILITIES, which no bundled module declares -- ``SNMPv2-CONF`` only
+#: defines the macro. So ``MODULES`` can never reach that class however it grows,
+#: and the sample has to carry a fixture for it. Its absence is what let
+#: ``agentcapabilities`` stay out of the schema's class enum while every emitted
+#: document still validated (pysnmp/pysmi#200).
+#:
+#: Every optional field of a VARIATION is present, so the widest shape is
+#: covered rather than the narrowest.
+CAPABILITIES_MIB = """
+CAPS-SCHEMA-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    AGENT-CAPABILITIES
+        FROM SNMPv2-CONF
+    OBJECT-TYPE, Integer32
+        FROM SNMPv2-SMI;
+
+capsObject OBJECT-TYPE
+    SYNTAX      Integer32 (0..100)
+    MAX-ACCESS  read-create
+    STATUS      current
+    DESCRIPTION "An object a variation refines."
+    ::= { 1 3 1 }
+
+capsCapability AGENT-CAPABILITIES
+    PRODUCT-RELEASE "Test product"
+    STATUS          current
+    DESCRIPTION     "The capabilities."
+
+    SUPPORTS        CAPS-SCHEMA-MIB
+    INCLUDES        { capsGroup }
+
+    VARIATION       capsObject
+    SYNTAX          Integer32 (0..10)
+    WRITE-SYNTAX    Integer32 (0..5)
+    ACCESS          not-implemented
+    CREATION-REQUIRES { capsObject }
+    DEFVAL          { 3 }
+    DESCRIPTION     "Every optional field at once."
+
+    VARIATION       capsObject
+    DESCRIPTION     "Implemented, with no refinement."
+
+    ::= { 1 3 2 }
+
+END
+"""
+
+
 @unittest.skipIf(jsonschema is None, "jsonschema is not installed")
 class DocumentValidationTestCase(unittest.TestCase):
     """Every emitted document satisfies the published document schema."""
@@ -97,7 +146,27 @@ class DocumentValidationTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.withTexts = compile_modules(genTexts=True)
         cls.withoutTexts = compile_modules(genTexts=False)
+
+        for genTexts, sample in (
+            (True, cls.withTexts),
+            (False, cls.withoutTexts),
+        ):
+            sample["CAPS-SCHEMA-MIB"] = render_json(CAPABILITIES_MIB, genTexts=genTexts)
+
         cls.validator = jsonschema.Draft202012Validator(schema("document"))
+
+    def testTheSchemaIsItselfValid(self):
+        """The published schema is a valid draft 2020-12 schema.
+
+        Nothing asserted this, and it was not. ``$defs/byClass`` is itself
+        validated as a schema, so a branch keyed ``type`` was read as the
+        ``type`` *keyword*, whose value must name a simple type. Instance
+        validation never noticed, because a ``$ref`` resolves the branch
+        directly -- only ``check_schema`` did (pysnmp/pysmi#200).
+        """
+        for kind in ("document", "index"):
+            with self.subTest(kind=kind):
+                jsonschema.Draft202012Validator.check_schema(schema(kind))
 
     def assertValidates(self, documents):
         """Every document in *documents* validates, named on failure."""
@@ -124,19 +193,37 @@ class DocumentValidationTestCase(unittest.TestCase):
         """
         self.assertValidates(self.withoutTexts)
 
-    def testTheSampleReachesEverySymbolClass(self):
-        """A schema branch no document reaches is a branch nothing tests."""
-        reached = {
+    #: Top-level keys that are not MIB symbols. The schema says as much:
+    #: "Keys other than 'meta' and 'imports' are MIB symbol names." Both carry
+    #: a class of their own, so neither belongs in a symbol-class comparison.
+    NOT_SYMBOLS = frozenset(("meta", "imports"))
+
+    def sampledClasses(self):
+        return {
             symbol["class"]
             for document in self.withTexts.values()
             for key, symbol in document.items()
-            if key != "meta" and isinstance(symbol, dict)
+            if key not in self.NOT_SYMBOLS and isinstance(symbol, dict)
         }
-        declared = set(
-            schema("document")["$defs"]["symbol"]["properties"]["class"]["enum"]
-        )
 
-        self.assertEqual(declared - reached, set())
+    def declaredClasses(self):
+        return set(schema("document")["$defs"]["symbol"]["properties"]["class"]["enum"])
+
+    def testTheSampleReachesEverySymbolClass(self):
+        """A schema branch no document reaches is a branch nothing tests."""
+        self.assertEqual(self.declaredClasses() - self.sampledClasses(), set())
+
+    def testTheSchemaDeclaresEveryClassTheGeneratorEmits(self):
+        """And the converse, which is the direction that actually broke.
+
+        Only ``declared - reached`` was asserted, so a class the generator
+        emits and the schema does not declare passed both ways: the enum said
+        nothing about it, and no bundled module produced one to fail on.
+        ``agentcapabilities`` was in exactly that gap -- emitted by
+        ``JsonCodeGen``, absent from the enum, and therefore a document that
+        pysmi produced and pysmi's own schema rejected (pysnmp/pysmi#200).
+        """
+        self.assertEqual(self.sampledClasses() - self.declaredClasses(), set())
 
     def testTheSampleReachesTheAwkwardConstructs(self):
         """The sample covers more than the common shapes."""

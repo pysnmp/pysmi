@@ -154,16 +154,11 @@ def structure_hash(document: dict[str, Any]) -> str:
     differing only in their DESCRIPTION text share this hash and differ in
     :py:func:`content_hash`.
 
-    .. warning::
-
-       This is **not** currently equal between a document generated with texts
-       and one generated without, though it is defined so that it should be.
-       Two open defects make a no-texts document structurally lossy rather than
-       merely prose-free: MODULE-COMPLIANCE refinements are dropped rather than
-       stripped (pysnmp/pysmi#190), and ``lastupdated`` is suppressed with the
-       prose despite being a timestamp (pysnmp/pysmi#191). Until both are
-       fixed, compute hashes from a document generated **with** texts and
-       discard what you do not need.
+    Equal between a document generated with texts and one generated without:
+    prose is the only thing text suppression removes. That held only once
+    pysnmp/pysmi#190, #191 and #192 landed -- before them a no-texts document
+    was structurally lossy, dropping MODULE-COMPLIANCE refinement entries and
+    ``lastupdated``, and the two disagreed.
 
     Args:
         document: a decoded schema-v1 JSON document.
