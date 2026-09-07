@@ -26,7 +26,7 @@ from pysmi._aliases import deprecated_camel_case
 from pysmi.borrower.base import AbstractBorrower
 from pysmi.codegen.base import REPAIRED_IMPORTS_KEY, AbstractCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysmi.mibinfo import MibInfo, source_digest
+from pysmi.mibinfo import MibInfo, normalise_revision, source_digest
 from pysmi.parser.base import AbstractParser
 from pysmi.reader.base import AbstractReader
 from pysmi.searcher.base import AbstractSearcher
@@ -89,12 +89,7 @@ def revision_of(mibData: str) -> str | None:
     if not match:
         return None
 
-    stamp = match[1]
-
-    if len(stamp) == 11:
-        stamp = ("19" if stamp[:2] >= "70" else "20") + stamp
-
-    return stamp
+    return normalise_revision(match[1])
 
 
 @deprecated_camel_case
