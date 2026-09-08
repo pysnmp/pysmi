@@ -114,8 +114,8 @@ second is not: a caller's dated, newer copy still wins.
 
 .. _bundled-mib-experimental:
 
-An Experimental module something still imports
-----------------------------------------------
+Experimental modules the corpus still imports
+---------------------------------------------
 
 Experimental status keeps a module out only while nothing needs it. **An
 Experimental RFC module is bundled, and counts as current, for as long as
