@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.0.0-rc.2](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.1...v3.0.0-rc.2) (2026-09-08)
+
+### Features
+
+* **parser:** tolerate an OBJECT-TYPE descriptor that starts upper case ([51a689b](https://github.com/pysnmp/pysmi/commit/51a689be0acdc4f70bf3fd5f7fdb013c195a6553))
+
 ## [3.0.0-rc.1](https://github.com/pysnmp/pysmi/compare/v2.4.0-rc.2...v3.0.0-rc.1) (2026-09-08)
 
 ### ⚠ BREAKING CHANGES
