@@ -411,8 +411,10 @@ class PrecedenceIsReportedTestCase(unittest.TestCase):
         self.compiler.add_sources(FileReader(second.name))
         processed = self.compiler.compile("VENDOR-MIB", ignoreErrors=True)
 
+        # os.path.join, not a "/" of our own: the reader reports the path the
+        # filesystem gave it, which on Windows is separated by a backslash.
         self.assertEqual(
-            (f"file://{self._tmp.name}/VENDOR-MIB",),
+            ("file://" + os.path.join(self._tmp.name, "VENDOR-MIB"),),
             processed["VENDOR-MIB"].shadowed,
         )
 

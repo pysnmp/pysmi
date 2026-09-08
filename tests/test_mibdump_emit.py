@@ -80,6 +80,17 @@ class EmitSpecTestCase(unittest.TestCase):
         self.assertEqual("json", destination.format)
         self.assertIsNone(destination.directory)
 
+    def testAWindowsDriveLetterStaysInTheDirectory(self):
+        """The split is at the first colon, which a drive letter comes after.
+
+        Splitting at the last one would read the drive letter as the format
+        and leave the path without it.
+        """
+        destination = mibdump._parse_emit(r"json:C:\output\json")
+
+        self.assertEqual("json", destination.format)
+        self.assertEqual(r"C:\output\json", destination.directory)
+
     def testAnUnknownModifierIsRefused(self):
         with self.assertRaises(Exception) as raised:
             mibdump._parse_emit("json+html:/writes/here")
@@ -114,7 +125,10 @@ class EmitCompileTestCase(unittest.TestCase):
     def _run(self, *args):
         return runMibdump(
             "--quiet",
-            f"--mib-source=file://{self.sources}",
+            # A bare path, not a file:// URL: on Windows the drive letter
+            # makes the URL unparseable, which is why every other mibdump test
+            # passes the path itself.
+            f"--mib-source={self.sources}",
             f"--mib-borrower={self.borrowers}",
             "--no-python-compile",
             *args,
@@ -153,7 +167,7 @@ class EmitCompileTestCase(unittest.TestCase):
 
         runMibdump(
             "--quiet",
-            f"--mib-source=file://{self.sources}",
+            f"--mib-source={self.sources}",
             f"--mib-borrower={self.borrowers}",
             "--no-python-compile",
             "--destination-format=json",
@@ -182,7 +196,7 @@ class EmitCompileTestCase(unittest.TestCase):
         alone = Path(self._tmp.name) / "json-alone"
         runMibdump(
             "--quiet",
-            f"--mib-source=file://{self.sources}",
+            f"--mib-source={self.sources}",
             f"--mib-borrower={self.borrowers}",
             "--no-python-compile",
             "--destination-format=json",
