@@ -9,14 +9,13 @@
 import contextlib
 import logging
 import os
-import tempfile
 from collections.abc import Iterable
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode, encode
 from pysmi.mibinfo import producer_of
-from pysmi.writer.base import AbstractWriter, readable_mode
+from pysmi.writer.base import AbstractWriter, open_new_file
 
 logger = logging.getLogger(__name__)
 
@@ -94,13 +93,9 @@ class FileWriter(AbstractWriter):
         tfile = None
 
         try:
-            fd, tfile = tempfile.mkstemp(dir=self._path)
+            fd, tfile = open_new_file(self._path)
             os.write(fd, encode(data))
             os.close(fd)
-            # mkstemp creates 0600 and the rename carries that through, so
-            # without this every module written is readable only by the user
-            # who built it. See readable_mode().
-            os.chmod(tfile, readable_mode())
             os.replace(tfile, filename)
 
         except (OSError, UnicodeEncodeError) as exc:
