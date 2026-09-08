@@ -138,6 +138,13 @@ class BundledMibsCompileTestCase(unittest.TestCase):
                     # No URL: the source is whatever the IEEE directory
                     # currently publishes, and this records what we took.
                     self.assertRegex(entry["revision"], r"^\d{12}$")
+                elif entry["source"] == "internet-draft":
+                    # No URL either: the source is the archived draft revision
+                    # named here, and the address it lives at is written once,
+                    # in DRAFT_ARCHIVE. An unrevisioned working-group name
+                    # cannot be re-cut from, so it is archived instead and
+                    # never reaches this branch.
+                    self.assertRegex(entry["draft"], r"^draft-[a-z0-9-]+-\d{2}$")
                 else:
                     self.assertTrue(entry["url"].startswith("https://"))
 

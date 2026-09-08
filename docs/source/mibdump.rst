@@ -59,7 +59,7 @@ into various formats.
                   bundled base MIBs (SNMPv2-SMI and similar) at all. The
                   bundle is not a last-resort fallback: it is consulted
                   ahead of --mib-source, and where both have one of the
-                  484 bundled modules the newer MODULE-IDENTITY
+                  485 bundled modules the newer MODULE-IDENTITY
                   LAST-UPDATED supplies it -- so a --mib-source carrying a
                   newer revision still wins, and one carrying an older or
                   undated copy does not. Revisions are only compared across
@@ -72,7 +72,7 @@ into various formats.
                   --mib-source supply one wherever the revisions do not
                   decide: a module with no MODULE-IDENTITY to compare, or two
                   copies carrying the same one. The newest revision still
-                  wins when every copy found has one. 51 of the 484 bundled
+                  wins when every copy found has one. 51 of the 485 bundled
                   modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
                   SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
                   all, so this is what decides them.
@@ -185,7 +185,7 @@ that the file named on the command line is the one that gets read.
 Which copy of a MIB gets compiled
 ---------------------------------
 
-pysmi ships its own copies of 484 base MIBs (SNMPv2-SMI and similar; see
+pysmi ships its own copies of 485 base MIBs (SNMPv2-SMI and similar; see
 :ref:`bundled-mibs`) and searches them alongside --mib-source, so more than one source can
 have the same MIB module -- two --mib-source options, or a --mib-source and
 the bundle. Which copy is used is decided by these rules, in order:
@@ -199,7 +199,8 @@ the bundle. Which copy is used is decided by these rules, in order:
    --mib-source for this rule, and for this rule only.
 
 Rule 1 applies only to the modules pysmi bundles, each pinned to the RFC, IANA
-registry or IEEE 802.1 file that publishes it and re-checked against it. Two copies of one of those are
+registry, IEEE 802.1 file or archived Internet-Draft revision that publishes it
+and re-checked against it. Two copies of one of those are
 the same specification at two revisions, and the newer is simply better. Two
 copies of a vendor MIB are not that -- they are a collision, or two firmware
 revisions -- so pysmi never picks between them: whichever --mib-source came
@@ -209,7 +210,7 @@ Rule 1 needs a LAST-UPDATED on *every* copy, not just on the bundled one: an
 undated copy cannot be placed against a dated one, so a single undated copy
 drops the whole module to rule 2 whatever the others carry.
 
-That case is not a corner: **51 of the 484 bundled modules carry no
+That case is not a corner: **51 of the 485 bundled modules carry no
 MODULE-IDENTITY at all** -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF, RFC1155-SMI,
 RFC1213-MIB, RFC-1212, RFC-1215, IPV6-TC, TOKEN-RING-RMON-MIB, the PPP and
 RFC1xxx-MIB modules, and the rest of the pre-SMIv2 set;

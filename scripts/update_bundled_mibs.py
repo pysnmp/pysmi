@@ -63,6 +63,18 @@ machinery behind them:
     URL is immutable, so ``--check`` would compare equal forever while IEEE
     moved on, and the module would trail upstream with nothing able to say so.
 
+``internet-draft``
+    The module is cut out of the IETF draft that defines it, at the archived
+    revision the manifest pins in ``draft``. A revision in that archive is
+    immutable, so a copy taken from one cannot drift, and ``--check`` re-cuts
+    and compares it. The archive serves its text with the form feeds stripped,
+    so :py:func:`unpaginate` depaginates on the footer line instead, and the
+    draft's module indent comes off so the text sits at the left margin the way
+    an RFC prints it.
+
+    An entry naming only a working-group document -- no revision -- is
+    ``archived``: there is no single document to re-cut from.
+
 ``local``
     Five compatibility modules that no publisher ships, so there is nothing to
     fetch and ``--check`` has nothing to compare against. RFC-1212 and RFC-1215
@@ -76,7 +88,8 @@ machinery behind them:
     real, but does not serve the text at a URL this script can fetch. CableLabs
     modules dropped from the live directory, the ATM Forum set, the IEEE and
     TIA modules absent from any public MIB directory, DMTF and SCTE behind a
-    403, IEC behind a paywall, and the expired Internet-Drafts all sit here.
+    403, IEC behind a paywall, and the Internet-Drafts whose bundled text
+    matches no archived revision closely enough to name one all sit here.
     ``--check`` skips them, and :py:func:`refetchable` is the one place that is
     decided.
 
@@ -149,6 +162,7 @@ import pathlib
 import re
 import sys
 import tempfile
+import textwrap
 import urllib.request
 from functools import cache
 from typing import Any
@@ -185,14 +199,25 @@ def download(url: str) -> bytes:
     return data
 
 
+#: The line an RFC or Internet-Draft ends each page with.
+PAGINATION_FOOTER = re.compile(r"\[Page\s+\d+\]\s*$")
+
+
 def unpaginate(text: str) -> str:
-    """Drop the footer and header that straddle each form feed in an RFC.
+    """Drop the footer and header that straddle each page break.
 
     Both the blank lines a running header sits in and the ones above the page
     footer go with them, so that a module's text reads as it would have without
     the page breaks. Leaving them in produces a file that still compiles but
     diffs badly against every other copy of the same module.
+
+    A document with no form feed in it at all is depaginated on its footer
+    lines instead -- see :py:func:`unpaginate_unfed`. Every RFC has form feeds;
+    the IETF's Internet-Draft archive serves text that has had them stripped.
     """
+    if "\f" not in text:
+        return unpaginate_unfed(text)
+
     pages = []
 
     for number, page in enumerate(text.split("\f")):
@@ -208,7 +233,7 @@ def unpaginate(text: str) -> str:
 
         while lines and not lines[-1].strip():
             lines.pop()
-        if lines and re.search(r"\[Page\s+\d+\]\s*$", lines[-1]):
+        if lines and PAGINATION_FOOTER.search(lines[-1]):
             lines.pop()
             while lines and not lines[-1].strip():
                 lines.pop()
@@ -216,6 +241,43 @@ def unpaginate(text: str) -> str:
         pages.append("\n".join(lines))
 
     return "\n".join(pages)
+
+
+def unpaginate_unfed(text: str) -> str:
+    """Drop page furniture from a document whose form feeds were stripped.
+
+    The footer line is the anchor: everything from it through the running
+    header that follows goes, with the blank lines on either side of both. A
+    document that never paginated has no footer lines and comes back unchanged.
+    """
+    lines = text.split("\n")
+    out: list[str] = []
+    index = 0
+
+    while index < len(lines):
+        if not PAGINATION_FOOTER.search(lines[index]):
+            out.append(lines[index])
+            index += 1
+            continue
+
+        while out and not out[-1].strip():
+            out.pop()
+
+        index += 1
+        while index < len(lines) and not lines[index].strip():
+            index += 1
+        if index < len(lines):
+            index += 1  # The running header.
+        while index < len(lines) and not lines[index].strip():
+            index += 1
+
+    # The form-feed path drops the blank lines above every page footer, the
+    # document's last page included. Do the same here, so a document reads the
+    # same whichever path depaginated it.
+    while out and not out[-1].strip():
+        out.pop()
+
+    return "\n".join(out)
 
 
 #: An RFC may put the module name and ``DEFINITIONS`` on separate lines -- RFC
@@ -228,14 +290,13 @@ BEGINS = re.compile(
 ENDS = re.compile(r"^[ \t]*END[ \t]*$", re.M)
 
 
-def extract(mibname: str, rfc: int) -> bytes:
-    """Cut one MIB module out of the RFC that defines it.
+def cut(mibname: str, body: str, document: str) -> bytes:
+    """Cut one MIB module out of *body*, an already unpaginated document.
 
-    An RFC can carry several modules, and a module can carry a MACRO whose
+    A document can carry several modules, and a module can carry a MACRO whose
     own END is not the module's, so the module runs from its BEGIN to the
     last END before whatever module comes next.
     """
-    body = unpaginate(download(RFC.format(rfc)).decode("utf-8", "replace"))
     starts = [(match.group(1), match.start()) for match in BEGINS.finditer(body)]
 
     for index, (name, start) in enumerate(starts):
@@ -249,7 +310,28 @@ def extract(mibname: str, rfc: int) -> bytes:
 
         return (body[start : ends[-1].end()] + "\n").encode()
 
-    raise SystemExit(f"{mibname}: no such module in RFC {rfc}")
+    raise SystemExit(f"{mibname}: no such module in {document}")
+
+
+def extract(mibname: str, rfc: int) -> bytes:
+    """Cut one MIB module out of the RFC that defines it."""
+    body = unpaginate(download(RFC.format(rfc)).decode("utf-8", "replace"))
+
+    return cut(mibname, body, f"RFC {rfc}")
+
+
+def extract_draft(mibname: str, draft: str) -> bytes:
+    """Cut one MIB module out of the Internet-Draft that defines it.
+
+    A draft prints its module indented under the surrounding prose, where an
+    RFC prints it at the left margin. The bundle holds every module the way an
+    RFC prints it, so the indent every line shares comes off -- otherwise the
+    same module would diff against every other copy of itself on whitespace
+    alone.
+    """
+    body = unpaginate(download(DRAFT_ARCHIVE.format(draft)).decode("utf-8", "replace"))
+
+    return textwrap.dedent(cut(mibname, body, draft).decode()).encode()
 
 
 HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
@@ -412,6 +494,8 @@ def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
 
     if entry["source"] == "rfc":
         data = extract(mibname, entry["rfc"])
+    elif entry["source"] == "internet-draft":
+        data = extract_draft(mibname, entry["draft"])
     elif entry["source"] == "ieee802.1":
         data = as_utf8(download(ieee_current(mibname)[1]))
     else:
@@ -854,8 +938,9 @@ obsoletion, since an RFC's text never changes but a later RFC can replace it.
 A Source shown without a link is ``archived``: the publisher is named and real,
 but serves no MIB file this script can fetch -- CableLabs modules dropped from
 the live directory, the ATM Forum set, IEEE and TIA modules absent from any
-public MIB directory, DMTF and SCTE behind a 403, IEC behind a paywall, expired
-Internet-Drafts. ``--check`` stays quiet about those. Five more are maintained
+public MIB directory, DMTF and SCTE behind a 403, IEC behind a paywall,
+Internet-Drafts whose bundled text matches no archived revision closely enough
+to name one. ``--check`` stays quiet about those. Five more are maintained
 in this repository outright and listed under :ref:`bundled-mib-local`.
 
 {patched} modules carry a patch, listed under :ref:`bundled-mib-patches` below,
