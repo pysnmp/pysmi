@@ -28,6 +28,7 @@ smiV1Relaxed.update(
     mixOfCommasAndSpaces=True,
     uppercaseIdentifier=True,
     lowcaseIdentifier=True,
+    uppercaseDescriptor=True,
     curlyBracesAroundEnterpriseInTrap=True,
     noCells=True,
 )

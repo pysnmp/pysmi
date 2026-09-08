@@ -567,6 +567,10 @@ relaxedGrammar = {
     "mixOfCommasAndSpaces": [],
     "uppercaseIdentifier": [],
     "lowcaseIdentifier": [],
+    # Purely a grammar relaxation: the lexer already emits
+    # UPPERCASE_IDENTIFIER for the descriptor, and the parser decides
+    # whether to accept it where a descriptor belongs.
+    "uppercaseDescriptor": [],
     "curlyBracesAroundEnterpriseInTrap": [],
     "noCells": [],
 }

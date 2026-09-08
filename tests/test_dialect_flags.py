@@ -142,12 +142,30 @@ END
 """
 
 
+#: RFC 2578 Section 3.1 reserves an upper case initial for a type name, so a
+#: descriptor beginning with one is refused: the lexer emits
+#: UPPERCASE_IDENTIFIER and no production accepts it where a descriptor
+#: belongs. Vendors write it anyway.
+UPPERCASE_DESCRIPTOR = """
+TEST-MIB DEFINITIONS ::= BEGIN
+IMPORTS OBJECT-TYPE, Integer32 FROM SNMPv2-SMI;
+TestObject OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "A descriptor the SMI requires to start lower case."
+    ::= { 1 3 1 }
+END
+"""
+
+
 CASES = {
     "commaAtTheEndOfImport": COMMA_IN_IMPORT,
     "commaAtTheEndOfSequence": COMMA_IN_SEQUENCE,
     "mixOfCommasAndSpaces": MIXED_SEPARATORS,
     "uppercaseIdentifier": UPPERCASE_ENUM_ITEM,
     "lowcaseIdentifier": UPPERCASE_NOTIFICATION,
+    "uppercaseDescriptor": UPPERCASE_DESCRIPTOR,
     "curlyBracesAroundEnterpriseInTrap": BRACED_ENTERPRISE,
     "noCells": EMPTY_CREATION_REQUIRES,
 }
@@ -205,6 +223,26 @@ class DialectTestCase(unittest.TestCase):
 
     def testStrictSmiV2CarriesNoRelaxations(self):
         self.assertEqual(dialect.smiV2, {})
+
+
+class UppercaseDescriptorTestCase(unittest.TestCase):
+    """The descriptor is kept as the vendor wrote it, not corrected.
+
+    A descriptor is what an OID resolves to, so changing its case changes the
+    answer every consumer of that MIB gets. The relaxation accepts the name;
+    it does not rewrite it.
+    """
+
+    def testTheNameSurvivesAsWritten(self):
+        ast = parse(UPPERCASE_DESCRIPTOR, uppercaseDescriptor=True)
+        self.assertIn("TestObject", str(ast))
+        self.assertNotIn("testObject", str(ast))
+
+    def testALowercaseDescriptorIsUnaffected(self):
+        lowered = UPPERCASE_DESCRIPTOR.replace("TestObject", "testObject")
+        for options in ({}, {"uppercaseDescriptor": True}):
+            with self.subTest(options=options):
+                self.assertIn("testObject", str(parse(lowered, **options)))
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

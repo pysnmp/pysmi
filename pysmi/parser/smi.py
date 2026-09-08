@@ -1554,6 +1554,46 @@ class UppercaseIdentifier:
 
 
 # noinspection PyIncorrectDocstring
+class UppercaseDescriptor:
+    """Tolerate an OBJECT-TYPE descriptor that begins with an upper case letter.
+
+    RFC 2578 Section 3.1 reserves an upper case initial for a type name and
+    requires a descriptor -- the name of an object -- to begin lower case.
+    Vendors get this wrong often enough to matter: 26 modules across seven
+    vendors in the pysnmp/mibs corpus name an OBJECT-TYPE this way, and the
+    lexer classifies the name as an ``UPPERCASE_IDENTIFIER`` that no
+    production accepts, so the whole module is refused.
+
+    Accepting it keeps the vendor's own name for the object. Correcting the
+    case instead would rename it, and a descriptor is what an OID resolves
+    to, so that changes the answer every consumer of that MIB gets.
+
+    The same latitude the SMI already gets here: ``p_valueDeclaration``
+    accepts ``fuzzy_lowercase_identifier`` for an OBJECT IDENTIFIER
+    declaration, and this applies it to OBJECT-TYPE.
+    """
+
+    @staticmethod
+    def p_objectTypeClause(self: "SmiV2Parser", p: YaccProduction) -> None:
+        """objectTypeClause : fuzzy_lowercase_identifier OBJECT_TYPE SYNTAX Syntax UnitsPart MaxOrPIBAccessPart STATUS Status descriptionClause ReferPart IndexPart MibIndex DefValPart COLON_COLON_EQUAL '{' ObjectName '}'"""
+        p[0] = (
+            "objectTypeClause",
+            p[1],  # id
+            #  p[2], # OBJECT_TYPE
+            p[4],  # syntax
+            p[5],  # UnitsPart
+            p[6],  # MaxOrPIBAccessPart
+            p[8],  # status
+            p[9],  # descriptionClause
+            p[10],  # reference
+            p[11],  # augmentations
+            p[12],  # index
+            p[13],  # DefValPart
+            p[16],
+        )  # ObjectName
+
+
+# noinspection PyIncorrectDocstring
 class LowcaseIdentifier:
     """Tolerate a lower-case identifier where SMI requires upper case."""
 
@@ -1633,6 +1673,7 @@ relaxedGrammar = {
     "mixOfCommasAndSpaces": [CommaAndSpaces.p_enumItems],
     "uppercaseIdentifier": [UppercaseIdentifier.p_enumItem],
     "lowcaseIdentifier": [LowcaseIdentifier.p_notificationTypeClause],
+    "uppercaseDescriptor": [UppercaseDescriptor.p_objectTypeClause],
     "curlyBracesAroundEnterpriseInTrap": [
         CurlyBracesInEnterprises.p_trapTypeClause,
         CurlyBracesInEnterprises.p_EnterprisePart,
