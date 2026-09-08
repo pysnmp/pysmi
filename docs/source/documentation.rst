@@ -43,6 +43,7 @@ chosen and configured to compiler.
 
    /mibdump
    /mibcopy
+   /mibcorpus
    /bundled-mibs
    /jsondoc-schema
    /mibs-as-data

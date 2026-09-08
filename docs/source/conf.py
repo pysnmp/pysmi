@@ -336,3 +336,16 @@ napoleon_use_admonition_for_references = False
 napoleon_use_ivar = False
 napoleon_use_param = False
 napoleon_use_rtype = False
+
+# Sphinx cross-references each token of a signature annotation and splits a
+# nested generic on its commas, so a dataclass field annotated
+# ``dict[str, int]`` is looked up as a class called "dict[str". These are
+# fragments of a type expression rather than names, and nothing will ever
+# define them; ignoring them keeps ``-n`` meaningful for the names that are
+# real. Rendering the annotations as a description list instead removes the
+# warnings and also duplicates every Args: section napoleon already renders,
+# which is a worse trade. See pysnmp/pysmi#182.
+nitpick_ignore = [
+    ("py:class", "dict[str"),
+    ("py:class", "list[dict[str"),
+]

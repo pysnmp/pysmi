@@ -16,6 +16,7 @@ fails.
 import copy
 import logging
 import re
+from dataclasses import dataclass
 from functools import cache
 from hashlib import sha256
 from importlib import resources
@@ -181,6 +182,31 @@ statusUnprocessed: Final = MibStatus("unprocessed")
 statusMissing: Final = MibStatus("missing")
 statusBorrowed: Final = MibStatus("borrowed")
 statusPruned: Final = MibStatus("pruned")
+
+
+@dataclass(frozen=True)
+class MibResolution:
+    """Which copy of one MIB module a set of sources supplies.
+
+    What :py:meth:`MibCompiler.resolve` reports: the file that would be
+    compiled, the ones passed over, and the rule that chose between them.
+    """
+
+    #: The module name asked for.
+    name: str
+    #: URL the copy that wins was read from.
+    path: str
+    #: File name that copy was found under.
+    file: str
+    #: Its ASN.1 text.
+    data: str
+    #: Digest of that text, as ``source_digest`` computes it.
+    digest: str
+    #: Paths of the copies passed over, where their content differed.
+    shadowed: tuple[str, ...] = ()
+    #: Which rule put the winner first, one of the ``PRECEDENCE_*``
+    #: constants. Empty when only one source had the module.
+    precedence: str = ""
 
 
 @deprecated_camel_case
@@ -622,6 +648,49 @@ class MibCompiler:
         )
 
         return [candidate for _, candidate in ordered], PRECEDENCE_NEWEST_REVISION
+
+    def resolve(self, mibname: str) -> "MibResolution | None":
+        """Which copy of *mibname* the configured sources supply, without compiling it.
+
+        :py:meth:`compile` answers this on the way past, on
+        ``MibStatus.path``, ``MibStatus.shadowed`` and
+        ``MibStatus.precedence`` -- but only for a module it went on to
+        compile, and only after it has. A driver publishing the ASN.1 beside
+        the compiled output has to answer it for every module it holds,
+        including the ones that fail, and has to answer it the same way the
+        compile will. Asking here is what makes the two agree by
+        construction rather than by inspection.
+
+        The rule is :py:meth:`compile`'s own, applied by the same code: the
+        newest MODULE-IDENTITY revision wins, source order breaks the tie.
+
+        Args:
+            mibname: MIB module name
+
+        Returns:
+            What the sources hold for that name, or ``None`` when none of
+            them has it.
+        """
+        candidates, precedence = self._candidate_sources(mibname)
+
+        if not candidates:
+            return None
+
+        _, mibInfo, mibData = candidates[0]
+
+        return MibResolution(
+            name=mibname,
+            path=mibInfo.path,
+            file=mibInfo.file,
+            data=mibData,
+            digest=mibInfo.digest,
+            shadowed=tuple(
+                info.path
+                for _, info, _ in candidates[1:]
+                if info.digest != mibInfo.digest
+            ),
+            precedence=precedence,
+        )
 
     def add_searchers(self, *searchers: "AbstractSearcher") -> "MibCompiler":
         """Add more transformed MIBs repositories.

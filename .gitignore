@@ -31,7 +31,10 @@ out
 # pysmi/cache source package. This is the scratch directory at the root.
 /cache
 *.log
-index.*
+# Anchored, for the same reason as /cache above: a bare `index.*` matches that
+# name at any depth, which hid pysmi/corpus/index.py and its documentation
+# page. This is the index a local build writes at the root.
+/index.*
 report.md
 .DS_Store
 

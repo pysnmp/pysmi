@@ -445,7 +445,10 @@ pysnmp.
 * A corpus driver over multiple source namespaces, deterministic by
   construction: a fixed immutable input set, no writes into a directory that is
   concurrently a source, and no network source. The defects catalogued in
-  pysnmp/pysnmp#149 are corrected here.
+  pysnmp/pysnmp#149 are corrected here. **Done**: :ref:`mibcorpus` and
+  :py:mod:`pysmi.corpus` (pysnmp/pysmi#182). The open question below about the
+  entry point is settled with it -- a corpus build takes a manifest of source
+  namespaces rather than a module list, so it is its own console script.
 * Conformance fixture for downstream readers.
 
 **pysmi -- retained.** ``codegen/pysnmp.py`` and
@@ -587,9 +590,10 @@ Unchanged by this proposal:
 Raised by this proposal:
 
 * Whether the corpus back end is a ``mibdump`` destination format or a separate
-  console script. A corpus build takes a source set and a selection config
-  rather than a module list, so ``mibdump`` may not be the appropriate entry
-  point.
+  console script. **Settled**: a separate console script. A corpus build takes
+  a manifest of source namespaces rather than a module list, and it produces
+  every artifact at once; the *formats* remain ``mibdump`` destinations. See
+  :ref:`mibcorpus`.
 * Whether pysmi bundling 210 modules changes the purpose of ``src/standard`` in
   the mibs repository. The two now overlap, and one of them must be
   authoritative for a given module. Narrowing the bundle to what the corpus
