@@ -1666,8 +1666,10 @@
       "source": "rfc"
     },
     "SFLOW-MIB": {
-      "rfc": 3176,
-      "source": "rfc"
+      "extract": true,
+      "reason": "RFC 3176 is InMon's sFlow v4 module on 1.3.6.1.4.1.4300; sFlow.org took the specification over and registered 1.3.6.1.4.1.14706, where the module has been revised through 2003-10-18. They are different registrations, not two revisions of one module, and only one can be bundled under this name. The v5 module is the one agents implement and the one whose sFlowCp*, sFlowFs* and sFlowRcvr* tables other MIBs import; the v4 module defines none of them.",
+      "source": "sflow",
+      "url": "https://sflow.org/sflow_version_5.txt"
     },
     "SIP-COMMON-MIB": {
       "rfc": 4780,

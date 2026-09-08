@@ -481,6 +481,37 @@ class DepaginationTestCase(unittest.TestCase):
             cut.decode(),
         )
 
+    def testAModuleIsCutOutOfTheDocumentAUrlServes(self):
+        """Some publishers ship the module inside a specification.
+
+        sFlow.org publishes SFLOW-MIB inside the sFlow version 5 document
+        rather than as a file of its own. Cutting it out is what keeps the
+        entry re-fetchable, so --check compares against the publisher rather
+        than trusting the copy in the bundle.
+        """
+        document = (
+            b"   Some specification prose.\n"
+            b"\n"
+            b"   SOME-MIB DEFINITIONS ::= BEGIN\n"
+            b"\n"
+            b"   IMPORTS\n"
+            b"      MODULE-IDENTITY FROM SNMPv2-SMI;\n"
+            b"\n"
+            b"   END\n"
+            b"\n"
+            b"   More prose, and another module this one is not.\n"
+        )
+
+        with mock.patch.object(update_bundled_mibs, "download", return_value=document):
+            cut = update_bundled_mibs.extract_url(
+                "SOME-MIB", "https://example.invalid/spec"
+            )
+
+        self.assertEqual(
+            "SOME-MIB DEFINITIONS ::= BEGIN\n\nIMPORTS\n   MODULE-IDENTITY FROM SNMPv2-SMI;\n\nEND\n",
+            cut.decode(),
+        )
+
     def testNoBundledModuleCarriesPageFurniture(self):
         """The whole bundle, not just the entry that prompted the check.
 

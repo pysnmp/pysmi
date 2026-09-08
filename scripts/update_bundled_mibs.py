@@ -320,6 +320,19 @@ def extract(mibname: str, rfc: int) -> bytes:
     return cut(mibname, body, f"RFC {rfc}")
 
 
+def extract_url(mibname: str, url: str) -> bytes:
+    """Cut one MIB module out of the document *url* serves.
+
+    Some publishers ship the module inside a specification rather than as a
+    file of its own -- sFlow.org publishes SFLOW-MIB inside the sFlow version
+    5 specification. Cutting it out keeps the entry re-fetchable, so
+    ``--check`` re-cuts and compares rather than trusting the copy here.
+    """
+    body = unpaginate(download(url).decode("utf-8", "replace"))
+
+    return textwrap.dedent(cut(mibname, body, url).decode()).encode()
+
+
 def extract_draft(mibname: str, draft: str) -> bytes:
     """Cut one MIB module out of the Internet-Draft that defines it.
 
@@ -412,6 +425,7 @@ PUBLISHERS = {
     "mef": "MEF",
     "profibus": "PROFIBUS International",
     "scte": "SCTE",
+    "sflow": "sFlow.org",
     "tia": "TIA",
     "unattributed": "unattributed",
 }
@@ -498,6 +512,8 @@ def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
         data = extract_draft(mibname, entry["draft"])
     elif entry["source"] == "ieee802.1":
         data = as_utf8(download(ieee_current(mibname)[1]))
+    elif entry.get("extract"):
+        data = extract_url(mibname, entry["url"])
     else:
         data = as_utf8(download(entry["url"]))
 
