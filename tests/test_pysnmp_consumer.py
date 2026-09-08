@@ -220,6 +220,23 @@ class PublicApiTestCase(unittest.TestCase):
     def testTheModuleIdentityCarriesItsRevisions(self):
         self.assertEqual(self.ctx["testModule"].getRevisions(), ("2000-01-10 00:00",))
 
+    def testAGroupLargerThanOneSetObjectsCallKeepsEveryObject(self):
+        # setObjects() takes 255 arguments, so a larger group is emitted as a
+        # loop over batches. The generated code used to choose between
+        # appending and replacing by reading mibBuilder.version, and the
+        # replacing branch -- taken on anything older than pysnmp 4.4.2 --
+        # kept only the last batch. It carried a comment saying so. Loader
+        # contract v1 states the append, so there is one path; this reads the
+        # result back off the loaded object rather than off the source.
+        from tests.test_emitted_source import _many_objects_mib
+
+        ctx = render_pysnmp(_many_objects_mib(260))
+        objects = ctx["testGroup"].getObjects()
+
+        self.assertEqual(len(objects), 260)
+        self.assertEqual(objects[0], ("TEST-MIB", "testObject0"))
+        self.assertEqual(objects[-1], ("TEST-MIB", "testObject259"))
+
     def testTheConformanceClassesCarryTheirReference(self):
         # The generator suppressed setReference() for these three, so the text
         # reached the JSON document and nothing else. pysnmp gained the setters

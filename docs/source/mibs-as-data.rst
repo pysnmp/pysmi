@@ -5,11 +5,17 @@ MIBs as data: layering review
 
 .. note::
 
-   Status: **proposal**. Nothing described here is implemented. This page
-   reviews the plan recorded in pysnmp/pysnmp#148 and its child issues and
-   proposes a different placement for one element of it, the schema. It is
-   recorded in pysmi because pysmi is the repository the proposal assigns the
-   schema to.
+   Status: **proposal**, with one part since carried out. This page reviews the
+   plan recorded in pysnmp/pysnmp#148 and its child issues and proposes a
+   different placement for one element of it, the schema. It is recorded in
+   pysmi because pysmi is the repository the proposal assigns the schema to.
+
+   The schema placement this page argues for is still a proposal. What has been
+   done is the loader contract: pysnmp publishes it and exposes
+   ``MibBuilder.loaderContract``, and pysmi's back end targets it rather than
+   inferring the loader's shape at runtime (pysnmp/pysnmp#197,
+   pysnmp/pysmi#194). :ref:`the-base-mib-shape` says so where it comes up, in
+   the past tense.
 
 The effort under review replaces compiled-``.py`` MIB distribution with a
 queryable corpus, so that OID-to-name translation no longer requires every

@@ -584,8 +584,11 @@ for _%(name)s_obj in [%(objects)s]:
     ) -> str:
         """Render a MODULE-IDENTITY clause as a ``ModuleIdentity`` object.
 
-        The revision descriptions are guarded, because older PySNMP versions
-        have no method to set them.
+        The revision dates are emitted unconditionally: which version of the
+        module this is, is structural. The descriptions attached to them are
+        narrative, so they follow ``mibBuilder.loadTexts`` like the rest of the
+        texts. ``setRevisionsDescriptions()`` itself is named by loader
+        contract v1, so no version of the loader is tested for.
 
         Args:
             data: rendered clause values
