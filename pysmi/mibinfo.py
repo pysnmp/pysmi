@@ -92,7 +92,7 @@ def normalise_revision(stamp: str) -> str | None:
     short form the way that section reads it -- two-digit years from 70 are
     1900s, the rest 2000s -- makes plain string comparison correct.
 
-    24 of the 272 bundled modules carrying a MODULE-IDENTITY use the short
+    73 of the 433 bundled modules carrying a MODULE-IDENTITY use the short
     form, so this is not a theoretical case.
 
     A stamp that does not denote a date is refused rather than widened. The

@@ -153,7 +153,7 @@ deterministic ordering, prefix compression, mergeable output and a
 because ``index.py`` in the *mibs* repository is nondeterministic; ``index.py``
 is a separate implementation, not this one.
 
-**pysmi distributes the standard corpus.** As of 2.3.0 pysmi bundles 299 RFC,
+**pysmi distributes the standard corpus.** As of 2.4.0 pysmi bundles 484 RFC,
 IANA and IEEE modules in ``pysmi/mibs/asn1/``. ``bundled_mibs.json`` records
 each module's publisher and, for superseded modules, which module took over
 each subtree. ``pysmi.mibs.successor_for()`` answers which module currently
@@ -256,9 +256,9 @@ The base-MIB shape has three copies
 -----------------------------------
 
 pysmi produces and distributes the pysnmp artifact shape. ``hatch_build.py``
-runs ``PySnmpCodeGen`` over all 299 bundled ASN.1 modules during the wheel build
+runs ``PySnmpCodeGen`` over all 484 bundled ASN.1 modules during the wheel build
 and force-includes the output as ``pysmi/mibs/pysnmp/``. Its docstring states
-the rationale: a consumer that needs to load one of the 299 standard modules
+the rationale: a consumer that needs to load one of the 484 standard modules
 rather than compile it should not have to run the compiler first. Generating
 rather than committing the modules makes their correspondence to the ASN.1
 verifiable by construction.
@@ -275,7 +275,7 @@ producers.
      - Producer
      - Consumer
    * - ``pysmi/mibs/pysnmp/``
-     - 299
+     - 484
      - the current generator over the current ASN.1, during the wheel build
      - none
    * - ``pysnmp/smi/mibs/``
@@ -587,6 +587,6 @@ Raised by this proposal:
   console script. A corpus build takes a source set and a selection config
   rather than a module list, so ``mibdump`` may not be the appropriate entry
   point.
-* Whether pysmi bundling 299 modules changes the purpose of ``src/standard`` in
+* Whether pysmi bundling 484 modules changes the purpose of ``src/standard`` in
   the mibs repository. The two now overlap, and one of them must be
   authoritative for a given module.

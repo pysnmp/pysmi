@@ -419,11 +419,18 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
     #: -- where those symbols are, in the bundle. The ``APPLICATION-MIB`` the
     #: bundle carries is RFC 2287's unrelated module that reused the name. A
     #: corpus problem, tracked in pysnmp/pysmi#199.
+    #:
+    #: ``RFC1353-MIB`` raises ``No symbol RFC1155-SMI::mib``. RFC 1353 names
+    #: ``mib``, RFC 1155's ``{ mgmt 1 }``, which RFC 1213 superseded with
+    #: ``mib-2``; the RFC1155-SMI pysnmp ships exports the latter and not the
+    #: former. The same shape as the two above -- a symbol missing from a base
+    #: module pysnmp supplies, which nothing on this side can add.
     KNOWN_FAILURES = {
         "RFC-1212": "SNMPv2-SMI::ObjectName",
         "RFC-1215": "SNMPv2-SMI::ObjectName",
         "DSA-MIB": "APPLICATION-MIB::DistinguishedName",
         "RDBMS-MIB": "APPLICATION-MIB::applGroup",
+        "RFC1353-MIB": "RFC1155-SMI::mib",
     }
 
     @classmethod
