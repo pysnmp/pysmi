@@ -46,7 +46,7 @@ Internet-Drafts whose bundled text matches no archived revision closely enough
 to name one. ``--check`` stays quiet about those. Five more are maintained
 in this repository outright and listed under :ref:`bundled-mib-local`.
 
-7 modules carry a patch, listed under :ref:`bundled-mib-patches` below,
+9 modules carry a patch, listed under :ref:`bundled-mib-patches` below,
 because their published text does not compile as published.
 
 The same modules ship compiled too. A wheel carries ``pysmi/mibs/pysnmp/``,
@@ -397,6 +397,9 @@ fail rather than silently fuzzing. The defect each one repairs:
 ``DNS-SERVER-MIB``
     RFC 1611 imports from ``RFC-1213``, a module name nothing publishes, and gives INTEGER objects octet-count DISPLAY-HINTs.
 
+``DSA-MIB``
+    RFC 1567 uses OBJECT-GROUP and MODULE-COMPLIANCE without importing them, and imports applIndex and DistinguishedName ``FROM APPLICATION-MIB`` -- the name RFC 1565 gave the Network Services Monitoring MIB, which RFC 2788 renamed NETWORK-SERVICES-MIB and which is bundled under that name. The APPLICATION-MIB bundled here is RFC 2564's unrelated Application Management MIB and defines neither symbol.
+
 ``HPR-MIB``
     RFC 2238 gives LAST-UPDATED a 12-digit value that is neither form RFC 2578 allows, and one comment line lost its leading ``--``.
 
@@ -405,6 +408,9 @@ fail rather than silently fuzzing. The defect each one repairs:
 
 ``MIP-MIB``
     RFC 2006 gives a plain object accessible-for-notify and declares mipSecNotifcationsGroup where its MODULE-COMPLIANCE names mipSecNotificationsGroup. Its missing mib-2, Unsigned32 and NOTIFICATION-GROUP imports are supplied by repairImports rather than here.
+
+``RDBMS-MIB``
+    RFC 1697 uses OBJECT-GROUP and MODULE-COMPLIANCE without importing them, and imports applIndex and applGroup ``FROM APPLICATION-MIB`` -- the name RFC 1565 gave the Network Services Monitoring MIB. RFC 2788 renamed that module NETWORK-SERVICES-MIB and renamed RFC 1565's applGroup to applRFC1565Group, whose DESCRIPTION names it as that original set; the MODULE clause of rdbmsCompliance is renamed with the IMPORTS.
 
 ``RFC1315-MIB``
     RFC 1315 imports TimeTicks ``FROM RFC-1155``, a module name nothing publishes; the same IMPORTS clause spells RFC1213-MIB correctly.
