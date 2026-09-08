@@ -126,6 +126,34 @@ class ManifestTestCase(unittest.TestCase):
         self.assertEqual("pysmi.mibs.asn1", namespace.name)
         self.assertTrue(namespace.is_package)
 
+    def testANamespaceIsPublishedByDefault(self):
+        path = self.manifest(namespaces=[{"source": "src/vendor/cisco"}])
+
+        self.assertTrue(load_manifest(path)[0].publish)
+
+    def testAResolutionSourceSaysSo(self):
+        path = self.manifest(
+            namespaces=[
+                {
+                    "name": "standard",
+                    "source": "package:pysmi.mibs.asn1",
+                    "tier": "standard",
+                    "publish": False,
+                },
+                {"include": "src/vendor/*", "tier": "vendor"},
+            ]
+        )
+
+        namespaces = load_manifest(path)
+
+        self.assertFalse(namespaces[0].publish)
+        self.assertEqual({True}, {x.publish for x in namespaces[1:]})
+
+    def testAnIncludeCarriesItsPublishFlag(self):
+        path = self.manifest(namespaces=[{"include": "src/vendor/*", "publish": False}])
+
+        self.assertEqual({False}, {x.publish for x in load_manifest(path)})
+
     def testADuplicateNamespaceIsRefused(self):
         path = self.manifest(
             namespaces=[

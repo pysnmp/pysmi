@@ -40,7 +40,7 @@ def start() -> None:
     frozenIndex = ""
     verboseFlag = True
     failOnErrorsFlag = False
-    namespaceArgs: list[str] = []
+    namespaceArgs: list[tuple[str, bool]] = []
     outputs = CorpusOutputs()
     explicitOutputs = False
 
@@ -51,6 +51,7 @@ def start() -> None:
         [--debug=<{}>]
         [--manifest=<FILE>]
         [--namespace=<TIER>:<NAME>:<SOURCE>]
+        [--resolve-namespace=<TIER>:<NAME>:<SOURCE>]
         [--output-directory=<DIRECTORY>]
         [--frozen-index=<FILE>]
         [--emit=<ARTIFACT>[:<PATH>]]
@@ -67,6 +68,13 @@ def start() -> None:
                 a Python package ships. TIER is one of standard, draft,
                 vendor, and is what tells the OID index that a standard
                 module owns an arc a vendor module also defines.
+        --resolve-namespace - declare a namespace the corpus resolves
+                against but does not carry. Its modules supply what the
+                published ones import and reach no output tree, so a
+                corpus can be built for a runtime that already has the
+                standard modules -- pysmi bundles 210 of them -- without
+                every vendor module that imports SNMPv2-SMI failing.
+                Same in a manifest as "publish": false.
         --output-directory - where the artifacts go, laid out as the
                 published corpus is: asn1/, notexts/, texts/, json/,
                 index.csv, index-v2.csv, standard.txt and report.json.
@@ -94,6 +102,7 @@ def start() -> None:
                 "debug=",
                 "manifest=",
                 "namespace=",
+                "resolve-namespace=",
                 "output-directory=",
                 "frozen-index=",
                 "emit=",
@@ -141,7 +150,10 @@ def start() -> None:
             manifestPath = opt[1]
 
         if opt[0] == "--namespace":
-            namespaceArgs.append(opt[1])
+            namespaceArgs.append((opt[1], True))
+
+        if opt[0] == "--resolve-namespace":
+            namespaceArgs.append((opt[1], False))
 
         if opt[0] == "--output-directory":
             outputDirectory = opt[1]
@@ -168,8 +180,8 @@ def start() -> None:
         if manifestPath:
             namespaces.extend(load_manifest(manifestPath))
 
-        for spec in namespaceArgs:
-            namespaces.append(_parse_namespace(spec))
+        for spec, publish in namespaceArgs:
+            namespaces.append(_parse_namespace(spec, publish=publish))
 
     except error.PySmiError as exc:
         sys.stderr.write(f"ERROR: {exc}\r\n{helpMessage}\r\n")
@@ -208,11 +220,15 @@ def start() -> None:
     sys.exit(EX_OK)
 
 
-def _parse_namespace(spec: str) -> Namespace:
+def _parse_namespace(spec: str, *, publish: bool = True) -> Namespace:
     """One ``--namespace`` argument, as ``TIER:NAME:SOURCE``.
 
     A source carrying a ``package:`` prefix keeps it, so
     ``standard:base:package:pysmi.mibs.asn1`` reads the way it looks.
+
+    Keyword Args:
+        publish: whether the corpus carries this namespace's modules.
+            ``--resolve-namespace`` is the same argument with this off.
     """
     parts = spec.split(":", 2)
 
@@ -221,7 +237,7 @@ def _parse_namespace(spec: str) -> Namespace:
 
     tier, name, source = parts
 
-    return Namespace(name=name, source=source, tier=tier)
+    return Namespace(name=name, source=source, tier=tier, publish=publish)
 
 
 #: Artifact names ``--emit`` takes, mapped to the field each one sets and the

@@ -56,11 +56,29 @@ class Namespace:
         source: a directory path, or ``package:`` and a dotted package name
             for modules shipped inside a Python package.
         tier: one of :py:data:`TIERS`.
+        publish: whether the corpus carries this namespace's modules, as
+            against merely resolving against them. A namespace declared
+            ``"publish": false`` supplies whatever the published modules
+            import and contributes nothing to the output: nothing of its is
+            staged, compiled or indexed, and it is stubbed in every output
+            format so that it cannot arrive as a dependency either.
+
+            This is what separates the two corpora built from one source
+            set. The corpus pysnmp/mibs publishes carries the standard
+            modules, because its consumers fetch them from it -- sc4snmp
+            resolves ``asn1/@mib@`` for every module it meets. A corpus
+            built for a runtime that already has the standard modules --
+            pysmi bundles 210 of them and the wheel ships their compiled
+            form -- carries only what that runtime does not have, and says
+            so by declaring the standard namespace unpublished rather than
+            by leaving it out, which would break every vendor module that
+            imports ``SNMPv2-SMI``.
     """
 
     name: str
     source: str
     tier: str = DEFAULT_TIER
+    publish: bool = True
 
     def __post_init__(self) -> None:
         """Reject a namespace the rest of the build could not act on."""
@@ -101,6 +119,7 @@ def _expand(entry: dict[str, Any], root: str) -> list[Namespace]:
     names them in one order.
     """
     tier = entry.get("tier", DEFAULT_TIER)
+    publish = entry.get("publish", True)
 
     if "include" in entry:
         if "source" in entry or "name" in entry:
@@ -126,7 +145,12 @@ def _expand(entry: dict[str, Any], root: str) -> list[Namespace]:
             ) from exc
 
         return [
-            Namespace(name=name, source=os.path.join(base, name), tier=tier)
+            Namespace(
+                name=name,
+                source=os.path.join(base, name),
+                tier=tier,
+                publish=publish,
+            )
             for name in names
             if fnmatch.fnmatchcase(name, leaf)
             and os.path.isdir(os.path.join(base, name))
@@ -149,7 +173,7 @@ def _expand(entry: dict[str, Any], root: str) -> list[Namespace]:
     if not source.startswith(PACKAGE_PREFIX) and not os.path.isabs(source):
         source = os.path.join(root, source)
 
-    return [Namespace(name=name, source=source, tier=tier)]
+    return [Namespace(name=name, source=source, tier=tier, publish=publish)]
 
 
 def load_manifest(path: str) -> list[Namespace]:
@@ -165,6 +189,9 @@ def load_manifest(path: str) -> list[Namespace]:
             {"include": "src/vendor/*", "tier": "vendor"}
           ]
         }
+
+    A namespace may declare ``"publish": false``, which makes it a resolution
+    source and nothing else -- see :py:class:`Namespace`.
 
     Relative paths are resolved against the manifest's own directory, so a
     manifest committed beside the sources it names works from any working

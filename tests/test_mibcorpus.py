@@ -65,6 +65,16 @@ class ArgumentTestCase(unittest.TestCase):
         self.assertEqual("package:pysmi.mibs.asn1", namespace.source)
         self.assertTrue(namespace.is_package)
 
+    def testANamespaceIsPublishedByDefault(self):
+        self.assertTrue(mibcorpus._parse_namespace("vendor:cisco:/mibs/cisco").publish)
+
+    def testAResolveNamespaceIsNot(self):
+        namespace = mibcorpus._parse_namespace(
+            "standard:base:package:pysmi.mibs.asn1", publish=False
+        )
+
+        self.assertFalse(namespace.publish)
+
     def testTooFewFieldsIsRefused(self):
         self.assertRaises(
             error.PySmiError, mibcorpus._parse_namespace, "cisco:/mibs/cisco"
@@ -160,6 +170,28 @@ class RunTestCase(unittest.TestCase):
 
         self.assertTrue(os.path.isfile(os.path.join(self.out, "json", "A-MIB.json")))
         self.assertFalse(os.path.exists(os.path.join(self.out, "notexts")))
+
+    def testACompactCorpusCarriesOnlyWhatItPublishes(self):
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                "--resolve-namespace=standard:base:package:pysmi.mibs.asn1",
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+            ),
+        )
+
+        self.assertEqual(["A-MIB.json"], os.listdir(os.path.join(self.out, "json")))
+
+    def testResolvingAgainstNothingPublishedIsASoftwareError(self):
+        self.assertEqual(
+            mibcorpus.EX_SOFTWARE,
+            self.run_with(
+                "--resolve-namespace=standard:base:package:pysmi.mibs.asn1",
+                f"--output-directory={self.out}",
+            ),
+        )
 
     def testNoNamespacesIsAUsageError(self):
         self.assertEqual(mibcorpus.EX_USAGE, self.run_with("--output-directory=/tmp/x"))

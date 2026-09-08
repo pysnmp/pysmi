@@ -63,6 +63,12 @@ the OID index that a standard module owns an arc a vendor module also defines.
 It is **declared** rather than inferred from where a file sits, because a tier
 is a statement about a source, and the source is what the manifest names.
 
+A namespace may also declare ``"publish": false``. It is then a *resolution
+source*: it supplies what the published modules import and contributes nothing
+to the output. Nothing of its is staged, compiled or indexed, and it is stubbed
+in every output format so that it cannot arrive as a dependency either. On the
+command line that is ``--resolve-namespace`` rather than ``--namespace``.
+
 The order matters. Two namespaces can hold a module of the same name and
 exactly one copy of it can be published; the newest MODULE-IDENTITY revision
 wins and source order breaks the tie, which is the rule
@@ -163,6 +169,60 @@ modules defining an OID and takes the best one, term by term:
 :py:meth:`~pysmi.codegen.jsondoc.JsonCodeGen.gen_index` is unchanged and
 still records the complete fact -- every module defining a given OID. This is
 the projection of it a consumer that has to load exactly one module needs.
+
+
+Two corpora from one source set
+-------------------------------
+
+``"publish": false`` is what lets one set of sources produce two corpora that
+differ in what they carry rather than in how they were built.
+
+**The full corpus** carries the standard modules, because its consumers fetch
+them from it: splunk-connect-for-snmp resolves ``asn1/@mib@`` against the
+published tree for every module it meets, standard ones included. This is what
+pysnmp/mibs serves today and what must keep working unchanged.
+
+.. code-block:: json
+
+   {"version": 1, "namespaces": [
+     {"name": "standard", "source": "package:pysmi.mibs.asn1", "tier": "standard"},
+     {"include": "src/vendor/*", "tier": "vendor"}]}
+
+**The compact corpus** is the same source set with the standard namespace
+declared unpublished. It carries only what a runtime that already has the
+standard modules does not have -- pysmi bundles 210 of them and its wheel ships
+their compiled form, so restating them costs size and says nothing new:
+
+.. code-block:: json
+
+   {"version": 1, "namespaces": [
+     {"name": "standard", "source": "package:pysmi.mibs.asn1", "tier": "standard",
+      "publish": false},
+     {"include": "src/vendor/*", "tier": "vendor"}]}
+
+Leaving the standard namespace out altogether is **not** the same thing: every
+vendor module that imports ``SNMPv2-SMI`` would fail to compile. The difference
+between the two manifests is what is carried, not what is resolved, which is
+why the compact corpus is a subset of the full one and not a second rendering
+of it -- each module it carries is byte-identical to the same module in the
+full corpus, and its index covers exactly the modules it carries, so a runtime
+can merge it with whatever it already knows about the standard tree.
+
+A build for the compact corpus normally asks for a subset of the artifacts too,
+since ``standard.txt`` and the frozen legacy index are compatibility surfaces
+of the published one:
+
+.. code-block:: console
+
+   $ mibcorpus --manifest=corpus-compact.json --output-directory=compact \
+       --emit=asn1 --emit=notexts --emit=texts --emit=json \
+       --emit=index-v2 --emit=report
+
+Packaging is the caller's: the driver writes a directory, and what a release
+does with it -- an archive, a container image built from ``scratch`` for a
+runtime to mount -- belongs to the repository publishing it, not to the
+compiler driver. What the driver owes such a consumer is that the directory is
+the same bytes every time, which is the property the tests above pin.
 
 
 One driver, both corpora

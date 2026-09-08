@@ -274,6 +274,12 @@ class CorpusDriver:
         if not namespaces:
             raise error.PySmiError("a corpus needs at least one source namespace")
 
+        if not any(x.publish for x in namespaces):
+            raise error.PySmiError(
+                "every namespace is declared unpublished; a corpus built from "
+                "resolution sources alone would carry nothing"
+            )
+
         check_disjoint(namespaces, outputs)
 
         self._namespaces = list(namespaces)
@@ -316,6 +322,37 @@ class CorpusDriver:
             )
 
         return FileReader(namespace.source)
+
+    @property
+    def _published(self) -> list[Namespace]:
+        """The namespaces this corpus carries, in declaration order.
+
+        The rest are resolution sources: they supply what the published
+        modules import and contribute nothing to the output.
+        """
+        return [x for x in self._namespaces if x.publish]
+
+    def _resolve_only_modules(self) -> list[str]:
+        """Every module held only by a namespace the corpus does not publish.
+
+        Stubbed in every output format, which is what keeps such a module out
+        of the corpus when something published imports it -- the compiler
+        compiles and writes a dependency like anything else, so declining to
+        ask for it is not enough.
+
+        A module a published namespace also holds is not stubbed: the corpus
+        carries it, and where it came from is the precedence rule's business
+        rather than this one's.
+        """
+        published: set[str] = set()
+        resolveOnly: set[str] = set()
+
+        for namespace in self._namespaces:
+            names = self._module_sets()[namespace.name]
+
+            (published if namespace.publish else resolveOnly).update(names)
+
+        return sorted(resolveOnly - published)
 
     def _destinations(self) -> list[Destination]:
         """The output formats this build was asked for, in a fixed order."""
@@ -402,6 +439,17 @@ class CorpusDriver:
                 f"unknown corpus destination format {destination.format}"
             )
 
+        # Last, so that it wins over the JSON branch above: a base MIB the
+        # bundle supplies is compiled into the JSON tree for a corpus that
+        # publishes the standard modules, and stubbed for one that does not.
+        resolveOnly = self._resolve_only_modules()
+
+        if resolveOnly:
+            stubs = sorted(set(stubs) | set(resolveOnly))
+            searchers = [x for x in searchers if not isinstance(x, StubSearcher)] + [
+                StubSearcher(*stubs)
+            ]
+
         compiler = MibCompiler(
             SmiV1CompatParser(tempdir=""),
             codegen,
@@ -476,7 +524,7 @@ class CorpusDriver:
             compiler = self._compiler_for(destination)
             processed: dict[str, Any] = {}
 
-            for namespace in self._namespaces:
+            for namespace in self._published:
                 wanted = [x for x in moduleSets[namespace.name] if x not in processed]
 
                 if not wanted:
@@ -571,7 +619,7 @@ class CorpusDriver:
 
         staged: dict[str, str] = {}
 
-        for namespace in self._namespaces:
+        for namespace in self._published:
             for module in self._module_sets()[namespace.name]:
                 if module in staged:
                     continue
@@ -628,7 +676,7 @@ class CorpusDriver:
 
         standard: set[str] = set()
 
-        for namespace in self._namespaces:
+        for namespace in self._published:
             if namespace.tier != "standard":
                 continue
 
@@ -752,6 +800,7 @@ class CorpusDriver:
                 "tier": x.tier,
                 "source": x.source,
                 "modules": len(moduleSets[x.name]),
+                "publish": x.publish,
             }
             for x in self._namespaces
         ]

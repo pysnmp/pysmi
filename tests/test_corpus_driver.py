@@ -520,6 +520,121 @@ class ArtifactTestCase(CorpusTestCase):
         )
 
 
+class CompactCorpusTestCase(CorpusTestCase):
+    """A namespace can be resolved against without being carried.
+
+    Two corpora come out of one source set. The one pysnmp/mibs publishes
+    carries the standard modules, because its consumers fetch them from it.
+    One built for a runtime that already has them -- pysmi bundles 210, and
+    the wheel ships their compiled form -- carries only what that runtime
+    lacks. Leaving the standard namespace out entirely is not the same thing:
+    every vendor module that imports SNMPv2-SMI would fail.
+    """
+
+    def namespaces(self, *names, tier="vendor"):
+        """The vendor namespaces, behind the bundle as a resolution source."""
+        return [
+            Namespace("base", "package:pysmi.mibs.asn1", "standard", publish=False),
+            *super().namespaces(*names, tier=tier),
+        ]
+
+    def testAResolveOnlyNamespaceReachesNoOutputTree(self):
+        CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual(
+            {"ALPHA-MIB", "BETA-MIB"},
+            set(os.listdir(os.path.join(self.root, "output", "asn1"))),
+        )
+
+        for artifact, suffix in (("notexts", ".py"), ("json", ".json")):
+            names = os.listdir(os.path.join(self.root, "output", artifact))
+
+            self.assertNotIn(f"SNMPv2-SMI{suffix}", names)
+            self.assertNotIn(f"SNMPv2-TC{suffix}", names)
+            self.assertIn(f"ALPHA-MIB{suffix}", names)
+
+    def testItStillSuppliesWhatThePublishedModulesImport(self):
+        # The whole point: ALPHA-MIB imports from SNMPv2-SMI and compiles.
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual({}, report.failed["json"])
+        self.assertEqual(2, report.staged)
+
+    def testTheModulesItCarriesAreTheSameEitherWay(self):
+        # A compact corpus is a subset of the full one, not a different
+        # rendering of it: byte-identical per module.
+        CorpusDriver(self.namespaces(), self.outputs("compact")).run()
+        CorpusDriver(
+            [
+                Namespace("base", "package:pysmi.mibs.asn1", "standard"),
+                *CorpusTestCase.namespaces(self),
+            ],
+            self.outputs("full"),
+        ).run()
+
+        for artifact in (
+            "asn1/ALPHA-MIB",
+            "json/ALPHA-MIB.json",
+            "notexts/ALPHA-MIB.py",
+        ):
+            with self.subTest(artifact=artifact):
+                with open(
+                    os.path.join(self.root, "compact", artifact), "rb"
+                ) as fileObj:
+                    compact = fileObj.read()
+
+                with open(os.path.join(self.root, "full", artifact), "rb") as fileObj:
+                    full = fileObj.read()
+
+                self.assertEqual(full, compact)
+
+    def testTheIndexCoversOnlyWhatIsCarried(self):
+        CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        with open(os.path.join(self.root, "output", "index-v2.csv")) as fileObj:
+            modules = {row.split(",")[0] for row in fileObj.read().splitlines()}
+
+        self.assertEqual({"ALPHA-MIB", "BETA-MIB"}, modules)
+
+    def testACorpusOfNothingButResolutionSourcesIsRefused(self):
+        self.assertRaises(
+            error.PySmiError,
+            CorpusDriver,
+            [Namespace("base", "package:pysmi.mibs.asn1", "standard", publish=False)],
+            self.outputs(),
+        )
+
+    def testAModuleAPublishedNamespaceAlsoHoldsIsStillCarried(self):
+        # Stubbing is for what only a resolution source has. A module the
+        # corpus holds a copy of is the corpus's, and which copy is used is
+        # the precedence rule's business rather than this one's.
+        self.write("extra", "SHARED-MIB", module("SHARED-MIB", 61))
+        self.write("alpha", "SHARED-MIB", module("SHARED-MIB", 61))
+
+        namespaces = [
+            Namespace(
+                "extra", os.path.join(self.src, "extra"), "vendor", publish=False
+            ),
+            *self.namespaces(),
+        ]
+        driver = CorpusDriver(namespaces, self.outputs())
+
+        self.assertNotIn("SHARED-MIB", driver._resolve_only_modules())
+
+    def testAModuleOnlyAResolutionSourceHoldsIsStubbed(self):
+        self.write("extra", "ONLY-THERE-MIB", module("ONLY-THERE-MIB", 62))
+
+        namespaces = [
+            Namespace(
+                "extra", os.path.join(self.src, "extra"), "vendor", publish=False
+            ),
+            *self.namespaces(),
+        ]
+        driver = CorpusDriver(namespaces, self.outputs())
+
+        self.assertIn("ONLY-THERE-MIB", driver._resolve_only_modules())
+
+
 class StubTestCase(CorpusTestCase):
     """What a destination is told not to generate."""
 
