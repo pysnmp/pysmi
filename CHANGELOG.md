@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.0.0-rc.8](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.7...v3.0.0-rc.8) (2026-09-08)
+
+### Bug Fixes
+
+* **writer:** store a module anyone can read, not only the user who built it ([33943bf](https://github.com/pysnmp/pysmi/commit/33943bfdc95052407e9c7bbd86fef7b0a82bd21a)), closes [#182](https://github.com/pysnmp/pysmi/issues/182)
+
 ## [3.0.0-rc.7](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.6...v3.0.0-rc.7) (2026-09-08)
 
 ### Features
