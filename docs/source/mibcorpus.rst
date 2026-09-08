@@ -1,0 +1,174 @@
+.. _mibcorpus:
+
+The *mibcorpus* tool
+====================
+
+.. toctree::
+   :maxdepth: 2
+
+``mibdump`` compiles the modules it is given. Building a *corpus* is a
+different shape of job: it takes a declared set of source namespaces -- a
+vendor's directory of ASN.1 files, the standard modules pysmi bundles -- and
+produces every artifact the corpus publishes, with the property that two runs
+over the same inputs produce the same bytes.
+
+``mibcorpus`` is that job, and :py:mod:`pysmi.corpus` is the library beneath
+it.
+
+.. code-block:: text
+
+   $ mibcorpus --help
+   Synopsis:
+     Build a MIB corpus from a declared set of source namespaces
+   Documentation:
+     https://github.com/pysnmp/pysmi
+   Usage: mibcorpus [--help]
+         [--version]
+         [--quiet]
+         [--debug=<all|borrower|codegen|compiler|grammar|lexer|parser|reader|searcher|writer>]
+         [--manifest=<FILE>]
+         [--namespace=<TIER>:<NAME>:<SOURCE>]
+         [--output-directory=<DIRECTORY>]
+         [--frozen-index=<FILE>]
+         [--emit=<ARTIFACT>[:<PATH>]]
+         [--no-bundled-mibs]
+         [--fail-on-errors]
+
+
+The input set
+-------------
+
+A corpus is built from *source namespaces*, declared in a manifest:
+
+.. code-block:: json
+
+   {
+     "version": 1,
+     "namespaces": [
+       {"name": "standard", "source": "package:pysmi.mibs.asn1",
+        "tier": "standard"},
+       {"include": "src/vendor/*", "tier": "vendor"}
+     ]
+   }
+
+Each namespace has a name, a source and a tier. The source is a directory, or
+``package:`` and a dotted package name for the modules a Python package ships.
+An ``include`` entry stands for every directory matching a glob, expanded in
+sorted order, so a corpus of three hundred vendor directories does not have to
+list them by hand and still gets them in one order. Paths are relative to the
+manifest's own directory.
+
+The tier is one of ``standard``, ``draft`` and ``vendor``, and it is what tells
+the OID index that a standard module owns an arc a vendor module also defines.
+It is **declared** rather than inferred from where a file sits, because a tier
+is a statement about a source, and the source is what the manifest names.
+
+The order matters. Two namespaces can hold a module of the same name and
+exactly one copy of it can be published; the newest MODULE-IDENTITY revision
+wins and source order breaks the tie, which is the rule
+:py:meth:`~pysmi.compiler.MibCompiler.compile` documents and applies.
+
+
+What it produces
+----------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 82
+
+   * - Artifact
+     - What it is
+   * - ``asn1/``
+     - One file per module name, flat, named for the module. Staged from
+       what the compile resolved, so the ASN.1 beside a compiled module is
+       the text it was compiled from.
+   * - ``notexts/``
+     - pysnmp modules without DESCRIPTION and the other texts.
+   * - ``texts/``
+     - pysnmp modules with them, in their original layout.
+   * - ``json/``
+     - jsondoc documents.
+   * - ``index-v2.csv``
+     - The ranked OID index: for every OID, the one module that owns it.
+   * - ``index.csv``
+     - The legacy OID index, which replays ``--frozen-index`` so that
+       consumers keying on the module an OID resolves to keep the answers
+       they already have.
+   * - ``standard.txt``
+     - The modules from every ``standard`` namespace, less the ``RFC*`` and
+       ``SNMPv2*`` prefixes the published file has never carried.
+   * - ``report.json``
+     - What the build did: the failure inventory, the modules more than one
+       namespace holds, the node counts, and how long each phase took.
+
+``--emit`` narrows this to the artifacts named, so a build can ask for just the
+index or just the JSON.
+
+Every artifact but ``report.json`` is byte-reproducible. The report is the
+build's log and records elapsed time.
+
+
+Why it is deterministic
+-----------------------
+
+The shell pipeline this replaces -- ``scripts/vendor.sh`` in pysnmp/mibs --
+ran ``mibdump`` once per vendor directory under GNU ``parallel``, each
+invocation reading ``output/asn1`` as a dependency source while every other
+invocation copied its own sources into that same directory on the way out.
+Four properties made its output depend on something other than its input, and
+this tool answers each of them (pysnmp/pysmi#182):
+
+**Nothing is written into a directory that is read.** Every namespace is a
+source for the whole build, so a module resolves the same way whatever order
+the namespaces are processed in, and the driver refuses to start if an output
+directory is, contains or is contained by a source. Cross-namespace resolution
+was the sharp end of this: fifteen of the modules the old build could only
+resolve through ``output/asn1`` live in a *different* vendor directory from
+the one importing them, so whether they resolved at all depended on which
+parallel job finished first.
+
+**Nothing is fetched.** Sources are local directories and packages, and no
+borrowers are configured. The old build passed
+``--mib-source=https://pysnmp.github.io/mibs/asn1/@mib@``, resolving missing
+dependencies from its own last publish -- so the corpus was not reproducible
+from the repository alone, and a bad publish perpetuated itself. Measured
+against the published corpus, dropping that source costs nothing: everything
+it serves that the build uses is already in the tree.
+
+**One error policy.** Every output format compiles the same module set and
+keeps going past a defective module, and the run reports what failed. The old
+build set ``--ignore-errors`` on the jsondoc pass alone, and
+``MibCompiler.compile()`` was all-or-nothing at the time, so a single
+defective module removed its entire namespace from ``notexts/`` and ``texts/``
+while ``json/`` kept it: 41% of the vendor corpus was published with JSON
+output and no Python. A corpus of MIBs nobody controls will always carry some
+that do not compile; what it owes is an inventory of them, which
+``report.json`` is.
+
+**The index is decided by rule.** :py:mod:`pysmi.corpus.index` ranks the
+modules defining an OID and takes the best one, term by term:
+
+1. a module that still defines something current, over one whose objects are
+   all obsolete;
+2. tier -- standard, then Internet-Draft, then vendor;
+3. the module that *registers* an arc with its MODULE-IDENTITY, over one that
+   merely names it with an OBJECT-IDENTITY;
+4. the newest MODULE-IDENTITY revision, read as a date by
+   :py:func:`~pysmi.mibinfo.normalise_revision` -- so a stamp that is not one,
+   like ``HPR-MIB``'s ``970514000000Z``, is refused rather than sorting above
+   every date there will ever be;
+5. the later RFC, then the module name, which settles the SMI root arcs and
+   makes the rule total.
+
+:py:meth:`~pysmi.codegen.jsondoc.JsonCodeGen.gen_index` is unchanged and
+still records the complete fact -- every module defining a given OID. This is
+the projection of it a consumer that has to load exactly one module needs.
+
+
+Compatibility
+-------------
+
+``--frozen-index`` is what keeps a published index answering what it has
+always answered. The legacy index is not regenerated: it replays the snapshot,
+drops rows naming a module the corpus no longer carries, and adds OIDs the
+snapshot never had. Corrections land in ``index-v2.csv``.

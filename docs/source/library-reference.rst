@@ -45,6 +45,8 @@ This example showcases some of its features:
 
    /pysmi/compiler/mibcompiler
    /pysmi/compiler/mibstatus
+   /pysmi/corpus/driver
+   /pysmi/corpus/index
 
 .. _camel-case-deprecation:
 

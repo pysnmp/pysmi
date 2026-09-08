@@ -35,6 +35,7 @@ dependencies = [
 
 [project.scripts]
 mibcopy = "pysmi.scripts.mibcopy:start"
+mibcorpus = "pysmi.scripts.mibcorpus:start"
 mibdump = "pysmi.scripts.mibdump:start"
 
 [project.urls]
