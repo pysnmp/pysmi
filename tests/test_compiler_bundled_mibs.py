@@ -28,7 +28,6 @@ from pysmi.compiler import (
     PRECEDENCE_EQUAL_REVISIONS,
     PRECEDENCE_NEWEST_REVISION,
     PRECEDENCE_NO_REVISION,
-    PRECEDENCE_NOT_BUNDLED,
     MibCompiler,
     bundled_mib_names,
     revision_of,
@@ -182,25 +181,30 @@ class SourceOrderTestCase(unittest.TestCase):
 
         self.assertEqual(["priority", "primary"], calls)
 
-    def testTheFirstAddSourcesReaderThatHasAVendorModuleSupplesIt(self):
+    def testSourceOrderSupliesAVendorModuleOnlyWhenTheRevisionsTie(self):
+        """Source order settles what the text cannot, and nothing more.
+
+        Equal revisions leave the two copies indistinguishable on the only
+        evidence there is, so the order the caller gave decides. A newer
+        revision in the second source wins -- see
+        NewestRevisionWinsTestCase.
+        """
         second = tempfile.TemporaryDirectory()
         self.addCleanup(second.cleanup)
 
         first = self.write(
             self._tmp.name, "VENDOR-MIB", stamped("VENDOR-MIB", "200001010000Z")
         )
-        self.write(second.name, "VENDOR-MIB", stamped("VENDOR-MIB", "202601010000Z"))
+        self.write(second.name, "VENDOR-MIB", stamped("VENDOR-MIB", "200001010000Z"))
 
         self.compiler.add_sources(FileReader(self._tmp.name), FileReader(second.name))
         self.compiler.compile("VENDOR-MIB", ignoreErrors=True)
 
-        # The newer revision in the second source does not win: pysmi bundles
-        # no VENDOR-MIB, so it has no standing to call one copy the better.
         self.assertIn(source_digest(first), self.written["VENDOR-MIB"])
 
 
 class NewestRevisionWinsTestCase(unittest.TestCase):
-    """For a bundled name only, the newest MODULE-IDENTITY beats source order."""
+    """The newest MODULE-IDENTITY beats source order, for any name."""
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -367,7 +371,13 @@ class PrecedenceIsReportedTestCase(unittest.TestCase):
         processed = self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)
         self.assertEqual(PRECEDENCE_EQUAL_REVISIONS, processed["SNMPv2-MIB"].precedence)
 
-    def testAModulePysmiDoesNotBundleIsNamedAsSourceOrder(self):
+    def testAModulePysmiDoesNotBundleIsDecidedByRevisionToo(self):
+        """The rule is the newest revision, not the newest bundled revision.
+
+        Deciding a vendor module by source order left the answer to the order
+        a caller happened to configure their sources in -- and where those
+        sources are a directory tree walked by a build, not even to that.
+        """
         second = tempfile.TemporaryDirectory()
         self.addCleanup(second.cleanup)
 
@@ -378,7 +388,35 @@ class PrecedenceIsReportedTestCase(unittest.TestCase):
         self.compiler.add_sources(FileReader(second.name))
         processed = self.compiler.compile("VENDOR-MIB", ignoreErrors=True)
 
-        self.assertEqual(PRECEDENCE_NOT_BUNDLED, processed["VENDOR-MIB"].precedence)
+        self.assertEqual(PRECEDENCE_NEWEST_REVISION, processed["VENDOR-MIB"].precedence)
+        self.assertTrue(
+            processed["VENDOR-MIB"].path.startswith(f"file://{second.name}")
+        )
+
+    def testTheOlderCopyOfAVendorModuleIsNamedAsShadowed(self):
+        """Picking one is not the same as the other being redundant.
+
+        Two copies of a name can be two different modules -- a vendor
+        registering a product line on its own arc and carrying the previous
+        line's module names onto it. A caller asking for a name can be given
+        exactly one, so the report has to name what it did not get.
+        """
+        second = tempfile.TemporaryDirectory()
+        self.addCleanup(second.cleanup)
+
+        self.write("VENDOR-MIB", stamped("VENDOR-MIB", "200001010000Z"))
+        with open(os.path.join(second.name, "VENDOR-MIB"), "w") as fp:
+            fp.write(stamped("VENDOR-MIB", "202601010000Z"))
+
+        self.compiler.add_sources(FileReader(second.name))
+        processed = self.compiler.compile("VENDOR-MIB", ignoreErrors=True)
+
+        # os.path.join, not a "/" of our own: the reader reports the path the
+        # filesystem gave it, which on Windows is separated by a backslash.
+        self.assertEqual(
+            ("file://" + os.path.join(self._tmp.name, "VENDOR-MIB"),),
+            processed["VENDOR-MIB"].shadowed,
+        )
 
     def testNothingShadowedLeavesNoReasonToGive(self):
         processed = self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)

@@ -26,6 +26,7 @@ into various formats.
          [--mib-borrower=<PATH>]
          [--destination-format=<FORMAT>]
          [--destination-directory=<DIRECTORY>]
+         [--emit=<FORMAT>[+texts][:<DIRECTORY>]]
          [--cache-directory=<DIRECTORY>]
          [--disable-fuzzy-source]
          [--no-dependencies]
@@ -182,6 +183,36 @@ Naming a MIB to compile by path rather than by module name -- ``mibdump
 /some/dir/MY-MIB`` -- also puts its directory ahead of every --mib-source, so
 that the file named on the command line is the one that gets read.
 
+Producing more than one format at once
+--------------------------------------
+
+``--emit=FORMAT[+texts][:DIRECTORY]`` writes one format to one directory and
+may be given more than once, so a build that wants several formats reads its
+sources once instead of once per format::
+
+   mibdump --mib-source=file:///usr/share/snmp/mibs \
+           --emit=pysnmp:./output/notexts \
+           --emit=pysnmp+texts:./output/texts \
+           --emit=json:./output/json \
+           IF-MIB IP-MIB
+
+Parsing is roughly three quarters of a compile pass, and every destination
+parses the same ASN.1, so the run shares one parse cache across them. Measured
+over a 269-module vendor directory, the three destinations above take 15.8s as
+three invocations and 10.2s as one -- with byte-identical output, ``.pyc``
+timestamps aside.
+
+``+texts`` is the per-destination form of ``--generate-mib-texts``, which is
+the whole-run spelling: one destination can carry DESCRIPTION and the others
+not, which is exactly the pysnmp-with-and-without-texts pair a MIB site
+publishes. The directory is optional, so ``--emit=json`` alone means what
+``--destination-format=json`` alone means.
+
+Refused rather than guessed at: ``--emit`` together with
+``--destination-format`` or ``--destination-directory``, since those name the
+same two things; and two destinations writing to one directory, where one
+would overwrite the other.
+
 Which copy of a MIB gets compiled
 ---------------------------------
 
@@ -190,25 +221,33 @@ pysmi ships its own copies of 485 base MIBs (SNMPv2-SMI and similar; see
 have the same MIB module -- two --mib-source options, or a --mib-source and
 the bundle. Which copy is used is decided by these rules, in order:
 
-1. For a module pysmi bundles a copy of, the newest MODULE-IDENTITY
-   LAST-UPDATED wins -- provided every copy found carries one.
-2. Otherwise -- to break a tie between equal revisions, when any copy found
-   carries no LAST-UPDATED, and for everything pysmi does not bundle --
-   source order wins: pysmi's bundled copy first, then each --mib-source in
-   the order it was given. --prefer-mib-source moves the bundled copy behind
-   --mib-source for this rule, and for this rule only.
+1. The newest MODULE-IDENTITY LAST-UPDATED wins -- provided every copy found
+   carries one.
+2. Otherwise -- to break a tie between equal revisions, or when any copy
+   found carries no LAST-UPDATED -- source order wins: pysmi's bundled copy
+   first, then each --mib-source in the order it was given.
+   --prefer-mib-source moves the bundled copy behind --mib-source for this
+   rule, and for this rule only.
 
-Rule 1 applies only to the modules pysmi bundles, each pinned to the RFC, IANA
-registry, IEEE 802.1 file or archived Internet-Draft revision that publishes it
-and re-checked against it. Two copies of one of those are
-the same specification at two revisions, and the newer is simply better. Two
-copies of a vendor MIB are not that -- they are a collision, or two firmware
-revisions -- so pysmi never picks between them: whichever --mib-source came
-first supplies it.
+Rule 1 applies to every name found in more than one source, not only to the
+modules pysmi bundles. Deciding a vendor module by source order left the
+answer to the order the sources happened to be configured in, which is a
+choice nobody made -- and where the sources are a directory tree walked by a
+build, not even a stable one.
 
-Rule 1 needs a LAST-UPDATED on *every* copy, not just on the bundled one: an
-undated copy cannot be placed against a dated one, so a single undated copy
-drops the whole module to rule 2 whatever the others carry.
+Winning is not the same as the other copy being redundant. Two copies of a
+name can be two revisions of one specification, or two different modules that
+reuse a name: a vendor registering a new product line on its own enterprise
+arc, carrying the previous line's module names onto it, is common enough to
+plan for. No rule can make one text answer for both, because a caller asking
+for a name is given exactly one module. What pysmi owes that caller is to say
+what it passed over -- which it does, on stderr and in
+``MibStatus.shadowed``, naming the rule that decided. --strict-sources turns
+that into an error instead.
+
+Rule 1 needs a LAST-UPDATED on *every* copy: an undated copy cannot be placed
+against a dated one, so a single undated copy drops the whole module to rule 2
+whatever the others carry.
 
 That case is not a corner: **51 of the 485 bundled modules carry no
 MODULE-IDENTITY at all** -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF, RFC1155-SMI,

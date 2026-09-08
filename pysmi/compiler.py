@@ -57,7 +57,6 @@ _LAST_UPDATED: Final = re.compile(r'LAST-UPDATED\s+"(\d{10}Z|\d{12}Z)"')
 PRECEDENCE_NEWEST_REVISION: Final = "newest MODULE-IDENTITY revision"
 PRECEDENCE_NO_REVISION: Final = "source order; no MODULE-IDENTITY revision to compare"
 PRECEDENCE_EQUAL_REVISIONS: Final = "source order; equal MODULE-IDENTITY revisions"
-PRECEDENCE_NOT_BUNDLED: Final = "source order; not a module pysmi bundles"
 
 
 @cache
@@ -513,23 +512,34 @@ class MibCompiler:
     ) -> tuple[list[tuple["AbstractReader", MibInfo, str]], str]:
         """Every source that can supply *mibname*, the one to use first.
 
-        Source order decides, except for a module pysmi bundles a copy of --
-        one of the names pinned by ``scripts/bundled_mibs.json`` to the RFC,
-        IANA registry or IEEE 802.1 file that publishes it. Two
-        sources offering one of those are offering the same specification at
-        different revisions rather than two different modules, so the newest
-        MODULE-IDENTITY wins and source order only breaks the tie. A module
-        with no revision to compare, and anything vendor-specific, is left in
-        source order: a vendor module appearing twice is a collision or two
-        firmware revisions, and which one the caller meant is what their
-        source order says.
+        The newest MODULE-IDENTITY revision wins, whatever the module is.
+        Source order breaks the tie, and only the tie: a copy carrying no
+        revision to compare, or every copy carrying the same one.
 
-        Comparing revisions takes one on every copy found, not just on the
-        bundled one: an undated copy cannot be placed against a dated one, so
-        a single undated copy leaves the whole decision to source order. That
-        is the usual case for the SMI modules themselves, which carry no
-        MODULE-IDENTITY at all, and it is what ``preferConfiguredSources``
-        exists to settle the other way.
+        This applies to every name found in more than one source, not only to
+        the modules pysmi bundles. Restricting it to those left a caller
+        resolving a vendor module by the order they happened to configure
+        their sources in, which is a choice nobody made -- and where the
+        sources are a directory tree walked by a build, it is not even
+        stable. A decision that follows from the text is worth more than one
+        that follows from an argument order.
+
+        It does not follow that the loser is redundant. Two copies of a name
+        can be two revisions of one specification, or two different modules
+        that reuse a name -- some vendors register a product line on its own
+        arc and carry the previous line's module names on it. The rule picks
+        one deterministically; it cannot make one text answer for both, and
+        neither can any other rule, since a caller asking for a name can be
+        given exactly one module. What the compiler owes such a caller is to
+        say so, which is what ``MibStatus.shadowed`` and
+        ``MibStatus.precedence`` are for, and what ``strictSources`` turns
+        into an error.
+
+        Comparing revisions takes one on every copy found: an undated copy
+        cannot be placed against a dated one, so a single undated copy leaves
+        the whole decision to source order. That is the usual case for the SMI
+        modules themselves, which carry no MODULE-IDENTITY at all, and it is
+        what ``preferConfiguredSources`` exists to settle the other way.
 
         Sources past the first hit are read only when reading them is a local
         lookup, and only so that the loser can be named in the report.
@@ -551,9 +561,6 @@ class MibCompiler:
 
         if len(candidates) < 2:
             return candidates, ""
-
-        if mibname not in bundled_mib_names(self.bundledMibsPackage):
-            return candidates, PRECEDENCE_NOT_BUNDLED
 
         if self._preferConfiguredSources:
             # Stable, so the caller's own sources keep their order among
