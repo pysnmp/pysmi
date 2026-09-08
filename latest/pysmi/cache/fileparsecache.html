@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>File parse cache &#8212; SNMP SMI compiler 3.0.0rc1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=f6a572b4" />
+    <script src="../../_static/documentation_options.js?v=8e589072"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="../../_static/favicon.ico"/>
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Null parse cache" href="nullparsecache.html" />
+    <link rel="prev" title="In-memory parse cache" href="inmemoryparsecache.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../contents.html">
+    <img class="logo" src="../../_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mibs-as-data.html">MIBs as data: layering review</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../contents.html">Documentation overview</a><ul>
+  <li><a href="../../documentation.html">PySMI documentation</a><ul>
+  <li><a href="../../library-reference.html">PySMI library</a><ul>
+      <li>Previous: <a href="inmemoryparsecache.html" title="previous chapter">In-memory parse cache</a></li>
+      <li>Next: <a href="nullparsecache.html" title="next chapter">Null parse cache</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="file-parse-cache">
+<span id="cache-fileparsecache"></span><h1>File parse cache<a class="headerlink" href="#file-parse-cache" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.cache.file.FileParseCache">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.cache.file.</span></span><span class="sig-name descname"><span class="pre">FileParseCache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.cache.file.FileParseCache" title="Link to this definition">¶</a></dt>
+<dd><p>Holds parse trees as files in a directory.</p>
+<p>The provider for a build that is not one process. A corpus build driven as
+a shell loop starts a fresh interpreter per namespace, so an in-memory
+cache is empty every time; a directory survives, and the standard modules
+are parsed once for the whole build rather than once per namespace.</p>
+<p>Also useful for repeated builds of a mostly-unchanged corpus, since a
+module whose text has not changed keeps its key and so keeps its entry.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Reading this cache reconstructs arbitrary Python objects.</strong> A parse
+tree is not a data format with a schema; storing one means pickling it,
+and reading one back means unpickling, which executes whatever the file
+says to execute. Point this at a directory only your own build writes.
+Do not share one between trust domains, do not put one on a writable
+network share, and do not populate one from an artifact you did not
+produce.</p>
+<p><a class="reference internal" href="inmemoryparsecache.html#pysmi.cache.memory.InMemoryParseCache" title="pysmi.cache.memory.InMemoryParseCache"><code class="xref py py-class docutils literal notranslate"><span class="pre">InMemoryParseCache</span></code></a> has no such
+boundary and is the default for that reason. Use this one when the
+build genuinely spans processes, and treat the directory with the same
+care as a directory of executables.</p>
+</div>
+<p>Nothing here is required for correctness: every read is verified to
+round-trip and any failure – unreadable file, truncated write, a pickle
+this Python cannot load – is logged and treated as a miss, so a damaged
+cache costs time and never output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> – directory to hold the entries. Created if it does not exist.</p>
+</dd>
+</dl>
+<p>Create a cache backed by the directory at <em>path</em>.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.cache.file.FileParseCache.ENTRY_PREFIX">
+<span class="sig-name descname"><span class="pre">ENTRY_PREFIX</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pysmi-parse-'</span></span><a class="headerlink" href="#pysmi.cache.file.FileParseCache.ENTRY_PREFIX" title="Link to this definition">¶</a></dt>
+<dd><p>Prefixed onto every entry file. The directory may hold files this cache
+did not write – a build’s own metadata, another tool’s state – and
+<a class="reference internal" href="#pysmi.cache.file.FileParseCache.clear" title="pysmi.cache.file.FileParseCache.clear"><code class="xref py py-meth docutils literal notranslate"><span class="pre">clear()</span></code></a> must not remove them. Filtering on <code class="docutils literal notranslate"><span class="pre">.pickle</span></code> alone
+would; filtering on the key’s shape would not work either, since a key
+is whatever the caller’s compiler composed and need not look like a
+digest. An owned prefix answers both.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.cache.file.FileParseCache.ENTRY_SUFFIX">
+<span class="sig-name descname"><span class="pre">ENTRY_SUFFIX</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'.pickle'</span></span><a class="headerlink" href="#pysmi.cache.file.FileParseCache.ENTRY_SUFFIX" title="Link to this definition">¶</a></dt>
+<dd><p>Extension for entry files. Names them for what they are, and keeps the
+pickling visible to anyone looking at the directory.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.cache.file.FileParseCache.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.cache.file.FileParseCache.__repr__" title="Link to this definition">¶</a></dt>
+<dd><p>Name the class and the directory.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.cache.file.FileParseCache.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.cache.file.FileParseCache.clear" title="Link to this definition">¶</a></dt>
+<dd><p>Remove every entry this cache wrote, and nothing else.</p>
+<p>Entries are recognised by <a class="reference internal" href="#pysmi.cache.file.FileParseCache.ENTRY_PREFIX" title="pysmi.cache.file.FileParseCache.ENTRY_PREFIX"><code class="xref py py-attr docutils literal notranslate"><span class="pre">ENTRY_PREFIX</span></code></a>, so a file the
+directory holds for some other reason survives – including one that
+happens to be a pickle.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.cache.file.FileParseCache.get">
+<span class="sig-name descname"><span class="pre">get</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.cache.file.FileParseCache.get" title="Link to this definition">¶</a></dt>
+<dd><p>The trees stored under <em>key</em>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> on a miss or any failure.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.cache.file.FileParseCache.set">
+<span class="sig-name descname"><span class="pre">set</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">trees</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.cache.file.FileParseCache.set" title="Link to this definition">¶</a></dt>
+<dd><p>Store <em>trees</em>, atomically, so a reader never sees a partial write.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
