@@ -3,6 +3,18 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.0.0-rc.3](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.2...v3.0.0-rc.3) (2026-09-08)
+
+### Features
+
+* **mibdump:** --emit writes every format from one read of the sources ([27c5711](https://github.com/pysnmp/pysmi/commit/27c5711fe54cde1c1d9d6347079251cdc7db70f3))
+* **mibs:** bundle IPSEC-ISAKMP-IKE-DOI-TC from the draft that defines it ([185d962](https://github.com/pysnmp/pysmi/commit/185d962207233e2b61b3c6055586018e6d35a236)), closes [#212](https://github.com/pysnmp/pysmi/issues/212) [#212](https://github.com/pysnmp/pysmi/issues/212)
+
+### Bug Fixes
+
+* **cache:** size the in-memory parse cache above a real source set ([95ceadc](https://github.com/pysnmp/pysmi/commit/95ceadce24cd312a61d918f903d3998777f27bf5))
+* **compiler:** the newest revision decides every name, not only bundled ones ([86304df](https://github.com/pysnmp/pysmi/commit/86304df36cc6aa460e336532716fbed263446e2b))
+
 ## [3.0.0-rc.2](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.1...v3.0.0-rc.2) (2026-09-08)
 
 ### Features
