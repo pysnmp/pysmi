@@ -130,22 +130,24 @@ NARRATIVE_SETTERS = (
     "setContactInfo",
 )
 
-#: RFC 2580 gives these three a REFERENCE clause, but pysnmp has nowhere to put
-#: it: their classes have no ``setReference``. pysmi carries the text to the JSON
-#: document instead of emitting a call that would fail on load. See
-#: pysnmp/pysmi#101 and pysnmp/pysnmp#133.
-WITHOUT_SET_REFERENCE = (
+#: RFC 2580 gives these three a REFERENCE clause. pysmi used to drop it,
+#: because their pysnmp classes had no ``setReference``; pysnmp added the
+#: setters in pysnmp/pysnmp#133 and loader contract v1 states them, so the call
+#: is emitted now. See pysnmp/pysmi#101 and pysnmp/pysmi#194.
+FORMERLY_SUPPRESSED = (
     "testObjectGroup",
     "testNotificationGroup",
     "testModuleCompliance",
 )
 
-#: The macros whose pysnmp classes do take a REFERENCE.
+#: Every macro in MACROS_MIB whose pysnmp class takes a REFERENCE, which under
+#: loader contract v1 is every macro that may carry the clause.
 WITH_SET_REFERENCE = (
     "testObjectIdentity",
     "testObjectType",
     "testNotificationType",
     "testAgentCapabilities",
+    *FORMERLY_SUPPRESSED,
 )
 
 
@@ -193,15 +195,15 @@ class NarrativeGuardTestCase(unittest.TestCase):
 
 
 class ConformanceReferenceTestCase(unittest.TestCase):
-    """REFERENCE is emitted only for the classes that can hold one."""
+    """REFERENCE is emitted for every macro that may carry one."""
 
     def setUp(self):
         self.pycode = render_source(MACROS_MIB)
 
-    def testTheClassesWithoutASetterGetNoCall(self):
-        for name in WITHOUT_SET_REFERENCE:
+    def testTheFormerlySuppressedClassesGetACall(self):
+        for name in FORMERLY_SUPPRESSED:
             with self.subTest(symbol=name):
-                self.assertNotIn(f"{name}.setReference(", self.pycode)
+                self.assertEqual(self.pycode.count(f"{name}.setReference("), 1)
 
     def testTheClassesWithASetterGetOne(self):
         for name in WITH_SET_REFERENCE:
@@ -305,6 +307,80 @@ class ConstructTestCase(unittest.TestCase):
         ):
             with self.subTest(symbol=symbol):
                 self.assertIn(f"{symbol}=", exported)
+
+
+def _many_objects_mib(count):
+    """A MIB whose OBJECT-GROUP names *count* objects.
+
+    ``setObjects()`` takes at most 255 at a time, so above that the generator
+    emits a loop that appends in batches. Built here rather than written out
+    because the interesting sizes are larger than a fixture should be.
+    """
+    objects = "\n".join(
+        f"""testObject{i} OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Object {i}."
+    ::= {{ 1 3 1 {i} }}"""
+        for i in range(count)
+    )
+    names = ", ".join(f"testObject{i}" for i in range(count))
+    return f"""
+TEST-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    OBJECT-TYPE, Integer32
+        FROM SNMPv2-SMI
+    OBJECT-GROUP
+        FROM SNMPv2-CONF;
+
+{objects}
+
+testGroup OBJECT-GROUP
+    OBJECTS     {{ {names} }}
+    STATUS      current
+    DESCRIPTION "Every object."
+    ::= {{ 1 3 2 }}
+
+END
+"""
+
+
+class BatchedSetObjectsTestCase(unittest.TestCase):
+    """An OBJECT-GROUP too large for one setObjects() call.
+
+    ``setObjects()`` accepts 255 arguments, so a group naming more is emitted
+    as a loop over batches. Every batch after the first has to append, or the
+    ones before it are discarded -- which is what the generated code used to
+    warn about, in a branch taken on any pysnmp older than 4.4.2. Loader
+    contract v1 states ``setObjects(..., append=True)``, so the branch is gone
+    and the append is unconditional. See pysnmp/pysnmp#197.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.small = render_source(_many_objects_mib(3))
+        cls.large = render_source(_many_objects_mib(260))
+
+    def testAGroupThatFitsIsOneCall(self):
+        # Chained onto the constructor, so there is no loop and no append.
+        self.assertIn("testGroup = ObjectGroup((1, 3, 2)).setObjects(", self.small)
+        self.assertNotIn("for _testGroup_obj", self.small)
+        self.assertNotIn("append=True", self.small)
+
+    def testAGroupThatDoesNotFitIsALoop(self):
+        self.assertIn("for _testGroup_obj in [", self.large)
+
+    def testEveryBatchAppends(self):
+        # Without this the first 255 are replaced by the last 5.
+        self.assertIn(
+            "testGroup = testGroup.setObjects(*_testGroup_obj, **dict(append=True))",
+            self.large,
+        )
+
+    def testTheLoopTestsNoLoaderVersion(self):
+        self.assertNotIn("getattr(mibBuilder", self.large)
+        self.assertNotIn("Upgrade your pysnmp", self.large)
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

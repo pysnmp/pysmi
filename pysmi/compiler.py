@@ -13,9 +13,11 @@ can be skipped and borrowers supply a pre-compiled module when compilation
 fails.
 """
 
+import copy
 import logging
 import re
 from functools import cache
+from hashlib import sha256
 from importlib import resources
 from typing import Any, Final
 
@@ -24,9 +26,16 @@ from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.borrower.base import AbstractBorrower
+from pysmi.cache.base import AbstractParseCache
+from pysmi.cache.memory import InMemoryParseCache
 from pysmi.codegen.base import REPAIRED_IMPORTS_KEY, AbstractCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
-from pysmi.mibinfo import MibInfo, source_digest
+from pysmi.mibinfo import (
+    MibInfo,
+    normalise_revision,
+    source_digest,
+    strip_comments,
+)
 from pysmi.parser.base import AbstractParser
 from pysmi.reader.base import AbstractReader
 from pysmi.searcher.base import AbstractSearcher
@@ -48,7 +57,6 @@ _LAST_UPDATED: Final = re.compile(r'LAST-UPDATED\s+"(\d{10}Z|\d{12}Z)"')
 PRECEDENCE_NEWEST_REVISION: Final = "newest MODULE-IDENTITY revision"
 PRECEDENCE_NO_REVISION: Final = "source order; no MODULE-IDENTITY revision to compare"
 PRECEDENCE_EQUAL_REVISIONS: Final = "source order; equal MODULE-IDENTITY revisions"
-PRECEDENCE_NOT_BUNDLED: Final = "source order; not a module pysmi bundles"
 
 
 @cache
@@ -84,17 +92,12 @@ def revision_of(mibData: str) -> str | None:
         no MODULE-IDENTITY -- every SMIv1 module, and the SMI modules
         themselves.
     """
-    match = _LAST_UPDATED.search(mibData)
+    match = _LAST_UPDATED.search(strip_comments(mibData))
 
     if not match:
         return None
 
-    stamp = match[1]
-
-    if len(stamp) == 11:
-        stamp = ("19" if stamp[:2] >= "70" else "20") + stamp
-
-    return stamp
+    return normalise_revision(match[1])
 
 
 @deprecated_camel_case
@@ -217,6 +220,7 @@ class MibCompiler:
         writer: "AbstractWriter",
         useBundledMibs: bool = True,
         preferConfiguredSources: bool = False,
+        parseCache: "AbstractParseCache | None" = None,
     ) -> None:
         """Creates an instance of *MibCompiler* class.
 
@@ -246,6 +250,20 @@ class MibCompiler:
                 (``SNMPv2-SMI`` and the other SMI modules among them), so
                 for those this is the difference between the caller's copy
                 being used and the bundled one.
+            parseCache: where to keep parse trees between :py:meth:`compile`
+                calls, as an :py:class:`~pysmi.cache.base.AbstractParseCache`.
+                A driver compiling many source sets on one compiler -- see
+                :py:meth:`set_sources` -- then parses the standard tree once
+                instead of once per set. Defaults to
+                :py:class:`~pysmi.cache.memory.InMemoryParseCache`;
+                :py:class:`~pysmi.cache.file.FileParseCache` survives process
+                exit, for a build that is a shell loop rather than one
+                process; :py:class:`~pysmi.cache.null.NullParseCache` turns
+                caching off. A provider is used as passed and never resolved
+                by name or from configuration, so the trust boundary is the
+                caller's own code -- which matters, because a provider that
+                stores trees outside this process reconstructs arbitrary
+                Python objects when it reads them back.
         """
         self._parser = parser
         self._codegen = codegen
@@ -257,6 +275,30 @@ class MibCompiler:
         self._borrowers: list[AbstractBorrower] = []
 
         self._preferConfiguredSources = preferConfiguredSources
+        #: Where parse trees are kept between :py:meth:`compile` calls.
+        self._parseCache: AbstractParseCache = (
+            InMemoryParseCache() if parseCache is None else parseCache
+        )
+        #: Identifies what would do the parsing, so a cached tree is never
+        #: offered to a different producer. Only a cache outliving this
+        #: process can encounter that, and one of those is exactly what
+        #: :py:class:`~pysmi.cache.file.FileParseCache` is.
+        #:
+        #: The class alone is not enough to identify a parser.
+        #: :py:func:`~pysmi.parser.smi.parserFactory` names every
+        #: specialization it builds ``SmiParser``, so ``SmiV1Parser``,
+        #: ``SmiV1CompatParser`` and ``SmiV2Parser`` -- all three of the
+        #: shipped parsers -- share a module and qualname while accepting
+        #: different grammars. The relaxations and the start symbol are what
+        #: separate them.
+        self._parserId = "/".join(
+            (
+                packageVersion,
+                f"{type(parser).__module__}.{type(parser).__qualname__}",
+                ",".join(getattr(type(parser), "grammarOptions", ())),
+                str(getattr(parser, "startSym", "")),
+            )
+        )
         #: The reader serving the bundled copies, kept so that precedence can
         #: name it apart from anything the caller added. ``None`` when
         #: ``useBundledMibs`` was not asked for.
@@ -301,6 +343,97 @@ class MibCompiler:
 
         return self
 
+    def set_sources(self, *sources: "AbstractReader") -> "MibCompiler":
+        """Replace the ASN.1 sources, keeping everything else about this compiler.
+
+        For a driver compiling many source sets in turn -- a corpus build over
+        several hundred vendor namespaces, each with its own directory and each
+        importing the same standard modules. Building a fresh compiler per set
+        re-parses that standard tree once per set, because the parse cache
+        lives in :py:meth:`compile` and dies with the call; swapping the
+        sources on one compiler keeps it.
+
+        Only :py:meth:`add_sources` readers are replaced.
+        :py:meth:`add_priority_sources` ones, the bundled base MIBs among them,
+        are left in place -- they are the part that does not vary between
+        namespaces, and re-registering them per set is what this exists to
+        avoid.
+
+        Swapping sources cannot make a stale answer reachable: the parse cache
+        is keyed by the digest of the text parsed, never by module name, so a
+        namespace carrying a different module under a name another namespace
+        used is different bytes and a different key. What a swap does change is
+        which sources are *asked*, and that takes effect immediately -- a
+        module only the previous set had stops resolving.
+
+        Args:
+            sources: reader object(s) to use from now on
+
+        Returns:
+            reference to itself (can be used for call chaining)
+
+        """
+        self._sources = list(sources)
+
+        logger.debug(
+            "MIB source(s) replaced with: %s",
+            ", ".join(str(x) for x in self._sources),
+            extra={"sources": [str(x) for x in self._sources]},
+        )
+
+        return self
+
+    def clear_parse_cache(self) -> "MibCompiler":
+        """Drop every parse tree the configured cache holds.
+
+        Never needed for correctness -- a key is derived from the text and its
+        producer, so an entry is only ever reused for identical input. It is
+        here for a caller that wants the space back at a known point.
+
+        Returns:
+            reference to itself (can be used for call chaining)
+
+        """
+        self._parseCache.clear()
+
+        return self
+
+    def _parse_cache_key(self, digest: str) -> str:
+        """The cache key for text with the given digest.
+
+        The digest alone would be enough within one process, and is what makes
+        reuse safe across a :py:meth:`set_sources` swap: two namespaces
+        carrying different modules under one name are different text and so a
+        different key.
+
+        The producer is folded in for the caches that outlive a process. A
+        parse tree is this parser's output at this pysmi version, not a
+        versioned interchange format, so an entry written by a different
+        release must not be readable by this one. Putting that in the key means
+        a provider never has to reason about invalidation, and cannot get it
+        wrong.
+        """
+        return sha256(f"{self._parserId}\n{digest}".encode()).hexdigest()
+
+    def _parse_source(self, digest: str, data: str) -> list[Any]:
+        """The parse trees for *data*, reusing any the cache already holds.
+
+        A copy is handed out rather than the cached tree itself. Neither the
+        symbol generator nor the shipped code generators write to the tree they
+        are given, but a copy costs about a tenth of a parse, and that is
+        cheaper than depending on every present and future generator leaving it
+        alone. It also means an in-process cache can hand back its own object
+        without a provider having to know why that would otherwise be unsafe.
+        """
+        key = self._parse_cache_key(digest)
+        cached = self._parseCache.get(key)
+
+        if cached is None:
+            cached = list(self._parser.parse(data))
+            self._parseCache.set(key, cached)
+
+        return copy.deepcopy(cached)
+
     def add_priority_sources(self, *sources: "AbstractReader") -> "MibCompiler":
         """Add ASN.1 MIB source repositories to be asked ahead of the rest.
 
@@ -338,6 +471,44 @@ class MibCompiler:
     def _all_sources(self) -> list["AbstractReader"]:
         """Every configured source, in the order they are asked."""
         return [*self._priority_sources, *self._sources]
+
+    def list_mibs(self, includeBundled: bool = False) -> list[str]:
+        """Every module name the configured sources can be asked to enumerate.
+
+        This is what turns "compile this collection" into a list of modules
+        without anyone having to write the list down. A source that cannot be
+        listed -- a web server answering a ``@mib@`` URL template -- reports
+        nothing, so what comes back is the modules held locally.
+
+        The bundled base MIBs are left out by default. They are a resolution
+        source, supplying whatever a compiled module imports; a caller asking
+        what to build normally means its own collection, not pysmi's copy of
+        the standard MIBs on top of it.
+
+        Keyword Args:
+            includeBundled: also enumerate the bundled base MIBs.
+
+        Returns:
+            Module names in source order, each appearing once.
+        """
+        sources = self._all_sources()
+
+        if not includeBundled and self._bundledSource is not None:
+            sources = [x for x in sources if x is not self._bundledSource]
+
+        seen: dict[str, None] = {}
+
+        for source in sources:
+            for mibname in source.list_mibs():
+                seen.setdefault(mibname, None)
+
+        logger.debug(
+            "configured sources hold %d MIB modules",
+            len(seen),
+            extra={"modules": len(seen)},
+        )
+
+        return list(seen)
 
     def _read_source(
         self, source: "AbstractReader", mibname: str
@@ -379,23 +550,34 @@ class MibCompiler:
     ) -> tuple[list[tuple["AbstractReader", MibInfo, str]], str]:
         """Every source that can supply *mibname*, the one to use first.
 
-        Source order decides, except for a module pysmi bundles a copy of --
-        one of the names pinned by ``scripts/bundled_mibs.json`` to the RFC,
-        IANA registry or IEEE 802.1 file that publishes it. Two
-        sources offering one of those are offering the same specification at
-        different revisions rather than two different modules, so the newest
-        MODULE-IDENTITY wins and source order only breaks the tie. A module
-        with no revision to compare, and anything vendor-specific, is left in
-        source order: a vendor module appearing twice is a collision or two
-        firmware revisions, and which one the caller meant is what their
-        source order says.
+        The newest MODULE-IDENTITY revision wins, whatever the module is.
+        Source order breaks the tie, and only the tie: a copy carrying no
+        revision to compare, or every copy carrying the same one.
 
-        Comparing revisions takes one on every copy found, not just on the
-        bundled one: an undated copy cannot be placed against a dated one, so
-        a single undated copy leaves the whole decision to source order. That
-        is the usual case for the SMI modules themselves, which carry no
-        MODULE-IDENTITY at all, and it is what ``preferConfiguredSources``
-        exists to settle the other way.
+        This applies to every name found in more than one source, not only to
+        the modules pysmi bundles. Restricting it to those left a caller
+        resolving a vendor module by the order they happened to configure
+        their sources in, which is a choice nobody made -- and where the
+        sources are a directory tree walked by a build, it is not even
+        stable. A decision that follows from the text is worth more than one
+        that follows from an argument order.
+
+        It does not follow that the loser is redundant. Two copies of a name
+        can be two revisions of one specification, or two different modules
+        that reuse a name -- some vendors register a product line on its own
+        arc and carry the previous line's module names on it. The rule picks
+        one deterministically; it cannot make one text answer for both, and
+        neither can any other rule, since a caller asking for a name can be
+        given exactly one module. What the compiler owes such a caller is to
+        say so, which is what ``MibStatus.shadowed`` and
+        ``MibStatus.precedence`` are for, and what ``strictSources`` turns
+        into an error.
+
+        Comparing revisions takes one on every copy found: an undated copy
+        cannot be placed against a dated one, so a single undated copy leaves
+        the whole decision to source order. That is the usual case for the SMI
+        modules themselves, which carry no MODULE-IDENTITY at all, and it is
+        what ``preferConfiguredSources`` exists to settle the other way.
 
         Sources past the first hit are read only when reading them is a local
         lookup, and only so that the loser can be named in the report.
@@ -417,9 +599,6 @@ class MibCompiler:
 
         if len(candidates) < 2:
             return candidates, ""
-
-        if mibname not in bundled_mib_names(self.bundledMibsPackage):
-            return candidates, PRECEDENCE_NOT_BUNDLED
 
         if self._preferConfiguredSources:
             # Stable, so the caller's own sources keep their order among
@@ -633,11 +812,11 @@ class MibCompiler:
                 )
 
                 try:
-                    for mibTree in self._parser.parse(fileData):
+                    for mibTree in self._parse_source(fileInfo.digest, fileData):
                         mibInfo, symbolTable = self._symbolgen.gen_code(
                             mibTree,
                             symbolTableMap,
-                            repairImports=options.get("repairImports"),
+                            repairImports=options.get("repairImports", True),
                         )
 
                         symbolTableMap[mibInfo.name] = symbolTable
@@ -1037,20 +1216,45 @@ class MibCompiler:
         )
 
         #
-        # We could attempt to ignore missing/failed MIBs
+        # A module that failed takes down what imports it, and nothing else.
         #
+        # The unit of failure is the module, not the call. A corpus is compiled
+        # a namespace at a time, hundreds of modules per call, and some of what
+        # vendors publish does not compile; discarding the whole call because
+        # one module is defective loses every good module beside it. What
+        # cannot be kept is a module that imports one that failed -- it names
+        # symbols nothing defines -- and, for the same reason, whatever imports
+        # that, transitively.
+        #
+        if failedMibs:
+            tainted = set(failedMibs)
 
-        if failedMibs and not options.get("ignoreErrors"):
-            logger.debug(
-                "failing with problem MIBs %s",
-                ", ".join(failedMibs),
-                extra={"failed_mibs": list(failedMibs)},
-            )
+            while True:
+                spreading = {
+                    mibname
+                    for mibname, (_, mibInfo, _) in builtMibs.items()
+                    if mibname not in tainted
+                    and tainted.intersection(mibInfo.imported or ())
+                }
 
-            for mibname in builtMibs:
+                if not spreading:
+                    break
+
+                tainted |= spreading
+
+            for mibname in tainted.intersection(builtMibs):
                 processed[mibname] = statusUnprocessed
+                del builtMibs[mibname]
 
-            return processed
+            logger.debug(
+                "problem MIBs %s, also omitting %d dependent MIBs",
+                ", ".join(failedMibs),
+                len(tainted) - len(failedMibs),
+                extra={
+                    "failed_mibs": list(failedMibs),
+                    "dependent_mibs": sorted(tainted - set(failedMibs)),
+                },
+            )
 
         logger.debug(
             "proceeding with built MIBs %s, failed MIBs %s",

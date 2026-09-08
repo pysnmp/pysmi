@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.pysnmp.com/pysmi/schemas/jsonindex-v1.schema.json",
+  "title": "pysmi JSON OID index, schema version 1",
+  "description": "The document JsonCodeGen.gen_index() emits for a set of compiled modules: the OID-to-module reverse index. Every section maps a dotted-decimal OID to the modules that claim it. A list rather than a single name because more than one module can claim the same OID, and the index records that rather than choosing. See docs/source/jsondoc-schema.rst.",
+  "type": "object",
+  "required": [
+    "meta",
+    "identity",
+    "enterprise",
+    "compliance",
+    "notification",
+    "oids"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "identity": {
+      "$ref": "#/$defs/oidToModules",
+      "description": "MODULE-IDENTITY OID per module."
+    },
+    "enterprise": {
+      "$ref": "#/$defs/oidToModules",
+      "description": "Enterprise OID, where the module declares one under 1.3.6.1.4.1."
+    },
+    "compliance": {
+      "$ref": "#/$defs/oidToModules",
+      "description": "MODULE-COMPLIANCE OIDs."
+    },
+    "notification": {
+      "$ref": "#/$defs/oidToModules",
+      "description": "NOTIFICATION-TYPE OIDs."
+    },
+    "oids": {
+      "$ref": "#/$defs/oidToModules",
+      "description": "Prefix-compressed object OIDs: an OID is omitted when a shorter prefix already present maps to a module set that is a superset of its own. This is what keeps the index proportional to the number of subtrees rather than to the number of nodes."
+    },
+    "meta": {
+      "$ref": "#/$defs/meta"
+    }
+  },
+  "$defs": {
+    "oidToModules": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[0-9]+(\\.[0-9]+)*$"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Module names claiming this OID, sorted and deduplicated."
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "schema"
+      ],
+      "properties": {
+        "schema": {
+          "type": "integer",
+          "const": 1,
+          "description": "Rewritten on every merge, so an index carries the version of the run that last wrote it rather than the version it was first built under."
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

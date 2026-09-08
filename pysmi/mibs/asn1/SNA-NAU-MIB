@@ -19,7 +19,7 @@ IMPORTS
         DisplayString, RowStatus, TimeStamp, InstancePointer
                 FROM SNMPv2-TC
 
-        Counter32, Gauge32, Integer32, mib-2,
+        Counter32, Gauge32, Integer32,
         OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
                 FROM SNMPv2-SMI
 

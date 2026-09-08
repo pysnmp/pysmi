@@ -1,0 +1,16 @@
+--- a/DSA-MIB
++++ b/DSA-MIB
+@@ -7,10 +7,12 @@
+           DisplayString,    TimeStamp,
+           TEXTUAL-CONVENTION
+                      FROM SNMPv2-TC
++          MODULE-COMPLIANCE, OBJECT-GROUP
++                     FROM SNMPv2-CONF
+           mib-2
+                      FROM RFC1213-MIB
+           applIndex, DistinguishedName
+-                     FROM APPLICATION-MIB;
++                     FROM NETWORK-SERVICES-MIB;
+ 
+         dsaMIB MODULE-IDENTITY
+            LAST-UPDATED "9311250000Z"

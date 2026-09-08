@@ -16,20 +16,29 @@ The manifest is asserted against the files on disk here too, since it is what
 would leave part of the bundle unverified against any publisher at all.
 """
 
+import pathlib
 import re
+import shutil
 import sys
 import unittest
 from importlib import resources
 
+from hatch_build import build as build_precompiled
 from pysmi.codegen import JsonCodeGen, PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import PackageReader
 from pysmi.writer import CallbackWriter
-from scripts.update_bundled_mibs import PATCHES, manifest
+from scripts.update_bundled_mibs import PATCHES, PUBLISHERS, bundled, future, manifest
 
-BUNDLED = sorted(manifest())
+#: The carried tier -- what the package ships and the compiler searches. The
+#: held tier in ``pysmi/mibs/future/`` is deliberately out of scope for
+#: everything below that compiles or imports: it is not installed, so a compile
+#: of it here would assert something no consumer can rely on. Its manifest
+#: entries are still held to the provenance rules, which do not depend on
+#: whether anything reads the text.
+BUNDLED = sorted(bundled())
 
 #: The LAST-UPDATED a few load-bearing modules should carry, per the RFC the
 #: manifest pins them to.
@@ -110,18 +119,53 @@ class BundledMibsCompileTestCase(unittest.TestCase):
 
         self.assertEqual(set(BUNDLED), onDisk)
 
-    def testEveryManifestEntryNamesASourceItCanBeRefetchedFrom(self):
+    def testNoHeldModuleIsInThePackage(self):
+        """``future/`` is not shipped, so nothing importable may hold one.
+
+        The exclusion is one line of packaging configuration and would be easy
+        to lose in a refactor; losing it would put 275 modules back into every
+        install without anything else changing to say so.
+        """
+        onDisk = {
+            entry.name
+            for entry in resources.files("pysmi.mibs.asn1").iterdir()
+            if entry.is_file()
+        }
+
+        self.assertEqual(set(), onDisk & future().keys())
+
+    def testEveryManifestEntryNamesThePublisherItsTextCameFrom(self):
+        """Provenance is the invariant; re-fetchability is recorded, not required.
+
+        An entry says who published the text. Where that publisher serves it
+        somewhere fetchable the entry says where, so ``--check`` can diff it;
+        where it does not, the entry is marked ``archived`` and ``--check``
+        skips it. An archived entry is not a defect -- roughly half the
+        non-RFC bundle is one -- but it still has to name a real publisher,
+        which is what stops "archived" becoming a place to file text nobody
+        can account for.
+        """
         for mibname, entry in sorted(manifest().items()):
             with self.subTest(mib=mibname):
-                if entry["source"] == "rfc":
-                    self.assertIsInstance(entry["rfc"], int)
-                elif entry["source"] == "local":
+                if entry["source"] == "local":
                     # Nothing to re-fetch, so the manifest owes an explanation.
                     self.assertTrue(entry.get("reason"))
+                elif entry.get("archived"):
+                    self.assertIn(entry["source"], PUBLISHERS)
+                    self.assertNotIn("url", entry)
+                elif entry["source"] == "rfc":
+                    self.assertIsInstance(entry["rfc"], int)
                 elif entry["source"] == "ieee802.1":
                     # No URL: the source is whatever the IEEE directory
                     # currently publishes, and this records what we took.
                     self.assertRegex(entry["revision"], r"^\d{12}$")
+                elif entry["source"] == "internet-draft":
+                    # No URL either: the source is the archived draft revision
+                    # named here, and the address it lives at is written once,
+                    # in DRAFT_ARCHIVE. An unrevisioned working-group name
+                    # cannot be re-cut from, so it is archived instead and
+                    # never reaches this branch.
+                    self.assertRegex(entry["draft"], r"^draft-[a-z0-9-]+-\d{2}$")
                 else:
                     self.assertTrue(entry["url"].startswith("https://"))
 
@@ -145,6 +189,81 @@ class BundledMibsCompileTestCase(unittest.TestCase):
 
         onDisk = {path.name for path in PATCHES.iterdir() if path.suffix == ".patch"}
         self.assertEqual({entry["patch"] for entry in patched.values()}, onDisk)
+
+    def testNoPrecompiledModuleImportsFromItself(self):
+        """A generated module must not import symbols from itself.
+
+        The pysnmp back end emits an unconditional import from every module in
+        ``constImports`` -- the symbols it always needs, such as ``MibScalar``
+        and ``ModuleCompliance``. When the module being rendered *is* one of
+        those, that import becomes an import from itself, which can never
+        resolve: the module is mid-load, so it is not yet in ``mibSymbols``.
+
+        Such a module is unloadable. Nothing noticed for as long as nothing
+        registered the precompiled package as a MIB source, and registering it
+        ahead of pysnmp's own broke every module rather than three, because
+        everything transitively depends on ``SNMPv2-CONF``.
+
+        This asserts the shape of the defect rather than the three instances,
+        so a future change to ``constImports`` cannot reintroduce it.
+        See pysnmp/pysmi#196.
+        """
+        out = build_precompiled(pathlib.Path(__file__).parent.parent)
+
+        try:
+            offenders = {}
+            for module in out.glob("*.py"):
+                if module.name.startswith("__"):
+                    continue
+                for match in re.finditer(
+                    r'mibBuilder\.importSymbols\(\s*"([^"]+)"', module.read_text()
+                ):
+                    if match.group(1) == module.stem:
+                        offenders.setdefault(module.stem, set()).add(match.group(1))
+
+            self.assertEqual({}, offenders)
+
+        finally:
+            shutil.rmtree(out, ignore_errors=True)
+
+    def testThePrecompiledBundleOmitsExactlyTheUngeneratableModules(self):
+        """Only the modules that cannot be rendered are left out.
+
+        The stub set is derived from the generator rather than listed, so this
+        pins what that derivation currently resolves to. It is deliberately
+        *not* ``baseMibs``: that is a precedence rule covering eleven further
+        modules which generate perfectly well, and which pysnmp/pysnmp#198
+        wants to adopt. Stubbing those would delete what that issue is trying
+        to converge onto.
+        """
+        expected = frozenset(PySnmpCodeGen.constImports) - frozenset(
+            PySnmpCodeGen.fakeMibs
+        )
+
+        self.assertEqual({"SNMPv2-SMI", "SNMPv2-TC", "SNMPv2-CONF"}, set(expected))
+
+        out = build_precompiled(pathlib.Path(__file__).parent.parent)
+
+        try:
+            emitted = {p.stem for p in out.glob("*.py") if not p.name.startswith("__")}
+            source = {
+                e.name
+                for e in (
+                    pathlib.Path(__file__).parent.parent / "pysmi/mibs/asn1"
+                ).iterdir()
+                if e.is_file() and not e.name.startswith("__")
+            }
+
+            self.assertEqual(expected, source - emitted)
+
+            # The other baseMibs stay in the bundle.
+            for mibname in frozenset(PySnmpCodeGen.baseMibs) - expected:
+                if mibname in source:
+                    with self.subTest(mib=mibname):
+                        self.assertIn(mibname, emitted)
+
+        finally:
+            shutil.rmtree(out, ignore_errors=True)
 
     def testEveryModuleACodeGeneratorCallsABaseMibIsBundled(self):
         """The bundle is what makes a base MIB resolvable without a network.

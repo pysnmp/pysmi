@@ -26,6 +26,7 @@ into various formats.
          [--mib-borrower=<PATH>]
          [--destination-format=<FORMAT>]
          [--destination-directory=<DIRECTORY>]
+         [--emit=<FORMAT>[+texts][:<DIRECTORY>]]
          [--cache-directory=<DIRECTORY>]
          [--disable-fuzzy-source]
          [--no-dependencies]
@@ -36,6 +37,7 @@ into various formats.
          [--python-optimization-level]
          [--ignore-errors]
          [--build-index]
+         [--build-all]
          [--rebuild]
          [--prune]
          [--dry-run]
@@ -51,6 +53,17 @@ into various formats.
                   the required MIB module when source does not support
                   directory listing (e.g. HTTP).
        FORMAT   - pysnmp, json, null
+       --build-all - compile every MIB module the local --mib-source
+                  trees hold, instead of the modules named on the command
+                  line. The module names come from the headers in the text
+                  rather than from the file names, so a module in a file
+                  named for something else is still built, under the name
+                  it declares. A source that cannot be listed -- a web
+                  server answering a @mib@ URL template -- contributes
+                  nothing, and neither do the bundled base MIBs: they are
+                  there to resolve what the built modules import. Naming
+                  modules as well is an error, since the two say different
+                  things about what to build.
        --prune  - remove previously stored output whose source MIB no
                   longer exists in any configured source. Runs without
                   MIB-NAME arguments; deletes unless combined with
@@ -59,7 +72,7 @@ into various formats.
                   bundled base MIBs (SNMPv2-SMI and similar) at all. The
                   bundle is not a last-resort fallback: it is consulted
                   ahead of --mib-source, and where both have one of the
-                  299 bundled modules the newer MODULE-IDENTITY
+                  210 bundled modules the newer MODULE-IDENTITY
                   LAST-UPDATED supplies it -- so a --mib-source carrying a
                   newer revision still wins, and one carrying an older or
                   undated copy does not. Revisions are only compared across
@@ -72,7 +85,7 @@ into various formats.
                   --mib-source supply one wherever the revisions do not
                   decide: a module with no MODULE-IDENTITY to compare, or two
                   copies carrying the same one. The newest revision still
-                  wins when every copy found has one. 34 of the 299 bundled
+                  wins when every copy found has one. 32 of the 210 bundled
                   modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
                   SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
                   all, so this is what decides them.
@@ -182,34 +195,73 @@ Naming a MIB to compile by path rather than by module name -- ``mibdump
 /some/dir/MY-MIB`` -- also puts its directory ahead of every --mib-source, so
 that the file named on the command line is the one that gets read.
 
+Producing more than one format at once
+--------------------------------------
+
+``--emit=FORMAT[+texts][:DIRECTORY]`` writes one format to one directory and
+may be given more than once, so a build that wants several formats reads its
+sources once instead of once per format::
+
+   mibdump --mib-source=file:///usr/share/snmp/mibs \
+           --emit=pysnmp:./output/notexts \
+           --emit=pysnmp+texts:./output/texts \
+           --emit=json:./output/json \
+           IF-MIB IP-MIB
+
+Parsing is roughly three quarters of a compile pass, and every destination
+parses the same ASN.1, so the run shares one parse cache across them. Measured
+over a 269-module vendor directory, the three destinations above take 15.8s as
+three invocations and 10.2s as one -- with byte-identical output, ``.pyc``
+timestamps aside.
+
+``+texts`` is the per-destination form of ``--generate-mib-texts``, which is
+the whole-run spelling: one destination can carry DESCRIPTION and the others
+not, which is exactly the pysnmp-with-and-without-texts pair a MIB site
+publishes. The directory is optional, so ``--emit=json`` alone means what
+``--destination-format=json`` alone means.
+
+Refused rather than guessed at: ``--emit`` together with
+``--destination-format`` or ``--destination-directory``, since those name the
+same two things; and two destinations writing to one directory, where one
+would overwrite the other.
+
 Which copy of a MIB gets compiled
 ---------------------------------
 
-pysmi ships its own copies of 299 base MIBs (SNMPv2-SMI and similar; see
+pysmi ships its own copies of 210 base MIBs (SNMPv2-SMI and similar; see
 :ref:`bundled-mibs`) and searches them alongside --mib-source, so more than one source can
 have the same MIB module -- two --mib-source options, or a --mib-source and
 the bundle. Which copy is used is decided by these rules, in order:
 
-1. For a module pysmi bundles a copy of, the newest MODULE-IDENTITY
-   LAST-UPDATED wins -- provided every copy found carries one.
-2. Otherwise -- to break a tie between equal revisions, when any copy found
-   carries no LAST-UPDATED, and for everything pysmi does not bundle --
-   source order wins: pysmi's bundled copy first, then each --mib-source in
-   the order it was given. --prefer-mib-source moves the bundled copy behind
-   --mib-source for this rule, and for this rule only.
+1. The newest MODULE-IDENTITY LAST-UPDATED wins -- provided every copy found
+   carries one.
+2. Otherwise -- to break a tie between equal revisions, or when any copy
+   found carries no LAST-UPDATED -- source order wins: pysmi's bundled copy
+   first, then each --mib-source in the order it was given.
+   --prefer-mib-source moves the bundled copy behind --mib-source for this
+   rule, and for this rule only.
 
-Rule 1 applies only to the modules pysmi bundles, each pinned to the RFC, IANA
-registry or IEEE 802.1 file that publishes it and re-checked against it. Two copies of one of those are
-the same specification at two revisions, and the newer is simply better. Two
-copies of a vendor MIB are not that -- they are a collision, or two firmware
-revisions -- so pysmi never picks between them: whichever --mib-source came
-first supplies it.
+Rule 1 applies to every name found in more than one source, not only to the
+modules pysmi bundles. Deciding a vendor module by source order left the
+answer to the order the sources happened to be configured in, which is a
+choice nobody made -- and where the sources are a directory tree walked by a
+build, not even a stable one.
 
-Rule 1 needs a LAST-UPDATED on *every* copy, not just on the bundled one: an
-undated copy cannot be placed against a dated one, so a single undated copy
-drops the whole module to rule 2 whatever the others carry.
+Winning is not the same as the other copy being redundant. Two copies of a
+name can be two revisions of one specification, or two different modules that
+reuse a name: a vendor registering a new product line on its own enterprise
+arc, carrying the previous line's module names onto it, is common enough to
+plan for. No rule can make one text answer for both, because a caller asking
+for a name is given exactly one module. What pysmi owes that caller is to say
+what it passed over -- which it does, on stderr and in
+``MibStatus.shadowed``, naming the rule that decided. --strict-sources turns
+that into an error instead.
 
-That case is not a corner: **34 of the 299 bundled modules carry no
+Rule 1 needs a LAST-UPDATED on *every* copy: an undated copy cannot be placed
+against a dated one, so a single undated copy drops the whole module to rule 2
+whatever the others carry.
+
+That case is not a corner: **32 of the 210 bundled modules carry no
 MODULE-IDENTITY at all** -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF, RFC1155-SMI,
 RFC1213-MIB, RFC-1212, RFC-1215, IPV6-TC, TOKEN-RING-RMON-MIB, the PPP and
 RFC1xxx-MIB modules, and the rest of the pre-SMIv2 set;
@@ -229,7 +281,7 @@ wanted. To use your own copy of a bundled module anyway, there are three
 ways, in increasing order of bluntness: ship a newer MODULE-IDENTITY revision
 of it, so rule 1 picks it; pass --prefer-mib-source, so --mib-source outranks
 the bundle wherever rule 1 cannot decide -- which is the only way to override
-the 34 undated modules short of the third; or pass --no-bundled-mibs to drop
+the 37 undated modules short of the third; or pass --no-bundled-mibs to drop
 the bundle entirely, after which nothing but --mib-source is searched and a
 base MIB missing there fails the compile rather than resolving to a bundled
 copy.
@@ -244,6 +296,41 @@ is not considered. This is why the default
 https://pysnmp.github.io/mibs/asn1/@mib@ mirror does not override a bundled
 base MIB, and why a local --mib-source meant to override one should be given
 ahead of any remote source.
+
+Compiling a whole collection
+----------------------------
+
+A build that publishes a MIB repository does not want to name its modules; it
+wants everything in the tree. --build-all takes the module list from the
+sources themselves::
+
+   $ mibdump --build-all --mib-source=/opt/mibs/vendor \
+         --emit=pysnmp:/srv/mibs/notexts \
+         --emit=pysnmp+texts:/srv/mibs/texts \
+         --emit=json:/srv/mibs/json
+
+The names come from the ``<name> DEFINITIONS ::= BEGIN`` headers in the text,
+read with pysmi's own lexer, not from the file names. That matters for two
+cases a build script driven by ``find`` gets wrong: a module in a file named
+for something else -- which such a script compiles under the file's name, or
+fails to compile at all -- and a file holding several modules, of which such a
+script builds one. Scanning also records where each module was found, so a
+module whose file is named for something else is fetchable by the name it
+declares.
+
+Only sources that can be listed contribute: a directory tree, a ZIP archive,
+a Python package. A web server given a ``@mib@`` URL template answers for a
+name it is handed and cannot be asked what it has, so it adds nothing to the
+list while still resolving imports as usual. The bundled base MIBs are left
+out for the same reason they are not what you meant: they are there to
+resolve what your modules import, not to be published as your collection.
+
+--build-all cannot be combined with MIB module names, since the two say
+different things about what to build.
+
+In the library the same list comes from
+:py:meth:`~pysmi.compiler.MibCompiler.list_mibs`, and one source at a time
+from :py:meth:`~pysmi.reader.base.AbstractReader.list_mibs`.
 
 Seeing what was decided
 -----------------------

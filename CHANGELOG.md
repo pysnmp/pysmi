@@ -3,6 +3,132 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.0.0-rc.6](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.5...v3.0.0-rc.6) (2026-09-08)
+
+### Bug Fixes
+
+* **mibs:** make DSA-MIB and RDBMS-MIB load, by naming the module their symbols are in ([bf2008c](https://github.com/pysnmp/pysmi/commit/bf2008ca5ccd0d5713e72be95bafa26d0308a623)), closes [#199](https://github.com/pysnmp/pysmi/issues/199)
+
+## [3.0.0-rc.5](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.4...v3.0.0-rc.5) (2026-09-08)
+
+### ⚠ BREAKING CHANGES
+
+* **mibs:** the wheel carries 210 ASN.1 modules and 207 precompiled pysnmp
+modules where it carried 485 and 484. A caller compiling a module that imports
+one of the 275 now resolves it from its own --mib-source instead of from the
+bundle. pysmi.mibs.manifest() still names all 485; pysmi.mibs.bundled() is the
+set an install actually supplies.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_018PviAP7g1mTiiSDn4fRQsq
+
+### Features
+
+* **mibdump:** --build-all compiles every module the sources hold ([9d92921](https://github.com/pysnmp/pysmi/commit/9d92921dae459b0e4cbf380f3fc25073b3d8d83a))
+* **mibs:** hold the 275 bundled modules nothing in the corpus imports ([32042ea](https://github.com/pysnmp/pysmi/commit/32042ea19f007c6bf7bbdeb2e04bbf41422ede79))
+* **reader:** ask a source what MIB modules it holds ([ee42ca3](https://github.com/pysnmp/pysmi/commit/ee42ca339796f14d101c7cb1e05162ffd34d4daa))
+
+## [3.0.0-rc.4](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.3...v3.0.0-rc.4) (2026-09-08)
+
+### Features
+
+* **mibs:** bundle sFlow.org's SFLOW-MIB, not RFC 3176's ([cad444e](https://github.com/pysnmp/pysmi/commit/cad444e6aff18e3e8ffed2c21c717b0a4b5cb83a))
+
+## [3.0.0-rc.3](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.2...v3.0.0-rc.3) (2026-09-08)
+
+### Features
+
+* **mibdump:** --emit writes every format from one read of the sources ([27c5711](https://github.com/pysnmp/pysmi/commit/27c5711fe54cde1c1d9d6347079251cdc7db70f3))
+* **mibs:** bundle IPSEC-ISAKMP-IKE-DOI-TC from the draft that defines it ([185d962](https://github.com/pysnmp/pysmi/commit/185d962207233e2b61b3c6055586018e6d35a236)), closes [#212](https://github.com/pysnmp/pysmi/issues/212) [#212](https://github.com/pysnmp/pysmi/issues/212)
+
+### Bug Fixes
+
+* **cache:** size the in-memory parse cache above a real source set ([95ceadc](https://github.com/pysnmp/pysmi/commit/95ceadce24cd312a61d918f903d3998777f27bf5))
+* **compiler:** the newest revision decides every name, not only bundled ones ([86304df](https://github.com/pysnmp/pysmi/commit/86304df36cc6aa460e336532716fbed263446e2b))
+
+## [3.0.0-rc.2](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.1...v3.0.0-rc.2) (2026-09-08)
+
+### Features
+
+* **parser:** tolerate an OBJECT-TYPE descriptor that starts upper case ([51a689b](https://github.com/pysnmp/pysmi/commit/51a689be0acdc4f70bf3fd5f7fdb013c195a6553))
+
+## [3.0.0-rc.1](https://github.com/pysnmp/pysmi/compare/v2.4.0-rc.2...v3.0.0-rc.1) (2026-09-08)
+
+### ⚠ BREAKING CHANGES
+
+* **compiler:** a failed MIB no longer suppresses the output of unrelated
+MIBs compiled in the same call; they are written. mibdump --ignore-errors
+no longer changes which modules are written -- it now suppresses the
+non-zero exit status instead. A caller that relied on an all-or-nothing
+batch should compile one module per call.
+
+Refs #182.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01EBV5NVv7NB6R1Wx9vRypt6
+* **codegen:** generated pysnmp modules no longer test mibBuilder.version
+before calling setStatus, setProductRelease, setRevisionsDescriptions or
+setObjects(append=True), and they now call setReference() on ObjectGroup,
+NotificationGroup and ModuleCompliance. Loading one requires a pysnmp that
+implements those setters: pysnmplib 6.0.0rc5 or later, or pysnmp 7.x. A
+pysnmp 4.4.x runtime, which the removed branches existed for, is no longer
+supported -- recompile against a supported release rather than loading
+newly generated modules into it.
+
+Closes #194. Refs pysnmp/pysnmp#197.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01EBV5NVv7NB6R1Wx9vRypt6
+* **compiler:** `mibdump --repair-imports` is replaced by
+`mibdump --strict-imports`. The repair it used to request is now what happens;
+the new flag asks for the old strict behaviour, which is what a caller
+validating a MIB rather than consuming one wants. Programmatically,
+`repairImports=False` is the same opt-out and is unchanged. A repair is never
+silent: every one is listed on the "Repaired MIBs" line of the report and
+recorded in the symbol table under `_symtable_repaired`.
+
+### Features
+
+* **codegen:** target the loader contract instead of inferring it ([bd5db61](https://github.com/pysnmp/pysmi/commit/bd5db61ca4a1553d3850548eff4abbcc83370034)), closes [pysnmp/pysnmp#133](https://github.com/pysnmp/pysnmp/issues/133) [pysnmp/pysnmp#197](https://github.com/pysnmp/pysnmp/issues/197)
+* **compiler:** repair a forced missing import by default, and drop 9 patches ([c091932](https://github.com/pysnmp/pysmi/commit/c091932e8d01d99e45207eb7036ede4a4a7b191f)), closes [#185](https://github.com/pysnmp/pysmi/issues/185) [#185](https://github.com/pysnmp/pysmi/issues/185)
+* **compiler:** swap sources on a live compiler, keeping the parse cache ([cf1ce44](https://github.com/pysnmp/pysmi/commit/cf1ce44f46c1ebb0f3ead5f0f8eb37a39a2bd31d)), closes [#181](https://github.com/pysnmp/pysmi/issues/181)
+* **mibs:** bundle the 119 RFC MIB modules the bundle was still missing ([f44d363](https://github.com/pysnmp/pysmi/commit/f44d36321edbd3dcdbae954ed32c32208f99fca9)), closes [#212](https://github.com/pysnmp/pysmi/issues/212) [#212](https://github.com/pysnmp/pysmi/issues/212)
+
+### Bug Fixes
+
+* **cache:** identify a parser by its dialect, not just its class ([1141971](https://github.com/pysnmp/pysmi/commit/11419719a74aba006ca9c40e7004eb4e989dd844)), closes [#181](https://github.com/pysnmp/pysmi/issues/181)
+* **compiler:** omit only the failed MIB and what imports it ([472d6c8](https://github.com/pysnmp/pysmi/commit/472d6c82000c55eda96b04f9c0bdd2b59cd7a162))
+* **mibinfo:** refuse a revision stamp that is not a date ([349d7e3](https://github.com/pysnmp/pysmi/commit/349d7e3e41d30b3b438b9fea245417c00421e0f0)), closes [#185](https://github.com/pysnmp/pysmi/issues/185)
+* **mibs:** keep the three patches that were correcting more than an import ([d992cf9](https://github.com/pysnmp/pysmi/commit/d992cf982efae2cab655dc958791daf838c41cb7))
+
+## [2.4.0-rc.2](https://github.com/pysnmp/pysmi/compare/v2.4.0-rc.1...v2.4.0-rc.2) (2026-09-07)
+
+### Features
+
+* **pysnmp:** state the MODULE-IDENTITY revision as a constant in emitted modules ([4ef57ca](https://github.com/pysnmp/pysmi/commit/4ef57ca6f5c1876e9bfb7d92ababb05d3a61b90a)), closes [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198)
+
+### Bug Fixes
+
+* **compiler:** make comment stripping string-aware, and apply it to the inventory ([d0f12fa](https://github.com/pysnmp/pysmi/commit/d0f12fa84179f891c57931d02febd0a47fc93a24)), closes [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198)
+* **pysnmp:** carry LAST-UPDATED in the revision constant, not the newest REVISION ([73f4202](https://github.com/pysnmp/pysmi/commit/73f42026dde84b630cf7778e061ce261acc8f2f8)), closes [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198)
+* **tests:** fail when a bundled module compiles to nothing ([62cedd6](https://github.com/pysnmp/pysmi/commit/62cedd6d7ff9fe39f815c53494605b2d53a7b78a)), closes [#203](https://github.com/pysnmp/pysmi/issues/203)
+
+## [2.4.0-rc.1](https://github.com/pysnmp/pysmi/compare/v2.3.0...v2.4.0-rc.1) (2026-09-07)
+
+### Features
+
+* **codegen:** canonical form and content hash over the module model ([965e559](https://github.com/pysnmp/pysmi/commit/965e55963d352e4cbc276f5edcb7f9cfccf3a740)), closes [#190](https://github.com/pysnmp/pysmi/issues/190) [#191](https://github.com/pysnmp/pysmi/issues/191) [#180](https://github.com/pysnmp/pysmi/issues/180)
+* **mibs:** bundle the SMIv1 compatibility shims ([ed27c8c](https://github.com/pysnmp/pysmi/commit/ed27c8caaf56a5c105a576a00e31e170c1e507c1)), closes [#161](https://github.com/pysnmp/pysmi/issues/161)
+* **mibs:** bundle the standards modules from pysnmp/mibs src/standard ([b18f6e9](https://github.com/pysnmp/pysmi/commit/b18f6e9fb1cbd44cbe6512104ba1ec7bcf03e733)), closes [#187](https://github.com/pysnmp/pysmi/issues/187)
+
+### Bug Fixes
+
+* **build:** stop generating the three modules that cannot be generated ([95d56fe](https://github.com/pysnmp/pysmi/commit/95d56fe019e78640b7b05189e2b7ab3a5a7493cc)), closes [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198) [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198) [#196](https://github.com/pysnmp/pysmi/issues/196)
+* **jsondoc:** keep AGENT-CAPABILITIES variations when texts are off ([e5d67a2](https://github.com/pysnmp/pysmi/commit/e5d67a2a2f42289d570c9f1a9748fd355406cdb0)), closes [#196](https://github.com/pysnmp/pysmi/issues/196) [#198](https://github.com/pysnmp/pysmi/issues/198) [#190](https://github.com/pysnmp/pysmi/issues/190) [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198) [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198) [#186](https://github.com/pysnmp/pysmi/issues/186)
+* **jsondoc:** suppress prose and nothing else when texts are off ([e9f74e2](https://github.com/pysnmp/pysmi/commit/e9f74e23f3021af73ae1ad9fb82438c5a9968ab8)), closes [#191](https://github.com/pysnmp/pysmi/issues/191) [#192](https://github.com/pysnmp/pysmi/issues/192) [#190](https://github.com/pysnmp/pysmi/issues/190) [#190](https://github.com/pysnmp/pysmi/issues/190) [#191](https://github.com/pysnmp/pysmi/issues/191) [#192](https://github.com/pysnmp/pysmi/issues/192)
+* **schema:** declare agentcapabilities, and make the schema itself valid ([54f85b1](https://github.com/pysnmp/pysmi/commit/54f85b1a0599d664aced5fa3671f5233f70aef22)), closes [#190](https://github.com/pysnmp/pysmi/issues/190)
+* **schema:** require status on agentcapabilities, and list it as a class ([126bf58](https://github.com/pysnmp/pysmi/commit/126bf589e1c90f4efd2e97ed1d48d5af3ff87b5a))
+
 ## [2.3.0](https://github.com/pysnmp/pysmi/compare/v2.2.0...v2.3.0) (2026-09-06)
 
 ### Features
@@ -12,6 +138,22 @@ through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHAN
 ### Bug Fixes
 
 * **mibs:** drop the three withdrawn IPv6 modules nothing imports ([c7c4fb7](https://github.com/pysnmp/pysmi/commit/c7c4fb7e05109fa48185cc4101ac94ab5e72ef90)), closes [#173](https://github.com/pysnmp/pysmi/issues/173)
+
+## [2.2.0-rc.3](https://github.com/pysnmp/pysmi/compare/v2.2.0-rc.2...v2.2.0-rc.3) (2026-09-07)
+
+### Features
+
+* **codegen:** canonical form and content hash over the module model ([965e559](https://github.com/pysnmp/pysmi/commit/965e55963d352e4cbc276f5edcb7f9cfccf3a740)), closes [#190](https://github.com/pysnmp/pysmi/issues/190) [#191](https://github.com/pysnmp/pysmi/issues/191) [#180](https://github.com/pysnmp/pysmi/issues/180)
+* **mibs:** bundle the SMIv1 compatibility shims ([ed27c8c](https://github.com/pysnmp/pysmi/commit/ed27c8caaf56a5c105a576a00e31e170c1e507c1)), closes [#161](https://github.com/pysnmp/pysmi/issues/161)
+
+### Bug Fixes
+
+* **build:** stop generating the three modules that cannot be generated ([95d56fe](https://github.com/pysnmp/pysmi/commit/95d56fe019e78640b7b05189e2b7ab3a5a7493cc)), closes [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198) [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198) [#196](https://github.com/pysnmp/pysmi/issues/196)
+* **jsondoc:** keep AGENT-CAPABILITIES variations when texts are off ([e5d67a2](https://github.com/pysnmp/pysmi/commit/e5d67a2a2f42289d570c9f1a9748fd355406cdb0)), closes [#196](https://github.com/pysnmp/pysmi/issues/196) [#198](https://github.com/pysnmp/pysmi/issues/198) [#190](https://github.com/pysnmp/pysmi/issues/190) [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198) [pysnmp/pysnmp#198](https://github.com/pysnmp/pysnmp/issues/198) [#186](https://github.com/pysnmp/pysmi/issues/186)
+* **jsondoc:** suppress prose and nothing else when texts are off ([e9f74e2](https://github.com/pysnmp/pysmi/commit/e9f74e23f3021af73ae1ad9fb82438c5a9968ab8)), closes [#191](https://github.com/pysnmp/pysmi/issues/191) [#192](https://github.com/pysnmp/pysmi/issues/192) [#190](https://github.com/pysnmp/pysmi/issues/190) [#190](https://github.com/pysnmp/pysmi/issues/190) [#191](https://github.com/pysnmp/pysmi/issues/191) [#192](https://github.com/pysnmp/pysmi/issues/192)
+* **mibs:** drop the three withdrawn IPv6 modules nothing imports ([c7c4fb7](https://github.com/pysnmp/pysmi/commit/c7c4fb7e05109fa48185cc4101ac94ab5e72ef90)), closes [#173](https://github.com/pysnmp/pysmi/issues/173)
+* **schema:** declare agentcapabilities, and make the schema itself valid ([54f85b1](https://github.com/pysnmp/pysmi/commit/54f85b1a0599d664aced5fa3671f5233f70aef22)), closes [#190](https://github.com/pysnmp/pysmi/issues/190)
+* **schema:** require status on agentcapabilities, and list it as a class ([126bf58](https://github.com/pysnmp/pysmi/commit/126bf589e1c90f4efd2e97ed1d48d5af3ff87b5a))
 
 ## [2.2.0](https://github.com/pysnmp/pysmi/compare/v2.1.1...v2.2.0) (2026-09-06)
 

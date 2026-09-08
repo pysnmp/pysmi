@@ -13,6 +13,15 @@ script that writes it, because the supersession it records is the answer to a
 question consumers ask at runtime: an agent walking an old device answers with
 OIDs whose module was obsoleted twenty years ago, and the caller wants the
 module that defines them now.
+
+The manifest covers two directories in the repository, only one of which a
+wheel carries. ``asn1/`` is the search path described above. ``future/`` holds
+modules with the same provenance that nothing in the corpus needs -- see
+:py:func:`future` -- and is neither searched nor installed. Both are in the
+manifest because provenance and supersession are facts about a module rather
+than about the directory it currently sits in, and because the manifest is
+then still able to say that a module exists and where its text comes from,
+which is the useful answer for one pysmi does not carry.
 """
 
 import importlib.resources
@@ -25,19 +34,85 @@ from typing import Any
 _MANIFEST = "bundled_mibs.json"
 
 
+#: The manifest key marking an entry as held in ``future/``. Absent on an
+#: entry in the search path, so the default is to be bundled and a promotion
+#: is the removal of a key rather than the setting of one.
+_FUTURE = "future"
+
+
 @cache
 def manifest() -> dict[str, dict[str, Any]]:
-    """Every bundled module, mapped to its manifest entry."""
+    """Every module the manifest covers, mapped to its manifest entry.
+
+    Both directories: use :py:func:`bundled` or :py:func:`future` to tell
+    which one a name is in.
+    """
     text = (importlib.resources.files(__name__) / _MANIFEST).read_text()
     modules: dict[str, dict[str, Any]] = json.loads(text)["modules"]
 
     return modules
 
 
+@cache
+def bundled() -> frozenset[str]:
+    """The modules in ``asn1/`` -- the ones an install carries and searches.
+
+    This is what :py:func:`manifest` means for every question about the
+    installed package: which modules are here, which the compiler adjudicates
+    between sources for, which ``pysmi/mibs/pysnmp/`` holds a compiled form of.
+    """
+    return frozenset(
+        name for name, entry in manifest().items() if entry.get("tier") != _FUTURE
+    )
+
+
+@cache
+def future() -> frozenset[str]:
+    """The modules the manifest describes but the package does not carry.
+
+    Held in ``pysmi/mibs/future/`` in the repository: same provenance as a
+    bundled module, but nothing in the corpus pysmi is built against imports
+    one, so they are neither searched, nor compiled into the wheel, nor
+    re-fetched by ``--check``. Any use is reason to promote one -- see
+    ``pysmi/mibs/future/README.md``.
+
+    The names ship even though the text does not, so a caller that finds one
+    of these in an IMPORTS clause can be told the module is known and where
+    its text comes from, rather than only that pysmi has no copy. Do not read
+    a name here as a file the package can be asked for; it is not one.
+    """
+    return frozenset(
+        name for name, entry in manifest().items() if entry.get("tier") == _FUTURE
+    )
+
+
 def successors(module: str) -> dict[str, str]:
     """The modules that replaced ``module``, keyed by the RFC that did it.
 
     Empty for a module still current, and for one pysmi does not bundle.
+
+    **This is a statement about the module, not about any OID it defines.** A
+    consumer ranking candidates for an OID must not read it as "demote this
+    module here". Six of the sixteen recorded relations do not survive that
+    reading: nine name a successor that redefines every OID the superseded
+    module did, six name one that shares no OID with it at all -- the successor
+    republished the material on a new arc, and the superseded module remains the
+    only definition of the old one -- and one names a successor pysmi does not
+    bundle, so nothing can be said about its coverage here. Demoting
+    ``VRRP-MIB`` for ``1.3.6.1.2.1.68`` hands that arc to whatever else claims
+    it, because ``VRRPV3-MIB`` does not.
+
+    The split is clean -- a successor covers all of the predecessor's OIDs or
+    none of them, never some -- and ``tests/test_mibs_manifest.py`` holds it
+    that way, so a per-OID consumer has a safe rule available: demote only when
+    the named successor is in the corpus *and* claims the same OID.
+
+    :py:func:`successor_for` is the per-OID form. Where a module was split
+    rather than replaced, its manifest entry carries ``successors_by_oid`` and
+    that function answers from the longest matching prefix.
+
+    One recorded successor, ``RFC1398-MIB``, is not bundled. A caller that
+    resolves the name against the corpus must tolerate a miss.
     """
     entry = manifest().get(module, {})
     reviewed: dict[str, str] = entry.get("successors_reviewed", {})

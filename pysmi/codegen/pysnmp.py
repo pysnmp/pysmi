@@ -44,7 +44,7 @@ from pysmi.codegen.base import (
     trap_type_oid,
     with_repaired_imports,
 )
-from pysmi.mibinfo import MibInfo
+from pysmi.mibinfo import MibInfo, normalise_revision
 
 logger = logging.getLogger(__name__)
 
@@ -158,41 +158,24 @@ class PySnmpCodeGen(AbstractCodeGen):
     indent = " " * 4
     fakeidx = 1000  # starting index for fake symbols
 
-    # pysnmp SMI classes that do not implement setReference(). RFC 2580 allows
-    # REFERENCE on the conformance macros these back, but emitting the call
-    # yields a module that raises AttributeError when loaded with
-    # loadTexts=True. The text is still carried by the JSON codegen.
-    _NO_SET_REFERENCE = frozenset(
-        ("ModuleCompliance", "NotificationGroup", "ObjectGroup")
-    )
-
-    # Template for version-guarded status assignment (duplicated across many
-    # codegen methods; extracted to satisfy SonarQube S1192).
-    _STATUS_VERSION_TEMPLATE = """\
-if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
-    %(name)s = %(name)s%(status)s
+    # Template for the status assignment (duplicated across many codegen
+    # methods; extracted to satisfy SonarQube S1192).
+    _STATUS_TEMPLATE = """\
+%(name)s = %(name)s%(status)s
 """
 
     # Template for the setObjects loop block used when the number of objects
     # exceeds 255 (duplicated across several codegen methods).
     _SET_OBJECTS_LOOP_TEMPLATE = """
 for _%(name)s_obj in [%(objects)s]:
-    if getattr(mibBuilder, 'version', 0) < (4, 4, 2):
-        # WARNING: leading objects get lost here! Upgrade your pysnmp version!
-        %(name)s = %(name)s.setObjects(*_%(name)s_obj)
-    else:
-        %(name)s = %(name)s.setObjects(*_%(name)s_obj, **dict(append=True))\
+    %(name)s = %(name)s.setObjects(*_%(name)s_obj, **dict(append=True))\
 """
 
     # Variant of the setObjects loop template that ends with a newline rather
     # than a line-continuation backslash (used by gen_compliances).
     _SET_OBJECTS_LOOP_TEMPLATE_NL = """
 for _%(name)s_obj in [%(objects)s]:
-    if getattr(mibBuilder, 'version', 0) < (4, 4, 2):
-        # WARNING: leading objects get lost here! Upgrade your pysnmp version!
-        %(name)s = %(name)s.setObjects(*_%(name)s_obj)
-    else:
-        %(name)s = %(name)s.setObjects(*_%(name)s_obj, **dict(append=True))
+    %(name)s = %(name)s.setObjects(*_%(name)s_obj, **dict(append=True))
 
 """
 
@@ -219,6 +202,7 @@ for _%(name)s_obj in [%(objects)s]:
         self._out: dict[str, Any] = {}  # k, v = name, generated code
         self._moduleIdentityOid: str | None = None
         self._moduleRevision: str | None = None
+        self._moduleLastUpdated: str | None = None
         self.moduleName: list[str] = ["DUMMY"]
         self.genRules: dict[str, Any] = {"text": True}
         self.symbolTable: dict[str, Any] = {}
@@ -536,25 +520,22 @@ for _%(name)s_obj in [%(objects)s]:
 
             return baseSymType, symSubtype
 
-    def _reference_line(
-        self, name: str, reference: str | None, pysnmpClass: str | None = None
-    ) -> str:
-        """Render the guarded ``setReference()`` assignment for a symbol.
+    def _reference_line(self, name: str, reference: str | None) -> str:
+        """Render the ``loadTexts``-guarded ``setReference()`` assignment.
+
+        Every class this generator emits implements ``setReference()`` under
+        loader contract v1, so the call is emitted wherever the MIB carries a
+        REFERENCE clause and texts are being generated.
 
         Args:
             name: translated symbol name
             reference: rendered REFERENCE clause; empty or ``None`` when
                 the clause is absent
-            pysnmpClass: pysnmp class backing the symbol; ``None`` when every
-                class the clause can produce implements ``setReference()``
 
         Returns:
             The assignment line, or an empty string when nothing is emitted.
         """
         if not (self.genRules["text"] and reference):
-            return ""
-
-        if pysnmpClass in self._NO_SET_REFERENCE:
             return ""
 
         return self.ifTextStr + name + reference + "\n"
@@ -583,18 +564,15 @@ for _%(name)s_obj in [%(objects)s]:
         outStr = name + " = AgentCapabilities(" + oidStr + ")" + label + "\n"
 
         if productRelease:
-            outStr += f"""\
-if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
-    {name} = {name}{productRelease}
-"""
+            outStr += f"{name} = {name}{productRelease}\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
+            outStr += self._STATUS_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "AgentCapabilities")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -606,8 +584,11 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
     ) -> str:
         """Render a MODULE-IDENTITY clause as a ``ModuleIdentity`` object.
 
-        The revision descriptions are guarded, because older PySNMP versions
-        have no method to set them.
+        The revision dates are emitted unconditionally: which version of the
+        module this is, is structural. The descriptions attached to them are
+        narrative, so they follow ``mibBuilder.loadTexts`` like the rest of the
+        texts. ``setRevisionsDescriptions()`` itself is named by loader
+        contract v1, so no version of the loader is tested for.
 
         Args:
             data: rendered clause values
@@ -636,16 +617,13 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if revisionsAndDescrs:
             last_revision, revisions, descriptions = revisionsAndDescrs
 
-            self._moduleRevision = last_revision
+            self._moduleRevision = normalise_revision(last_revision)
 
             if revisions:
                 outStr += name + revisions + "\n"
 
             if self.genRules["text"] and descriptions:
-                outStr += f"""
-if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
-    {self.ifTextStr}{name}{descriptions}
-"""
+                outStr += f"{self.ifTextStr}{name}{descriptions}\n"
 
         if lastUpdated:
             outStr += self.ifTextStr + name + lastUpdated + "\n"
@@ -686,12 +664,12 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         outStr += compliances + "\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
+            outStr += self._STATUS_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "ModuleCompliance")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -753,12 +731,12 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         outStr += "\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
+            outStr += self._STATUS_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "NotificationGroup")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -822,7 +800,7 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "NotificationType")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -868,14 +846,10 @@ if getattr(mibBuilder, 'version', (0, 0, 0)) > (4, 4, 0):
                         "[" + ", ".join(objects[255 * idx : 255 * (idx + 1)]) + "]"
                     )
 
-                outStr += """
-for _{name}_obj in [{objects}]:
-    if getattr(mibBuilder, 'version', 0) < (4, 4, 2):
-        # WARNING: leading objects get lost here!
-        {name} = {name}.setObjects(*_{name}_obj)
-    else:
-        {name} = {name}.setObjects(*_{name}_obj, **dict(append=True))\
-""".format(name=name, objects=", ".join(objStrParts))
+                outStr += self._SET_OBJECTS_LOOP_TEMPLATE % {
+                    "name": name,
+                    "objects": ", ".join(objStrParts),
+                }
 
             else:
                 outStr += self._SET_OBJECTS_CALL + ", ".join(objects) + ")"
@@ -883,12 +857,12 @@ for _{name}_obj in [{objects}]:
         outStr += "\n"
 
         if status:
-            outStr += self._STATUS_VERSION_TEMPLATE % {"name": name, "status": status}
+            outStr += self._STATUS_TEMPLATE % {"name": name, "status": status}
 
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "ObjectGroup")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -921,7 +895,7 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "ObjectIdentity")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, oidStr)
 
@@ -1093,7 +1067,7 @@ for _{name}_obj in [{objects}]:
         if self.genRules["text"] and description:
             outStr += self.ifTextStr + name + description + "\n"
 
-        outStr += self._reference_line(name, reference, "NotificationType")
+        outStr += self._reference_line(name, reference)
 
         self.reg_sym(name, outStr, enterpriseStr)
 
@@ -1863,6 +1837,11 @@ for _{name}_obj in [{objects}]:
     def gen_last_updated(self, data: TextClause, classmode: bool = False) -> str:
         """Render a LAST-UPDATED clause.
 
+        The raw timestamp is kept as well as rendered. It is the value
+        ``compiler.revision_of`` reads out of the ASN.1 to choose between two
+        copies of a module, so it is what ``PYSNMP_MODULE_REVISION`` has to
+        carry for a loader to reach the same answer.
+
         Args:
             data: rendered clause values
             classmode: unused
@@ -1870,6 +1849,8 @@ for _{name}_obj in [{objects}]:
         Returns:
             A ``setLastUpdated()`` call.
         """
+        self._moduleLastUpdated = normalise_revision(data[0])
+
         return (
             ".setLastUpdated("
             + dorepr(format_ext_utc_time(data[0], self.moduleName[0]))
@@ -2127,6 +2108,12 @@ for _{name}_obj in [{objects}]:
         self._importMap.clear()
         self._out.clear()
         self._moduleIdentityOid = None
+        # Reset with the rest of the per-module state. It was not, and one
+        # codegen is reused across a whole corpus, so a module carrying no
+        # MODULE-IDENTITY inherited the previous module's revision -- into its
+        # MibInfo, and now into the constant emitted below.
+        self._moduleRevision = None
+        self._moduleLastUpdated = None
         self.moduleName[0], moduleOid, imports, declarations = ast
 
         out, importedModules = self.gen_imports(
@@ -2147,6 +2134,24 @@ for _{name}_obj in [{objects}]:
             out += self._out[sym]
 
         out += self.gen_exports()
+
+        # Annotated, because the reset above narrows the attribute to None for
+        # the rest of this function: mypy does not see the clause handlers
+        # assign it in between.
+        revision: str | None = self._moduleLastUpdated
+
+        if revision:
+            # The module's newest MODULE-IDENTITY revision, as a module-level
+            # constant so a loader can read it without executing the module.
+            #
+            # pysmi picks between two copies of a module by comparing their
+            # revisions, but it reads that from the ASN.1 (`compiler.revision_of`).
+            # A loader handed generated Python has no ASN.1 to read, and the
+            # revision otherwise exists only as an argument to `setRevisions()`
+            # -- reachable by running the module, or by pattern-matching source.
+            # Stating it as data makes the same comparison available to anything
+            # that can parse Python. See pysnmp/pysnmp#198.
+            out = f"PYSNMP_MODULE_REVISION = {revision!r}\n\n" + out
 
         if "comments" in kwargs:
             out = "".join([f"# {x}\n" for x in kwargs["comments"]]) + "#\n" + out

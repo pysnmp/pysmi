@@ -490,9 +490,14 @@ class JsonCodeGen(AbstractCodeGen):
 
             self._moduleRevision = revisions[0]["revision"]
 
+        # LAST-UPDATED is a timestamp rather than prose, and it is what
+        # date-based source precedence compares, so it survives text
+        # suppression like the revision timestamps beside it.
+        # See pysnmp/pysmi#191.
+        if lastUpdated:
+            outDict["lastupdated"] = lastUpdated
+
         if self.genRules["text"]:
-            if lastUpdated:
-                outDict["lastupdated"] = lastUpdated
             if organization:
                 outDict["organization"] = organization
             if contactInfo:
@@ -996,12 +1001,12 @@ class JsonCodeGen(AbstractCodeGen):
             outDict["object"] = self.trans_opers(refinement[1])
             outDict["kind"] = "group"
 
-            # A GROUP says nothing but the condition it applies under, so
-            # without its description there is nothing left to report.
-            if not self.genRules["text"]:
-                return None
-
-            outDict["description"] = self.textFilter("description", refinement[2])
+            # The GROUP *reference* is what the compliance statement refines,
+            # and it is information whether or not its description is carried.
+            # Dropping the entry made a no-texts document say the MIB refines
+            # fewer groups than it does. See pysnmp/pysmi#190.
+            if self.genRules["text"]:
+                outDict["description"] = self.textFilter("description", refinement[2])
 
             return outDict
 
@@ -1043,7 +1048,6 @@ class JsonCodeGen(AbstractCodeGen):
             outDict["includes"] = [self.trans_opers(group) for group in groups]
 
             rendered = [self.gen_capabilities_variation(module, v) for v in variations]
-            rendered = [v for v in rendered if v]
 
             if rendered:
                 outDict["variations"] = rendered
@@ -1054,7 +1058,7 @@ class JsonCodeGen(AbstractCodeGen):
 
     def gen_capabilities_variation(
         self, module: str, variation: CapabilitiesVariation
-    ) -> "OrderedDict[str, Any] | None":
+    ) -> "OrderedDict[str, Any]":
         """Render one VARIATION sub-clause of a SUPPORTS clause.
 
         Args:
@@ -1062,8 +1066,9 @@ class JsonCodeGen(AbstractCodeGen):
             variation: the sub-clause
 
         Returns:
-            The sub-clause as a JSON object, or ``None`` when its texts are
-            suppressed and it qualifies nothing.
+            The sub-clause as a JSON object. Always an object: which objects a
+            clause varies is structure, so the entry survives even when texts
+            are suppressed and its DESCRIPTION was all it carried.
         """
         name, syntax, writeSyntax, access, creation, defVal, description = variation
 
@@ -1089,12 +1094,13 @@ class JsonCodeGen(AbstractCodeGen):
                 module, outDict["object"], defVal
             )
 
-        # RFC 2580 section 6.5.2 requires the DESCRIPTION, and a variation that
-        # refines nothing else says only what that description says.
-        if not self.genRules["text"]:
-            return outDict if len(outDict) > 1 else None
-
-        outDict["description"] = self.textFilter("description", description)
+        # Which objects a SUPPORTS clause varies is structure, so the entry
+        # survives text suppression even when its DESCRIPTION -- required by
+        # RFC 2580 section 6.5.2 -- is the only thing it carries. Dropping it
+        # made a no-texts document claim the agent implements the module
+        # without variation, which is a different statement (pysnmp/pysmi#198).
+        if self.genRules["text"]:
+            outDict["description"] = self.textFilter("description", description)
 
         return outDict
 
@@ -1635,13 +1641,20 @@ class JsonCodeGen(AbstractCodeGen):
             data: converted clause values
 
         Returns:
-            One entry per revision, with its date and description.
+            One entry per revision, with its date, and its description when
+            texts are generated.
+
+        The timestamp survives text suppression and the description does not,
+        which is the same split LAST-UPDATED follows. Revision descriptions
+        used to be emitted regardless, alone among every description in the
+        document. See pysnmp/pysmi#192.
         """
         revisions = []
         for x in data[0]:
             revision = OrderedDict()
             revision["revision"] = self.gen_time([x[0]])[0]
-            revision["description"] = self.textFilter("description", x[1][1])
+            if self.genRules["text"]:
+                revision["description"] = self.textFilter("description", x[1][1])
             revisions.append(revision)
         return revisions
 

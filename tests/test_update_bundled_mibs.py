@@ -218,6 +218,11 @@ class ApplyPatchTestCase(unittest.TestCase):
         a bundled file edited by hand past what its patch accounts for, which
         would leave bytes in the package that no patch and no publisher
         explains.
+
+        Both tiers. A held module's patch is a claim about its bytes just as a
+        carried one's is, and checking it costs nothing -- this is the one part
+        of ``--check`` that needs no network, so it is the one part the held
+        tier does not lose.
         """
         modules = {
             name: entry
@@ -228,17 +233,18 @@ class ApplyPatchTestCase(unittest.TestCase):
         for mibname, entry in sorted(modules.items()):
             with self.subTest(mib=mibname):
                 patch = (update_bundled_mibs.PATCHES / entry["patch"]).read_text()
-                bundled = (update_bundled_mibs.DEST / mibname).read_bytes()
+                held = update_bundled_mibs.directory(entry) / mibname
+                ours = held.read_bytes()
 
-                # Reversing the patch off the bundled copy recovers the
-                # publisher's text; re-applying it has to give the bundled copy
-                # back, byte for byte.
+                # Reversing the patch off our copy recovers the publisher's
+                # text; re-applying it has to give our copy back, byte for
+                # byte.
                 published = update_bundled_mibs.apply_patch(
-                    bundled, _invert(patch), mibname
+                    ours, _invert(patch), mibname
                 )
 
                 self.assertEqual(
-                    bundled,
+                    ours,
                     update_bundled_mibs.apply_patch(published, patch, mibname),
                 )
 
@@ -299,11 +305,16 @@ class IeeeIndexTestCase(unittest.TestCase):
             update_bundled_mibs.ieee_current("IEEE8021-CFM-MIB")
 
     def testEveryIeeeEntryRecordsTheRevisionItWasTakenFrom(self):
-        """No URL to read it off, so the manifest is where that answer lives."""
+        """No URL to read it off, so the manifest is where that answer lives.
+
+        Only for the entries the directory actually carries. Three IEEE 802.1
+        modules are in no revision of it, so they are bundled ``archived`` and
+        there is no published revision to record.
+        """
         entries = {
             name: entry
             for name, entry in update_bundled_mibs.manifest().items()
-            if entry["source"] == "ieee802.1"
+            if entry["source"] == "ieee802.1" and not entry.get("archived")
         }
 
         self.assertTrue(entries)
@@ -401,3 +412,128 @@ def _invert(patch: str) -> str:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DepaginationTestCase(unittest.TestCase):
+    """Page furniture comes off whether or not the form feeds survived.
+
+    Every RFC the bundle cuts from carries form feeds, and the page break is
+    read off those. The IETF's Internet-Draft archive serves text that has had
+    them stripped, leaving only the ``[Page n]`` footer and the running header
+    below it, so a document with no form feed in it is depaginated on the
+    footer line instead. Both paths have to leave the module's own text alone.
+    """
+
+    #: One page break, written the way an RFC writes it.
+    FED = (
+        "SOME-MIB DEFINITIONS ::= BEGIN\n"
+        "\n"
+        "first\n"
+        "\n\n"
+        "Author                       Standards Track                 [Page 1]\n"
+        "\f"
+        "RFC 9999                       Some MIB                    August 2001\n"
+        "\n\n"
+        "second\n"
+        "END\n"
+    )
+
+    #: The same document as the draft archive serves it: no form feed.
+    UNFED = FED.replace("\f", "")
+
+    def testAFormFeedDocumentIsDepaginatedOnItsFormFeeds(self):
+        body = update_bundled_mibs.unpaginate(self.FED)
+
+        self.assertNotIn("[Page 1]", body)
+        self.assertNotIn("August 2001", body)
+        self.assertIn("first\nsecond", body)
+
+    def testADocumentWithoutFormFeedsIsDepaginatedOnItsFooters(self):
+        self.assertEqual(
+            update_bundled_mibs.unpaginate(self.FED),
+            update_bundled_mibs.unpaginate(self.UNFED),
+        )
+
+    def testADocumentThatNeverPaginatedKeepsEveryLine(self):
+        """Both paths drop the blank line a text ends on; nothing else moves."""
+        text = "SOME-MIB DEFINITIONS ::= BEGIN\n\nonly\nEND\n"
+
+        self.assertEqual(
+            text.splitlines(), update_bundled_mibs.unpaginate(text).splitlines()
+        )
+
+    def testADraftModuleIsCutAtTheLeftMargin(self):
+        """A draft indents its module; the bundle holds it as an RFC prints it.
+
+        Left indented, the same module would diff against every other copy of
+        itself on whitespace alone.
+        """
+        draft = (
+            b"   Some prose about the module.\n"
+            b"\n"
+            b"   SOME-MIB DEFINITIONS ::= BEGIN\n"
+            b"\n"
+            b"   IMPORTS\n"
+            b"      MODULE-IDENTITY FROM SNMPv2-SMI;\n"
+            b"\n"
+            b"   END\n"
+        )
+
+        with mock.patch.object(update_bundled_mibs, "download", return_value=draft):
+            cut = update_bundled_mibs.extract_draft("SOME-MIB", "draft-example-00")
+
+        self.assertEqual(
+            "SOME-MIB DEFINITIONS ::= BEGIN\n\nIMPORTS\n   MODULE-IDENTITY FROM SNMPv2-SMI;\n\nEND\n",
+            cut.decode(),
+        )
+
+    def testAModuleIsCutOutOfTheDocumentAUrlServes(self):
+        """Some publishers ship the module inside a specification.
+
+        sFlow.org publishes SFLOW-MIB inside the sFlow version 5 document
+        rather than as a file of its own. Cutting it out is what keeps the
+        entry re-fetchable, so --check compares against the publisher rather
+        than trusting the copy in the bundle.
+        """
+        document = (
+            b"   Some specification prose.\n"
+            b"\n"
+            b"   SOME-MIB DEFINITIONS ::= BEGIN\n"
+            b"\n"
+            b"   IMPORTS\n"
+            b"      MODULE-IDENTITY FROM SNMPv2-SMI;\n"
+            b"\n"
+            b"   END\n"
+            b"\n"
+            b"   More prose, and another module this one is not.\n"
+        )
+
+        with mock.patch.object(update_bundled_mibs, "download", return_value=document):
+            cut = update_bundled_mibs.extract_url(
+                "SOME-MIB", "https://example.invalid/spec"
+            )
+
+        self.assertEqual(
+            "SOME-MIB DEFINITIONS ::= BEGIN\n\nIMPORTS\n   MODULE-IDENTITY FROM SNMPv2-SMI;\n\nEND\n",
+            cut.decode(),
+        )
+
+    def testNoBundledModuleCarriesPageFurniture(self):
+        """The whole bundle, not just the entry that prompted the check.
+
+        A footer left in a module is not a compile error -- it lands inside a
+        comment or between declarations often enough to go unnoticed -- so
+        nothing else in the suite would report one.
+        """
+        for path in sorted(update_bundled_mibs.DEST.iterdir()):
+            if not path.is_file() or path.name.startswith("__"):
+                continue
+
+            with self.subTest(module=path.name):
+                offenders = [
+                    line
+                    for line in path.read_text(errors="replace").splitlines()
+                    if update_bundled_mibs.PAGINATION_FOOTER.search(line)
+                ]
+
+                self.assertEqual([], offenders)

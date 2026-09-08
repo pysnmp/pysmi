@@ -210,6 +210,45 @@ class CorpusSurfaceTestCase(unittest.TestCase):
         self.assertEqual(enumeration["ethernetCsmacd"], 6)
 
 
+class GeneratedSourceTargetsTheContractTestCase(unittest.TestCase):
+    """The emitted pysnmp source tests no runtime property of its loader.
+
+    A generated module used to decide what to call by reading
+    ``mibBuilder.version`` and comparing it against pysnmp 4.4.0 and 4.4.2 --
+    releases from 2017 and 2018, hedged with a ``getattr`` default because the
+    attribute might not be there. That is the inference loader contract v1
+    replaces: the setters a generated module may call are stated, so the
+    generator emits them. See pysnmp/pysnmp#197.
+
+    Asserted over the whole corpus rather than a fixture because a guard that
+    returns will return inside one clause generator, and only some of them are
+    reached by any one short MIB.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        _, cls.written = compiled(PySnmpCodeGen)
+
+    def testNoModuleReadsTheBuilderVersion(self):
+        # Matched as it is emitted -- ``getattr(mibBuilder, 'version', ...)``,
+        # not an attribute access -- so the assertion can actually fail.
+        for name, source in self.written.items():
+            with self.subTest(module=name):
+                self.assertNotIn("getattr(mibBuilder", source)
+                self.assertNotIn("'version'", source)
+
+    def testNoModuleTellsTheUserToUpgrade(self):
+        # The 4.4.2 branch carried "Upgrade your pysnmp version!" into the
+        # output, addressed to whoever read the generated file.
+        for name, source in self.written.items():
+            with self.subTest(module=name):
+                self.assertNotIn("Upgrade your pysnmp", source)
+
+    def testTheStatusCallsThatWereGuardedAreStillEmitted(self):
+        # Removing a guard must not remove what it guarded.
+        self.assertIn("setStatus(", self.written["IF-MIB"])
+
+
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
 
 if __name__ == "__main__":

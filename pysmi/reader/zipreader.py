@@ -12,12 +12,13 @@ import logging
 import os
 import time
 import zipfile
+from collections.abc import Iterable
 from typing import IO, Any, Final
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
-from pysmi.mibinfo import MibInfo
+from pysmi.mibinfo import MibInfo, module_names
 from pysmi.reader.base import AbstractReader
 
 logger = logging.getLogger(__name__)
@@ -153,6 +154,51 @@ class ZipReader(AbstractReader):
     def __str__(self) -> str:
         """Identify this reader by the archive it reads members from."""
         return f'{self.__class__.__name__}{{"{self._name}"}}'
+
+    def list_mibs(self) -> Iterable[str]:
+        """Names of the modules the archive holds, nested archives included.
+
+        Every member is read and its module headers lexed, for the same
+        reason the directory reader reads every file: the member name is a
+        guess at what is inside it.
+        """
+        seen: dict[str, None] = {}
+
+        for filename in sorted(self._members):
+            if filename.startswith("."):
+                continue
+
+            try:
+                data, _mtime = self._readZipFile(self._members[filename])
+
+            except Exception as exc:  # noqa: BLE001 - one member, not the archive
+                logger.debug(
+                    "ZIP member %s read failure: %s",
+                    filename,
+                    exc,
+                    extra={"path": self._name, "error": str(exc)},
+                )
+                continue
+
+            if isinstance(data, bytes):
+                text = data.decode("utf-8", "replace")
+            else:
+                text = data
+
+            if len(text) > self.maxMibSize:
+                continue
+
+            for name in module_names(text):
+                seen.setdefault(name, None)
+
+        logger.debug(
+            "%s holds %d MIB modules",
+            self._name,
+            len(seen),
+            extra={"path": self._name, "modules": len(seen)},
+        )
+
+        return list(seen)
 
     def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Read a MIB from the ZIP archive.

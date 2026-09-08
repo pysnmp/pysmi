@@ -28,7 +28,6 @@ from pysmi.compiler import (
     PRECEDENCE_EQUAL_REVISIONS,
     PRECEDENCE_NEWEST_REVISION,
     PRECEDENCE_NO_REVISION,
-    PRECEDENCE_NOT_BUNDLED,
     MibCompiler,
     bundled_mib_names,
     revision_of,
@@ -182,25 +181,30 @@ class SourceOrderTestCase(unittest.TestCase):
 
         self.assertEqual(["priority", "primary"], calls)
 
-    def testTheFirstAddSourcesReaderThatHasAVendorModuleSupplesIt(self):
+    def testSourceOrderSupliesAVendorModuleOnlyWhenTheRevisionsTie(self):
+        """Source order settles what the text cannot, and nothing more.
+
+        Equal revisions leave the two copies indistinguishable on the only
+        evidence there is, so the order the caller gave decides. A newer
+        revision in the second source wins -- see
+        NewestRevisionWinsTestCase.
+        """
         second = tempfile.TemporaryDirectory()
         self.addCleanup(second.cleanup)
 
         first = self.write(
             self._tmp.name, "VENDOR-MIB", stamped("VENDOR-MIB", "200001010000Z")
         )
-        self.write(second.name, "VENDOR-MIB", stamped("VENDOR-MIB", "202601010000Z"))
+        self.write(second.name, "VENDOR-MIB", stamped("VENDOR-MIB", "200001010000Z"))
 
         self.compiler.add_sources(FileReader(self._tmp.name), FileReader(second.name))
         self.compiler.compile("VENDOR-MIB", ignoreErrors=True)
 
-        # The newer revision in the second source does not win: pysmi bundles
-        # no VENDOR-MIB, so it has no standing to call one copy the better.
         self.assertIn(source_digest(first), self.written["VENDOR-MIB"])
 
 
 class NewestRevisionWinsTestCase(unittest.TestCase):
-    """For a bundled name only, the newest MODULE-IDENTITY beats source order."""
+    """The newest MODULE-IDENTITY beats source order, for any name."""
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -367,7 +371,13 @@ class PrecedenceIsReportedTestCase(unittest.TestCase):
         processed = self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)
         self.assertEqual(PRECEDENCE_EQUAL_REVISIONS, processed["SNMPv2-MIB"].precedence)
 
-    def testAModulePysmiDoesNotBundleIsNamedAsSourceOrder(self):
+    def testAModulePysmiDoesNotBundleIsDecidedByRevisionToo(self):
+        """The rule is the newest revision, not the newest bundled revision.
+
+        Deciding a vendor module by source order left the answer to the order
+        a caller happened to configure their sources in -- and where those
+        sources are a directory tree walked by a build, not even to that.
+        """
         second = tempfile.TemporaryDirectory()
         self.addCleanup(second.cleanup)
 
@@ -378,7 +388,35 @@ class PrecedenceIsReportedTestCase(unittest.TestCase):
         self.compiler.add_sources(FileReader(second.name))
         processed = self.compiler.compile("VENDOR-MIB", ignoreErrors=True)
 
-        self.assertEqual(PRECEDENCE_NOT_BUNDLED, processed["VENDOR-MIB"].precedence)
+        self.assertEqual(PRECEDENCE_NEWEST_REVISION, processed["VENDOR-MIB"].precedence)
+        self.assertTrue(
+            processed["VENDOR-MIB"].path.startswith(f"file://{second.name}")
+        )
+
+    def testTheOlderCopyOfAVendorModuleIsNamedAsShadowed(self):
+        """Picking one is not the same as the other being redundant.
+
+        Two copies of a name can be two different modules -- a vendor
+        registering a product line on its own arc and carrying the previous
+        line's module names onto it. A caller asking for a name can be given
+        exactly one, so the report has to name what it did not get.
+        """
+        second = tempfile.TemporaryDirectory()
+        self.addCleanup(second.cleanup)
+
+        self.write("VENDOR-MIB", stamped("VENDOR-MIB", "200001010000Z"))
+        with open(os.path.join(second.name, "VENDOR-MIB"), "w") as fp:
+            fp.write(stamped("VENDOR-MIB", "202601010000Z"))
+
+        self.compiler.add_sources(FileReader(second.name))
+        processed = self.compiler.compile("VENDOR-MIB", ignoreErrors=True)
+
+        # os.path.join, not a "/" of our own: the reader reports the path the
+        # filesystem gave it, which on Windows is separated by a backslash.
+        self.assertEqual(
+            ("file://" + os.path.join(self._tmp.name, "VENDOR-MIB"),),
+            processed["VENDOR-MIB"].shadowed,
+        )
 
     def testNothingShadowedLeavesNoReasonToGive(self):
         processed = self.compiler.compile("SNMPv2-MIB", ignoreErrors=True)
@@ -441,14 +479,14 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
     """The counts stated in mibdump's --help and guide, checked against the
     bundle itself.
 
-    "34 of the 299 bundled modules carry no MODULE-IDENTITY" is load-bearing
+    "32 of the 210 bundled modules carry no MODULE-IDENTITY" is load-bearing
     prose: it is why --prefer-mib-source exists. Adding to the bundle without
     updating pysmi/scripts/mibdump.py, docs/source/mibdump.rst and
     docs/source/bundled-mibs.rst would leave them quietly wrong, so the numbers
     are asserted rather than trusted.
     """
 
-    def testTheBundleIsTwoHundredAndNinetyNineModulesThirtyFourOfThemUndated(self):
+    def testTheBundleIsTwoHundredAndTenModulesThirtyTwoOfThemUndated(self):
         names = bundled_mib_names(BUNDLED_PACKAGE)
         undated = {
             name
@@ -459,17 +497,36 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
             is None
         }
 
-        self.assertEqual(299, len(names))
-        self.assertEqual(34, len(undated))
+        self.assertEqual(210, len(names))
+        # 32, not 28: ATM-FORUM-MIB and the three LAN-EMULATION modules ship
+        # their MODULE-IDENTITY commented out. `revision_of` used to match
+        # inside the comment and report a revision for a module that declares
+        # none. Named rather than only counted, so a regression that swaps one
+        # undated module for another cannot hold the count at 32.
+        self.assertEqual(32, len(undated))
         self.assertIn("SNMPv2-SMI", undated)
+        self.assertLessEqual(
+            {
+                "ATM-FORUM-MIB",
+                "LAN-EMULATION-BUS-MIB",
+                "LAN-EMULATION-ELAN-MIB",
+                "LAN-EMULATION-LES-MIB",
+            },
+            undated,
+        )
 
     def testEveryUndatedBundledModulePredatesModuleIdentity(self):
         """An undated module is used over the caller's copy, with no comparison.
 
-        That is only safe while every one of them is text an RFC froze -- a
-        pre-SMIv2 module, or an SMI module proper. One that is still revised
-        upstream would shadow a caller's better copy for good, so the property
-        is asserted here rather than left to the manifest reviewer.
+        That is only safe while every one of them is text nobody will revise --
+        frozen by the RFC that published it, by a tool run that will not happen
+        again, or by a publisher that no longer exists. One that is still
+        revised upstream would shadow a caller's better copy for good, so the
+        property is asserted here rather than left to the manifest reviewer.
+
+        Note this is about the publisher being *defunct*, not about the text
+        being hard to fetch. A live publisher we cannot fetch from still
+        revises; an undated module from one would be exactly the trap.
         """
         manifest = update_bundled_mibs.manifest()
 
@@ -479,6 +536,12 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
                 continue
 
             with self.subTest(mib=name):
-                # IANA and IEEE 802.1 revise their modules; an undated one from
-                # either would be exactly the trap described above.
-                self.assertIn(manifest[name]["source"], ("rfc", "local"))
+                # IANA, IEEE 802.1 and CableLabs all revise their modules; an
+                # undated one from any of them would be the trap above. The
+                # ATM Forum dissolved into the Broadband Forum and the Fibre
+                # Alliance into SNIA, neither of which republishes these under
+                # the names bundled here, so those two cannot be revised.
+                self.assertIn(
+                    manifest[name]["source"],
+                    ("atm-forum", "fibre-alliance", "local", "rfc"),
+                )

@@ -1146,11 +1146,16 @@ class SymtableCodeGen(AbstractCodeGen):
                 recorded in the symbol table
             repairImports: supply the canonical import for any SMIv2 base
                 symbol the module uses without naming it in IMPORTS, rather
-                than failing on it. Off by default, so the strict reading of
-                RFC 2578 Section 3.2 is what a caller gets unless it asks
-                otherwise. What was supplied is recorded in the symbol table
-                under ``_symtable_repaired``, both for the report and for the
-                backend that renders the same module.
+                than failing on it. **On by default.** The repair is only ever
+                made where it is forced -- the symbol is undefined,
+                unimported, and exactly one SMIv2 base module exports it -- so
+                there is nothing to guess at, and refusing bought strictness
+                about RFC 2578 Section 3.2 at the price of failing on a module
+                whose correct IMPORTS line is not in doubt. Pass ``False`` for
+                that strict reading, which is what a caller validating a MIB
+                rather than consuming one wants. What was supplied is recorded
+                in the symbol table under ``_symtable_repaired``, both for the
+                report and for the backend that renders the same module.
 
         Returns:
             The module's :py:class:`~pysmi.mibinfo.MibInfo` and its symbol
@@ -1193,7 +1198,7 @@ class SymtableCodeGen(AbstractCodeGen):
                     self, self.prep_data(declr[1:], classmode), classmode
                 )
 
-        if kwargs.get("repairImports") and not repaired:
+        if kwargs.get("repairImports", True) and not repaired:
             missing = self.missing_canonical_imports()
             if missing:
                 logger.info(
