@@ -493,7 +493,7 @@ def start() -> None:
     Dry run mode: {}
     Create/update MIBs: {}
     Byte-compile Python modules: {} (optimization level {})
-    Ignore compilation errors: {}
+    Report a failed MIB as an error: {}
     Generate OID->MIB index: {}
     Generate texts in MIBs: {}
     Keep original texts layout: {}
@@ -517,7 +517,7 @@ def start() -> None:
                 (writeMibsFlag and "yes") or "no",
                 (dstFormat == "pysnmp" and pyCompileFlag and "yes") or "no",
                 (dstFormat == "pysnmp" and pyOptimizationLevel and "yes") or "no",
-                (ignoreErrorsFlag and "yes") or "no",
+                (ignoreErrorsFlag and "no") or "yes",
                 (buildIndexFlag and "yes") or "no",
                 (genMibTextsFlag and "yes") or "no",
                 (keepTextsLayout and "yes") or "no",
@@ -610,7 +610,7 @@ def start() -> None:
             )
 
             sys.stderr.write(
-                "Ignored MIBs: "
+                "Omitted MIBs (they import a failed MIB): "
                 + ", ".join(
                     sorted(x for x in processed if processed[x] == "unprocessed")
                 )
@@ -711,14 +711,22 @@ def start() -> None:
                     + "\n"
                 )
 
+        # A defective MIB is an error by default. What it costs is bounded --
+        # the module itself and whatever imports it are omitted, and every
+        # other module in the run is written either way -- but a build that
+        # produced less than it was asked for should say so rather than exit
+        # zero. --ignore-errors reports success on the same output, which is
+        # what a caller compiling MIBs it does not control wants: the report
+        # still names what was dropped, and the caller decides.
         exitCode = EX_OK
 
-        if any(x for x in processed.values() if x == "missing"):
-            exitCode = EX_MIB_MISSING
+        if not ignoreErrorsFlag:
+            if any(x for x in processed.values() if x == "missing"):
+                exitCode = EX_MIB_MISSING
 
-        if any(x for x in processed.values() if x == "failed") or any(
-            x for x in pruned.values() if x == "failed"
-        ):
-            exitCode = EX_MIB_FAILED
+            if any(x for x in processed.values() if x == "failed") or any(
+                x for x in pruned.values() if x == "failed"
+            ):
+                exitCode = EX_MIB_FAILED
 
         sys.exit(exitCode)
