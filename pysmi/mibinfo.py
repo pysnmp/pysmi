@@ -9,11 +9,95 @@
 import hashlib
 import json
 import re
+import threading
+from collections.abc import Iterator
 from datetime import datetime
 from typing import Any, Optional
 
 _PRODUCER_RE = re.compile(r"Produced by (?P<name>\S+?)-(?P<version>\S+)")
 _DIGEST_RE = re.compile(r"Source digest (?P<digest>\S+)")
+
+#: One lexer per thread. PLY lexers carry position state across calls, and
+#: nothing stops two threads from scanning MIB text at the same time.
+_lexers = threading.local()
+
+#: Token types a module name can be lexed as. Upper case is the convention
+#: and very nearly universal, but modules named ``companyMIB`` or
+#: ``proware-SNMP-MIB`` exist and compile, so the lower-case identifier
+#: counts too.
+_NAME_TOKENS: tuple[str, ...] = ("UPPERCASE_IDENTIFIER", "LOWERCASE_IDENTIFIER")
+
+
+def _module_name_lexer() -> Any:
+    """The ASN.1 lexer this thread scans module headers with.
+
+    Built for the relaxed SMIv1 dialect, the widest one pysmi parses, so
+    that a header this recognises belongs to a module the parser will at
+    least attempt.
+    """
+    existing = getattr(_lexers, "lexer", None)
+
+    if existing is None:
+        from pysmi.lexer.smi import lexerFactory
+        from pysmi.parser.dialect import smiV1Relaxed
+
+        existing = lexerFactory(**smiV1Relaxed)()
+        _lexers.lexer = existing
+
+    return existing
+
+
+def _module_name_tokens(text: str) -> Iterator[Any]:
+    """Lex *text*, yielding tokens until it ends or stops making sense.
+
+    Text that stops lexing partway still yields what came before. Vendor
+    MIB text is not uniformly clean, and a byte the lexer refuses deep
+    inside a module says nothing about whether the file is one.
+    """
+    lexer = _module_name_lexer()
+    lexer.reset()
+    lexer.lexer.input(text)
+
+    while True:
+        try:
+            token = lexer.lexer.token()
+        except Exception:  # noqa: BLE001 - a lexer error just ends the scan
+            return
+
+        if token is None:
+            return
+
+        yield token
+
+
+def module_names(text: str) -> list[str]:
+    """Every MIB module *text* declares a header for, in the order written.
+
+    A MIB module is named inside the file rather than by it, and one file
+    may hold several. This reads the ``<name> DEFINITIONS ::= BEGIN``
+    headers with pysmi's own lexer rather than with an expression of its
+    own: vendors break a header across lines and drop a ``-- REVISION``
+    note into the middle of it, and the lexer already knows how ASN.1
+    comments and line breaks work.
+
+    Args:
+        text: MIB source.
+
+    Returns:
+        The module names declared, empty when *text* is not MIB source at
+        all -- which is how a login wall or an error page served as 200
+        tells itself apart from a module.
+    """
+    found: list[str] = []
+    previous: str | None = None
+
+    for token in _module_name_tokens(text):
+        if token.type == "DEFINITIONS" and previous is not None:
+            found.append(previous)
+
+        previous = token.value if token.type in _NAME_TOKENS else None
+
+    return found
 
 
 def strip_comments(text: str) -> str:

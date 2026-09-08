@@ -15,7 +15,7 @@ from typing import Any
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
-from pysmi.mibinfo import MibInfo
+from pysmi.mibinfo import MibInfo, module_names
 from pysmi.reader.base import AbstractReader
 
 logger = logging.getLogger(__name__)
@@ -204,6 +204,14 @@ class FileReader(AbstractReader):
 
         return mibIndex
 
+    def _load_index_file(self) -> None:
+        """Read the tree's ``.index`` once, if it has one and we honour it."""
+        if not self.useIndexFile or self._indexLoaded:
+            return
+
+        self._mibIndex = self.load_index(os.path.join(self._path, self.indexFile))
+        self._indexLoaded = True
+
     def get_mib_variants(
         self, mibname: str, **options: Any
     ) -> Iterable[tuple[str, str]]:
@@ -214,11 +222,7 @@ class FileReader(AbstractReader):
         :py:meth:`~pysmi.reader.base.AbstractReader.get_mib_variants`.
         """
         if self.useIndexFile:
-            if not self._indexLoaded:
-                self._mibIndex = self.load_index(
-                    os.path.join(self._path, self.indexFile)
-                )
-                self._indexLoaded = True
+            self._load_index_file()
 
             mibIndex = self._mibIndex or {}
 
@@ -232,6 +236,91 @@ class FileReader(AbstractReader):
                 return [(mibname, mibIndex[mibname])]
 
         return super().get_mib_variants(mibname, **options)
+
+    def list_mibs(self) -> Iterable[str]:
+        """Names of the modules the directory tree holds.
+
+        Every regular file in the tree is read and its module headers lexed,
+        because the file name is only a guess at what is inside it. Files that
+        declare no module -- a README, an index, whatever else shares the
+        directory -- contribute nothing and are not an error.
+
+        The ``.index`` file is not read as the answer. It maps a module name
+        to the file holding it for the modules someone thought to list, so
+        trusting it here would report a subset of the tree as the whole of it.
+
+        What the scan learns is added to that index, but only for a module
+        no file name in the tree would have led to anyway -- one declared in
+        a file named for something else. Those are the modules
+        :py:meth:`get_data` cannot presently find at all, so indexing them
+        turns a name it would fail on into one it resolves. Every other
+        module keeps being looked up by the file names
+        :py:meth:`~pysmi.reader.base.AbstractReader.get_mib_variants`
+        generates, so which copy of a module the tree resolves to does not
+        move because it was enumerated first.
+        """
+        self._load_index_file()
+
+        index = self._mibIndex if self._mibIndex is not None else {}
+        self._mibIndex = index
+
+        seen: dict[str, None] = {}
+        # Where each module was found, and every file name in the tree, so
+        # that "no file name would have led here" can be answered once the
+        # whole tree has been seen rather than guessed at partway through.
+        foundIn: dict[str, str] = {}
+        filenames: set[str] = set()
+
+        for path in self.get_subdirs(self._path, self._recursive, self._ignoreErrors):
+            _subdirs, files = self._list_dir(path, self._ignoreErrors)
+
+            filenames.update(files)
+
+            for filename in sorted(files.values()):
+                if filename.startswith("."):
+                    continue
+
+                fullPath = os.path.join(decode(path), decode(filename))
+
+                try:
+                    if os.stat(fullPath).st_size > self.maxMibSize:
+                        continue
+
+                    with open(fullPath, encoding="utf-8", errors="replace") as f:
+                        text = f.read()
+
+                except OSError as exc:
+                    if not self._ignoreErrors:
+                        raise error.PySmiError(
+                            f"file {fullPath} access error: {exc}"
+                        ) from exc
+
+                    continue
+
+                for name in module_names(text):
+                    seen.setdefault(name, None)
+                    foundIn.setdefault(name, filename)
+
+        for name, filename in foundIn.items():
+            if name in index:
+                continue
+
+            if any(
+                os.path.normcase(candidate) in filenames
+                for _alias, candidate in super().get_mib_variants(name)
+            ):
+                continue
+
+            index[name] = filename
+
+        logger.debug(
+            "%s holds %d MIB modules",
+            self._path,
+            len(seen),
+            extra={"path": self._path, "modules": len(seen)},
+        )
+
+        return list(seen)
 
     def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Read a MIB from the local directory tree.
