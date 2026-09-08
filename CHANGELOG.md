@@ -3,6 +3,25 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.0.0-rc.5](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.4...v3.0.0-rc.5) (2026-09-08)
+
+### ⚠ BREAKING CHANGES
+
+* **mibs:** the wheel carries 210 ASN.1 modules and 207 precompiled pysnmp
+modules where it carried 485 and 484. A caller compiling a module that imports
+one of the 275 now resolves it from its own --mib-source instead of from the
+bundle. pysmi.mibs.manifest() still names all 485; pysmi.mibs.bundled() is the
+set an install actually supplies.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_018PviAP7g1mTiiSDn4fRQsq
+
+### Features
+
+* **mibdump:** --build-all compiles every module the sources hold ([9d92921](https://github.com/pysnmp/pysmi/commit/9d92921dae459b0e4cbf380f3fc25073b3d8d83a))
+* **mibs:** hold the 275 bundled modules nothing in the corpus imports ([32042ea](https://github.com/pysnmp/pysmi/commit/32042ea19f007c6bf7bbdeb2e04bbf41422ede79))
+* **reader:** ask a source what MIB modules it holds ([ee42ca3](https://github.com/pysnmp/pysmi/commit/ee42ca339796f14d101c7cb1e05162ffd34d4daa))
+
 ## [3.0.0-rc.4](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.3...v3.0.0-rc.4) (2026-09-08)
 
 ### Features
