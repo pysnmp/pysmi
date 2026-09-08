@@ -1171,20 +1171,45 @@ class MibCompiler:
         )
 
         #
-        # We could attempt to ignore missing/failed MIBs
+        # A module that failed takes down what imports it, and nothing else.
         #
+        # The unit of failure is the module, not the call. A corpus is compiled
+        # a namespace at a time, hundreds of modules per call, and some of what
+        # vendors publish does not compile; discarding the whole call because
+        # one module is defective loses every good module beside it. What
+        # cannot be kept is a module that imports one that failed -- it names
+        # symbols nothing defines -- and, for the same reason, whatever imports
+        # that, transitively.
+        #
+        if failedMibs:
+            tainted = set(failedMibs)
 
-        if failedMibs and not options.get("ignoreErrors"):
-            logger.debug(
-                "failing with problem MIBs %s",
-                ", ".join(failedMibs),
-                extra={"failed_mibs": list(failedMibs)},
-            )
+            while True:
+                spreading = {
+                    mibname
+                    for mibname, (_, mibInfo, _) in builtMibs.items()
+                    if mibname not in tainted
+                    and tainted.intersection(mibInfo.imported or ())
+                }
 
-            for mibname in builtMibs:
+                if not spreading:
+                    break
+
+                tainted |= spreading
+
+            for mibname in tainted.intersection(builtMibs):
                 processed[mibname] = statusUnprocessed
+                del builtMibs[mibname]
 
-            return processed
+            logger.debug(
+                "problem MIBs %s, also omitting %d dependent MIBs",
+                ", ".join(failedMibs),
+                len(tainted) - len(failedMibs),
+                extra={
+                    "failed_mibs": list(failedMibs),
+                    "dependent_mibs": sorted(tainted - set(failedMibs)),
+                },
+            )
 
         logger.debug(
             "proceeding with built MIBs %s, failed MIBs %s",
