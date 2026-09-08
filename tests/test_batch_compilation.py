@@ -466,6 +466,38 @@ class BoundedInMemoryCacheTestCase(unittest.TestCase):
 
         self.assertEqual(cache.get("0"), [0])
 
+    def testAScanLongerThanTheBoundHitsNothingAtAll(self):
+        """Why the default bound is what it is, rather than a round number.
+
+        A compile pass reads its modules once in order. Replay that scan
+        through a cache shorter than the scan and the hit rate is not merely
+        reduced, it is zero: the entry the second pass asks for first was the
+        first evicted, and each miss evicts what the next lookup wanted. The
+        default has to exceed a real source set or the cache does nothing.
+        """
+        keys = [str(n) for n in range(10)]
+
+        def replay(cache):
+            """Two passes over *keys*; how many the second pass found."""
+            hits = 0
+            for pass_number in (1, 2):
+                for key in keys:
+                    if cache.get(key) is None:
+                        cache.set(key, [key])
+                    elif pass_number == 2:
+                        hits += 1
+            return hits
+
+        self.assertEqual(0, replay(InMemoryParseCache(maxEntries=len(keys) - 1)))
+        self.assertEqual(len(keys), replay(InMemoryParseCache(maxEntries=len(keys))))
+
+    def testTheDefaultBoundHoldsARealSourceSet(self):
+        """1672 is the largest number of modules one namespace of
+        ``pysnmp/mibs`` touches in a pass. A default below that would make the
+        cache useless for exactly the build it exists for.
+        """
+        self.assertGreaterEqual(InMemoryParseCache()._maxEntries, 1672)
+
 
 class FileParseCacheTestCase(unittest.TestCase):
     """The provider for a build that spans processes."""

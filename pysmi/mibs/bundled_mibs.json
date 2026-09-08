@@ -931,6 +931,10 @@
       "rfc": 4545,
       "source": "rfc"
     },
+    "IPSEC-ISAKMP-IKE-DOI-TC": {
+      "draft": "draft-ietf-ipsec-doi-tc-mib-02",
+      "source": "internet-draft"
+    },
     "IPSEC-SPD-MIB": {
       "rfc": 4807,
       "source": "rfc"

@@ -406,3 +406,97 @@ def _invert(patch: str) -> str:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DepaginationTestCase(unittest.TestCase):
+    """Page furniture comes off whether or not the form feeds survived.
+
+    Every RFC the bundle cuts from carries form feeds, and the page break is
+    read off those. The IETF's Internet-Draft archive serves text that has had
+    them stripped, leaving only the ``[Page n]`` footer and the running header
+    below it, so a document with no form feed in it is depaginated on the
+    footer line instead. Both paths have to leave the module's own text alone.
+    """
+
+    #: One page break, written the way an RFC writes it.
+    FED = (
+        "SOME-MIB DEFINITIONS ::= BEGIN\n"
+        "\n"
+        "first\n"
+        "\n\n"
+        "Author                       Standards Track                 [Page 1]\n"
+        "\f"
+        "RFC 9999                       Some MIB                    August 2001\n"
+        "\n\n"
+        "second\n"
+        "END\n"
+    )
+
+    #: The same document as the draft archive serves it: no form feed.
+    UNFED = FED.replace("\f", "")
+
+    def testAFormFeedDocumentIsDepaginatedOnItsFormFeeds(self):
+        body = update_bundled_mibs.unpaginate(self.FED)
+
+        self.assertNotIn("[Page 1]", body)
+        self.assertNotIn("August 2001", body)
+        self.assertIn("first\nsecond", body)
+
+    def testADocumentWithoutFormFeedsIsDepaginatedOnItsFooters(self):
+        self.assertEqual(
+            update_bundled_mibs.unpaginate(self.FED),
+            update_bundled_mibs.unpaginate(self.UNFED),
+        )
+
+    def testADocumentThatNeverPaginatedKeepsEveryLine(self):
+        """Both paths drop the blank line a text ends on; nothing else moves."""
+        text = "SOME-MIB DEFINITIONS ::= BEGIN\n\nonly\nEND\n"
+
+        self.assertEqual(
+            text.splitlines(), update_bundled_mibs.unpaginate(text).splitlines()
+        )
+
+    def testADraftModuleIsCutAtTheLeftMargin(self):
+        """A draft indents its module; the bundle holds it as an RFC prints it.
+
+        Left indented, the same module would diff against every other copy of
+        itself on whitespace alone.
+        """
+        draft = (
+            b"   Some prose about the module.\n"
+            b"\n"
+            b"   SOME-MIB DEFINITIONS ::= BEGIN\n"
+            b"\n"
+            b"   IMPORTS\n"
+            b"      MODULE-IDENTITY FROM SNMPv2-SMI;\n"
+            b"\n"
+            b"   END\n"
+        )
+
+        with mock.patch.object(update_bundled_mibs, "download", return_value=draft):
+            cut = update_bundled_mibs.extract_draft("SOME-MIB", "draft-example-00")
+
+        self.assertEqual(
+            "SOME-MIB DEFINITIONS ::= BEGIN\n\nIMPORTS\n   MODULE-IDENTITY FROM SNMPv2-SMI;\n\nEND\n",
+            cut.decode(),
+        )
+
+    def testNoBundledModuleCarriesPageFurniture(self):
+        """The whole bundle, not just the entry that prompted the check.
+
+        A footer left in a module is not a compile error -- it lands inside a
+        comment or between declarations often enough to go unnoticed -- so
+        nothing else in the suite would report one.
+        """
+        for path in sorted(update_bundled_mibs.DEST.iterdir()):
+            if not path.is_file() or path.name.startswith("__"):
+                continue
+
+            with self.subTest(module=path.name):
+                offenders = [
+                    line
+                    for line in path.read_text(errors="replace").splitlines()
+                    if update_bundled_mibs.PAGINATION_FOOTER.search(line)
+                ]
+
+                self.assertEqual([], offenders)

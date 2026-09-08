@@ -153,8 +153,8 @@ deterministic ordering, prefix compression, mergeable output and a
 because ``index.py`` in the *mibs* repository is nondeterministic; ``index.py``
 is a separate implementation, not this one.
 
-**pysmi distributes the standard corpus.** As of 2.4.0 pysmi bundles 484 RFC,
-IANA and IEEE modules in ``pysmi/mibs/asn1/``. ``bundled_mibs.json`` records
+**pysmi distributes the standard corpus.** As of 3.0.0 pysmi bundles 485 RFC,
+IANA, IEEE and Internet-Draft modules in ``pysmi/mibs/asn1/``. ``bundled_mibs.json`` records
 each module's publisher and, for superseded modules, which module took over
 each subtree. ``pysmi.mibs.successor_for()`` answers which module currently
 defines a given OID, which is a runtime question. Two premises in earlier issues
@@ -256,9 +256,9 @@ The base-MIB shape has three copies
 -----------------------------------
 
 pysmi produces and distributes the pysnmp artifact shape. ``hatch_build.py``
-runs ``PySnmpCodeGen`` over all 484 bundled ASN.1 modules during the wheel build
+runs ``PySnmpCodeGen`` over all 485 bundled ASN.1 modules during the wheel build
 and force-includes the output as ``pysmi/mibs/pysnmp/``. Its docstring states
-the rationale: a consumer that needs to load one of the 484 standard modules
+the rationale: a consumer that needs to load one of the 485 standard modules
 rather than compile it should not have to run the compiler first. Generating
 rather than committing the modules makes their correspondence to the ASN.1
 verifiable by construction.
