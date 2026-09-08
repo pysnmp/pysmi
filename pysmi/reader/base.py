@@ -121,6 +121,26 @@ class AbstractReader:
         """
         raise NotImplementedError
 
+    def list_mibs(self) -> Iterable[str]:
+        """Names of the MIB modules this source holds.
+
+        Enumeration is what lets a caller compile a whole collection without
+        naming every module in it. Only a source that can be listed answers:
+        a web server given a ``@mib@`` URL template answers for a name it is
+        handed and cannot be asked what it has, so it returns nothing here
+        rather than guessing.
+
+        The names come from the module headers in the text, not from the file
+        names, because a MIB module is named inside the file and one file may
+        hold several.
+
+        Returns:
+            Module names, each appearing once. Empty when this source cannot
+            be enumerated -- which is not the same as being empty, and callers
+            that need the distinction should ask ``isLocal``.
+        """
+        return ()
+
     def clear_cache(self) -> None:
         """Discard anything this reader has cached about what exists where.
 

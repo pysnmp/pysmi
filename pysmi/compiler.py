@@ -472,6 +472,44 @@ class MibCompiler:
         """Every configured source, in the order they are asked."""
         return [*self._priority_sources, *self._sources]
 
+    def list_mibs(self, includeBundled: bool = False) -> list[str]:
+        """Every module name the configured sources can be asked to enumerate.
+
+        This is what turns "compile this collection" into a list of modules
+        without anyone having to write the list down. A source that cannot be
+        listed -- a web server answering a ``@mib@`` URL template -- reports
+        nothing, so what comes back is the modules held locally.
+
+        The bundled base MIBs are left out by default. They are a resolution
+        source, supplying whatever a compiled module imports; a caller asking
+        what to build normally means its own collection, not pysmi's copy of
+        the standard MIBs on top of it.
+
+        Keyword Args:
+            includeBundled: also enumerate the bundled base MIBs.
+
+        Returns:
+            Module names in source order, each appearing once.
+        """
+        sources = self._all_sources()
+
+        if not includeBundled and self._bundledSource is not None:
+            sources = [x for x in sources if x is not self._bundledSource]
+
+        seen: dict[str, None] = {}
+
+        for source in sources:
+            for mibname in source.list_mibs():
+                seen.setdefault(mibname, None)
+
+        logger.debug(
+            "configured sources hold %d MIB modules",
+            len(seen),
+            extra={"modules": len(seen)},
+        )
+
+        return list(seen)
+
     def _read_source(
         self, source: "AbstractReader", mibname: str
     ) -> tuple[MibInfo, str] | None:

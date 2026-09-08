@@ -8,12 +8,13 @@
 
 import importlib.resources
 import logging
+from collections.abc import Iterable
 from typing import Any
 
 from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode
-from pysmi.mibinfo import MibInfo
+from pysmi.mibinfo import MibInfo, module_names
 from pysmi.reader.base import AbstractReader
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,64 @@ class PackageReader(AbstractReader):
     def __str__(self) -> str:
         """Identify this reader by the package whose resources it reads."""
         return f'{self.__class__.__name__}{{"{self._package}"}}'
+
+    def list_mibs(self) -> Iterable[str]:
+        """Names of the modules bundled in the package.
+
+        Only files directly inside the package are candidates, matching what
+        :py:meth:`get_data` searches. Each is read and its module headers
+        lexed; ``.py`` files and anything else that declares no module
+        contributes nothing.
+        """
+        seen: dict[str, None] = {}
+
+        try:
+            root = importlib.resources.files(self._package)
+
+        except ModuleNotFoundError as exc:
+            logger.debug(
+                "package %s is not available: %s",
+                self._package,
+                exc,
+                extra={"error": str(exc)},
+            )
+            return []
+
+        for candidate in sorted(root.iterdir(), key=lambda x: x.name):
+            if candidate.name.startswith(".") or candidate.name.endswith(
+                (".py", ".pyc")
+            ):
+                continue
+
+            try:
+                if not candidate.is_file():
+                    continue
+
+                data = candidate.read_bytes()
+
+            except OSError as exc:
+                logger.debug(
+                    "package resource %s read failure: %s",
+                    candidate.name,
+                    exc,
+                    extra={"error": str(exc)},
+                )
+                continue
+
+            if len(data) > self.maxMibSize:
+                continue
+
+            for name in module_names(data.decode("utf-8", "replace")):
+                seen.setdefault(name, None)
+
+        logger.debug(
+            "package %s holds %d MIB modules",
+            self._package,
+            len(seen),
+            extra={"modules": len(seen)},
+        )
+
+        return list(seen)
 
     def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Read a MIB out of the package's bundled resources.
