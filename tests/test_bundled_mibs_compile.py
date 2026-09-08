@@ -30,9 +30,15 @@ from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import PackageReader
 from pysmi.writer import CallbackWriter
-from scripts.update_bundled_mibs import PATCHES, PUBLISHERS, manifest
+from scripts.update_bundled_mibs import PATCHES, PUBLISHERS, bundled, future, manifest
 
-BUNDLED = sorted(manifest())
+#: The carried tier -- what the package ships and the compiler searches. The
+#: held tier in ``pysmi/mibs/future/`` is deliberately out of scope for
+#: everything below that compiles or imports: it is not installed, so a compile
+#: of it here would assert something no consumer can rely on. Its manifest
+#: entries are still held to the provenance rules, which do not depend on
+#: whether anything reads the text.
+BUNDLED = sorted(bundled())
 
 #: The LAST-UPDATED a few load-bearing modules should carry, per the RFC the
 #: manifest pins them to.
@@ -112,6 +118,21 @@ class BundledMibsCompileTestCase(unittest.TestCase):
         }
 
         self.assertEqual(set(BUNDLED), onDisk)
+
+    def testNoHeldModuleIsInThePackage(self):
+        """``future/`` is not shipped, so nothing importable may hold one.
+
+        The exclusion is one line of packaging configuration and would be easy
+        to lose in a refactor; losing it would put 275 modules back into every
+        install without anything else changing to say so.
+        """
+        onDisk = {
+            entry.name
+            for entry in resources.files("pysmi.mibs.asn1").iterdir()
+            if entry.is_file()
+        }
+
+        self.assertEqual(set(), onDisk & future().keys())
 
     def testEveryManifestEntryNamesThePublisherItsTextCameFrom(self):
         """Provenance is the invariant; re-fetchability is recorded, not required.

@@ -209,7 +209,7 @@ class ModuleRevisionConstantTestCase(unittest.TestCase):
     def testAModuleWithNoRevisionClauseStillStatesOne(self):
         """LAST-UPDATED is what is carried, and REVISION is optional.
 
-        Reading the newest REVISION instead left 66 of the 485 bundled modules
+        Reading the newest REVISION instead left 66 of the then 485 bundled modules
         with no constant at all, while `revision_of` had a LAST-UPDATED to
         compare for every one of them -- so pysmi could choose between two
         copies and a loader could not.
@@ -302,7 +302,7 @@ END
 class StripCommentsTestCase(unittest.TestCase):
     """`strip_comments` has to know where a string is.
 
-    None of the 485 bundled modules puts a ``--`` inside a quoted value ahead
+    None of the 210 bundled modules puts a ``--`` inside a quoted value ahead
     of its LAST-UPDATED, so the whole-bundle comparison below passes just as
     happily with a string-unaware stripper. These pin the property directly.
     """

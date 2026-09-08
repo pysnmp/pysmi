@@ -479,14 +479,14 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
     """The counts stated in mibdump's --help and guide, checked against the
     bundle itself.
 
-    "51 of the 485 bundled modules carry no MODULE-IDENTITY" is load-bearing
+    "32 of the 210 bundled modules carry no MODULE-IDENTITY" is load-bearing
     prose: it is why --prefer-mib-source exists. Adding to the bundle without
     updating pysmi/scripts/mibdump.py, docs/source/mibdump.rst and
     docs/source/bundled-mibs.rst would leave them quietly wrong, so the numbers
     are asserted rather than trusted.
     """
 
-    def testTheBundleIsFourHundredEightyFiveModulesFiftyOneOfThemUndated(self):
+    def testTheBundleIsTwoHundredAndTenModulesThirtyTwoOfThemUndated(self):
         names = bundled_mib_names(BUNDLED_PACKAGE)
         undated = {
             name
@@ -497,13 +497,13 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
             is None
         }
 
-        self.assertEqual(485, len(names))
-        # 51, not 47: ATM-FORUM-MIB and the three LAN-EMULATION modules ship
+        self.assertEqual(210, len(names))
+        # 32, not 28: ATM-FORUM-MIB and the three LAN-EMULATION modules ship
         # their MODULE-IDENTITY commented out. `revision_of` used to match
         # inside the comment and report a revision for a module that declares
         # none. Named rather than only counted, so a regression that swaps one
-        # undated module for another cannot hold the count at 51.
-        self.assertEqual(51, len(undated))
+        # undated module for another cannot hold the count at 32.
+        self.assertEqual(32, len(undated))
         self.assertIn("SNMPv2-SMI", undated)
         self.assertLessEqual(
             {

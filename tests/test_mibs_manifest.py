@@ -14,7 +14,6 @@ only resolves in a checkout would leave every consumer of ``successor_for``
 answering ``None`` in production and passing in CI.
 """
 
-import importlib.resources
 import json
 import unittest
 
@@ -22,7 +21,7 @@ from pysmi import compiler as compiler_module
 from pysmi import mibs
 from pysmi.codegen import JsonCodeGen
 from pysmi.parser import SmiV1CompatParser
-from pysmi.reader import PackageReader
+from pysmi.reader import FileReader, PackageReader
 from pysmi.writer import CallbackWriter
 from scripts import update_bundled_mibs
 
@@ -32,13 +31,41 @@ class ManifestShipsInThePackageTestCase(unittest.TestCase):
         self.assertEqual(update_bundled_mibs.manifest(), mibs.manifest())
 
     def testEveryBundledModuleHasAManifestEntry(self):
-        bundled = {
-            entry.name
-            for entry in (update_bundled_mibs.DEST).iterdir()
-            if entry.is_file() and not entry.name.startswith("__")
+        carried = {
+            path.name
+            for path in update_bundled_mibs.held_files(update_bundled_mibs.DEST)
         }
 
-        self.assertEqual(bundled, set(mibs.manifest()))
+        self.assertEqual(carried, set(mibs.bundled()))
+
+    def testEveryHeldModuleHasAManifestEntry(self):
+        held = {
+            path.name
+            for path in update_bundled_mibs.held_files(update_bundled_mibs.FUTURE)
+        }
+
+        self.assertEqual(held, set(mibs.future()))
+
+    def testTheTwoTiersPartitionTheManifest(self):
+        """Every entry is in exactly one of them, and they cover the manifest."""
+        self.assertEqual(set(), mibs.bundled() & mibs.future())
+        self.assertEqual(set(mibs.manifest()), mibs.bundled() | mibs.future())
+
+    def testTheTreeAgreesWithTheManifestAboutWhichTierEachModuleIsIn(self):
+        """The check ``--check`` runs offline, run here so CI runs it too.
+
+        A held module's file is never re-fetched and never compiled, so a
+        misfiling would otherwise surface only when somebody promoted it --
+        which is exactly when a maintainer has least appetite for it.
+        """
+        self.assertEqual([], update_bundled_mibs.misfiled(mibs.manifest()))
+
+    def testAHeldModuleIsNotOnTheCompilersSearchPath(self):
+        """``future/`` is held, so no compile may resolve against it."""
+        searchable = compiler_module.bundled_mib_names("pysmi.mibs.asn1")
+
+        self.assertEqual(set(), searchable & mibs.future())
+        self.assertEqual(searchable, mibs.bundled())
 
 
 class SupersessionTestCase(unittest.TestCase):
@@ -122,15 +149,20 @@ class SupersessionIsNotPerOidTestCase(unittest.TestCase):
     silently dropping definitions -- which is what this test is here to catch.
     """
 
-    #: The ASN.1 the bundle actually carries. ``successors_reviewed`` is
-    #: history and may name a module pysmi does not ship -- RFC1284-MIB records
-    #: RFC1398-MIB, which later RFCs replaced in turn -- so a name is checked
-    #: against the sources before it is compiled, rather than compiled and the
-    #: failure swallowed.
+    #: The ASN.1 the repository holds, both tiers. ``successors_reviewed`` is
+    #: history and may name a module pysmi has no copy of at all -- RFC1284-MIB
+    #: records RFC1398-MIB, which later RFCs replaced in turn -- so a name is
+    #: checked against the sources before it is compiled, rather than compiled
+    #: and the failure swallowed.
+    #:
+    #: Held modules are read here even though nothing else reads them: what
+    #: this asserts is whether the manifest's supersession claims are true of
+    #: the text, and that question does not change with the directory a module
+    #: sits in. Deferring one must not quietly stop its claim being checked.
     BUNDLED = frozenset(
         path.name
-        for path in importlib.resources.files("pysmi.mibs.asn1").iterdir()
-        if path.is_file()
+        for directory in (update_bundled_mibs.DEST, update_bundled_mibs.FUTURE)
+        for path in update_bundled_mibs.held_files(directory)
     )
 
     @classmethod
@@ -180,7 +212,10 @@ class SupersessionIsNotPerOidTestCase(unittest.TestCase):
             ),
             useBundledMibs=False,
         )
-        compiler.add_sources(PackageReader("pysmi.mibs.asn1"))
+        compiler.add_sources(
+            PackageReader("pysmi.mibs.asn1"),
+            FileReader(str(update_bundled_mibs.FUTURE)),
+        )
 
         for name, entry in sorted(mibs.manifest().items()):
             for successor in sorted(set(entry.get("successors_reviewed", {}).values())):
