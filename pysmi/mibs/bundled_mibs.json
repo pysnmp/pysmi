@@ -451,6 +451,8 @@
       "source": "rfc"
     },
     "DSA-MIB": {
+      "patch": "DSA-MIB.patch",
+      "reason": "RFC 1567 uses OBJECT-GROUP and MODULE-COMPLIANCE without importing them, and imports applIndex and DistinguishedName ``FROM APPLICATION-MIB`` -- the name RFC 1565 gave the Network Services Monitoring MIB, which RFC 2788 renamed NETWORK-SERVICES-MIB and which is bundled under that name. The APPLICATION-MIB bundled here is RFC 2564's unrelated Application Management MIB and defines neither symbol.",
       "rfc": 1567,
       "source": "rfc",
       "successors_reviewed": {
@@ -1671,6 +1673,8 @@
       "tier": "future"
     },
     "RDBMS-MIB": {
+      "patch": "RDBMS-MIB.patch",
+      "reason": "RFC 1697 uses OBJECT-GROUP and MODULE-COMPLIANCE without importing them, and imports applIndex and applGroup ``FROM APPLICATION-MIB`` -- the name RFC 1565 gave the Network Services Monitoring MIB. RFC 2788 renamed that module NETWORK-SERVICES-MIB and renamed RFC 1565's applGroup to applRFC1565Group, whose DESCRIPTION names it as that original set; the MODULE clause of rdbmsCompliance is renamed with the IMPORTS.",
       "rfc": 1697,
       "source": "rfc"
     },
