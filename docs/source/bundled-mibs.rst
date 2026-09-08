@@ -76,10 +76,12 @@ never the right question to ask of an RFC.
 What an RFC does not settle is whether the module is a specification at all,
 and four kinds are left out:
 
-- An RFC at Experimental status. ``TCPIPX-MIB`` (RFC 1792), ``DPI20-MIB``
-  (RFC 1592), ``AGGREGATE-MIB`` and ``TIME-AGGREGATE-MIB`` (RFC 4498),
-  ``SMF-MIB`` and ``IANA-SMF-MIB`` (RFC 7367) and ``RSERPOOL-MIB`` (RFC 5525)
-  are all published, and none of them is a standard.
+- An RFC at Experimental status that nothing depends on. ``TCPIPX-MIB``
+  (RFC 1792), ``DPI20-MIB`` (RFC 1592), ``AGGREGATE-MIB`` and
+  ``TIME-AGGREGATE-MIB`` (RFC 4498), ``SMF-MIB`` and ``IANA-SMF-MIB``
+  (RFC 7367) and ``RSERPOOL-MIB`` (RFC 5525) are all published, none of them
+  is a standard, and no module in the pysnmp/mibs corpus imports any of them.
+  See :ref:`bundled-mib-experimental` for the ones that are depended on.
 - A module an RFC prints to illustrate something. ``COFFEE-POT-MIB``
   (RFC 2325) is an April Fools' RFC; ``FIZBIN-MIB`` is the SMIv2
   specification's own worked example and ends ``::= { experimental xx }``,
@@ -109,6 +111,50 @@ point of ``--check`` is that a revision upstream gets reported, and a caller
 who has the newer copy already outranks the bundle on revision. Where a
 publisher serves nothing fetchable that first protection is absent, but the
 second is not: a caller's dated, newer copy still wins.
+
+.. _bundled-mib-experimental:
+
+An Experimental module something still imports
+----------------------------------------------
+
+Experimental status keeps a module out only while nothing needs it. **An
+Experimental RFC module is bundled, and counts as current, for as long as
+live vendor modules import symbols it alone defines.** The IETF's process
+tracks the maturity of a specification; the bundle has to track whether
+shipping equipment is still managed through one, and those two go out of step
+whenever a protocol outlives the document that first described it.
+
+``PIM-MIB`` is the case that sets the rule. RFC 2934 is Experimental because
+the protocol it manages was: PIM-SM was specified in RFC 2362, also
+Experimental, and only reached Proposed Standard in 2006 and Internet Standard
+in 2016. A MIB cannot outrank what it manages, so the module was registered
+under ``experimental 61`` rather than an ``mib-2`` arc, and its status has
+been frozen there ever since. RFC 5060 later published ``PIM-STD-MIB`` on the
+standards track and says in its own text that it is "to be preferred", but the
+RFC Editor records no Obsoletes relation, and the two share neither symbols nor
+OIDs -- ``PIM-STD-MIB`` roots at ``mib-2 157`` and ``PIM-BSR-MIB`` at
+``mib-2 172``, and the bootstrap-router objects were renamed to a ``pimBsr``
+prefix. That is a parallel republication, not a supersession, and RFC 2934
+remains the only definition of everything under ``experimental 61``.
+
+Four vendor modules still import from it, and seven of the ten symbols they
+name -- ``pimRPSetComponent``, ``pimRPSetAddress``, ``pimCandidateRPEntry``
+and the rest of the RP-set group -- exist in neither successor. The one that
+settles it is ``HP-ICF-PIM6``: revised October 2017, describing itself as
+extensions to *RFC 5060*, and importing ``pimRPSetComponent`` ``FROM PIM-MIB``
+while importing nothing from ``PIM-STD-MIB`` at all. Dropping RFC 2934 would
+break a module newer than the standard that was supposed to replace it.
+
+``LISP-MIB`` (RFC 7052) and ``MSDP-MIB`` (RFC 4624) are bundled on the same
+ground; the seven Experimental modules left out above have no importer between
+them, so the rule divides them cleanly.
+
+The evidence runs one way only. An importer is enough to keep a module; the
+absence of one is not a reason to remove a module already bundled, and it is
+the wrong question entirely for a framework MIB an operator compiles directly
+rather than through a vendor extension -- ``SNMP-USM-DH-OBJECTS-MIB``
+(RFC 2786) is USM key change, which nothing extends and everything with USM
+may want.
 
 Inventory
 ---------
