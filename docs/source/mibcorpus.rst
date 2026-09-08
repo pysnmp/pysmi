@@ -165,6 +165,26 @@ still records the complete fact -- every module defining a given OID. This is
 the projection of it a consumer that has to load exactly one module needs.
 
 
+One driver, both corpora
+------------------------
+
+pysmi's own wheel is built with this driver. ``hatch_build.py`` compiles the
+210 bundled ASN.1 modules into ``pysmi/mibs/pysnmp/`` while the wheel is
+built, and it does that by running :py:class:`~pysmi.corpus.driver.CorpusDriver`
+over a corpus of one namespace -- the bundle -- rather than by keeping a
+compile loop of its own. A difference between how pysmi builds the base layer
+and how pysnmp/mibs builds on top of it would be a difference nobody chose.
+
+The one thing the wheel configures differently is the stub list. A corpus
+published beside pysnmp does not restate what pysnmp already implements, so
+the default is ``mibdump``'s: the base MIBs. The wheel *is* that base layer,
+and only three of those modules genuinely cannot be generated -- the ones the
+generator emits an unconditional import *from*, which would become an import
+from itself. The other 11 generate perfectly well and consumers want them
+(pysnmp/pysmi#196), so the wheel passes the narrower list through the
+``stubs`` argument.
+
+
 Compatibility
 -------------
 

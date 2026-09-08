@@ -17,6 +17,15 @@ answer to "do these match the ASN.1 they came from?" trivially yes: every
 distribution carries the output of this tree's code generator over this tree's
 ASN.1, produced seconds earlier. There is no checked-in copy to go stale and
 no digest ledger to police one.
+
+The compile itself is :py:class:`~pysmi.corpus.driver.CorpusDriver` -- the same
+driver ``mibcorpus`` runs and the same one pysnmp/mibs builds its corpus with.
+pysmi's bundle is a corpus of one namespace, so there is no reason for it to
+have its own compile loop: a difference between how pysmi builds the base layer
+and how everyone else builds on top of it would be a difference nobody chose.
+What this file still owns is what is particular to a *wheel*: which modules
+cannot be generated, the package ``__init__``, and refusing to ship if
+anything failed. See pysnmp/pysmi#182.
 """
 
 import shutil
@@ -80,65 +89,59 @@ def build(root: Path) -> Path:
     """
     sys.path.insert(0, str(root))
 
-    from pysmi.codegen import PySnmpCodeGen
-    from pysmi.compiler import MibCompiler
-    from pysmi.parser import SmiV1CompatParser
-    from pysmi.reader import FileReader
-    from pysmi.searcher import StubSearcher
-    from pysmi.writer import PyFileWriter
+    from pysmi.corpus import CorpusDriver, CorpusOutputs, Namespace
 
     asn1 = root / "pysmi" / "mibs" / "asn1"
-    names = sorted(
-        entry.name
-        for entry in asn1.iterdir()
-        if entry.is_file() and not entry.name.startswith("__")
-    )
 
     UNGENERATABLE = _ungeneratable()
 
     out = Path(tempfile.mkdtemp(prefix="pysmi-precompiled-"))
 
-    writer = PyFileWriter(str(out))
-    # Wheels do not ship bytecode: pip compiles on install, against the
-    # interpreter that will import it.
-    writer.pyCompile = False
-
-    compiler = MibCompiler(
-        SmiV1CompatParser(),
-        PySnmpCodeGen(),
-        writer,
+    driver = CorpusDriver(
+        [Namespace(name="bundled", source=str(asn1), tier="standard")],
+        CorpusOutputs(notexts=str(out)),
+        # The bundle is the namespace. Registering it a second time as the
+        # compiler's own resolution source would have it adjudicate a module
+        # against itself.
         useBundledMibs=False,
+        # A module the generator always imports *from* cannot be generated:
+        # the unconditional import becomes an import from itself, which can
+        # never resolve. constImports is that set, and subtracting the ASN.1
+        # stand-ins leaves SNMPv2-SMI, SNMPv2-TC and SNMPv2-CONF -- the
+        # modules whose symbols pysnmp implements in code rather than
+        # deriving from the MIB.
+        #
+        # Derived rather than listed, so it stays right if constImports
+        # changes. Deliberately *not* the driver's default, which is
+        # PySnmpCodeGen.baseMibs -- a precedence rule covering 11 further
+        # modules that generate perfectly well and that consumers want. See
+        # pysnmp/pysmi#196.
+        stubs={"pysnmp": sorted(UNGENERATABLE)},
     )
-    compiler.add_sources(FileReader(str(asn1)))
-    # A module the generator always imports *from* cannot be generated: the
-    # unconditional import becomes an import from itself, which can never
-    # resolve. constImports is that set, and subtracting the ASN.1 stand-ins
-    # leaves SNMPv2-SMI, SNMPv2-TC and SNMPv2-CONF -- the modules whose symbols
-    # pysnmp implements in code rather than deriving from the MIB.
-    #
-    # Derived rather than listed, so it stays right if constImports changes.
-    # Deliberately *not* PySnmpCodeGen.baseMibs, which is a precedence rule
-    # covering 11 further modules that generate perfectly well and that
-    # consumers want. See pysnmp/pysmi#196.
-    compiler.add_searchers(StubSearcher(*UNGENERATABLE))
 
     limit = sys.getrecursionlimit()
+    # A malformed OID can send the code generator round a cycle; the default
+    # limit turns that into a bare RecursionError far from the MIB that
+    # caused it.
     sys.setrecursionlimit(RECURSION_LIMIT)
 
     try:
-        # ignoreErrors so that one broken module reports itself by name below
-        # rather than aborting the run at whichever one the compiler reached
-        # first. Dependencies outside the bundle -- RFC-1213 and the other
-        # SMIv1 import targets the parser satisfies on its own -- come back
-        # "missing" and are not part of what is checked.
-        processed = compiler.compile(*names, ignoreErrors=True)
+        report = driver.run()
     finally:
         sys.setrecursionlimit(limit)
 
+    # The driver keeps going past a defective module and reports it, which is
+    # what a corpus of MIBs nobody controls needs. A wheel is the opposite
+    # case: these 210 modules are pysmi's own, so one that will not compile is
+    # a release blocker rather than an inventory item.
+    #
+    # Dependencies outside the bundle -- RFC-1213 and the other SMIv1 import
+    # targets the parser satisfies on its own -- come back "missing" and are
+    # not part of what is checked.
     failed = sorted(
-        f"{name} ({processed.get(name, 'absent')})"
-        for name in names
-        if str(processed.get(name)) not in ("compiled", "untouched")
+        f"{name} (failed)" for name in report.failed.get("notexts", {})
+    ) + sorted(
+        f"{name} (unprocessed)" for name in report.unprocessed.get("notexts", [])
     )
 
     if failed:

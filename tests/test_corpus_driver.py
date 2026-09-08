@@ -520,6 +520,43 @@ class ArtifactTestCase(CorpusTestCase):
         )
 
 
+class StubTestCase(CorpusTestCase):
+    """What a destination is told not to generate."""
+
+    def testTheDefaultIsWhatMibdumpStubs(self):
+        driver = CorpusDriver(self.namespaces(), self.outputs())
+        compiler = driver._compiler_for(driver._destinations()[0])
+
+        stubbed = compiler._searchers[0]._mibnames
+
+        self.assertIn("SNMPv2-SMI", stubbed)
+        self.assertIn("SNMP-FRAMEWORK-MIB", stubbed)
+
+    def testTheStubListIsAKnob(self):
+        # A caller generating the base layer itself wants a narrower list:
+        # most of the base MIBs generate perfectly well, and only the three
+        # the generator unconditionally imports *from* genuinely cannot.
+        # hatch_build.py is that caller. See pysnmp/pysmi#196.
+        driver = CorpusDriver(
+            self.namespaces(),
+            self.outputs(),
+            stubs={"pysnmp": ["SNMPv2-SMI", "SNMPv2-TC", "SNMPv2-CONF"]},
+        )
+        compiler = driver._compiler_for(driver._destinations()[0])
+
+        stubbed = compiler._searchers[0]._mibnames
+
+        self.assertIn("SNMPv2-SMI", stubbed)
+        self.assertNotIn("SNMP-FRAMEWORK-MIB", stubbed)
+
+    def testAnEmptyStubListMeansStubNothing(self):
+        # Distinct from not configuring one at all, which means the default.
+        driver = CorpusDriver(self.namespaces(), self.outputs(), stubs={"pysnmp": []})
+        compiler = driver._compiler_for(driver._destinations()[0])
+
+        self.assertEqual((), compiler._searchers[0]._mibnames)
+
+
 class InputSetTestCase(CorpusTestCase):
     """What the driver refuses before it starts."""
 

@@ -54,6 +54,38 @@ class PrecompiledMibsTestCase(unittest.TestCase):
 
         self.assertEqual(bundled - ungeneratable, compiled)
 
+    def testTheWheelNarrowsTheStubListItInheritsFromTheDriver(self):
+        """The wheel build stubs three modules where a corpus build stubs 15.
+
+        ``hatch_build.py`` runs the same
+        :py:class:`~pysmi.corpus.driver.CorpusDriver` that ``mibcorpus``
+        does, and the driver's default is ``mibdump``'s -- the base MIBs,
+        because a corpus published beside pysnmp has no reason to restate
+        what pysnmp implements. The wheel *is* that base layer, so it passes
+        the narrower list. Taking the default would silently drop these from
+        every release.
+        """
+        bundled = {
+            entry.name
+            for entry in (ROOT / "pysmi" / "mibs" / "asn1").iterdir()
+            if entry.is_file() and not entry.name.startswith("__")
+        }
+        compiled = {
+            entry.stem for entry in self.out.iterdir() if entry.name != "__init__.py"
+        }
+        # Intersected with the bundle: PYSNMP-USM-MIB is a base MIB pysmi
+        # does not carry the ASN.1 for, so it is absent either way.
+        wouldBeStubbed = bundled & (
+            {x for x in PySnmpCodeGen.baseMibs if x not in PySnmpCodeGen.fakeMibs}
+            - (
+                frozenset(PySnmpCodeGen.constImports)
+                - frozenset(PySnmpCodeGen.fakeMibs)
+            )
+        )
+
+        self.assertEqual(11, len(wouldBeStubbed))
+        self.assertEqual(set(), wouldBeStubbed - compiled)
+
     def testTheGeneratedDirectoryIsAPackage(self):
         self.assertTrue((self.out / "__init__.py").is_file())
 

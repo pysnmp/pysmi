@@ -38,7 +38,7 @@ See pysnmp/pysmi#182.
 import logging
 import os
 import time
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final
 
@@ -251,6 +251,14 @@ class CorpusDriver:
             build that leaves some modules as an earlier run wrote them is
             not the corpus it reports. A module is still compiled only once
             per run however many namespaces ask for it.
+        stubs: modules excluded from code generation, per destination format
+            -- ``{"pysnmp": [...]}``. The format's own default otherwise,
+            which is ``mibdump``'s: the base MIBs, on the grounds that a
+            corpus published beside pysnmp does not restate what pysnmp
+            already implements. A caller producing the base layer *itself*
+            wants a narrower list, since most of those modules generate
+            perfectly well and only a few genuinely cannot; see
+            ``hatch_build.py``, which is that caller.
     """
 
     def __init__(
@@ -260,6 +268,7 @@ class CorpusDriver:
         *,
         useBundledMibs: bool = True,
         rebuild: bool = True,
+        stubs: "Mapping[str, Iterable[str]] | None" = None,
     ) -> None:
         """Create a driver over the given input set."""
         if not namespaces:
@@ -271,6 +280,7 @@ class CorpusDriver:
         self._outputs = outputs
         self._useBundledMibs = useBundledMibs
         self._rebuild = rebuild
+        self._stubs = {k: list(v) for k, v in (stubs or {}).items()}
         self._parseCache = InMemoryParseCache()
         self._readers: dict[str, AbstractReader] = {
             x.name: self._reader_for(x) for x in self._namespaces
@@ -349,18 +359,20 @@ class CorpusDriver:
         searchers: list[AbstractSearcher]
         eligibleBaseMibs: list[str] = []
 
+        configured = self._stubs.get(destination.format)
+
         if destination.format == "pysnmp":
+            stubs = (
+                list(configured)
+                if configured is not None
+                else [
+                    x for x in PySnmpCodeGen.baseMibs if x not in PySnmpCodeGen.fakeMibs
+                ]
+            )
+
             codegen = PySnmpCodeGen()
             writer = PyFileWriter(destination.directory).set_options(pyCompile=False)
-            searchers = [
-                StubSearcher(
-                    *[
-                        x
-                        for x in PySnmpCodeGen.baseMibs
-                        if x not in PySnmpCodeGen.fakeMibs
-                    ]
-                )
-            ]
+            searchers = [StubSearcher(*stubs)]
 
         elif destination.format == "json":
             # Nothing supplies a JSON SNMPv2-TC the way pysnmp supplies a
@@ -368,7 +380,11 @@ class CorpusDriver:
             # cannot resolve the DisplayString half its modules import.
             # Compile those from the bundle instead, and stub the rest.
             bundled = bundled_mib_names(MibCompiler.bundledMibsPackage)
-            stubs = list(JsonCodeGen.baseMibs)
+            stubs = (
+                list(configured)
+                if configured is not None
+                else list(JsonCodeGen.baseMibs)
+            )
 
             if self._useBundledMibs:
                 eligibleBaseMibs = [x for x in stubs if x in bundled]

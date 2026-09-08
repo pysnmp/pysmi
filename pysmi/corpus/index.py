@@ -51,7 +51,8 @@ import io
 import json
 import logging
 import os
-from typing import Any, Final, Iterable, Iterator
+from collections.abc import Iterable, Iterator
+from typing import Any, Final
 
 from pysmi.mibinfo import normalise_revision
 
@@ -419,7 +420,11 @@ def read_documents(
                 document = json.load(fileObj)
 
             except ValueError as exc:
-                logger.error(
+                # A document that will not parse is skipped rather than
+                # failing the index: the rest of the corpus is still
+                # indexable, and the build report is where a bad document
+                # gets stated.
+                logger.warning(
                     "cannot read %s for indexing: %s",
                     filename,
                     exc,
