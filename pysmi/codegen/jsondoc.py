@@ -10,6 +10,7 @@ import json
 import logging
 import re
 from collections import OrderedDict
+from keyword import iskeyword
 from typing import Any, ClassVar, cast
 
 from pysmi import error
@@ -160,8 +161,27 @@ class JsonCodeGen(AbstractCodeGen):
     def trans_opers(symbol: str) -> Any:
         """Turn a MIB symbol into a name usable as a JSON key.
 
-        Hyphens become underscores. Unlike the PySNMP backend, Python keywords
-        need no special treatment here.
+        Hyphens become underscores, and a name that collides with a Python
+        keyword is prefixed with ``pysmi_`` -- the same translation
+        :py:meth:`~pysmi.codegen.symtable.SymtableCodeGen.trans_opers`
+        applies.
+
+        The keyword half looks like a Python concern in a document format
+        that has nothing to do with Python, and it was left out on exactly
+        that reasoning. But the symbol *table* both back ends read is keyed
+        by the translation above, so leaving it out did not keep Python out
+        of the document -- it made this generator address that table under a
+        spelling it does not use. A module defining ``global``, ``if``,
+        ``in``, ``as`` or ``continue`` then failed here while compiling
+        cleanly to pysnmp, and the two output trees described different sets
+        of modules: 13 modules and 212 dependents of them across the corpus
+        at pysnmp/pysmi#182.
+
+        Which name a document should be keyed by is a fair question, and it
+        is not this one: a hyphenated descriptor is already renamed the same
+        way, so what a MIB calls a symbol is not what the JSON calls it
+        either way. This makes keywords behave like hyphens rather than
+        deciding that larger question -- see pysnmp/pysmi#225.
 
         Args:
             symbol: symbol name as written in the MIB
@@ -169,6 +189,9 @@ class JsonCodeGen(AbstractCodeGen):
         Returns:
             The translated name.
         """
+        if iskeyword(symbol):
+            symbol = "pysmi_" + symbol
+
         return symbol.replace("-", "_")
 
     def prep_data(self, pdata: Any) -> tuple[Any, ...]:
