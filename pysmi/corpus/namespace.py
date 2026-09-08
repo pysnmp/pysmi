@@ -27,23 +27,23 @@ from typing import Any, Final
 
 from pysmi import error
 
-#: Tier names, in the order that ranks them: a standard module outranks an
-#: Internet-Draft, which outranks a vendor's. Used by
+#: Tier names in the order that ranks them. A standard module outranks an
+#: Internet-Draft and an Internet-Draft outranks a vendor's. Used by
 #: :py:mod:`pysmi.corpus.index` to decide which module owns an OID that more
 #: than one of them defines.
-TIERS: Final = ("standard", "draft", "vendor")
+TIERS: Final[tuple[str, ...]] = ("standard", "draft", "vendor")
 
 #: What a namespace holding no declared tier is taken to be. Vendor is the
 #: safe default: it ranks last, so an undeclared namespace cannot take an OID
 #: away from a standard module by omission.
-DEFAULT_TIER: Final = "vendor"
+DEFAULT_TIER: Final[str] = "vendor"
 
 #: Prefix marking a source as a Python package rather than a directory --
 #: ``package:pysmi.mibs.asn1`` for the modules pysmi bundles.
-PACKAGE_PREFIX: Final = "package:"
+PACKAGE_PREFIX: Final[str] = "package:"
 
 #: The manifest format this module reads.
-MANIFEST_VERSION: Final = 1
+MANIFEST_VERSION: Final[int] = 1
 
 
 @dataclass(frozen=True)
@@ -147,7 +147,7 @@ def _expand(entry: dict[str, Any], root: str) -> list[Namespace]:
         return [
             Namespace(
                 name=name,
-                source=os.path.join(base, name),
+                source=os.path.normpath(os.path.join(base, name)),
                 tier=tier,
                 publish=publish,
             )
@@ -170,8 +170,15 @@ def _expand(entry: dict[str, Any], root: str) -> list[Namespace]:
         else os.path.basename(os.path.normpath(source))
     )
 
-    if not source.startswith(PACKAGE_PREFIX) and not os.path.isabs(source):
-        source = os.path.join(root, source)
+    if not source.startswith(PACKAGE_PREFIX):
+        # Normalised, and against the manifest's own directory when relative.
+        # A manifest is written with "/" whatever it will be read on, so
+        # without this a namespace on Windows carries a source spelled half
+        # one way and half the other -- which still opens, but is what the
+        # report records and what an overlapping-directory check compares.
+        source = os.path.normpath(
+            source if os.path.isabs(source) else os.path.join(root, source)
+        )
 
     return [Namespace(name=name, source=source, tier=tier, publish=publish)]
 

@@ -7,18 +7,27 @@ Builds a whole corpus from a declared set of source namespaces, so that two
 runs over the same inputs produce the same bytes. :ref:`mibcorpus` is the
 command-line frontend to it.
 
-.. autoclass:: pysmi.corpus.namespace.Namespace
+.. automodule:: pysmi.corpus
+  :no-members:
+
+The input set
+~~~~~~~~~~~~~
+
+.. automodule:: pysmi.corpus.namespace
   :members:
 
-.. autofunction:: pysmi.corpus.namespace.load_manifest
+The build
+~~~~~~~~~
 
-.. autoclass:: pysmi.corpus.driver.CorpusDriver
+.. automodule:: pysmi.corpus.driver
   :members:
+  :exclude-members: CorpusOutputs, CorpusReport, Destination
+
+Where the artifacts go, and what the build did:
+
+.. autoclass:: pysmi.corpus.driver.Destination
 
 .. autoclass:: pysmi.corpus.driver.CorpusOutputs
-  :members:
 
 .. autoclass:: pysmi.corpus.driver.CorpusReport
-  :members:
 
-.. autofunction:: pysmi.corpus.driver.check_disjoint

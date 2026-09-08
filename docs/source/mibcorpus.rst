@@ -160,7 +160,7 @@ modules defining an OID and takes the best one, term by term:
 3. the module that *registers* an arc with its MODULE-IDENTITY, over one that
    merely names it with an OBJECT-IDENTITY;
 4. the newest MODULE-IDENTITY revision, read as a date by
-   :py:func:`~pysmi.mibinfo.normalise_revision` -- so a stamp that is not one,
+   ``normalise_revision`` -- so a stamp that is not one,
    like ``HPR-MIB``'s ``970514000000Z``, is refused rather than sorting above
    every date there will ever be;
 5. the later RFC, then the module name, which settles the SMI root arcs and

@@ -64,7 +64,7 @@ from pysmi.writer.pyfile import PyFileWriter
 
 logger = logging.getLogger(__name__)
 
-_JSON_EXT: Final = ".json"
+_JSON_EXT: Final[str] = ".json"
 
 #: Modules left out of ``standard.txt``. The list is a published artifact and
 #: this is the shape it has: the build that produced it filtered ``RFC*`` and
@@ -73,7 +73,7 @@ _JSON_EXT: Final = ".json"
 #: corrected: a consumer preloading the list gets what it has always got, and
 #: pysnmp/mibs#366 decides the file's fate. See ``tests/artifact-contract.sh``
 #: in pysnmp/mibs.
-STANDARD_TXT_EXCLUDED_PREFIXES: Final = ("RFC", "SNMPv2")
+STANDARD_TXT_EXCLUDED_PREFIXES: Final[tuple[str, ...]] = ("RFC", "SNMPv2")
 
 
 @dataclass(frozen=True)
@@ -787,8 +787,8 @@ class CorpusDriver:
         """Build the corpus and report what it did.
 
         Returns:
-            The report, also written to :py:attr:`CorpusOutputs.report` when
-            one was asked for.
+            The report, also written to the ``report`` path when one was
+            asked for.
         """
         started = time.time()
         report = CorpusReport()

@@ -200,7 +200,7 @@ class MibResolution:
     file: str
     #: Its ASN.1 text.
     data: str
-    #: Digest of that text, as :py:func:`~pysmi.mibinfo.source_digest` takes it.
+    #: Digest of that text, as ``source_digest`` computes it.
     digest: str
     #: Paths of the copies passed over, where their content differed.
     shadowed: tuple[str, ...] = ()

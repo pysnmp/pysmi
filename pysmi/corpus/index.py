@@ -27,7 +27,7 @@ The rule ranks a module by five terms, best first:
    ``clabTopoMib`` so its siblings can hang objects off it, but
    ``CLAB-TOPO-MIB`` is the module that arc belongs to.
 4. **Newest revision.** The latest MODULE-IDENTITY REVISION, read through
-   :py:func:`~pysmi.mibinfo.normalise_revision` -- the same check the
+   ``normalise_revision`` -- the same check the
    compiler applies when it chooses between two copies of one module, so a
    stamp that is not a date cannot win here either.
 5. **RFC number, then module name.** The later RFC wins, which settles the
@@ -60,15 +60,15 @@ logger = logging.getLogger(__name__)
 
 #: Classes that make a module the owner of an arc rather than a mention of
 #: it, and how they rank against each other.
-ANCHOR_RANK: Final = {"moduleidentity": 0, "objectidentity": 1}
+ANCHOR_RANK: Final[dict[str, int]] = {"moduleidentity": 0, "objectidentity": 1}
 
 #: Rank given to an OID taken from a module that has no anchor at all, whose
 #: OIDs are read off its ordinary definitions instead.
-ANCHOR_RANK_FALLBACK: Final = 2
+ANCHOR_RANK_FALLBACK: Final[int] = 2
 
 #: Classes whose ``status`` says whether a module still defines anything
 #: current.
-OBJECT_CLASSES: Final = ("objecttype", "notificationtype")
+OBJECT_CLASSES: Final[tuple[str, ...]] = ("objecttype", "notificationtype")
 
 
 def arcs(oid: str) -> tuple[int, ...]:
@@ -95,7 +95,7 @@ def read_stamp(stamp: str) -> str | None:
     ranking modules from some other source may hand over the raw
     ``YYMMDDHHMMZ`` or ``YYYYMMDDHHMMZ`` the MIB carries. Both reduce to
     digits and are then read as a date by
-    :py:func:`~pysmi.mibinfo.normalise_revision`, which is what refuses the
+    ``normalise_revision``, which is what refuses the
     ones that are not dates.
 
     Args:
