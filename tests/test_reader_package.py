@@ -14,7 +14,7 @@ import unittest
 
 from pysmi import error
 from pysmi.reader.package import PackageReader
-from scripts.update_bundled_mibs import manifest
+from scripts.update_bundled_mibs import bundled
 
 
 class PackageReaderTestCase(unittest.TestCase):
@@ -53,7 +53,8 @@ class PackageReaderTestCase(unittest.TestCase):
         self.assertEqual("SNMPv2-SMI", info.name)
 
     def testEveryBundledMibIsReachableByItsOwnName(self):
-        for mibname in sorted(manifest()):
+        """The carried tier only -- ``future/`` is not a package to read from."""
+        for mibname in sorted(bundled()):
             with self.subTest(mib=mibname):
                 info, data = self.reader.get_data(mibname)
                 self.assertEqual(mibname, info.name)

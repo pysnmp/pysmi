@@ -460,7 +460,7 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
 
     def testTheBundleIsNotEmpty(self):
         """A build that emitted nothing would pass every other check here."""
-        self.assertGreater(len(self.modules), 250)
+        self.assertGreater(len(self.modules), 200)
 
     def testEveryModuleLoadsExceptTheKnownFailures(self):
         self.assertEqual(sorted(self.KNOWN_FAILURES), sorted(self.errors))

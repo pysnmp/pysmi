@@ -218,6 +218,11 @@ class ApplyPatchTestCase(unittest.TestCase):
         a bundled file edited by hand past what its patch accounts for, which
         would leave bytes in the package that no patch and no publisher
         explains.
+
+        Both tiers. A held module's patch is a claim about its bytes just as a
+        carried one's is, and checking it costs nothing -- this is the one part
+        of ``--check`` that needs no network, so it is the one part the held
+        tier does not lose.
         """
         modules = {
             name: entry
@@ -228,17 +233,18 @@ class ApplyPatchTestCase(unittest.TestCase):
         for mibname, entry in sorted(modules.items()):
             with self.subTest(mib=mibname):
                 patch = (update_bundled_mibs.PATCHES / entry["patch"]).read_text()
-                bundled = (update_bundled_mibs.DEST / mibname).read_bytes()
+                held = update_bundled_mibs.directory(entry) / mibname
+                ours = held.read_bytes()
 
-                # Reversing the patch off the bundled copy recovers the
-                # publisher's text; re-applying it has to give the bundled copy
-                # back, byte for byte.
+                # Reversing the patch off our copy recovers the publisher's
+                # text; re-applying it has to give our copy back, byte for
+                # byte.
                 published = update_bundled_mibs.apply_patch(
-                    bundled, _invert(patch), mibname
+                    ours, _invert(patch), mibname
                 )
 
                 self.assertEqual(
-                    bundled,
+                    ours,
                     update_bundled_mibs.apply_patch(published, patch, mibname),
                 )
 

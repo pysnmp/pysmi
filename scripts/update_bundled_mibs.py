@@ -16,6 +16,7 @@ explicit step:
     uv run scripts/update_bundled_mibs.py --check-mirror  # report mirror disagreement
     uv run scripts/update_bundled_mibs.py --verify  # compile the bundle as it stands
     uv run scripts/update_bundled_mibs.py --docs    # rewrite the inventory page
+    uv run scripts/update_bundled_mibs.py --promote MODULE ...  # future/ -> asn1/
 
 For the modules listed here pysmi is the source of truth and
 https://pysnmp.github.io/mibs/asn1/ follows, not the other way round -- which
@@ -31,6 +32,44 @@ in the package, not beside this script, because consumers read the supersession
 it records at runtime -- see :py:func:`pysmi.mibs.successor_for`. Adding or
 dropping a module means editing that file and re-running this script; no other
 file in the source tree names an individual bundled MIB.
+
+Two tiers: carried, and held
+----------------------------
+
+The manifest covers two directories, and an entry's ``tier`` says which. Absent
+-- the default -- the module is in ``pysmi/mibs/asn1/``: shipped in the wheel,
+registered as a compiler source, compiled into ``pysmi/mibs/pysnmp/`` at build
+time, and re-fetched by ``--check``. ``"tier": "future"`` means the module is
+in ``pysmi/mibs/future/`` instead, and none of that is true of it.
+
+Held modules got there by being unused, not by being unfit. Nothing in the
+corpus pysmi is built against imports one: not a module in the ~5,500 at
+https://github.com/pysnmp/mibs, not pysnmp, not either project's own code,
+tests or documentation. They were added as parser pressure tests -- the point
+was to find modules the parser could not read, and it did -- and the bundle
+went on carrying them afterwards at the cost of a re-fetch each per ``--check``
+run and a compile each per wheel built.
+
+So the tier is a statement about maintenance, not about quality:
+
+- ``--check`` and ``update`` skip the held tier entirely. A copy there may be
+  years behind its publisher and nothing will report it. That is the whole
+  saving, and it is why holding a module is not free: pysmi vouches for the
+  currency of what it ships, and can only keep saying that about a set it
+  re-checks.
+- ``verify`` compiles the carried tier only, and ``hatch_build.py`` renders
+  only that.
+- ``--check`` still checks, offline, that both directories hold exactly the
+  files their entries say they do. See :py:func:`misfiled`.
+
+Promotion is deliberately cheap, because the bar is deliberately low: **any use
+justifies it.** ``--promote MODULE`` moves the file, clears the ``tier``,
+re-fetches the module from its publisher -- a held copy is presumed stale --
+verifies the enlarged bundle and rewrites the inventory page. Since the
+manifest entry never went anywhere, nothing about the module's provenance has
+to be established a second time. There is no matching ``--defer``: deferring is
+a judgement about the whole corpus rather than about one module, and it belongs
+in a reviewed change rather than in a flag.
 
 Every bundled byte is traceable to a publisher
 ----------------------------------------------
@@ -172,6 +211,7 @@ from pysmi.mibinfo import strip_comments
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 DEST = ROOT / "pysmi" / "mibs" / "asn1"
+FUTURE = ROOT / "pysmi" / "mibs" / "future"
 MANIFEST = ROOT / "pysmi" / "mibs" / "bundled_mibs.json"
 PATCHES = HERE / "mib-patches"
 INVENTORY = ROOT / "docs" / "source" / "bundled-mibs.rst"
@@ -185,10 +225,47 @@ _REVISION = re.compile(r'(?:LAST-UPDATED|REVISION)\s+"(\d{6,14}Z?)"')
 
 
 def manifest() -> dict[str, dict[str, Any]]:
-    """Read the bundle manifest."""
+    """Read the bundle manifest -- both tiers, keyed by module name."""
     modules: dict[str, dict[str, Any]] = json.loads(MANIFEST.read_text())["modules"]
 
     return modules
+
+
+def deferred(entry: dict[str, Any]) -> bool:
+    """Whether *entry* is held in ``future/`` rather than searched.
+
+    The key is absent on a bundled entry, so being in the search path is the
+    default and promoting a module means deleting a key rather than setting
+    one. See :py:mod:`pysmi.mibs.future`.
+    """
+    return entry.get("tier") == "future"
+
+
+def bundled(
+    modules: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """The manifest entries in ``asn1/``, which everything downstream reads."""
+    return {
+        name: entry
+        for name, entry in (modules if modules is not None else manifest()).items()
+        if not deferred(entry)
+    }
+
+
+def future(
+    modules: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, dict[str, Any]]:
+    """The manifest entries in ``future/``, which nothing reads."""
+    return {
+        name: entry
+        for name, entry in (modules if modules is not None else manifest()).items()
+        if deferred(entry)
+    }
+
+
+def directory(entry: dict[str, Any]) -> pathlib.Path:
+    """Where *entry*'s text is kept."""
+    return FUTURE if deferred(entry) else DEST
 
 
 def download(url: str) -> bytes:
@@ -504,7 +581,7 @@ def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
     compare it against.
     """
     if not refetchable(entry):
-        return (DEST / mibname).read_bytes()
+        return (directory(entry) / mibname).read_bytes()
 
     if entry["source"] == "rfc":
         data = extract(mibname, entry["rfc"])
@@ -568,20 +645,32 @@ def check() -> int:
     one publishes instead, and are not reported again; a successor nobody has
     looked at yet still is.
 
+    ``future/`` is out of scope for all of that, deliberately: nothing reads
+    those copies, so a revision upstream changes nothing until the module is
+    promoted, and ``--promote`` re-fetches it at that point. What is still
+    checked there is that the directory and the manifest agree about which
+    modules it holds -- an offline check, and the one that would otherwise let
+    a file go missing unnoticed for years.
+
     Returns:
         The process exit code: 0 if every bundled file is current, 1 otherwise.
     """
     modules = manifest()
+    searched = bundled(modules)
     stale = []
 
-    for rfc in sorted({e["rfc"] for e in modules.values() if e["source"] == "rfc"}):
+    for rfc in sorted({e["rfc"] for e in searched.values() if e["source"] == "rfc"}):
         pinned = sorted(
-            name for name, entry in modules.items() if entry.get("rfc") == rfc
+            name for name, entry in searched.items() if entry.get("rfc") == rfc
         )
+        # Reviewed successors are read off every entry pinned to the RFC, held
+        # tier included: an RFC pinned by both tiers has been looked at once,
+        # and which directory the reviewer wrote the answer on is an accident.
         reviewed = {
             successor
-            for name in pinned
-            for successor in modules[name].get("successors_reviewed", {})
+            for name, entry in modules.items()
+            if entry.get("rfc") == rfc
+            for successor in entry.get("successors_reviewed", {})
         }
         successors = [rfc_id for rfc_id in obsoleted_by(rfc) if rfc_id not in reviewed]
 
@@ -591,12 +680,11 @@ def check() -> int:
                 f" -- pinned by {', '.join(pinned)}"
             )
 
-    for mibname, entry in sorted(modules.items()):
+    for mibname, entry in sorted(searched.items()):
         path = DEST / mibname
 
         if not path.is_file():
-            stale.append(f"{mibname}: not bundled yet")
-            continue
+            continue  # misfiled() reports it below.
 
         if not refetchable(entry):
             continue
@@ -604,10 +692,7 @@ def check() -> int:
         if path.read_bytes() != fetch(mibname, entry):
             stale.append(f"{mibname}: bundled copy no longer matches its source")
 
-    for path in sorted(DEST.iterdir()):
-        if path.is_file() and not path.name.startswith("__"):
-            if path.name not in modules:
-                stale.append(f"{path.name}: bundled but not in the manifest")
+    stale.extend(misfiled(modules))
 
     if stale:
         sys.stderr.write(
@@ -617,8 +702,57 @@ def check() -> int:
         )
         return 1
 
-    sys.stdout.write(f"All {len(modules)} bundled MIBs are current.\n")
+    sys.stdout.write(
+        f"All {len(searched)} bundled MIBs are current; "
+        f"{len(modules) - len(searched)} held in future/.\n"
+    )
     return 0
+
+
+def held_files(directory: pathlib.Path) -> list[pathlib.Path]:
+    """The MIB files in *directory*, and nothing else it happens to hold.
+
+    A module's file is named exactly as the module, so it never carries an
+    extension; ``__init__.py`` and ``README.md`` are the directories' own
+    furniture rather than modules.
+    """
+    return sorted(
+        path for path in directory.iterdir() if path.is_file() and "." not in path.name
+    )
+
+
+def misfiled(modules: dict[str, dict[str, Any]]) -> list[str]:
+    """Report every module whose file is not where the manifest says it is.
+
+    Both directions and both directories: a file no entry names, a file in the
+    tier the entry does not name, an entry with no file at all. Offline, which
+    is what lets it cover ``future/`` -- nothing re-fetches those copies, so
+    losing one would otherwise go unnoticed until somebody promoted it.
+    """
+    wrong = []
+
+    for tier, listed in (("asn1", bundled(modules)), ("future", future(modules))):
+        held = ROOT / "pysmi" / "mibs" / tier
+
+        for path in held_files(held):
+            if path.name not in listed:
+                wrong.append(
+                    f"{path.name}: in {tier}/ but "
+                    + (
+                        "the manifest files it under the other tier"
+                        if path.name in modules
+                        else "not in the manifest"
+                    )
+                )
+
+        for mibname in listed:
+            if not (held / mibname).is_file():
+                wrong.append(
+                    f"{mibname}: the manifest files it under {tier}/, "
+                    "which holds no such file"
+                )
+
+    return wrong
 
 
 MIRROR = "https://pysnmp.github.io/mibs/asn1/{}"
@@ -640,10 +774,15 @@ def check_mirror() -> int:
     a list rather than one failure per module, since a batch of them usually
     has a single cause.
 
+    Only the searched tier is compared. The mirror publishes what pysmi
+    bundles, so a module held in ``future/`` is one the mirror has no copy of
+    to disagree with, and asking for 275 of them would be 275 requests for a
+    404 apiece.
+
     Returns:
         The process exit code: 0 if the mirror matches the bundle, 1 otherwise.
     """
-    modules = manifest()
+    modules = bundled()
     diverged = []
     unreachable = []
 
@@ -654,13 +793,13 @@ def check_mirror() -> int:
             unreachable.append(f"{mibname}: {exc}")
             continue
 
-        bundled = (DEST / mibname).read_bytes()
+        carried = (DEST / mibname).read_bytes()
 
-        if served == bundled:
+        if served == carried:
             continue
 
         theirs = revision_of(served)
-        ours = revision_of(bundled)
+        ours = revision_of(carried)
 
         if theirs == ours:
             diverged.append(f"{mibname}: same revision ({ours}), different text")
@@ -696,11 +835,15 @@ def update() -> int:
     or an upstream MIB that no longer compiles, leaves the existing bundle
     exactly as it was rather than a mix of old and new files.
 
+    ``future/`` is left alone. Its copies are not maintained -- that is what
+    holding a module there means -- and ``--promote`` is what re-fetches one,
+    at the point something needs it.
+
     Returns:
         The process exit code: 0 on success, 1 if the refreshed set fails to
         compile.
     """
-    modules = manifest()
+    modules = bundled()
     DEST.mkdir(parents=True, exist_ok=True)
 
     # Staged on DEST's own filesystem, so committing a file is an atomic
@@ -719,10 +862,9 @@ def update() -> int:
             )
             return 1
 
-        for path in DEST.iterdir():
-            if path.is_file() and not path.name.startswith("__"):
-                if path.name not in modules:
-                    path.unlink()
+        for path in held_files(DEST):
+            if path.name not in modules:
+                path.unlink()
 
         for mibname in modules:
             (staging_dir / mibname).replace(DEST / mibname)
@@ -758,7 +900,7 @@ def record_ieee_revisions(modules: dict[str, dict[str, Any]]) -> None:
         MANIFEST.write_text(json.dumps(stored, indent=2, sort_keys=True) + "\n")
 
 
-def verify(source: pathlib.Path | None = None) -> int:
+def verify(source: pathlib.Path | None = None, names: list[str] | None = None) -> int:
     """Compile every bundled MIB against a directory containing the bundle,
     nothing else.
 
@@ -766,9 +908,12 @@ def verify(source: pathlib.Path | None = None) -> int:
     make the fallback source useless for exactly the case it exists for.
 
     Args:
-        source: directory holding one file per name in the manifest. Defaults
-            to the bundle already on disk; *update* passes a staging directory
-            to verify a refreshed set before committing it.
+        source: directory holding one file per name being verified. Defaults
+            to the bundle already on disk; *update* and *promote* pass a
+            staging directory to verify a set before committing it.
+        names: the modules to compile. Defaults to the searched tier;
+            *promote* passes that tier plus the modules it is adding, since
+            the manifest on disk does not name them as bundled yet.
 
     Returns:
         The process exit code: 0 if everything compiles, 1 otherwise.
@@ -779,7 +924,8 @@ def verify(source: pathlib.Path | None = None) -> int:
     from pysmi.reader import FileReader
     from pysmi.writer import CallbackWriter
 
-    names = sorted(manifest())
+    if names is None:
+        names = sorted(bundled())
 
     # One malformed OID can make the code generator walk a cycle, and the
     # default limit turns that into a bare RecursionError a long way from the
@@ -820,16 +966,84 @@ def verify(source: pathlib.Path | None = None) -> int:
     return 0
 
 
+def promote(names: list[str]) -> int:
+    """Move modules from ``future/`` into the bundle, and refresh them.
+
+    A held copy is presumed stale -- nothing has re-fetched it since it was
+    deferred -- so promotion re-fetches from the publisher the manifest
+    records rather than moving bytes of unknown age onto the search path.
+
+    Staged and verified before anything on disk moves, the way *update* is: a
+    promoted module that does not compile against the bundle, or that needs an
+    import the bundle does not carry, leaves the tree untouched and says so.
+
+    Args:
+        names: the modules to promote.
+
+    Returns:
+        The process exit code: 0 on success, 1 if a name is not held or the
+        enlarged bundle fails to verify.
+    """
+    stored = json.loads(MANIFEST.read_text())
+    modules = stored["modules"]
+
+    unknown = [name for name in names if name not in modules]
+    if unknown:
+        sys.stderr.write(f"Not in the manifest: {', '.join(sorted(unknown))}\n")
+        return 1
+
+    already = [name for name in names if not deferred(modules[name])]
+    if already:
+        sys.stderr.write(f"Already bundled: {', '.join(sorted(already))}\n")
+        return 1
+
+    searched = sorted(bundled(modules))
+
+    with tempfile.TemporaryDirectory(dir=DEST.parent) as staging:
+        staging_dir = pathlib.Path(staging)
+
+        for mibname in searched:
+            (staging_dir / mibname).write_bytes((DEST / mibname).read_bytes())
+
+        for mibname in sorted(names):
+            # The entry as it stands, tier and all, so that fetch() reads a
+            # non-refetchable module out of future/ where its only copy is.
+            data = fetch(mibname, modules[mibname])
+            (staging_dir / mibname).write_bytes(data)
+            sys.stdout.write(f"{mibname}: {len(data)} bytes\n")
+
+        if verify(staging_dir, sorted(set(searched) | set(names))) != 0:
+            sys.stderr.write(
+                "Promoted modules failed to verify; leaving the tree untouched.\n"
+            )
+            return 1
+
+        for mibname in sorted(names):
+            (staging_dir / mibname).replace(DEST / mibname)
+            (FUTURE / mibname).unlink()
+            del modules[mibname]["tier"]
+
+    MANIFEST.write_text(json.dumps(stored, indent=2, sort_keys=True) + "\n")
+    sys.stdout.write(f"Promoted {', '.join(sorted(names))}.\n")
+
+    return docs()
+
+
 def docs() -> int:
     """Rewrite the inventory page from the manifest and the bundled files.
 
     The page is generated rather than kept by hand so that it cannot drift from
     what is actually bundled -- an inventory nobody trusts is worse than none.
+    The held tier is listed too, by name only: a reader wanting to know whether
+    pysmi knows about a module needs to find it whichever directory it sits in,
+    and a Revision column over text nothing re-fetches would be a number the
+    page could not stand behind.
 
     Returns:
         The process exit code: 0.
     """
-    modules = manifest()
+    modules = bundled()
+    held = future()
 
     def source_of(mibname: str, entry: dict[str, Any]) -> str:
         if entry["source"] == "rfc":
@@ -883,7 +1097,10 @@ def docs() -> int:
 
     text = [
         PAGE_HEADER.format(
-            total=len(modules), patched=len(patched), unstamped=unstamped
+            total=len(modules),
+            patched=len(patched),
+            unstamped=unstamped,
+            held=len(held),
         ),
         ".. csv-table::",
         '   :header: "Module", "Source", "Revision", "Patched"',
@@ -907,6 +1124,12 @@ def docs() -> int:
             + ".\n"
             for name in historical
         ),
+        PAGE_FUTURE.format(held=len(held)),
+        textwrap.fill(
+            ", ".join(f"``{name}``" for name in sorted(held)),
+            width=79,
+        )
+        + "\n",
         PAGE_FOOTER,
     ]
 
@@ -934,6 +1157,12 @@ configures, and a caller's own copy wins only by carrying a newer
 MODULE-IDENTITY revision -- not merely by being the caller's. See
 :doc:`/mibdump` for ``--prefer-mib-source`` and ``--no-bundled-mibs``, which
 override that outright.
+
+A further {held} modules are *held* rather than carried, in
+``pysmi/mibs/future/``. They are listed under :ref:`bundled-mib-future` at the
+foot of this page, and everything the rest of this page says about
+maintenance, freshness and shipping applies to the {total} below and not to
+them.
 
 {unstamped} of the modules below carry no MODULE-IDENTITY at all, so there is
 no revision to compare and the bundled copy is the one that gets used. Most are
@@ -1115,6 +1344,49 @@ caller holding an OID an old agent reported can be told which module defines it
 now, rather than only that the module it came from is gone.
 """
 
+PAGE_FUTURE = """\
+.. _bundled-mib-future:
+
+Held, not carried
+-----------------
+
+These {held} modules sit in ``pysmi/mibs/future/`` in the repository. Their
+provenance is the same as any module above -- each has a manifest entry naming
+the publisher its text came from -- and they were fetched, patched where
+needed and compile-verified alongside the rest. What separates them is that
+nothing needs them: across the roughly 5,500 vendor modules at
+https://github.com/pysnmp/mibs, not one imports any module below, pysnmp ships
+none of them, and neither project's own code, tests or documentation names
+one. They entered the bundle as parser pressure tests, which is work they did,
+and stayed after it was done.
+
+Holding them says three things:
+
+- **They are not installed.** A wheel does not carry ``future/``; only the
+  repository and the sdist do. The compiler never registers the directory, and
+  ``pysmi/mibs/pysnmp/`` holds no compiled form of them. Note that most are not
+  at https://pysnmp.github.io/mibs/asn1/ either, since that tree is built from
+  this bundle -- the way to get one back is to promote it, below, not to fetch
+  it from the mirror.
+- **Their freshness is not maintained.** ``--check`` does not re-fetch these
+  or ask the RFC Editor whether their pins still stand. A copy here may be
+  years behind its publisher, and by design nothing reports it. That is the
+  cost this arrangement pays and the reason the modules are held rather than
+  bundled: pysmi vouches for the text of what it ships, and it can only
+  keep saying so about a set it actually re-checks.
+- **They are not gone.** The manifest entry stays, so what the module is and
+  where its text comes from are still recorded, and
+  :py:func:`pysmi.mibs.future` names them at runtime.
+
+**Any use promotes one.** A module in the corpus that imports it, a consumer
+that asks for it, a test that needs it -- each is sufficient on its own, and
+no wider case has to be made. ``scripts/update_bundled_mibs.py --promote
+MODULE-NAME`` moves the file into ``asn1/``, clears the ``tier`` on its
+manifest entry, re-fetches it from its publisher, because a held copy is
+presumed stale, re-verifies the enlarged bundle and rewrites this page.
+
+"""
+
 PAGE_FOOTER = """
 Not bundled
 -----------
@@ -1175,4 +1447,10 @@ if __name__ == "__main__":
         sys.exit(verify())
     if "--docs" in sys.argv[1:]:
         sys.exit(docs())
+    if "--promote" in sys.argv[1:]:
+        promoting = sys.argv[sys.argv.index("--promote") + 1 :]
+        if not promoting:
+            sys.stderr.write("--promote needs at least one module name.\n")
+            sys.exit(1)
+        sys.exit(promote(promoting))
     sys.exit(update())

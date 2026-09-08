@@ -9,7 +9,7 @@
 pysmi keeps the ASN.1 because it is what the compiler reads: resolving an
 IMPORTS clause means parsing the imported module's source, so the text cannot
 be replaced by its compiled form. What it can be joined by is that compiled
-form, so that a consumer wanting to *load* one of the 484 standard modules
+form, so that a consumer wanting to *load* one of the 210 standard modules
 rather than compile it does not have to run the compiler first.
 
 The modules are generated here rather than committed, which is what makes the

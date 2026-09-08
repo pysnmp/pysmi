@@ -37,7 +37,36 @@ off:
 
 See :ref:`bundled-mib-historical` for which modules carry a successor and why.
 
+Carried and held
+----------------
+
+The manifest covers more modules than the package ships. Those with the same
+provenance as the rest but which nothing in the corpus imports are *held*, in
+``pysmi/mibs/future/`` in the repository: not installed, not searched, not
+compiled into the wheel, and not re-fetched by the freshness check. Their
+manifest entries stay, so pysmi can still say what such a module is and where
+its text comes from, and promoting one back is a single command.
+
+:py:func:`pysmi.mibs.bundled` and :py:func:`pysmi.mibs.future` are how a caller
+tells the two apart. Anything reasoning about what an install can actually
+supply wants ``bundled()``, not ``manifest()``:
+
+.. code-block:: python
+
+   from pysmi.mibs import bundled, future, manifest
+
+   "IF-MIB" in bundled()          # True -- the package carries this one
+   "TOKENRING-MIB" in bundled()   # False
+   "TOKENRING-MIB" in future()    # True -- known, but not shipped
+   "TOKENRING-MIB" in manifest()  # True -- both tiers
+
+See :ref:`bundled-mib-future` for the full list and for how to promote one.
+
 .. autofunction:: pysmi.mibs.manifest
+
+.. autofunction:: pysmi.mibs.bundled
+
+.. autofunction:: pysmi.mibs.future
 
 .. autofunction:: pysmi.mibs.successors
 

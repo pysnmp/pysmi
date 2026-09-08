@@ -6,7 +6,8 @@
     },
     "ADSL-LINE-EXT-MIB": {
       "rfc": 3440,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ADSL-LINE-MIB": {
       "patch": "ADSL-LINE-MIB.patch",
@@ -20,15 +21,18 @@
     },
     "ADSL2-LINE-MIB": {
       "rfc": 4706,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ADSL2-LINE-TC-MIB": {
       "rfc": 4706,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "AGENTX-MIB": {
       "rfc": 2742,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ALARM-MIB": {
       "rfc": 3877,
@@ -36,11 +40,13 @@
     },
     "APM-MIB": {
       "rfc": 3729,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "APPC-MIB": {
       "rfc": 2051,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "APPLETALK-MIB": {
       "rfc": 1742,
@@ -52,7 +58,8 @@
     },
     "APPN-DLUR-MIB": {
       "rfc": 2232,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "APPN-MIB": {
       "rfc": 2455,
@@ -60,35 +67,43 @@
     },
     "APPN-TRAP-MIB": {
       "rfc": 2456,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "APS-MIB": {
       "rfc": 3498,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ARC-MIB": {
       "rfc": 3878,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ATM-ACCOUNTING-INFORMATION-MIB": {
       "rfc": 2512,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ATM-DXI-MIB": {
       "archived": true,
-      "source": "atm-forum"
+      "source": "atm-forum",
+      "tier": "future"
     },
     "ATM-FORUM-ADDR-REG": {
       "archived": true,
-      "source": "atm-forum"
+      "source": "atm-forum",
+      "tier": "future"
     },
     "ATM-FORUM-ILMI40-MIB": {
       "archived": true,
-      "source": "atm-forum"
+      "source": "atm-forum",
+      "tier": "future"
     },
     "ATM-FORUM-M4-MIB": {
       "archived": true,
-      "source": "atm-forum"
+      "source": "atm-forum",
+      "tier": "future"
     },
     "ATM-FORUM-MIB": {
       "archived": true,
@@ -100,7 +115,8 @@
     },
     "ATM-FORUM-SRVC-REG": {
       "archived": true,
-      "source": "atm-forum"
+      "source": "atm-forum",
+      "tier": "future"
     },
     "ATM-FORUM-TC-MIB": {
       "archived": true,
@@ -112,7 +128,8 @@
     },
     "ATM-SOFT-PVC-MIB": {
       "archived": true,
-      "source": "atm-forum"
+      "source": "atm-forum",
+      "tier": "future"
     },
     "ATM-TC-MIB": {
       "rfc": 2514,
@@ -120,11 +137,13 @@
     },
     "ATM2-MIB": {
       "rfc": 3606,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "BATTERY-MIB": {
       "rfc": 7577,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "BFD-STD-MIB": {
       "rfc": 7331,
@@ -136,7 +155,8 @@
     },
     "BGP-MPLS-LAYER3-VPN-MULTICAST-MIB": {
       "rfc": 8503,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "BGP4-MIB": {
       "rfc": 4273,
@@ -148,19 +168,23 @@
     },
     "CAPWAP-BASE-MIB": {
       "rfc": 5833,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "CAPWAP-DOT11-MIB": {
       "rfc": 5834,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "CHARACTER-MIB": {
       "rfc": 1658,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "CIRCUIT-IF-MIB": {
       "rfc": 3201,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "CLAB-DEF-MIB": {
       "source": "cablelabs",
@@ -174,15 +198,18 @@
       "patch": "CLNS-MIB.patch",
       "reason": "RFC 1238 imports PhysAddress ``FROM RFC-1213``, a module name nothing publishes; the same IMPORTS clause spells RFC1155-SMI correctly.",
       "rfc": 1238,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "COPS-CLIENT-MIB": {
       "rfc": 2940,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DECNET-PHIV-MIB": {
       "rfc": 1559,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DIAL-CONTROL-MIB": {
       "rfc": 2128,
@@ -190,7 +217,8 @@
     },
     "DIFFSERV-CONFIG-MIB": {
       "rfc": 3747,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DIFFSERV-DSCP-TC": {
       "rfc": 3289,
@@ -210,11 +238,13 @@
     },
     "DISMAN-EXPRESSION-MIB": {
       "rfc": 2982,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DISMAN-NSLOOKUP-MIB": {
       "rfc": 4560,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DISMAN-PING-MIB": {
       "rfc": 4560,
@@ -222,7 +252,8 @@
     },
     "DISMAN-SCHEDULE-MIB": {
       "rfc": 3231,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DISMAN-SCRIPT-MIB": {
       "rfc": 3165,
@@ -230,7 +261,8 @@
     },
     "DISMAN-TRACEROUTE-MIB": {
       "rfc": 4560,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DLSW-MIB": {
       "rfc": 2024,
@@ -238,23 +270,28 @@
     },
     "DMTF-DMI-MIB": {
       "archived": true,
-      "source": "dmtf"
+      "source": "dmtf",
+      "tier": "future"
     },
     "DMTF-LAN-ADAPTER-MIB": {
       "archived": true,
-      "source": "dmtf"
+      "source": "dmtf",
+      "tier": "future"
     },
     "DMTF-MOBILE-MIB": {
       "archived": true,
-      "source": "dmtf"
+      "source": "dmtf",
+      "tier": "future"
     },
     "DMTF-MONITOR-MIB": {
       "archived": true,
-      "source": "dmtf"
+      "source": "dmtf",
+      "tier": "future"
     },
     "DMTF-SERVICE-LAYER-MIB": {
       "archived": true,
-      "source": "dmtf"
+      "source": "dmtf",
+      "tier": "future"
     },
     "DNS-RESOLVER-MIB": {
       "rfc": 1612,
@@ -268,7 +305,8 @@
     },
     "DOCS-BPI-MIB": {
       "rfc": 3083,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DOCS-CABLE-DEVICE-MIB": {
       "rfc": 4639,
@@ -276,10 +314,12 @@
     },
     "DOCS-DIAG-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-DIAG-MIB.mib"
     },
     "DOCS-DRF-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-DRF-MIB.mib"
     },
     "DOCS-IETF-BPI2-MIB": {
@@ -288,20 +328,24 @@
     },
     "DOCS-IETF-CABLE-DEVICE-NOTIFICATION-MIB": {
       "rfc": 4547,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DOCS-IETF-QOS-MIB": {
       "rfc": 4323,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DOCS-IETF-SUBMGT-MIB": {
       "rfc": 4036,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DOCS-IF-M-CMTS-MIB": {
       "archived": true,
       "reason": "Dropped from the live CableLabs directory; superseded by a later DOCSIS revision but still imported.",
-      "source": "cablelabs"
+      "source": "cablelabs",
+      "tier": "future"
     },
     "DOCS-IF-MIB": {
       "rfc": 4546,
@@ -313,62 +357,76 @@
     },
     "DOCS-IFEXT2-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-IFEXT2-MIB.mib"
     },
     "DOCS-L2VPN-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-L2VPN-MIB.mib"
     },
     "DOCS-LOADBAL3-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-LOADBAL3-MIB.mib"
     },
     "DOCS-LOADBALANCING-MIB": {
       "archived": true,
       "reason": "Dropped from the live CableLabs directory; superseded by a later DOCSIS revision but still imported.",
-      "source": "cablelabs"
+      "source": "cablelabs",
+      "tier": "future"
     },
     "DOCS-MCAST-AUTH-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-MCAST-AUTH-MIB.mib"
     },
     "DOCS-MCAST-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-MCAST-MIB.mib"
     },
     "DOCS-QOS-MIB": {
       "archived": true,
       "reason": "Dropped from the live CableLabs directory; superseded by a later DOCSIS revision but still imported.",
-      "source": "cablelabs"
+      "source": "cablelabs",
+      "tier": "future"
     },
     "DOCS-QOS3-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-QOS3-MIB.mib"
     },
     "DOCS-SEC-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-SEC-MIB.mib"
     },
     "DOCS-SUBMGT3-MIB": {
       "source": "cablelabs",
+      "tier": "future",
       "url": "https://mibs.cablelabs.com/MIBs/DOCSIS/DOCS-SUBMGT3-MIB.mib"
     },
     "DOCS-TEST-MIB": {
       "archived": true,
       "reason": "Dropped from the live CableLabs directory; superseded by a later DOCSIS revision but still imported.",
-      "source": "cablelabs"
+      "source": "cablelabs",
+      "tier": "future"
     },
     "DOT12-IF-MIB": {
       "rfc": 2020,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DOT12-RPTR-MIB": {
       "rfc": 2266,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DOT3-EPON-MIB": {
       "rfc": 4837,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DOT3-OAM-MIB": {
       "rfc": 4878,
@@ -376,11 +434,13 @@
     },
     "DS0-MIB": {
       "rfc": 2494,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DS0BUNDLE-MIB": {
       "rfc": 2494,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DS1-MIB": {
       "rfc": 4805,
@@ -403,11 +463,13 @@
     },
     "DSLite-MIB": {
       "rfc": 7870,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DSMON-MIB": {
       "rfc": 3287,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DTI-MIB": {
       "archived": true,
@@ -416,7 +478,8 @@
     },
     "DVB-RCS-MIB": {
       "rfc": 5728,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "DVMRP-STD-MIB": {
       "archived": true,
@@ -425,19 +488,23 @@
     },
     "EBN-MIB": {
       "rfc": 2457,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "EFM-CU-MIB": {
       "rfc": 5066,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ENERGY-OBJECT-CONTEXT-MIB": {
       "rfc": 7461,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ENERGY-OBJECT-MIB": {
       "rfc": 7460,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ENTITY-MIB": {
       "rfc": 6933,
@@ -457,11 +524,13 @@
     },
     "ETHER-CHIPSET-MIB": {
       "rfc": 2666,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ETHER-WIS": {
       "rfc": 3637,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "EtherLike-MIB": {
       "rfc": 3635,
@@ -473,7 +542,8 @@
     },
     "FCIP-MGMT-MIB": {
       "rfc": 4404,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "FCMGMT-MIB": {
       "archived": true,
@@ -488,7 +558,8 @@
       "source": "rfc",
       "successors_reviewed": {
         "RFC4044": "FC-MGMT-MIB"
-      }
+      },
+      "tier": "future"
     },
     "FLOAT-TC-MIB": {
       "rfc": 6340,
@@ -496,19 +567,23 @@
     },
     "FLOW-METER-MIB": {
       "rfc": 2720,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "FORCES-MIB": {
       "rfc": 5813,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "FR-ATM-PVC-SERVICE-IWF-MIB": {
       "rfc": 2955,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "FR-MFR-MIB": {
       "rfc": 3020,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "FRAME-RELAY-DTE-MIB": {
       "rfc": 2115,
@@ -520,23 +595,28 @@
     },
     "FRSLD-MIB": {
       "rfc": 3202,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "Finisher-MIB": {
       "rfc": 3806,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "G9981-MIB": {
       "rfc": 6768,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "G9982-MIB": {
       "rfc": 6767,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "G9983-MIB": {
       "rfc": 6766,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "GBOND-MIB": {
       "rfc": 6765,
@@ -544,11 +624,13 @@
     },
     "GMPLS-LABEL-STD-MIB": {
       "rfc": 4803,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "GMPLS-LSR-STD-MIB": {
       "rfc": 4803,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "GMPLS-TC-STD-MIB": {
       "rfc": 4801,
@@ -556,15 +638,18 @@
     },
     "GMPLS-TE-STD-MIB": {
       "rfc": 4802,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "GSMP-MIB": {
       "rfc": 3295,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "HC-ALARM-MIB": {
       "rfc": 3434,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "HC-PerfHist-TC-MIB": {
       "rfc": 3705,
@@ -588,11 +673,13 @@
     },
     "HOST-RESOURCES-TYPES": {
       "rfc": 2790,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "HPR-IP-MIB": {
       "rfc": 2584,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "HPR-MIB": {
       "patch": "HPR-MIB.patch",
@@ -610,11 +697,13 @@
     },
     "IANA-CHARSET-MIB": {
       "source": "iana",
+      "tier": "future",
       "url": "https://www.iana.org/assignments/ianacharset-mib/ianacharset-mib"
     },
     "IANA-ENERGY-RELATION-MIB": {
       "rfc": 7461,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IANA-ENTITY-MIB": {
       "source": "iana",
@@ -622,7 +711,8 @@
     },
     "IANA-FINISHER-MIB": {
       "rfc": 3806,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IANA-GBOND-TC-MIB": {
       "source": "iana",
@@ -638,10 +728,12 @@
     },
     "IANA-LANGUAGE-MIB": {
       "source": "iana",
+      "tier": "future",
       "url": "https://www.iana.org/assignments/ianalanguage-mib/ianalanguage-mib"
     },
     "IANA-MALLOC-MIB": {
       "source": "iana",
+      "tier": "future",
       "url": "https://www.iana.org/assignments/ianamalloc-mib/ianamalloc-mib"
     },
     "IANA-MAU-MIB": {
@@ -650,10 +742,12 @@
     },
     "IANA-OLSRv2-LINK-METRIC-TYPE-MIB": {
       "rfc": 7184,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IANA-PRINTER-MIB": {
       "source": "iana",
+      "tier": "future",
       "url": "https://www.iana.org/assignments/ianaprinter-mib/ianaprinter-mib"
     },
     "IANA-PWE3-MIB": {
@@ -666,14 +760,17 @@
     },
     "IANA-STORAGE-MEDIA-TYPE-MIB": {
       "rfc": 7666,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IANAPowerStateSet-MIB": {
       "source": "iana",
+      "tier": "future",
       "url": "https://www.iana.org/assignments/ianapowerstateset-mib/ianapowerstateset-mib"
     },
     "IANATn3270eTC-MIB": {
       "source": "iana",
+      "tier": "future",
       "url": "https://www.iana.org/assignments/ianatn3270etc-mib/ianatn3270etc-mib"
     },
     "IANAifType-MIB": {
@@ -686,7 +783,8 @@
     },
     "IEC-62439-3-MIB": {
       "archived": true,
-      "source": "iec"
+      "source": "iec",
+      "tier": "future"
     },
     "IEEE-802DOT17-RPR-MIB": {
       "archived": true,
@@ -702,7 +800,8 @@
     },
     "IEEE8021-CFM-V2-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-CFMD8-MIB": {
       "archived": true,
@@ -711,23 +810,28 @@
     },
     "IEEE8021-CN-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-DDCFM-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-DEVID-MIB": {
       "revision": "201807151904",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-ECMP-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-EVB-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-EVBB-MIB": {
       "archived": true,
@@ -736,19 +840,23 @@
     },
     "IEEE8021-FQTSS-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-MIRP-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-MSTP-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-MVRPX-MIB": {
       "revision": "202103050000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-PAE-MIB": {
       "revision": "200406220000",
@@ -756,31 +864,38 @@
     },
     "IEEE8021-PB-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-PBB-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-PBBTE-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-PE-MIB": {
       "revision": "201201220000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-PFC-MIB": {
       "revision": "202103050000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-PSFP-MIB": {
       "revision": "202309260000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-Preemption-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-Q-BRIDGE-MIB": {
       "revision": "202211080000",
@@ -792,7 +907,8 @@
     },
     "IEEE8021-SPANNING-TREE-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-SPB-MIB": {
       "revision": "202211080000",
@@ -800,11 +916,13 @@
     },
     "IEEE8021-SRP-MIB": {
       "revision": "202309260000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-ST-MIB": {
       "revision": "202309260000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-TC-MIB": {
       "revision": "202211080000",
@@ -812,15 +930,18 @@
     },
     "IEEE8021-TEIPS-MIB": {
       "revision": "201108170000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-TPMR-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE8021-TSN-REMOTE-MANAGEMENT-MIB": {
       "revision": "202211080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "IEEE802171-CFM-MIB": {
       "archived": true,
@@ -833,7 +954,8 @@
     },
     "IEEE8023-DOT3-LLDP-EXT-V2-MIB": {
       "archived": true,
-      "source": "ieee802.3"
+      "source": "ieee802.3",
+      "tier": "future"
     },
     "IEEE8023-LAG-MIB": {
       "revision": "201610120000",
@@ -845,11 +967,13 @@
     },
     "IF-CAP-STACK-MIB": {
       "rfc": 5066,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IF-INVERTED-STACK-MIB": {
       "rfc": 2864,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IF-MIB": {
       "rfc": 2863,
@@ -857,7 +981,8 @@
     },
     "IFCP-MGMT-MIB": {
       "rfc": 6173,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IGMP-STD-MIB": {
       "rfc": 2933,
@@ -876,7 +1001,8 @@
     },
     "INTEGRATED-SERVICES-GUARANTEED-MIB": {
       "rfc": 2214,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "INTEGRATED-SERVICES-MIB": {
       "patch": "INTEGRATED-SERVICES-MIB.patch",
@@ -898,23 +1024,28 @@
     },
     "IP-TRAFFIC-FLOW-SECURITY-MIB": {
       "rfc": 9349,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IPATM-IPMC-MIB": {
       "rfc": 2417,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IPFIX-MIB": {
       "rfc": 6615,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IPFIX-SELECTOR-MIB": {
       "rfc": 6615,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IPMCAST-MIB": {
       "rfc": 5132,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IPMROUTE-STD-MIB": {
       "rfc": 2932,
@@ -925,11 +1056,13 @@
     },
     "IPOA-MIB": {
       "rfc": 2320,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IPS-AUTH-MIB": {
       "rfc": 4545,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IPSEC-ISAKMP-IKE-DOI-TC": {
       "draft": "draft-ietf-ipsec-doi-tc-mib-02",
@@ -937,7 +1070,8 @@
     },
     "IPSEC-SPD-MIB": {
       "rfc": 4807,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "IPV6-FLOW-LABEL-MIB": {
       "rfc": 3595,
@@ -972,11 +1106,13 @@
     },
     "ISNS-MIB": {
       "rfc": 4939,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ITU-ALARM-MIB": {
       "rfc": 3877,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ITU-ALARM-TC-MIB": {
       "rfc": 3877,
@@ -984,19 +1120,23 @@
     },
     "Job-Monitoring-MIB": {
       "rfc": 2707,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "L2L3-VPN-MULTICAST-MIB": {
       "rfc": 8502,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "L2L3-VPN-MULTICAST-TC-MIB": {
       "rfc": 8502,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "L2TP-MIB": {
       "rfc": 3371,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "LAN-EMULATION-BUS-MIB": {
       "archived": true,
@@ -1016,7 +1156,8 @@
     },
     "LANGTAG-TC-MIB": {
       "rfc": 5131,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "LISP-MIB": {
       "rfc": 7052,
@@ -1025,15 +1166,18 @@
     "LLDP-EXT-DCBX-MIB": {
       "archived": true,
       "reason": "Declares ORGANIZATION \"IEEE ??? Working Group\" -- a placeholder left in the text. DCBX was never published by IEEE under this module name.",
-      "source": "unattributed"
+      "source": "unattributed",
+      "tier": "future"
     },
     "LLDP-EXT-DOT1-EVB-EXTENSIONS-MIB": {
       "revision": "201806210000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "LLDP-EXT-DOT1-MIB": {
       "revision": "200505060000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "LLDP-EXT-DOT1-V2-MIB": {
       "revision": "201806210000",
@@ -1041,11 +1185,13 @@
     },
     "LLDP-EXT-DOT3-MIB": {
       "revision": "200505060000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "LLDP-EXT-DOT3-V2-MIB": {
       "revision": "200906080000",
-      "source": "ieee802.1"
+      "source": "ieee802.1",
+      "tier": "future"
     },
     "LLDP-EXT-HM-MIB": {
       "archived": true,
@@ -1058,7 +1204,8 @@
     },
     "LLDP-EXT-PNO-MIB": {
       "archived": true,
-      "source": "profibus"
+      "source": "profibus",
+      "tier": "future"
     },
     "LLDP-MIB": {
       "revision": "200505060000",
@@ -1074,19 +1221,23 @@
     },
     "LMP-MIB": {
       "rfc": 4631,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "LOWPAN-MIB": {
       "rfc": 7388,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MALLOC-MIB": {
       "rfc": 3559,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MAP-E-MIB": {
       "rfc": 8389,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MAU-MIB": {
       "rfc": 4836,
@@ -1094,15 +1245,18 @@
     },
     "MEF-SOAM-PM-MIB": {
       "archived": true,
-      "source": "mef"
+      "source": "mef",
+      "tier": "future"
     },
     "MEF-SOAM-TC-MIB": {
       "archived": true,
-      "source": "mef"
+      "source": "mef",
+      "tier": "future"
     },
     "MEF-UNI-EVC-MIB": {
       "archived": true,
-      "source": "mef"
+      "source": "mef",
+      "tier": "future"
     },
     "MGMD-STD-MIB": {
       "rfc": 5519,
@@ -1110,11 +1264,13 @@
     },
     "MIDCOM-MIB": {
       "rfc": 5190,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MIOX25-MIB": {
       "rfc": 1461,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MIP-MIB": {
       "patch": "MIP-MIB.patch",
@@ -1124,27 +1280,33 @@
     },
     "MOBILEIPV6-MIB": {
       "rfc": 4295,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-FRR-FACILITY-STD-MIB": {
       "rfc": 6445,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-FRR-GENERAL-STD-MIB": {
       "rfc": 6445,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-FRR-ONE2ONE-STD-MIB": {
       "rfc": 6445,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-FTN-STD-MIB": {
       "rfc": 3814,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-ID-STD-MIB": {
       "rfc": 7453,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-L3VPN-STD-MIB": {
       "rfc": 4382,
@@ -1152,23 +1314,28 @@
     },
     "MPLS-LC-ATM-STD-MIB": {
       "rfc": 4368,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-LC-FR-STD-MIB": {
       "rfc": 4368,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-LDP-ATM-STD-MIB": {
       "rfc": 3815,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-LDP-FRAME-RELAY-STD-MIB": {
       "rfc": 3815,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-LDP-GENERIC-STD-MIB": {
       "rfc": 3815,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-LDP-STD-MIB": {
       "rfc": 3815,
@@ -1176,11 +1343,13 @@
     },
     "MPLS-LPS-MIB": {
       "rfc": 8150,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-LSR-EXT-STD-MIB": {
       "rfc": 7453,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-LSR-MIB": {
       "archived": true,
@@ -1194,7 +1363,8 @@
     },
     "MPLS-OAM-ID-STD-MIB": {
       "rfc": 7697,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-TC-EXT-STD-MIB": {
       "rfc": 7453,
@@ -1206,7 +1376,8 @@
     },
     "MPLS-TE-EXT-STD-MIB": {
       "rfc": 7453,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "MPLS-TE-MIB": {
       "archived": true,
@@ -1233,13 +1404,15 @@
     },
     "MTA-MIB": {
       "rfc": 2789,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "Modem-MIB": {
       "patch": "Modem-MIB.patch",
       "reason": "RFC 1696 spells the module's own root mdmMIB in one OID and mdmMib everywhere else, leaving the OID tree self-referential.",
       "rfc": 1696,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "NAT-MIB": {
       "rfc": 7658,
@@ -1247,11 +1420,13 @@
     },
     "NATV2-MIB": {
       "rfc": 7659,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "NEMO-MIB": {
       "rfc": 5488,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "NETWORK-SERVICES-MIB": {
       "rfc": 2788,
@@ -1259,7 +1434,8 @@
     },
     "NHDP-MIB": {
       "rfc": 7939,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "NHRP-MIB": {
       "rfc": 2677,
@@ -1267,19 +1443,23 @@
     },
     "NOTIFICATION-LOG-MIB": {
       "rfc": 3014,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "NTPv4-MIB": {
       "rfc": 5907,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "OLSRv2-MIB": {
       "rfc": 7184,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "OPT-IF-MIB": {
       "rfc": 3591,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "OSPF-MIB": {
       "rfc": 4750,
@@ -1287,7 +1467,8 @@
     },
     "OSPF-TRAP-MIB": {
       "rfc": 4750,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "OSPFV3-MIB": {
       "rfc": 5643,
@@ -1299,11 +1480,13 @@
     },
     "PARALLEL-MIB": {
       "rfc": 1660,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PCE-PCEP-MIB": {
       "rfc": 7420,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PIM-BSR-MIB": {
       "rfc": 5240,
@@ -1319,27 +1502,33 @@
     },
     "PINT-MIB": {
       "rfc": 3055,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PKTC-IETF-EVENT-MIB": {
       "rfc": 5428,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PKTC-IETF-MTA-MIB": {
       "rfc": 4682,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PKTC-IETF-SIG-MIB": {
       "rfc": 5098,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PMIPV6-MIB": {
       "rfc": 6475,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PMIPV6-TC-MIB": {
       "rfc": 6475,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PNNI-MIB": {
       "archived": true,
@@ -1347,11 +1536,13 @@
     },
     "POLICY-BASED-MANAGEMENT-MIB": {
       "rfc": 4011,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "POWER-ATTRIBUTES-MIB": {
       "rfc": 7460,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "POWER-ETHERNET-MIB": {
       "rfc": 3621,
@@ -1359,23 +1550,28 @@
     },
     "PPP-BRIDGE-NCP-MIB": {
       "rfc": 1474,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PPP-IP-NCP-MIB": {
       "rfc": 1473,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PPP-LCP-MIB": {
       "rfc": 1471,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PPP-SEC-MIB": {
       "rfc": 1472,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PSAMP-MIB": {
       "rfc": 6727,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PTOPO-MIB": {
       "rfc": 2922,
@@ -1383,23 +1579,28 @@
     },
     "PTPBASE-MIB": {
       "rfc": 8173,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PW-ATM-MIB": {
       "rfc": 5605,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PW-CEP-STD-MIB": {
       "rfc": 6240,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PW-ENET-STD-MIB": {
       "rfc": 5603,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PW-MPLS-STD-MIB": {
       "rfc": 5602,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PW-STD-MIB": {
       "rfc": 5601,
@@ -1411,7 +1612,8 @@
     },
     "PW-TDM-MIB": {
       "rfc": 5604,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "PerfHist-TC-MIB": {
       "rfc": 3593,
@@ -1419,7 +1621,8 @@
     },
     "Printer-MIB": {
       "rfc": 3805,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "Q-BRIDGE-MIB": {
       "rfc": 4363,
@@ -1431,7 +1634,8 @@
     },
     "RADIUS-ACC-SERVER-MIB": {
       "rfc": 4671,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RADIUS-AUTH-CLIENT-MIB": {
       "rfc": 4668,
@@ -1439,11 +1643,13 @@
     },
     "RADIUS-AUTH-SERVER-MIB": {
       "rfc": 4669,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RADIUS-DYNAUTH-CLIENT-MIB": {
       "rfc": 4672,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RADIUS-DYNAUTH-SERVER-MIB": {
       "rfc": 4673,
@@ -1451,15 +1657,18 @@
     },
     "RAQMON-MIB": {
       "rfc": 4711,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RAQMON-RDS-MIB": {
       "rfc": 4712,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RBRIDGE-MIB": {
       "rfc": 6850,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RDBMS-MIB": {
       "rfc": 1697,
@@ -1486,7 +1695,8 @@
     },
     "RFC1156-MIB": {
       "rfc": 1156,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RFC1158-MIB": {
       "rfc": 1158,
@@ -1521,14 +1731,16 @@
     },
     "RFC1230-MIB": {
       "rfc": 1230,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RFC1253-MIB": {
       "rfc": 1253,
       "source": "rfc",
       "successors_reviewed": {
         "RFC1850": "OSPF-MIB"
-      }
+      },
+      "tier": "future"
     },
     "RFC1269-MIB": {
       "rfc": 1269,
@@ -1553,7 +1765,8 @@
     },
     "RFC1285-MIB": {
       "rfc": 1285,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RFC1315-MIB": {
       "patch": "RFC1315-MIB.patch",
@@ -1569,7 +1782,8 @@
       "source": "rfc",
       "successors_reviewed": {
         "RFC1658": "CHARACTER-MIB"
-      }
+      },
+      "tier": "future"
     },
     "RFC1353-MIB": {
       "rfc": 1353,
@@ -1599,7 +1813,8 @@
     },
     "RFC1414-MIB": {
       "rfc": 1414,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RIPv2-MIB": {
       "rfc": 1724,
@@ -1615,27 +1830,33 @@
     },
     "ROHC-MIB": {
       "rfc": 3816,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ROHC-RTP-MIB": {
       "rfc": 3816,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "ROHC-UNCOMPRESSED-MIB": {
       "rfc": 3816,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RPKI-ROUTER-MIB": {
       "rfc": 6945,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RS-232-MIB": {
       "rfc": 1659,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RSTP-MIB": {
       "rfc": 4318,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "RSVP-MIB": {
       "rfc": 2206,
@@ -1643,27 +1864,33 @@
     },
     "RTP-MIB": {
       "rfc": 2959,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SCSI-MIB": {
       "rfc": 4455,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SCTE-HMS-HEADENDIDENT-TC-MIB": {
       "archived": true,
-      "source": "scte"
+      "source": "scte",
+      "tier": "future"
     },
     "SCTE-HMS-MPEG-MIB": {
       "archived": true,
-      "source": "scte"
+      "source": "scte",
+      "tier": "future"
     },
     "SCTE-HMS-QAM-MIB": {
       "archived": true,
-      "source": "scte"
+      "source": "scte",
+      "tier": "future"
     },
     "SCTP-MIB": {
       "rfc": 3873,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SFLOW-MIB": {
       "extract": true,
@@ -1673,27 +1900,33 @@
     },
     "SIP-COMMON-MIB": {
       "rfc": 4780,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SIP-MIB": {
       "rfc": 1694,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SIP-SERVER-MIB": {
       "rfc": 4780,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SIP-TC-MIB": {
       "rfc": 4780,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SIP-UA-MIB": {
       "rfc": 4780,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SLAPM-MIB": {
       "rfc": 2758,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SMON-MIB": {
       "rfc": 2613,
@@ -1703,7 +1936,8 @@
       "patch": "SMUX-MIB.patch",
       "reason": "RFC 1227 imports OBJECT-TYPE ``FROM RFC1212``, a module name nothing publishes -- the bundled compat module is RFC-1212.",
       "rfc": 1227,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SNA-NAU-MIB": {
       "rfc": 1666,
@@ -1723,7 +1957,8 @@
     },
     "SNMP-IEEE802-TM-MIB": {
       "rfc": 4789,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SNMP-MPD-MIB": {
       "rfc": 3412,
@@ -1743,7 +1978,8 @@
     },
     "SNMP-SSH-TM-MIB": {
       "rfc": 5592,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SNMP-TARGET-MIB": {
       "rfc": 3413,
@@ -1751,11 +1987,13 @@
     },
     "SNMP-TLS-TM-MIB": {
       "rfc": 9456,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SNMP-TSM-MIB": {
       "rfc": 5591,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SNMP-USER-BASED-SM-MIB": {
       "rfc": 3414,
@@ -1775,7 +2013,8 @@
     },
     "SNMP-VACM-AAA-MIB": {
       "rfc": 6065,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SNMP-VIEW-BASED-ACM-MIB": {
       "rfc": 3415,
@@ -1819,7 +2058,8 @@
     },
     "SOFTWIRE-MESH-MIB": {
       "rfc": 7856,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SONET-MIB": {
       "rfc": 3592,
@@ -1827,11 +2067,13 @@
     },
     "SOURCE-ROUTING-MIB": {
       "rfc": 1525,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SSPM-MIB": {
       "rfc": 4149,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SYSAPPL-MIB": {
       "rfc": 2287,
@@ -1839,7 +2081,8 @@
     },
     "SYSLOG-MSG-MIB": {
       "rfc": 5676,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "SYSLOG-TC-MIB": {
       "rfc": 5427,
@@ -1851,15 +2094,18 @@
     },
     "T11-FC-FABRIC-CONFIG-SERVER-MIB": {
       "rfc": 4935,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-FABRIC-LOCK-MIB": {
       "rfc": 4936,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-FSPF-MIB": {
       "rfc": 4626,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-NAME-SERVER-MIB": {
       "rfc": 4438,
@@ -1867,35 +2113,43 @@
     },
     "T11-FC-ROUTE-MIB": {
       "rfc": 4625,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-RSCN-MIB": {
       "rfc": 4983,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-SP-AUTHENTICATION-MIB": {
       "rfc": 5324,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-SP-POLICY-MIB": {
       "rfc": 5324,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-SP-SA-MIB": {
       "rfc": 5324,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-SP-TC-MIB": {
       "rfc": 5324,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-SP-ZONING-MIB": {
       "rfc": 5324,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-VIRTUAL-FABRIC-MIB": {
       "rfc": 4747,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "T11-FC-ZONE-SERVER-MIB": {
       "rfc": 4936,
@@ -1907,7 +2161,8 @@
     },
     "TCP-ESTATS-MIB": {
       "rfc": 4898,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TCP-MIB": {
       "rfc": 4022,
@@ -1915,23 +2170,28 @@
     },
     "TE-LINK-STD-MIB": {
       "rfc": 4220,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TE-MIB": {
       "rfc": 3970,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TED-MIB": {
       "rfc": 6825,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TN3270E-MIB": {
       "rfc": 2561,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TN3270E-RT-MIB": {
       "rfc": 2562,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TOKEN-RING-RMON-MIB": {
       "rfc": 1513,
@@ -1939,15 +2199,18 @@
     },
     "TOKENRING-MIB": {
       "rfc": 1748,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TOKENRING-STATION-SR-MIB": {
       "rfc": 1749,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TPM-MIB": {
       "rfc": 4150,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TRANSPORT-ADDRESS-MIB": {
       "rfc": 3419,
@@ -1955,15 +2218,18 @@
     },
     "TRILL-OAM-MIB": {
       "rfc": 7784,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TRIP-MIB": {
       "rfc": 3872,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TRIP-TC-MIB": {
       "rfc": 3872,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "TUNNEL-MIB": {
       "rfc": 4087,
@@ -1975,7 +2241,8 @@
     },
     "UDPLITE-MIB": {
       "rfc": 5097,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "UPS-MIB": {
       "patch": "UPS-MIB.patch",
@@ -1985,7 +2252,8 @@
     },
     "URI-TC-MIB": {
       "rfc": 5017,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "UUID-TC-MIB": {
       "rfc": 6933,
@@ -1993,11 +2261,13 @@
     },
     "VDSL-LINE-EXT-MCM-MIB": {
       "rfc": 4070,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "VDSL-LINE-EXT-SCM-MIB": {
       "rfc": 4069,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "VDSL-LINE-MIB": {
       "rfc": 3728,
@@ -2013,19 +2283,23 @@
     },
     "VM-MIB": {
       "rfc": 7666,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "VPLS-BGP-MIB": {
       "rfc": 7257,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "VPLS-GENERIC-MIB": {
       "rfc": 7257,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "VPLS-LDP-MIB": {
       "rfc": 7257,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     },
     "VPN-TC-STD-MIB": {
       "rfc": 4265,
@@ -2044,7 +2318,8 @@
     },
     "WWW-MIB": {
       "rfc": 2594,
-      "source": "rfc"
+      "source": "rfc",
+      "tier": "future"
     }
   }
 }

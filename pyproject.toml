@@ -50,6 +50,13 @@ path = "pysmi/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["pysmi"]
+# pysmi/mibs/future/ is held, not shipped: modules with the same provenance as
+# the bundle that nothing in the corpus imports, kept where they are easy to
+# find and promote rather than deleted. Nothing at runtime reads them -- the
+# compiler does not search the directory and hatch_build.py does not render it
+# -- so carrying 275 modules of ASN.1 into every install would be dead weight.
+# The sdist keeps them, being the source tree. See pysmi/mibs/future/README.md.
+exclude = ["pysmi/mibs/future"]
 
 # Compiles pysmi/mibs/asn1 into pysmi/mibs/pysnmp as the wheel is built, so a
 # consumer can load a standard module instead of compiling it. Generated per
