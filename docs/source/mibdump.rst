@@ -37,6 +37,7 @@ into various formats.
          [--python-optimization-level]
          [--ignore-errors]
          [--build-index]
+         [--build-all]
          [--rebuild]
          [--prune]
          [--dry-run]
@@ -52,6 +53,17 @@ into various formats.
                   the required MIB module when source does not support
                   directory listing (e.g. HTTP).
        FORMAT   - pysnmp, json, null
+       --build-all - compile every MIB module the local --mib-source
+                  trees hold, instead of the modules named on the command
+                  line. The module names come from the headers in the text
+                  rather than from the file names, so a module in a file
+                  named for something else is still built, under the name
+                  it declares. A source that cannot be listed -- a web
+                  server answering a @mib@ URL template -- contributes
+                  nothing, and neither do the bundled base MIBs: they are
+                  there to resolve what the built modules import. Naming
+                  modules as well is an error, since the two say different
+                  things about what to build.
        --prune  - remove previously stored output whose source MIB no
                   longer exists in any configured source. Runs without
                   MIB-NAME arguments; deletes unless combined with
@@ -284,6 +296,41 @@ is not considered. This is why the default
 https://pysnmp.github.io/mibs/asn1/@mib@ mirror does not override a bundled
 base MIB, and why a local --mib-source meant to override one should be given
 ahead of any remote source.
+
+Compiling a whole collection
+----------------------------
+
+A build that publishes a MIB repository does not want to name its modules; it
+wants everything in the tree. --build-all takes the module list from the
+sources themselves::
+
+   $ mibdump --build-all --mib-source=/opt/mibs/vendor \
+         --emit=pysnmp:/srv/mibs/notexts \
+         --emit=pysnmp+texts:/srv/mibs/texts \
+         --emit=json:/srv/mibs/json
+
+The names come from the ``<name> DEFINITIONS ::= BEGIN`` headers in the text,
+read with pysmi's own lexer, not from the file names. That matters for two
+cases a build script driven by ``find`` gets wrong: a module in a file named
+for something else -- which such a script compiles under the file's name, or
+fails to compile at all -- and a file holding several modules, of which such a
+script builds one. Scanning also records where each module was found, so a
+module whose file is named for something else is fetchable by the name it
+declares.
+
+Only sources that can be listed contribute: a directory tree, a ZIP archive,
+a Python package. A web server given a ``@mib@`` URL template answers for a
+name it is handed and cannot be asked what it has, so it adds nothing to the
+list while still resolving imports as usual. The bundled base MIBs are left
+out for the same reason they are not what you meant: they are there to
+resolve what your modules import, not to be published as your collection.
+
+--build-all cannot be combined with MIB module names, since the two say
+different things about what to build.
+
+In the library the same list comes from
+:py:meth:`~pysmi.compiler.MibCompiler.list_mibs`, and one source at a time
+from :py:meth:`~pysmi.reader.base.AbstractReader.list_mibs`.
 
 Seeing what was decided
 -----------------------

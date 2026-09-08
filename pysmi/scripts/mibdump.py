@@ -29,6 +29,7 @@ from pysmi.compiler import (
 )
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import getReadersFromUrls
+from pysmi.reader.base import AbstractReader
 from pysmi.searcher import (
     AnyFileSearcher,
     PyFileSearcher,
@@ -79,6 +80,26 @@ def _parse_emit(spec: str) -> "_Destination":
     return _Destination(fmt, directory or None, bool(plus))
 
 
+def _enumerate_sources(sourceReaders: list["AbstractReader"]) -> list[str]:
+    """Every module name the given sources can be listed for, sorted.
+
+    Only the sources themselves are asked, not the bundled base MIBs: the
+    bundle is what resolves the imports of whatever is built, never the
+    thing to build. A source that cannot be enumerated -- a web server
+    given a ``@mib@`` URL template -- contributes nothing.
+
+    The readers passed in are the ones the compile then runs against, so a
+    module found in a file named for something else stays fetchable: the
+    scan records where it is on the reader that will be asked for it.
+    """
+    seen: set[str] = set()
+
+    for reader in sourceReaders:
+        seen.update(reader.list_mibs())
+
+    return sorted(seen)
+
+
 def _compile_to(
     destination: "_Destination",
     options: dict[str, Any],
@@ -104,6 +125,10 @@ def _compile_to(
     genMibTextsFlag = destination.genTexts
 
     mibSources: list[str] = list(options["mibSources"])
+    # Built once for the run rather than per destination, so every
+    # destination sees the same directory listings and the same index --
+    # including what --build-all learned while enumerating them.
+    sourceReaders: list[AbstractReader] = options["sourceReaders"]
     mibSearchers: list[str] = list(options["mibSearchers"])
     mibStubs: list[str] = list(options["mibStubs"])
     mibBorrowers: list[tuple[str, bool]] = list(options["mibBorrowers"])
@@ -332,9 +357,7 @@ def _compile_to(
     pruned = {}
 
     try:
-        mibCompiler.add_sources(
-            *getReadersFromUrls(*mibSources, fuzzyMatching=doFuzzyMatchingFlag)
-        )
+        mibCompiler.add_sources(*sourceReaders)
 
         mibCompiler.add_searchers(*searchers)
 
@@ -527,6 +550,7 @@ def start() -> None:
     cacheDirectory = ""
     nodepsFlag = False
     rebuildFlag = False
+    buildAllFlag = False
     pruneFlag = False
     bundledMibsFlag = True
     preferMibSourceFlag = False
@@ -564,6 +588,7 @@ def start() -> None:
         [--python-optimization-level]
         [--ignore-errors]
         [--build-index]
+        [--build-all]
         [--rebuild]
         [--prune]
         [--dry-run]
@@ -586,6 +611,17 @@ def start() -> None:
                 the other texts; --generate-mib-texts is the whole-run
                 spelling. Cannot be combined with --destination-format
                 or --destination-directory.
+        --build-all - compile every MIB module the local --mib-source
+                trees hold, instead of the modules named on the command
+                line. The module names come from the headers in the text
+                rather than from the file names, so a module in a file
+                named for something else is still built, under the name
+                it declares. A source that cannot be listed -- a web
+                server answering a @mib@ URL template -- contributes
+                nothing, and neither do the bundled base MIBs: they are
+                there to resolve what the built modules import. Naming
+                modules as well is an error, since the two say different
+                things about what to build.
         --prune  - remove previously stored output whose source MIB no
                 longer exists in any configured source. Runs without
                 MIB-NAME arguments; deletes unless combined with
@@ -667,6 +703,7 @@ def start() -> None:
                 "ignore-errors",
                 "build-index",
                 "rebuild",
+                "build-all",
                 "prune",
                 "dry-run",
                 "no-mib-writes",
@@ -770,6 +807,9 @@ def start() -> None:
         if opt[0] == "--rebuild":
             rebuildFlag = True
 
+        if opt[0] == "--build-all":
+            buildAllFlag = True
+
         if opt[0] == "--prune":
             pruneFlag = True
 
@@ -811,6 +851,40 @@ def start() -> None:
 
         inputMibs = [os.path.basename(os.path.splitext(x)[0]) for x in inputMibs]
 
+    # Built here rather than per destination so that every destination reads
+    # the sources through the same readers -- sharing their directory
+    # listings, and the module index --build-all fills in while enumerating.
+    try:
+        sourceReaders = list(
+            getReadersFromUrls(*mibSources, fuzzyMatching=doFuzzyMatchingFlag)
+        )
+
+    except error.PySmiError as exc:
+        sys.stderr.write(f"ERROR: {exc}\r\n")
+        sys.exit(EX_SOFTWARE)
+
+    if buildAllFlag and inputMibs:
+        sys.stderr.write(
+            "ERROR: --build-all compiles what the sources hold; it cannot be "
+            f"combined with MIB module names\r\n{helpMessage}\r\n"
+        )
+        sys.exit(EX_USAGE)
+
+    if buildAllFlag:
+        inputMibs = _enumerate_sources(sourceReaders)
+
+        if not inputMibs:
+            sys.stderr.write(
+                "ERROR: --build-all found no MIB modules in "
+                f"{', '.join(mibSources)}\r\n"
+            )
+            sys.exit(EX_MIB_MISSING)
+
+        if verboseFlag:
+            sys.stderr.write(
+                f"Building {len(inputMibs)} MIB modules found in sources\r\n"
+            )
+
     if not inputMibs and not pruneFlag:
         sys.stderr.write(f"ERROR: MIB modules names not specified\r\n{helpMessage}\r\n")
         sys.exit(EX_USAGE)
@@ -841,6 +915,7 @@ def start() -> None:
 
     options: dict[str, Any] = {
         "mibSources": mibSources,
+        "sourceReaders": sourceReaders,
         "mibSearchers": mibSearchers,
         "mibStubs": mibStubs,
         "mibBorrowers": mibBorrowers,
