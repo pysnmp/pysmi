@@ -3,6 +3,55 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.0.0-rc.1](https://github.com/pysnmp/pysmi/compare/v2.4.0-rc.2...v3.0.0-rc.1) (2026-09-08)
+
+### ⚠ BREAKING CHANGES
+
+* **compiler:** a failed MIB no longer suppresses the output of unrelated
+MIBs compiled in the same call; they are written. mibdump --ignore-errors
+no longer changes which modules are written -- it now suppresses the
+non-zero exit status instead. A caller that relied on an all-or-nothing
+batch should compile one module per call.
+
+Refs #182.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01EBV5NVv7NB6R1Wx9vRypt6
+* **codegen:** generated pysnmp modules no longer test mibBuilder.version
+before calling setStatus, setProductRelease, setRevisionsDescriptions or
+setObjects(append=True), and they now call setReference() on ObjectGroup,
+NotificationGroup and ModuleCompliance. Loading one requires a pysnmp that
+implements those setters: pysnmplib 6.0.0rc5 or later, or pysnmp 7.x. A
+pysnmp 4.4.x runtime, which the removed branches existed for, is no longer
+supported -- recompile against a supported release rather than loading
+newly generated modules into it.
+
+Closes #194. Refs pysnmp/pysnmp#197.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01EBV5NVv7NB6R1Wx9vRypt6
+* **compiler:** `mibdump --repair-imports` is replaced by
+`mibdump --strict-imports`. The repair it used to request is now what happens;
+the new flag asks for the old strict behaviour, which is what a caller
+validating a MIB rather than consuming one wants. Programmatically,
+`repairImports=False` is the same opt-out and is unchanged. A repair is never
+silent: every one is listed on the "Repaired MIBs" line of the report and
+recorded in the symbol table under `_symtable_repaired`.
+
+### Features
+
+* **codegen:** target the loader contract instead of inferring it ([bd5db61](https://github.com/pysnmp/pysmi/commit/bd5db61ca4a1553d3850548eff4abbcc83370034)), closes [pysnmp/pysnmp#133](https://github.com/pysnmp/pysnmp/issues/133) [pysnmp/pysnmp#197](https://github.com/pysnmp/pysnmp/issues/197)
+* **compiler:** repair a forced missing import by default, and drop 9 patches ([c091932](https://github.com/pysnmp/pysmi/commit/c091932e8d01d99e45207eb7036ede4a4a7b191f)), closes [#185](https://github.com/pysnmp/pysmi/issues/185) [#185](https://github.com/pysnmp/pysmi/issues/185)
+* **compiler:** swap sources on a live compiler, keeping the parse cache ([cf1ce44](https://github.com/pysnmp/pysmi/commit/cf1ce44f46c1ebb0f3ead5f0f8eb37a39a2bd31d)), closes [#181](https://github.com/pysnmp/pysmi/issues/181)
+* **mibs:** bundle the 119 RFC MIB modules the bundle was still missing ([f44d363](https://github.com/pysnmp/pysmi/commit/f44d36321edbd3dcdbae954ed32c32208f99fca9)), closes [#212](https://github.com/pysnmp/pysmi/issues/212) [#212](https://github.com/pysnmp/pysmi/issues/212)
+
+### Bug Fixes
+
+* **cache:** identify a parser by its dialect, not just its class ([1141971](https://github.com/pysnmp/pysmi/commit/11419719a74aba006ca9c40e7004eb4e989dd844)), closes [#181](https://github.com/pysnmp/pysmi/issues/181)
+* **compiler:** omit only the failed MIB and what imports it ([472d6c8](https://github.com/pysnmp/pysmi/commit/472d6c82000c55eda96b04f9c0bdd2b59cd7a162))
+* **mibinfo:** refuse a revision stamp that is not a date ([349d7e3](https://github.com/pysnmp/pysmi/commit/349d7e3e41d30b3b438b9fea245417c00421e0f0)), closes [#185](https://github.com/pysnmp/pysmi/issues/185)
+* **mibs:** keep the three patches that were correcting more than an import ([d992cf9](https://github.com/pysnmp/pysmi/commit/d992cf982efae2cab655dc958791daf838c41cb7))
+
 ## [2.4.0-rc.2](https://github.com/pysnmp/pysmi/compare/v2.4.0-rc.1...v2.4.0-rc.2) (2026-09-07)
 
 ### Features
