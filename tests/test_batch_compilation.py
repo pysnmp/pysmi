@@ -26,7 +26,9 @@ import shutil
 import tempfile
 import textwrap
 import unittest
+from unittest import mock
 
+from pysmi import compiler as compiler_module
 from pysmi import error
 from pysmi.cache import (
     AbstractParseCache,
@@ -675,10 +677,28 @@ class TheCacheKeyCarriesItsProducerTestCase(unittest.TestCase):
         self.assertNotEqual(key, "some-digest")
 
     def testADifferentPysmiVersionKeysDifferently(self):
-        compiler, before = self._key()
-        compiler._parserId = compiler._parserId.replace("2.", "99.")
+        """The version is a *component* of the key, not merely a string in it.
 
-        self.assertNotEqual(before, compiler._parse_cache_key("some-digest"))
+        Asserted by building a compiler under a patched version rather than by
+        editing the ``_parserId`` an existing one already built. Mutating that
+        string and watching the hash move only demonstrates that sha256 is a
+        hash: the verdict turns on whether the literal being substituted
+        happens to occur somewhere in the string, not on where the string came
+        from. Drop ``packageVersion`` from the join and that form still passes
+        so long as its literal appears elsewhere -- in the parser's own module
+        path, say. Patching at the source fails, which is the regression this
+        class exists to catch.
+
+        The previous form substituted ``"2."``, tying the test to pysmi's major
+        version. At 3.0.0 it matched nothing and the assertion compared a key
+        against itself.
+        """
+        _, before = self._key()
+
+        with mock.patch.object(compiler_module, "packageVersion", "99.99.99"):
+            _, after = self._key()
+
+        self.assertNotEqual(before, after)
 
     def testADifferentParserKeysDifferently(self):
         compiler, before = self._key()
