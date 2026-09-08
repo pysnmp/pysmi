@@ -881,9 +881,45 @@ reads -- resolving an IMPORTS clause means parsing the imported module's source
 Membership is decided by provenance: a module published by a standards body or
 a multivendor association, whose text is traceable to that publisher. Whether
 the publisher serves it at a fetchable URL is recorded, not required -- it
-decides whether ``--check`` can watch the module, nothing more. What stays out
-is a vendor's own MIB, and the test for that is the module's ORGANIZATION
-clause rather than the directory a mirror files it under.
+decides whether ``--check`` can watch the module, nothing more.
+
+Publication in an RFC *is* that provenance, and it settles the question by
+itself. A module cut out of an RFC is bundled on that ground alone -- its
+ORGANIZATION clause is not consulted and the arc it roots at is not either, so
+``SFLOW-MIB`` under ``enterprises 14706`` and ``IBM-6611-APPN-MIB`` under
+``enterprises 2`` are here on the same footing as ``IF-MIB``. The ORGANIZATION
+test still decides the modules that reach the bundle from a mirror or a
+publisher's own directory, where nothing else says who published them; it was
+never the right question to ask of an RFC.
+
+What an RFC does not settle is whether the module is a specification at all,
+and four kinds are left out:
+
+- An RFC at Experimental status. ``TCPIPX-MIB`` (RFC 1792), ``DPI20-MIB``
+  (RFC 1592), ``AGGREGATE-MIB`` and ``TIME-AGGREGATE-MIB`` (RFC 4498),
+  ``SMF-MIB`` and ``IANA-SMF-MIB`` (RFC 7367) and ``RSERPOOL-MIB`` (RFC 5525)
+  are all published, and none of them is a standard.
+- A module an RFC prints to illustrate something. ``COFFEE-POT-MIB``
+  (RFC 2325) is an April Fools' RFC; ``FIZBIN-MIB`` is the SMIv2
+  specification's own worked example and ends ``::= {{ experimental xx }}``,
+  a placeholder rather than a registration; ``BLDG-HVAC-MIB`` is RFC 3512
+  section 8, headed "Example MIB Module With Template-based Data". These are
+  deliberately excluded and should not be proposed again.
+- A module that is not SMI. ``COPS-PR-SPPI`` (RFC 3159) defines the Structure
+  of Policy Provisioning Information -- the PIB counterpart of SNMPv2-SMI, not
+  a MIB module, and not something an SMI compiler parses.
+- A module written against the 1993 SMI that RFC 2578 cannot satisfy.
+  ``SNMPv2-PARTY-MIB`` (RFC 1447) imports ``UInteger32`` from SNMPv2-SMI,
+  a type RFC 1442 defined and RFC 2578 removed; ``SNMPv2-M2M-MIB`` (RFC 1451)
+  imports from ``SNMPv2-PARTY-MIB`` in turn. Substituting ``Unsigned32`` would
+  make them compile by rewriting the specification, which is the one thing a
+  patch here may not do.
+
+Historic is *not* on that list. An RFC no longer current still published its
+module, and sixteen such pins predate this rule -- ``SNMPv2-USEC-MIB``,
+``SNA-NAU-MIB``, ``TOKEN-RING-RMON-MIB`` and the rest. What retires a module
+here is a *later RFC that replaced it*, which is a different question and the
+one :ref:`bundled-mib-historical` answers.
 
 A module its publisher still revises *is* bundled -- IANA's registries and the
 IEEE 802.1 directory are tracked at whatever they currently publish, not frozen
@@ -954,16 +990,15 @@ that ``MPLS-L3VPN-STD-MIB`` and friends cannot satisfy. A draft whose successor
 kept the symbols -- ``IGMP-MIB`` for ``IGMP-STD-MIB`` -- stays out, since the
 successor is already here and serves the same imports.
 
-Two modules are left out despite having an RFC. ``TCPIPX-MIB`` (RFC 1792) is
-rooted under ``enterprises`` and is a vendor module. ``COFFEE-POT-MIB``
-(RFC 2325) is an April Fools' RFC and an example rather than a MIB anyone
-manages devices with; it is deliberately excluded and should not be proposed
-again.
+What an RFC-published module is left out for is set out above the inventory:
+Experimental status, being an illustration rather than a specification, not
+being SMI at all, or being written against a version of the SMI the bundle's
+own SNMPv2-SMI cannot satisfy. Nothing else about an RFC module keeps it out.
 
-One bundled module is vendor-authored: ``LLDP-EXT-HM-MIB`` declares
-ORGANIZATION "Hirschmann Automation & Control". It came across with the LLDP
-extension set and is recorded as ``source: hirschmann`` so that the exception
-is visible rather than buried.
+Two bundled modules do not come from an RFC and are not a standards body's
+either. ``LLDP-EXT-HM-MIB`` declares ORGANIZATION "Hirschmann Automation &
+Control"; it came across with the LLDP extension set and is recorded as
+``source: hirschmann`` so that the exception is visible rather than buried.
 
 Everything left out remains available from https://pysnmp.github.io/mibs/asn1/,
 which is where pysmi looks by default.
