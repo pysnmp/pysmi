@@ -556,7 +556,7 @@ Inventory
    "SCTE-HMS-MPEG-MIB", "SCTE", "2008-10-03", ""
    "SCTE-HMS-QAM-MIB", "SCTE", "2008-07-16", ""
    "SCTP-MIB", ":rfc:`3873`", "2004-09-02", ""
-   "SFLOW-MIB", ":rfc:`3176`", "2001-05-15", ""
+   "SFLOW-MIB", "`sFlow.org <https://sflow.org/sflow_version_5.txt>`__", "2003-10-18", ""
    "SIP-COMMON-MIB", ":rfc:`4780`", "2007-04-20", ""
    "SIP-MIB", ":rfc:`1694`", "1994-03-31", ""
    "SIP-SERVER-MIB", ":rfc:`4780`", "2007-04-20", ""
