@@ -15,14 +15,17 @@ that is what enumeration does -- and ``--build-all`` is the same list
 handed straight to the compiler.
 """
 
+import builtins
+import importlib.resources
 import io
 import os
 import sys
 import tempfile
 import unittest
 import zipfile
-from contextlib import redirect_stderr, redirect_stdout
+from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 from pysmi import error
 from pysmi.codegen import NullCodeGen
@@ -51,6 +54,25 @@ IMPORTS
 
 END
 """
+
+
+@contextmanager
+def refusingToOpen(basename):
+    """Make :py:func:`open` fail for one file, as a permission denial would.
+
+    Chmod would do it, but not as a test: the run is often root, where the
+    mode is ignored, and Windows does not take read access away at all.
+    """
+    realOpen = builtins.open
+
+    def refusing(file, *args, **kwargs):
+        if os.path.basename(str(file)) == basename:
+            raise PermissionError(13, "Permission denied", str(file))
+
+        return realOpen(file, *args, **kwargs)
+
+    with mock.patch.object(builtins, "open", refusing):
+        yield
 
 
 def runMibdump(*args):
@@ -219,6 +241,45 @@ class FileReaderListTestCase(unittest.TestCase):
 
         self.assertIn("99991 8", text)
 
+    def testAFileTooLargeToBeAMibIsSkipped(self):
+        """``maxMibSize`` bounds what is read; it has to bound this read too."""
+        (self.root / "HUGE").write_text("x" * 20000)
+        (self.root / "TEST-ONE-MIB").write_text(
+            mibText("TEST-ONE-MIB", "1 3 6 1 4 1 99991 1")
+        )
+
+        reader = FileReader(str(self.root))
+        reader.maxMibSize = 10000
+
+        self.assertEqual(["TEST-ONE-MIB"], list(reader.list_mibs()))
+
+    def testAFileThatCannotBeReadIsSkipped(self):
+        """One unreadable file is that file's problem, not the tree's."""
+        (self.root / "TEST-ONE-MIB").write_text(
+            mibText("TEST-ONE-MIB", "1 3 6 1 4 1 99991 1")
+        )
+        (self.root / "LOCKED").write_text(
+            mibText("TEST-LOCKED-MIB", "1 3 6 1 4 1 99991 9")
+        )
+
+        with refusingToOpen("LOCKED"):
+            listed = list(FileReader(str(self.root)).list_mibs())
+
+        self.assertEqual(["TEST-ONE-MIB"], listed)
+
+    def testAFileThatCannotBeReadIsRaisedWhenErrorsAreNotIgnored(self):
+        """``ignoreErrors=False`` means the caller wants to hear about it."""
+        (self.root / "LOCKED").write_text(
+            mibText("TEST-LOCKED-MIB", "1 3 6 1 4 1 99991 9")
+        )
+
+        reader = FileReader(str(self.root), ignoreErrors=False)
+
+        with refusingToOpen("LOCKED"), self.assertRaises(error.PySmiError) as raised:
+            list(reader.list_mibs())
+
+        self.assertIn("LOCKED", str(raised.exception))
+
     def testAnEmptyTree(self):
         self.assertEqual([], list(FileReader(str(self.root)).list_mibs()))
 
@@ -248,6 +309,126 @@ class OtherReadersListTestCase(unittest.TestCase):
                 zf.writestr("README", "not a mib\n")
 
             self.assertEqual(["TEST-ZIP-MIB"], list(ZipReader(archive).list_mibs()))
+
+    def testAZipMemberThatCannotBeReadIsSkipped(self):
+        """One broken member does not stop the archive being enumerated."""
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = os.path.join(tmp, "mibs.zip")
+
+            with zipfile.ZipFile(archive, "w") as zf:
+                zf.writestr("BROKEN", "whatever")
+                zf.writestr(
+                    "TEST-ZIP-MIB", mibText("TEST-ZIP-MIB", "1 3 6 1 4 1 99991 5")
+                )
+
+            reader = ZipReader(archive)
+            realRead = reader._readZipFile
+
+            def refusingBroken(refs):
+                if refs is reader._members["BROKEN"]:
+                    raise zipfile.BadZipFile("member is corrupt")
+
+                return realRead(refs)
+
+            with mock.patch.object(reader, "_readZipFile", refusingBroken):
+                listed = list(reader.list_mibs())
+
+            self.assertEqual(["TEST-ZIP-MIB"], listed)
+
+    def testAZipMemberThatReadsAsEmptyContributesNothing(self):
+        """``_readZipFile`` reports an unreadable member as ``""``, not by raising."""
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = os.path.join(tmp, "mibs.zip")
+
+            with zipfile.ZipFile(archive, "w") as zf:
+                zf.writestr("EMPTY", "whatever")
+                zf.writestr(
+                    "TEST-ZIP-MIB", mibText("TEST-ZIP-MIB", "1 3 6 1 4 1 99991 5")
+                )
+
+            reader = ZipReader(archive)
+            reader._members["EMPTY"] = [[None, "EMPTY", None]]
+
+            self.assertEqual(["TEST-ZIP-MIB"], list(reader.list_mibs()))
+
+    def testAZipDotMemberIsSkipped(self):
+        """Same reason the directory reader skips them: an index is not a MIB."""
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = os.path.join(tmp, "mibs.zip")
+
+            with zipfile.ZipFile(archive, "w") as zf:
+                zf.writestr(".index", "TEST-ZIP-MIB TEST-ZIP-MIB\n")
+                zf.writestr(
+                    "TEST-ZIP-MIB", mibText("TEST-ZIP-MIB", "1 3 6 1 4 1 99991 5")
+                )
+
+            self.assertEqual(["TEST-ZIP-MIB"], list(ZipReader(archive).list_mibs()))
+
+    def testAZipMemberTooLargeToBeAMibIsSkipped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            archive = os.path.join(tmp, "mibs.zip")
+
+            with zipfile.ZipFile(archive, "w") as zf:
+                zf.writestr("HUGE", "x" * 20000)
+                zf.writestr(
+                    "TEST-ZIP-MIB", mibText("TEST-ZIP-MIB", "1 3 6 1 4 1 99991 5")
+                )
+
+            reader = ZipReader(archive)
+            reader.maxMibSize = 10000
+
+            self.assertEqual(["TEST-ZIP-MIB"], list(reader.list_mibs()))
+
+    def testAPackageResourceThatCannotBeReadIsSkipped(self):
+        """One unreadable resource does not stop the package being enumerated."""
+        reader = PackageReader(MibCompiler.bundledMibsPackage)
+        realFiles = importlib.resources.files
+
+        def refusingOne(package):
+            root = realFiles(package)
+            realJoin = root.joinpath
+
+            class Refusing:
+                def __init__(self, wrapped):
+                    self._wrapped = wrapped
+                    self.name = wrapped.name
+
+                def is_file(self):
+                    return self._wrapped.is_file()
+
+                def read_bytes(self):
+                    if self.name == "IF-MIB":
+                        raise PermissionError(13, "Permission denied", self.name)
+
+                    return self._wrapped.read_bytes()
+
+            class Wrapper:
+                def iterdir(self):
+                    return [Refusing(x) for x in root.iterdir()]
+
+                def joinpath(self, *args):
+                    return realJoin(*args)
+
+            return Wrapper()
+
+        with mock.patch.object(importlib.resources, "files", refusingOne):
+            listed = list(reader.list_mibs())
+
+        self.assertIn("SNMPv2-SMI", listed)
+        self.assertNotIn("IF-MIB", listed)
+
+    def testAPackageResourceTooLargeToBeAMibIsSkipped(self):
+        reader = PackageReader(MibCompiler.bundledMibsPackage)
+        reader.maxMibSize = 2000
+
+        listed = list(reader.list_mibs())
+
+        self.assertNotIn("IF-MIB", listed)
+        self.assertLess(len(listed), 485)
+
+    def testAPackageThatIsNotInstalledReportsNothing(self):
+        """Same answer :py:meth:`get_data` gives: the source has no modules."""
+        self.assertEqual([], list(PackageReader("no.such.package.at.all").list_mibs()))
 
     def testTheBundledPackage(self):
         """Every module the bundle carries, and nothing that is not one."""
