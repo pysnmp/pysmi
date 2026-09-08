@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.0.0-rc.4](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.3...v3.0.0-rc.4) (2026-09-08)
+
+### Features
+
+* **mibs:** bundle sFlow.org's SFLOW-MIB, not RFC 3176's ([cad444e](https://github.com/pysnmp/pysmi/commit/cad444e6aff18e3e8ffed2c21c717b0a4b5cb83a))
+
 ## [3.0.0-rc.3](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.2...v3.0.0-rc.3) (2026-09-08)
 
 ### Features
