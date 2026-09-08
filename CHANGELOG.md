@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.0.0-rc.6](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.5...v3.0.0-rc.6) (2026-09-08)
+
+### Bug Fixes
+
+* **mibs:** make DSA-MIB and RDBMS-MIB load, by naming the module their symbols are in ([bf2008c](https://github.com/pysnmp/pysmi/commit/bf2008ca5ccd0d5713e72be95bafa26d0308a623)), closes [#199](https://github.com/pysnmp/pysmi/issues/199)
+
 ## [3.0.0-rc.5](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.4...v3.0.0-rc.5) (2026-09-08)
 
 ### ⚠ BREAKING CHANGES
