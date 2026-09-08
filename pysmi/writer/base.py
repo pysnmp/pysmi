@@ -6,10 +6,38 @@
 #
 """Interface shared by the writers."""
 
+import os
 from collections.abc import Iterable
 from typing import Any
 
 from pysmi._aliases import deprecated_camel_case
+
+
+def readable_mode() -> int:
+    """The mode a written file should carry, as the process's umask allows.
+
+    ``tempfile.mkstemp`` creates a file readable by its owner and nobody else,
+    which is right for a temporary file and wrong for the thing it becomes: a
+    writer renames that file into place, so every module a build stores ends up
+    0600. That is invisible while output is read back by the user who wrote it,
+    and it is not invisible at all when the output is published -- a corpus
+    served by a container running as another uid answers 403 for every module
+    in it (pysnmp/mibs#365).
+
+    The umask is what says how permissive a new file should be, and reading it
+    means setting it, so it is set back immediately. A thread creating a file
+    in that window would see the temporary value; nothing in pysmi does, and
+    the alternative is hard-coding a mode that ignores the caller's umask
+    entirely.
+
+    Returns:
+        0666 less the umask -- 0644 under the usual 022, and honouring a
+        stricter umask where one is set.
+    """
+    umask = os.umask(0o022)
+    os.umask(umask)
+
+    return 0o666 & ~umask
 
 
 @deprecated_camel_case
