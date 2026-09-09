@@ -17,12 +17,6 @@ repos:
         args: [--ignore-missing-imports]
         additional_dependencies: [types-requests]
         files: ^pysmi/
-        # The hook passes filenames, and mypy ignores its own exclude for a file
-        # named on the command line. A behavior fragment is not a module -- it is
-        # appended to a generated one and runs in its namespace, where the symbols
-        # it reaches are defined -- so type-checking it in isolation reports every
-        # one of them missing. Same reason as the ruff per-file-ignores.
-        exclude: ^pysmi/mibs/behavior/
 
   # The same check .github/workflows/commit-conventions.yml runs, against the
   # same commitlint.config.mjs, at the point where the message is written --

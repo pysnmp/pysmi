@@ -62,28 +62,6 @@ supply wants ``bundled()``, not ``manifest()``:
 
 See :ref:`bundled-mib-future` for the full list and for how to promote one.
 
-Runtime behavior
-----------------
-
-A third directory, ``pysmi/mibs/behavior/``, holds no MIB text at all. What is
-in it is the Python for the few runtime relations SMIv2 has no syntax to
-express, so that no code generator can derive them: RFC 4001 section 4 makes
-the encoding of an ``InetAddress`` index depend on the value of the
-``InetAddressType`` index preceding it in the same row, and states that only in
-a DESCRIPTION clause, in prose.
-
-One file per module, named exactly as the module.
-:py:class:`~pysmi.codegen.pysnmp.PySnmpCodeGen` appends it to what it renders for that
-module, after the exports, so it runs in the generated module's own namespace
-and reaches every symbol the MIB defined by name.
-
-This is deliberately not a patch on generated output. The module above a
-fragment is regenerated from the ASN.1 on every compile and the fragment is
-appended to whatever that produced, so the two cannot drift apart -- which is
-what happened to the hand-edited copies that motivated the mechanism. See
-``pysmi/mibs/behavior/README.md`` for what belongs there, and what is a code
-generator bug instead.
-
 .. autofunction:: pysmi.mibs.manifest
 
 .. autofunction:: pysmi.mibs.bundled
@@ -93,5 +71,3 @@ generator bug instead.
 .. autofunction:: pysmi.mibs.successors
 
 .. autofunction:: pysmi.mibs.successor_for
-
-.. autofunction:: pysmi.mibs.behavior

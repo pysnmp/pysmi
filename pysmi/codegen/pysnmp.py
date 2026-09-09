@@ -45,7 +45,6 @@ from pysmi.codegen.base import (
     with_repaired_imports,
 )
 from pysmi.mibinfo import MibInfo, normalise_revision
-from pysmi.mibs import behavior
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +178,6 @@ class PySnmpCodeGen(AbstractCodeGen):
     # - or import base ASN.1 types from implementation-specific MIBs
     fakeMibs = ("ASN1", "ASN1-ENUMERATION", "ASN1-REFINEMENT")
     baseMibs = (
-        "PYSNMP-USM-MIB",
         "SNMP-FRAMEWORK-MIB",
         "SNMP-TARGET-MIB",
         "TRANSPORT-ADDRESS-MIB",
@@ -191,6 +189,12 @@ class PySnmpCodeGen(AbstractCodeGen):
     These carry ASN.1 MACRO definitions or base types that pysnmp implements
     itself, so a :py:class:`~pysmi.searcher.stub.StubSearcher` built from this
     tuple reports them as up to date and the compiler leaves them alone.
+
+    Every one is a standard module pysmi either bundles or supplies as an SMI
+    stub, which is what makes stubbing it right. A module belonging to one
+    consumer does not go here: stubbing it makes pysmi decline to compile a
+    module only that consumer publishes, and the consumer has to drop the
+    entry to render its own ASN.1. See pysnmp/pysmi#243.
     """
 
     typeClasses = {
@@ -2207,24 +2211,6 @@ for _%(name)s_obj in [%(objects)s]:
             out += self._out[sym]
 
         out += self.gen_exports()
-
-        # A handful of standard modules define a runtime relation the ASN.1
-        # cannot state -- RFC 4001 puts the InetAddress index encoding rule in
-        # a DESCRIPTION clause -- so the Python for it is written by hand and
-        # appended here rather than inferred. It runs in the module's own
-        # namespace, after the exports, so it sees every symbol the module
-        # defined and reaches them by name. Objects are built by then, so a
-        # fragment setting a class attribute the constructor reads has to
-        # re-seed what was built from it -- pysnmp/pysmi#236, and
-        # pysmi/mibs/behavior/README.md. See pysnmp/pysmi#231.
-        hand_written = behavior(self.moduleName[0])
-
-        if hand_written:
-            out += (
-                f"\n# Runtime behavior from pysmi/mibs/behavior/"
-                f"{self.moduleName[0]}.py, which no code generator can derive\n"
-                f"# from the ASN.1. See pysnmp/pysmi#231.\n{hand_written}"
-            )
 
         # Annotated, because the reset above narrows the attribute to None for
         # the rest of this function: mypy does not see the clause handlers
