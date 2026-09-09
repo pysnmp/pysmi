@@ -3,6 +3,20 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [4.0.0-rc.1](https://github.com/pysnmp/pysmi/compare/v3.1.0-rc.4...v4.0.0-rc.1) (2026-09-09)
+
+### ⚠ BREAKING CHANGES
+
+* **mibs:** pysmi.mibs.behavior() is gone and generated modules no longer
+carry a spliced runtime-behavior tail. Consumers relying on that tail must
+apply their own behavior at load time, as pysnmp now does. PYSNMP-USM-MIB is
+no longer in PySnmpCodeGen.baseMibs, so a StubSearcher built from it no longer
+reports that module as up to date.
+
+### Code Refactoring
+
+* **mibs:** hand MIB runtime behavior back to pysnmp ([40c7f22](https://github.com/pysnmp/pysmi/commit/40c7f225ebbbd9ba7ab424441ed8b903ac651e42)), closes [#236](https://github.com/pysnmp/pysmi/issues/236) [#231](https://github.com/pysnmp/pysmi/issues/231) [#236](https://github.com/pysnmp/pysmi/issues/236)
+
 ## [3.1.0-rc.4](https://github.com/pysnmp/pysmi/compare/v3.1.0-rc.3...v3.1.0-rc.4) (2026-09-09)
 
 ### Features
