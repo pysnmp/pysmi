@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Symbol table generator &#8212; SNMP SMI compiler 2.3.0 documentation</title>
+    <title>Symbol table generator &#8212; SNMP SMI compiler 3.0.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=f6a572b4" />
-    <script src="../../../_static/documentation_options.js?v=c3c8ae58"></script>
+    <script src="../../../_static/documentation_options.js?v=acc74ff5"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="../../../_static/favicon.ico"/>
@@ -56,7 +56,10 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../../../documentation.html">PySMI documentation</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../../../mibdump.html">The <em>mibdump</em> tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mibcorpus.html">The <em>mibcorpus</em> tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mibs-as-data.html">MIBs as data: layering review</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../../../library-reference.html">PySMI library</a></li>
 </ul>
 </li>
@@ -479,11 +482,16 @@ consulting one</p></li>
 recorded in the symbol table</p></li>
 <li><p><strong>repairImports</strong> – supply the canonical import for any SMIv2 base
 symbol the module uses without naming it in IMPORTS, rather
-than failing on it. Off by default, so the strict reading of
-RFC 2578 Section 3.2 is what a caller gets unless it asks
-otherwise. What was supplied is recorded in the symbol table
-under <code class="docutils literal notranslate"><span class="pre">_symtable_repaired</span></code>, both for the report and for the
-backend that renders the same module.</p></li>
+than failing on it. <strong>On by default.</strong> The repair is only ever
+made where it is forced – the symbol is undefined,
+unimported, and exactly one SMIv2 base module exports it – so
+there is nothing to guess at, and refusing bought strictness
+about RFC 2578 Section 3.2 at the price of failing on a module
+whose correct IMPORTS line is not in doubt. Pass <code class="docutils literal notranslate"><span class="pre">False</span></code> for
+that strict reading, which is what a caller validating a MIB
+rather than consuming one wants. What was supplied is recorded
+in the symbol table under <code class="docutils literal notranslate"><span class="pre">_symtable_repaired</span></code>, both for the
+report and for the backend that renders the same module.</p></li>
 </ul>
 </dd>
 <dt class="field-odd">Returns<span class="colon">:</span></dt>

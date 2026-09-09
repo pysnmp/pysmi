@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>JSON document generator &#8212; SNMP SMI compiler 2.3.0 documentation</title>
+    <title>JSON document generator &#8212; SNMP SMI compiler 3.0.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=f6a572b4" />
-    <script src="../../../_static/documentation_options.js?v=c3c8ae58"></script>
+    <script src="../../../_static/documentation_options.js?v=acc74ff5"></script>
     <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="../../../_static/favicon.ico"/>
@@ -56,7 +56,10 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../../../documentation.html">PySMI documentation</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../../../mibdump.html">The <em>mibdump</em> tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mibcorpus.html">The <em>mibcorpus</em> tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../mibs-as-data.html">MIBs as data: layering review</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../../../library-reference.html">PySMI library</a></li>
 </ul>
 </li>
@@ -189,7 +192,7 @@ defining the same symbol twice.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmi.codegen.jsondoc.JsonCodeGen.genCapabilitiesVariation">
-<span class="sig-name descname"><span class="pre">genCapabilitiesVariation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">variation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" title="(in Python v3.14)"><span class="pre">OrderedDict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.codegen.jsondoc.JsonCodeGen.genCapabilitiesVariation" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">genCapabilitiesVariation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">variation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" title="(in Python v3.14)"><span class="pre">OrderedDict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.codegen.jsondoc.JsonCodeGen.genCapabilitiesVariation" title="Link to this definition">¶</a></dt>
 <dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.codegen.jsondoc.JsonCodeGen.gen_capabilities_variation" title="pysmi.codegen.jsondoc.JsonCodeGen.gen_capabilities_variation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">gen_capabilities_variation()</span></code></a>.</p>
 </dd></dl>
 
@@ -511,7 +514,7 @@ includes, and the variations it implements them with.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmi.codegen.jsondoc.JsonCodeGen.gen_capabilities_variation">
-<span class="sig-name descname"><span class="pre">gen_capabilities_variation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">variation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" title="(in Python v3.14)"><span class="pre">OrderedDict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.codegen.jsondoc.JsonCodeGen.gen_capabilities_variation" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">gen_capabilities_variation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">variation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.html#collections.OrderedDict" title="(in Python v3.14)"><span class="pre">OrderedDict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.codegen.jsondoc.JsonCodeGen.gen_capabilities_variation" title="Link to this definition">¶</a></dt>
 <dd><p>Render one VARIATION sub-clause of a SUPPORTS clause.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -521,8 +524,9 @@ includes, and the variations it implements them with.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The sub-clause as a JSON object, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when its texts are
-suppressed and it qualifies nothing.</p>
+<dd class="field-even"><p><em>The sub-clause as a JSON object. Always an object</em> – which objects a
+clause varies is structure, so the entry survives even when texts
+are suppressed and its DESCRIPTION was all it carried.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1043,9 +1047,14 @@ rather than declaring a new one.</p>
 <dd class="field-odd"><p><strong>data</strong> – converted clause values</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>One entry per revision, with its date and description.</p>
+<dd class="field-even"><p>One entry per revision, with its date, and its description when
+texts are generated.</p>
 </dd>
 </dl>
+<p>The timestamp survives text suppression and the description does not,
+which is the same split LAST-UPDATED follows. Revision descriptions
+used to be emitted regardless, alone among every description in the
+document. See pysnmp/pysmi#192.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1342,8 +1351,25 @@ enterprises arc establishes the module’s enterprise.</p>
 <dt class="sig sig-object py" id="pysmi.codegen.jsondoc.JsonCodeGen.trans_opers">
 <span class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">trans_opers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symbol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a></span></span><a class="headerlink" href="#pysmi.codegen.jsondoc.JsonCodeGen.trans_opers" title="Link to this definition">¶</a></dt>
 <dd><p>Turn a MIB symbol into a name usable as a JSON key.</p>
-<p>Hyphens become underscores. Unlike the PySNMP backend, Python keywords
-need no special treatment here.</p>
+<p>Hyphens become underscores, and a name that collides with a Python
+keyword is prefixed with <code class="docutils literal notranslate"><span class="pre">pysmi_</span></code> – the same translation
+<a class="reference internal" href="../symtable/symtablecodegen.html#pysmi.codegen.symtable.SymtableCodeGen.trans_opers" title="pysmi.codegen.symtable.SymtableCodeGen.trans_opers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">trans_opers()</span></code></a>
+applies.</p>
+<p>The keyword half looks like a Python concern in a document format
+that has nothing to do with Python, and it was left out on exactly
+that reasoning. But the symbol <em>table</em> both back ends read is keyed
+by the translation above, so leaving it out did not keep Python out
+of the document – it made this generator address that table under a
+spelling it does not use. A module defining <code class="docutils literal notranslate"><span class="pre">global</span></code>, <code class="docutils literal notranslate"><span class="pre">if</span></code>,
+<code class="docutils literal notranslate"><span class="pre">in</span></code>, <code class="docutils literal notranslate"><span class="pre">as</span></code> or <code class="docutils literal notranslate"><span class="pre">continue</span></code> then failed here while compiling
+cleanly to pysnmp, and the two output trees described different sets
+of modules: 13 modules and 212 dependents of them across the corpus
+at pysnmp/pysmi#182.</p>
+<p>Which name a document should be keyed by is a fair question, and it
+is not this one: a hyphenated descriptor is already renamed the same
+way, so what a MIB calls a symbol is not what the JSON calls it
+either way. This makes keywords behave like hyphens rather than
+deciding that larger question – see pysnmp/pysmi#225.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>symbol</strong> – symbol name as written in the MIB</p>

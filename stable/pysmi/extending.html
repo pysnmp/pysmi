@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Extension points &#8212; SNMP SMI compiler 2.3.0 documentation</title>
+    <title>Extension points &#8212; SNMP SMI compiler 3.0.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=f6a572b4" />
-    <script src="../_static/documentation_options.js?v=c3c8ae58"></script>
+    <script src="../_static/documentation_options.js?v=acc74ff5"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="../_static/favicon.ico"/>
@@ -56,7 +56,10 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">PySMI documentation</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../mibdump.html">The <em>mibdump</em> tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mibcorpus.html">The <em>mibcorpus</em> tool</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mibs-as-data.html">MIBs as data: layering review</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../library-reference.html">PySMI library</a></li>
 </ul>
 </li>
@@ -222,6 +225,33 @@ newest revision and report what it passed over. That is a filesystem
 lookup for a directory, an archive or a package, and a network round
 trip for a web server – so only local readers are consulted that way,
 and a remote one keeps its place in plain first-match order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.listMibs">
+<span class="sig-name descname"><span class="pre">listMibs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.listMibs" title="Link to this definition">¶</a></dt>
+<dd><p>Deprecated alias for <a class="reference internal" href="#pysmi.reader.base.AbstractReader.list_mibs" title="pysmi.reader.base.AbstractReader.list_mibs"><code class="xref py py-meth docutils literal notranslate"><span class="pre">list_mibs()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.reader.base.AbstractReader.list_mibs">
+<span class="sig-name descname"><span class="pre">list_mibs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.reader.base.AbstractReader.list_mibs" title="Link to this definition">¶</a></dt>
+<dd><p>Names of the MIB modules this source holds.</p>
+<p>Enumeration is what lets a caller compile a whole collection without
+naming every module in it. Only a source that can be listed answers:
+a web server given a <code class="docutils literal notranslate"><span class="pre">&#64;mib&#64;</span></code> URL template answers for a name it is
+handed and cannot be asked what it has, so it returns nothing here
+rather than guessing.</p>
+<p>The names come from the module headers in the text, not from the file
+names, because a MIB module is named inside the file and one file may
+hold several.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Module names, each appearing once. Empty when this source cannot
+be enumerated – which is not the same as being empty, and callers
+that need the distinction should ask <code class="docutils literal notranslate"><span class="pre">isLocal</span></code>.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
