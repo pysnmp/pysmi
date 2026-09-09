@@ -357,7 +357,13 @@ no producer version anywhere in the file -- and some less obvious ones:
   to record how it was filled.
 
 A caller that wants its build stamped passes ``corpus_version``, which is data
-it chose rather than data the build observed.
+it chose rather than data the build observed. From the command line that is
+``mibcorpus --corpus-version``, with ``--corpus-id`` naming the corpus it is a
+build of; both are recorded verbatim and both are absent from the metadata
+when the build was given neither. Nothing is invented in their place, because
+a version taken from a clock or from a checkout would make two builds of one
+source tree differ -- which is the property everything above is written to
+preserve.
 
 
 Proving a reader conforms
