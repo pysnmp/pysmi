@@ -21,6 +21,7 @@ marked ``pysnmp_consumer`` and does not gate CI. See pysnmp/pysmi#127.
 import pathlib
 import shutil
 import sys
+import time
 import unittest
 
 import pytest
@@ -594,6 +595,32 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
 
         self.assertTrue(snmpEngineID.syntax.isValue)
         self.assertEqual(b"\x80\x00\x4f\xb8\x05", snmpEngineID.syntax.asOctets()[:5])
+
+    def testEngineTimeReadsAsTheSecondsSinceTheStoredInstant(self):
+        """RFC 3411: seconds since snmpEngineBoots last changed.
+
+        What is stored is the instant, what a read answers with is the
+        difference, and pysnmp does the arithmetic in clone(). pysnmp/pysmi#231.
+        """
+        (snmpEngineTime,) = self.mibBuilder.importSymbols(
+            "SNMP-FRAMEWORK-MIB", "snmpEngineTime"
+        )
+
+        booted = snmpEngineTime.syntax.clone(time.time() - 42)
+
+        self.assertLessEqual(42, booted.clone())
+        self.assertGreater(44, booted.clone())
+
+    def testEngineTimeKeepsTheRangeTheModuleStated(self):
+        """The fragment supplies the arithmetic, not the constraints."""
+        from pyasn1.error import ValueConstraintError
+
+        (snmpEngineTime,) = self.mibBuilder.importSymbols(
+            "SNMP-FRAMEWORK-MIB", "snmpEngineTime"
+        )
+
+        self.assertRaises(ValueConstraintError, snmpEngineTime.syntax.clone, -1)
+        self.assertRaises(ValueConstraintError, snmpEngineTime.syntax.clone, 2147483648)
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
