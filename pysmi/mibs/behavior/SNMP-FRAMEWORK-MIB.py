@@ -33,3 +33,37 @@ SnmpEngineID.defaultValue = OctetString(_defaultValue).asOctets()
 # in pysnmp/smi/mibs/instances/__SNMP-FRAMEWORK-MIB.py, and config.py answers
 # with it for contextEngineId.
 snmpEngineID.syntax = SnmpEngineID()
+
+
+# RFC 3411's snmpEngineTime DESCRIPTION makes the object the seconds elapsed
+# since snmpEngineBoots last changed, so what an engine stores is the instant
+# it booted and what it answers with is the difference. SMIv2 states the range
+# and the units; that the read is relative to the stored value is prose, and
+# the arithmetic belongs to whatever holds the value.
+#
+# pysnmp puts it in clone(), which is where it reads the object -- see the
+# SnmpEngineTime of its own hand-edited copy of this module. That class is not
+# exported and exists only as this scalar's syntax, so it is private here.
+
+import time as _time
+
+
+def _clone(self, *args, **kwargs):
+    if not args:
+        try:
+            args = (_time.time() - self,)
+        except Exception:  # noqa: BLE001, S110 - no value stored yet, so clone bare
+            pass
+
+    return Integer32.clone(self, *args, **kwargs)
+
+
+_SnmpEngineTime = type("SnmpEngineTime", (Integer32,), {"clone": _clone})
+
+# Carry the constraints the ASN.1 stated rather than restating them: the range
+# is the module's to say, and a fragment that repeated it here would be a copy
+# to keep in step. Re-seeding is required for the same reason as above -- the
+# scalar was built before this ran.
+snmpEngineTime.syntax = _SnmpEngineTime().subtype(
+    subtypeSpec=snmpEngineTime.syntax.subtypeSpec
+)
