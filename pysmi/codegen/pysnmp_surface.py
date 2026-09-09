@@ -9,25 +9,24 @@
 pysnmp owns its loader contract and pysmi does not; the layering in
 :doc:`/mibs-as-data` is explicit about it. What this module states is narrower
 and is pysmi's own: which members of that contract
-:py:mod:`pysmi.codegen.pysnmp` writes into the source it emits.
+:py:class:`~pysmi.codegen.pysnmp.PySnmpCodeGen` writes into the source it
+emits.
 
 Until this was written the answer lived only in the generator's string
 templates, and nothing read it back. The classes were at least named --
-:py:attr:`~pysmi.codegen.pysnmp.PySnmpCodeGen.symsTable` maps each macro to the
-class it is emitted as, and
-:py:attr:`~pysmi.codegen.pysnmp.PySnmpCodeGen.constImports` names the symbols
-every module imports whether it uses them or not. The calls made on those
-classes were named nowhere, so their coverage was whatever the specification
-tests happened to need: 19 of the 20 were asserted somewhere, and
-``setFixedLength`` was emitted for every fixed-size ``OCTET STRING`` in the
-bundle without one test naming it.
+``symsTable`` maps each macro to the class it is emitted as, and
+``constImports`` names the symbols every module imports whether it uses them or
+not. The calls made on those classes were named nowhere, so their coverage was
+whatever the specification tests happened to need: 19 of the 20 were asserted
+somewhere, and ``setFixedLength`` was emitted for every fixed-size ``OCTET
+STRING`` in the bundle without one test naming it.
 
 Two things read this module, and between them they separate a defect that is
 pysmi's from one that is not:
 
-* :py:mod:`tests.test_pysnmp_surface` renders a corpus, reads every call back
-  out of the emitted source and asserts the set matches this one exactly. A
-  call added to the generator without an entry here fails, and an entry nothing
+* ``tests/test_pysnmp_surface.py`` renders a corpus, reads every call back out
+  of the emitted source and asserts the set matches this one exactly. A call
+  added to the generator without an entry here fails, and an entry nothing
   emits fails too, so the declaration cannot drift from the generator in either
   direction. It imports no pysnmp, so it gates.
 * The consumer smoke test resolves every name here against the installed
@@ -56,9 +55,8 @@ BUILDER_MEMBERS: dict[str, str] = {
 }
 
 #: Calls made on the MIB node classes, against the classes they are emitted on.
-#: The receivers are the values of
-#: :py:attr:`~pysmi.codegen.pysnmp.PySnmpCodeGen.symsTable`, which is what makes
-#: this a statement about the generator rather than a second copy of it.
+#: The receivers are the values of ``PySnmpCodeGen.symsTable``, which is what
+#: makes this a statement about the generator rather than a second copy of it.
 NODE_METHODS: dict[str, tuple[str, ...]] = {
     "setStatus": (
         "AgentCapabilities",
