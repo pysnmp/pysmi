@@ -1,0 +1,371 @@
+.. _corpus-schema:
+
+Corpus database schema
+======================
+
+:py:mod:`pysmi.corpus.db` renders a corpus as a SQLite database, ``core.db``.
+This page specifies it.
+
+The specification exists because the database is a contract, and an unusual
+one: its consumer reads it with stdlib ``sqlite3`` and **does not import
+pysmi**. pysnmp gates on the schema version and opens the file directly
+(pysnmp/pysnmp#199), which is what lets pysnmp drop its required dependency on
+this package. A reader should be writable from this page alone.
+
+.. contents::
+   :local:
+   :depth: 2
+
+
+What it is for
+--------------
+
+The published corpus already answers *which module owns this OID* --
+``index-v2.csv`` is exactly that projection. Two questions it cannot answer are
+why this file exists:
+
+**What is the node at this OID?** The CSV is ``MODULE,OID`` and carries a
+module's *anchors* only, so a leaf like ``ifDescr`` is not in it. Answering
+from the ``json/`` tree means parsing a whole module -- 11 ms and 9,773 symbols
+of ``CISCO-ENTITY-VENDORTYPE-OID-MIB`` to reach one of them. Here it is one
+row, in microseconds.
+
+**What comes after this OID?** Nothing published answers it at all. An anchor
+index has no per-node ordering, so a GETNEXT walk cannot be served from one.
+
+What it deliberately does **not** carry is prose. DESCRIPTION and REFERENCE are
+roughly a third of a module's bytes, the runtime discards them under the
+default ``loadTexts=False``, and the ``json/`` tree already serves the consumer
+that wants them. See :doc:`/mibs-as-data`.
+
+
+Versioning
+----------
+
+Two versions, kept apart on purpose.
+
+``schema_version``
+    The layout this page specifies. Stamped in the ``meta`` table and in the
+    file's own ``user_version`` header field, so a reader can gate before it
+    runs a query. Changes rarely.
+
+``corpus_version``
+    Which build of which MIB set this is. Supplied by whoever ran the build;
+    nothing here invents one. Changes weekly.
+
+Conflating them would force a pysnmp release on every corpus rebuild, which is
+the mistake pysnmp/pysnmp#196 records.
+
+The file also carries ``application_id`` ``0x50534D49`` (``PSMI``), so a reader
+-- or ``file`` -- can tell a corpus from an unrelated database before trusting
+its tables.
+
+Within a schema version a column will not be removed, change type, or change
+meaning. New *optional* columns and new tables may be added, so a reader must
+select the columns it wants by name rather than by position, and must ignore
+tables it does not recognize. Anything else requires a new schema version.
+
+
+Opening it
+----------
+
+.. code-block:: python
+
+   import sqlite3
+
+   db = sqlite3.connect(f"file:{path}?immutable=1", uri=True)
+
+``immutable=1`` tells SQLite the file cannot change, so it takes no locks and
+needs no writable directory -- which is what lets a corpus be mounted read-only
+from an image volume with nothing writable anywhere near it.
+
+A published corpus is one file. It is written with ``journal_mode=DELETE`` and
+VACUUMed, so there is no ``-wal`` sidecar for a reader to replay and none for
+``immutable=1`` to refuse.
+
+
+.. _corpus-oid-key:
+
+The OID key
+-----------
+
+Every OID appears twice: as ``oid``, dotted decimal, for a consumer that wants
+to print it, and as ``oid_key``, a BLOB, for every comparison.
+
+SQLite compares BLOBs bytewise, so the encoding has to make bytewise order
+equal numeric OID order. Dotted decimal does not -- ``"1.3.10"`` sorts below
+``"1.3.9"`` -- and fixed-width arcs cost four bytes each for a value that is
+almost always one.
+
+**Each arc is a length byte followed by that many big-endian bytes.**
+
+.. code-block:: text
+
+   1.3.6      ->  01 01  01 03  01 06
+   1.3.256    ->  01 01  01 03  02 01 00
+
+Comparing two encodings compares the length bytes first, and a longer arc is a
+larger arc, so the order comes out right with no padding. Two properties follow
+and both are load-bearing:
+
+* An OID that is a prefix of another encodes to a **byte prefix** of its
+  encoding, so a subtree is a range rather than a scan.
+* A prefix sorts **before** everything under it, so ``oid_key > ?`` ordered
+  ascending is GETNEXT.
+
+Reference implementations are :py:func:`~pysmi.corpus.db.oid_key`,
+:py:func:`~pysmi.corpus.db.oid_from_key` and
+:py:func:`~pysmi.corpus.db.subtree_bound`. A reader reimplements them; they are
+twenty lines and importing pysmi for them would defeat the point.
+
+
+Tables
+------
+
+meta
+~~~~
+
+``key`` / ``value``, both TEXT. Every value is a string, including the numbers.
+
+==================  ============================================================
+Key                 Meaning
+==================  ============================================================
+``schema_version``  The version this page specifies. Always present.
+``producer``        ``pysmi``. Always present.
+``modules``         Rows in ``module``.
+``nodes``           Rows in ``node``.
+``types``           Rows in ``type``.
+``texts``           ``0``. Reserved: no build emits prose today.
+``corpus_version``  Present only when the build was given one.
+``corpus_id``       Present only when the build was given one.
+==================  ============================================================
+
+module
+~~~~~~
+
+One row per module the corpus carries.
+
+================  =======  ===================================================
+Column            Type     Notes
+================  =======  ===================================================
+``name``          TEXT     Primary key. The module's descriptor.
+``tier``          TEXT     ``standard``, ``draft`` or ``vendor``, as the
+                           build's manifest declared the namespace.
+``oid``           TEXT     The MODULE-IDENTITY OID. NULL when the module
+                           declares none, which SMIv1 modules do not.
+``lastupdated``   TEXT     LAST-UPDATED, as the jsondoc normalized it.
+``revision``      TEXT     Newest readable revision, ``YYYYMMDDHHMMZ``. NULL
+                           when the module carries none that is a date.
+``content_hash``  TEXT     :py:func:`~pysmi.codegen.normalized.content_hash`
+                           of the module. Two corpora agree on a module iff
+                           they agree here.
+``nodes``         INTEGER  How many rows this module has in ``node``.
+================  =======  ===================================================
+
+type
+~~~~
+
+One row per distinct type specification in the corpus, stored once.
+
+============  =======  =======================================================
+Column        Type     Notes
+============  =======  =======================================================
+``id``        INTEGER  Primary key. Referenced by ``node.syntax`` and
+                       ``symbol.type``.
+``spec``      TEXT     A :ref:`type specification <jsondoc-typespec>` as
+                       compact JSON with sorted keys. Unique.
+============  =======  =======================================================
+
+A corpus repeats a handful of specifications tens of thousands of times, so
+this takes real bytes out of the hottest table. The other reason matters more:
+it hands a reader a **stable identity** for "this is the same type", which is
+what keeps runtime class synthesis from producing two classes that one
+``isinstance`` check has to tell apart (pysnmp/pysnmp#145).
+
+node
+~~~~
+
+One row per symbol that has a place in the OID tree.
+
+=============  =======  ======================================================
+Column         Type     Notes
+=============  =======  ======================================================
+``oid_key``    BLOB     With ``module``, the primary key. See
+                        :ref:`corpus-oid-key`.
+``module``     TEXT     The module that defines it.
+``name``       TEXT     The symbol's descriptor.
+``oid``        TEXT     Dotted decimal.
+``class``      TEXT     ``objecttype``, ``objectidentity``,
+                        ``moduleidentity``, ``notificationtype``,
+                        ``objectgroup``, ``notificationgroup``,
+                        ``modulecompliance`` or ``agentcapabilities``.
+``nodetype``   TEXT     ``scalar``, ``table``, ``row``, ``column``.
+                        ``objecttype`` only; NULL elsewhere.
+``status``     TEXT     As :ref:`jsondoc-status` defines it.
+``maxaccess``  TEXT     As :ref:`jsondoc-maxaccess` defines it.
+``units``      TEXT     UNITS.
+``syntax``     INTEGER  ``type.id``, or NULL.
+``defval``     TEXT     DEFVAL as :ref:`jsondoc-defval` JSON, or NULL.
+``indices``    TEXT     INDEX as JSON, in declaration order. ``row`` only.
+``augments``   TEXT     AUGMENTS as JSON. ``row`` only.
+=============  =======  ======================================================
+
+**The key is (oid_key, module), not oid_key alone.** Two modules may define one
+OID and the corpus records both; deciding which one answers is ``oid_index``'s
+job, not this table's.
+
+Two indexes come with it: ``node_by_module`` on ``(module, oid_key)``, for
+walking one module in OID order, and ``node_by_name`` on ``(module, name)``,
+for the ``importSymbols(module, name)`` lookup that is pysnmp's usual way in.
+
+Symbols whose OID is a ``pysmiFakeCol`` template are **not** here. The template
+carries ``%s`` and is resolved against a row OID that a corpus never sees.
+
+symbol
+~~~~~~
+
+One row per symbol that declares a type rather than a node.
+
+===============  =======  ====================================================
+Column           Type     Notes
+===============  =======  ====================================================
+``module``       TEXT     With ``name``, the primary key.
+``name``         TEXT     The descriptor.
+``class``        TEXT     ``textualconvention`` or ``type``.
+``status``       TEXT     ``textualconvention`` only.
+``displayhint``  TEXT     DISPLAY-HINT. ``textualconvention`` only.
+``type``         INTEGER  ``type.id``, or NULL.
+===============  =======  ====================================================
+
+import
+~~~~~~
+
+The IMPORTS clauses, one row per imported symbol rather than per clause,
+because the lookup is by symbol: a reader resolving the type a ``syntax`` names
+asks which module defines it.
+
+============  ====  ======================================================
+Column        Type  Notes
+============  ====  ======================================================
+``module``    TEXT  With ``name``, the primary key. The importing module.
+``name``      TEXT  The symbol imported.
+``source``    TEXT  The module it is imported from.
+============  ====  ======================================================
+
+oid_index
+~~~~~~~~~
+
+The ranked OID projection -- the same content as ``index-v2.csv``, carried here
+so a consumer needs one file rather than two.
+
+============  ====  ======================================================
+Column        Type  Notes
+============  ====  ======================================================
+``oid_key``   BLOB  Primary key.
+``oid``       TEXT  Dotted decimal.
+``module``    TEXT  The module that owns the arc, by the rule
+                    :py:mod:`pysmi.corpus.index` states.
+============  ====  ======================================================
+
+This indexes **anchors**, not every node: a module registers arcs with its
+MODULE-IDENTITY and OBJECT-IDENTITY declarations, and that is what an index
+consumer resolves against. ``find_module(oid)`` is therefore a longest-prefix
+search -- chop one arc at a time and look each candidate up -- not a single
+exact match.
+
+
+Resolving an OID
+----------------
+
+The whole access pattern, in the order a trap receiver runs it:
+
+.. code-block:: python
+
+   def find_module(db, oid):
+       """Longest prefix of oid that the index resolves, and its module."""
+       arcs = oid.split(".")
+
+       while arcs:
+           row = db.execute(
+               "SELECT module FROM oid_index WHERE oid_key = ?",
+               (oid_key(".".join(arcs)),),
+           ).fetchone()
+
+           if row:
+               return row[0]
+
+           arcs.pop()
+
+       return None
+
+   def node(db, oid):
+       """The node at an exact OID, whichever module owns it."""
+       return db.execute(
+           "SELECT module, name, class, nodetype, maxaccess, syntax "
+           "FROM node WHERE oid_key = ? ORDER BY module LIMIT 1",
+           (oid_key(oid),),
+       ).fetchone()
+
+   def next_node(db, oid):
+       """GETNEXT: the first node ordered after oid."""
+       return db.execute(
+           "SELECT oid, module, name FROM node WHERE oid_key > ? "
+           "ORDER BY oid_key LIMIT 1",
+           (oid_key(oid),),
+       ).fetchone()
+
+   def subtree(db, oid):
+       """Every node at or below oid, in OID order."""
+       low = oid_key(oid)
+
+       return db.execute(
+           "SELECT oid, module, name FROM node "
+           "WHERE oid_key >= ? AND oid_key < ? ORDER BY oid_key",
+           (low, subtree_bound(low)),
+       ).fetchall()
+
+``find_module`` is at most one point query per arc -- twenty for the deepest
+OIDs in practice. Measured at roughly 3 µs each on a corpus of the published
+size, so the whole chop is well inside any trap budget; the range scan
+alternative measures about the same, and neither is a reason to prefer one
+shape over the other.
+
+
+Determinism
+-----------
+
+Two builds of one source tree produce **byte-identical** files, which is what
+lets a corpus be content-addressed and a rebuild that changed nothing publish
+nothing.
+
+Getting there rules out the obvious things -- no build timestamp, no host name,
+no producer version anywhere in the file -- and some less obvious ones:
+
+* Rows are inserted in a fixed order -- modules by name, nodes by
+  ``(oid_key, name)``, types by ``spec`` -- so the b-tree is laid out the same
+  way whatever order the caller iterated in.
+* ``type.id`` is assigned in sorted ``spec`` order, so an id means the same
+  thing in two builds of one tree.
+* Structured columns are rendered as JSON with sorted keys and no incidental
+  whitespace.
+* The file is ``ANALYZE``d and then ``VACUUM``ed, so no free page survives to
+  record how it was filled.
+
+A caller that wants its build stamped passes ``corpus_version``, which is data
+it chose rather than data the build observed.
+
+
+Building one
+------------
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json \
+     --output-directory=output \
+     --emit=core-db --emit=json:build/scratch-jsondoc
+
+``core-db`` is not in the default artifact layout: building it costs a pass
+nothing else needs, so it is asked for by name. It is a projection of the
+jsondoc tree, exactly as the two indexes are, so a build asking for it has to
+emit ``json`` as well -- to a scratch path outside the corpus when the corpus
+is not meant to carry the JSON.

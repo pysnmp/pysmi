@@ -78,13 +78,19 @@ def start() -> None:
         --output-directory - where the artifacts go, laid out as the
                 published corpus is: asn1/, notexts/, texts/, json/,
                 index.csv, index-v2.csv, standard.txt and report.json.
+                core.db is not in the default layout -- ask for it by
+                name, because building it costs a pass nothing else needs.
         --frozen-index - the snapshot index.csv replays, so that consumers
                 keying on the module an OID resolves to keep the answers
                 they already have. Absent, index.csv is the ranked index.
         --emit   - produce one named artifact, repeatable. Naming any
                 turns off the full layout, so a build can ask for just
                 the index or just the JSON. ARTIFACT is one of asn1,
-                notexts, texts, json, index, index-v2, standard, report.
+                notexts, texts, json, index, index-v2, standard, core-db,
+                report. core-db and the two indexes are projections of the
+                jsondoc tree, so a build asking for one has to emit json
+                too -- to a scratch path outside the corpus, where the
+                corpus is not meant to carry it.
         --fail-on-errors - exit non-zero when any module failed to
                 compile. Off by default: a corpus of MIBs nobody controls
                 always carries some that do not compile, and the report
@@ -250,6 +256,7 @@ _ARTIFACTS: Final = {
     "index": ("index", "index.csv"),
     "index-v2": ("ranked_index", "index-v2.csv"),
     "standard": ("standard", "standard.txt"),
+    "core-db": ("core_db", "core.db"),
     "report": ("report", "report.json"),
 }
 

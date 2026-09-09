@@ -49,8 +49,9 @@ from pysmi.codegen.base import AbstractCodeGen
 from pysmi.codegen.jsondoc import JsonCodeGen
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.compiler import MibCompiler, bundled_mib_names
+from pysmi.corpus import db as corpus_db
 from pysmi.corpus import index as corpus_index
-from pysmi.corpus.namespace import Namespace
+from pysmi.corpus.namespace import DEFAULT_TIER, TIERS, Namespace
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader.base import AbstractReader
 from pysmi.reader.localfile import FileReader
@@ -123,13 +124,22 @@ class CorpusOutputs:
     frozen_index: str | None = None
     #: The standard module list.
     standard: str | None = None
+    #: The corpus database: the SMI model laid out for lookup. See
+    #: :py:mod:`pysmi.corpus.db`.
+    core_db: str | None = None
     #: The build report, as JSON.
     report: str | None = None
 
     def directories(self) -> list[str]:
         """Every directory this build writes into."""
         dirs = [self.asn1, self.notexts, self.texts, self.json]
-        files = [self.index, self.ranked_index, self.standard, self.report]
+        files = [
+            self.index,
+            self.ranked_index,
+            self.standard,
+            self.core_db,
+            self.report,
+        ]
 
         return [x for x in dirs if x] + [
             os.path.dirname(os.path.abspath(x)) for x in files if x
@@ -171,6 +181,8 @@ class CorpusReport:
     #: Index rows written, and how the legacy index was reconciled with its
     #: frozen snapshot.
     index: dict[str, int] = field(default_factory=dict)
+    #: Rows written to the corpus database, by table.
+    db: dict[str, int] = field(default_factory=dict)
     #: Seconds the build took, by phase.
     seconds: dict[str, float] = field(default_factory=dict)
 
@@ -186,6 +198,7 @@ class CorpusReport:
             "staged": self.staged,
             "nodes": self.nodes,
             "index": self.index,
+            "db": self.db,
             "seconds": {k: round(v, 3) for k, v in self.seconds.items()},
         }
 
@@ -293,6 +306,9 @@ class CorpusDriver:
         }
         #: Which namespace each module name came from, for the index tiers.
         self._tierOfModule: dict[str, int] = {}
+        self._corpus: (
+            tuple[list[tuple[str, dict[str, Any], int, int]], dict[str, str]] | None
+        ) = None
         self._modulesOfNamespace: dict[str, list[str]] = {}
 
     @staticmethod
@@ -698,6 +714,91 @@ class CorpusDriver:
             extra={"modules": len(names), "path": path},
         )
 
+    def _read_corpus(
+        self, compiled: "Iterable[str] | None"
+    ) -> tuple[list[tuple[str, dict[str, Any], int, int]], dict[str, str]]:
+        """The corpus this build produced, read once and ranked once.
+
+        Both the index and the database are projections of the same jsondoc
+        tree, and reading a 5,000-module tree twice to make two projections of
+        it is the kind of cost that only shows up at corpus scale. Cached on
+        the instance because a driver builds one corpus.
+
+        Args:
+            compiled: the modules this build wrote JSON for, or ``None`` for
+                everything in the directory
+
+        Returns:
+            ``(documents, ranked)`` as
+            :py:func:`~pysmi.corpus.index.read_documents` and
+            :py:func:`~pysmi.corpus.index.rank_index` produce them.
+        """
+        if self._corpus is not None:
+            return self._corpus
+
+        if not self._outputs.json:
+            raise error.PySmiError(
+                "the OID indexes and the corpus database are projections of "
+                "the jsondoc tree; emit json to build either"
+            )
+
+        try:
+            from pysmi.mibs import manifest
+
+            rfcs = {
+                name: entry["rfc"]
+                for name, entry in manifest().items()
+                if isinstance(entry.get("rfc"), int)
+            }
+
+        except (ImportError, OSError, ValueError):  # pragma: no cover
+            rfcs = {}
+
+        documents = list(
+            corpus_index.read_documents(
+                self._outputs.json, self._tierOfModule, rfcs, compiled
+            )
+        )
+
+        self._corpus = (documents, corpus_index.rank_index(documents))
+
+        return self._corpus
+
+    def write_db(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> None:
+        """Write the corpus database.
+
+        Args:
+            report: filled in with the row counts and how long it took
+            compiled: the modules this build wrote JSON for, as
+                :py:meth:`write_index` takes it.
+        """
+        if not self._outputs.core_db:
+            return
+
+        started = time.time()
+
+        documents, ranked = self._read_corpus(compiled)
+        tiers = {
+            name: TIERS[tier] if 0 <= tier < len(TIERS) else DEFAULT_TIER
+            for name, tier in self._tierOfModule.items()
+        }
+
+        report.db = corpus_db.write_db(self._outputs.core_db, documents, tiers, ranked)
+
+        logger.info(
+            "corpus database: %d modules, %d nodes",
+            report.db.get("module", 0),
+            report.db.get("node", 0),
+            extra={
+                "modules": report.db.get("module", 0),
+                "nodes": report.db.get("node", 0),
+            },
+        )
+
+        report.seconds["db"] = time.time() - started
+
     def write_index(
         self, report: CorpusReport, compiled: "Iterable[str] | None" = None
     ) -> None:
@@ -718,31 +819,9 @@ class CorpusDriver:
         if not (self._outputs.ranked_index or self._outputs.index):
             return
 
-        if not self._outputs.json:
-            raise error.PySmiError(
-                "an OID index is built from the jsondoc tree; ask for one"
-            )
-
         started = time.time()
 
-        try:
-            from pysmi.mibs import manifest
-
-            rfcs = {
-                name: entry["rfc"]
-                for name, entry in manifest().items()
-                if isinstance(entry.get("rfc"), int)
-            }
-
-        except (ImportError, OSError, ValueError):  # pragma: no cover
-            rfcs = {}
-
-        documents = list(
-            corpus_index.read_documents(
-                self._outputs.json, self._tierOfModule, rfcs, compiled
-            )
-        )
-        ranked = corpus_index.rank_index(documents)
+        documents, ranked = self._read_corpus(compiled)
 
         report.nodes = {
             "defined": sum(len(corpus_index.oids_of(x[1])) for x in documents),
@@ -811,16 +890,18 @@ class CorpusDriver:
 
         written = results.get("json")
 
-        self.write_index(
-            report,
+        indexed = (
             None
             if written is None
             else [
                 name
                 for name, status in written.items()
                 if status in ("compiled", "untouched", "borrowed")
-            ],
+            ]
         )
+
+        self.write_index(report, indexed)
+        self.write_db(report, indexed)
 
         report.seconds["total"] = time.time() - started
 
