@@ -3,6 +3,20 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.1.0-rc.1](https://github.com/pysnmp/pysmi/compare/v3.0.0...v3.1.0-rc.1) (2026-09-09)
+
+### Features
+
+* **corpus:** build core.db, the corpus laid out for lookup ([2f7769b](https://github.com/pysnmp/pysmi/commit/2f7769bff54afe3011c0a5fefecf229d14d4f040)), closes [pysnmp/pysmi#183](https://github.com/pysnmp/pysmi/issues/183) [pysnmp/pysnmp#196](https://github.com/pysnmp/pysnmp/issues/196) [pysnmp/pysnmp#199](https://github.com/pysnmp/pysnmp/issues/199)
+* **corpus:** publish a conformance fixture for corpus readers ([b4b749a](https://github.com/pysnmp/pysmi/commit/b4b749a707ab2e7e9806de592f80ddb172b0707b)), closes [pysnmp/pysmi#184](https://github.com/pysnmp/pysmi/issues/184) [pysnmp/pysnmp#199](https://github.com/pysnmp/pysnmp/issues/199)
+* **mibs:** attach hand-written runtime behavior to a bundled module ([888b944](https://github.com/pysnmp/pysmi/commit/888b944eede7b617755ae34f501fdccec6e4b692)), closes [#231](https://github.com/pysnmp/pysmi/issues/231)
+
+### Bug Fixes
+
+* **ci:** keep the behavior fragments out of mypy's file list and name the codegen by its module ([7dd4952](https://github.com/pysnmp/pysmi/commit/7dd495206d32ebb0b6b8b47cba075ce3864cd4e5))
+* **codegen:** set the encoding a UTF-8 DISPLAY-HINT states ([58a3e3f](https://github.com/pysnmp/pysmi/commit/58a3e3f2a26d19d53cce4f5c4d252029c8417519))
+* **corpus:** keep core.db opt-in, key the corpus cache, count nodes once ([a12187c](https://github.com/pysnmp/pysmi/commit/a12187cba3409d6ba3d03463d6dcff3baaa2f302))
+
 ## [3.0.0](https://github.com/pysnmp/pysmi/compare/v2.3.0...v3.0.0) (2026-09-09)
 
 ### ⚠ BREAKING CHANGES
