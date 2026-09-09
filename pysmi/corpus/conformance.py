@@ -32,7 +32,7 @@ import json
 import os
 from typing import Any, Final
 
-from pysmi.corpus.db import oid_key, subtree_bound, write_db
+from pysmi.corpus.db import oid_from_key, oid_key, subtree_bound, write_db
 
 #: The modules the fixture carries, as ``JsonCodeGen`` would render them.
 #:
@@ -239,12 +239,132 @@ CORPUS_VERSION: Final = "conformance-1"
 #:
 #: Each entry is ``{"id", "why", "op", ...}``. ``op`` names the operation and
 #: the remaining keys are its arguments and its expected answer. A harness
-#: dispatches on ``op``; the operations are the four
-#: :doc:`/corpus-schema` specifies, plus ``meta`` for the version gate.
+#: dispatches on ``op``: the four query operations :doc:`/corpus-schema`
+#: specifies, ``meta`` for the version gate, and the codec operations --
+#: ``oid_key``, ``oid_from_key``, ``subtree_bound``, ``oid_key_order``,
+#: ``oid_key_prefix`` and ``oid_key_refuses`` -- which take no corpus,
+#: because they are properties of the key encoding rather than of a database.
 #:
 #: ``why`` is not decoration. A vector that fails should say what broke
 #: without the reader's author having to reconstruct the intent.
 VECTORS: Final[tuple[dict[str, Any], ...]] = (
+    # The OID key codec comes first because everything below depends on it: a
+    # reader that encodes differently finds nothing, walks in the wrong order
+    # and brackets the wrong subtree, and every other vector fails in a way
+    # that does not name the cause.
+    #
+    # These are the vectors a reader most needs and least gets from its own
+    # tests. A reader that reimplements the codec -- pysnmp does, deliberately,
+    # so that reading a corpus needs no pysmi -- otherwise has only its own
+    # transcription of these properties to check itself against, which agrees
+    # with the specification exactly until the specification changes.
+    #
+    # The encodings are pinned as bytes rather than described, because "the
+    # same bytes" is the actual contract: two implementations that satisfy
+    # every property below and disagree on one length prefix cannot read each
+    # other's files.
+    {
+        "id": "oid-key-encodes-a-short-oid",
+        "why": "The base case: each arc is a length byte then its bytes.",
+        "op": "oid_key",
+        "oid": "1.3.6",
+        "expect": "010101030106",
+    },
+    {
+        "id": "oid-key-encodes-an-instance-oid",
+        "why": "The shape a trap actually carries.",
+        "op": "oid_key",
+        "oid": "1.3.6.1.2.1.2.2.1.2",
+        "expect": "0101010301060101010201010102010201010102",
+    },
+    {
+        "id": "oid-key-encodes-a-zero-arc",
+        "why": "A zero arc is one byte of value, not an absent one.",
+        "op": "oid_key",
+        "oid": "2.0",
+        "expect": "01020100",
+    },
+    {
+        "id": "oid-key-encodes-an-arc-above-one-byte",
+        "why": "256 is where a single-byte encoding starts losing OIDs.",
+        "op": "oid_key",
+        "oid": "1.3.256.9.10",
+        "expect": "010101030201000109010a",
+    },
+    {
+        "id": "oid-key-encodes-the-largest-arc",
+        "why": "Four bytes is the ceiling the schema states.",
+        "op": "oid_key",
+        "oid": "1.3.6.1.4.1.4294967295",
+        "expect": "01010103010601010104010104ffffffff",
+    },
+    {
+        "id": "oid-key-round-trips",
+        "why": "Decoding is the inverse of encoding, including the wide arcs.",
+        "op": "oid_from_key",
+        "key": "01010103010601010104010104ffffffff",
+        "expect": "1.3.6.1.4.1.4294967295",
+    },
+    {
+        "id": "oid-key-orders-as-the-arcs-do",
+        "why": (
+            "Bytewise order must be numeric order. Dotted-decimal string "
+            "sorting puts 1.3.10 below 1.3.9, and a single-byte arc loses "
+            "everything above 255; either makes a walk visit nodes in an "
+            "order that reads as a MIB defect rather than an encoding one."
+        ),
+        "op": "oid_key_order",
+        "oids": ["1.3.9", "1.3.10", "1.3.256", "1.3.6.1", "1.3.6", "2.0", "1"],
+        "expect": ["1", "1.3.6", "1.3.6.1", "1.3.9", "1.3.10", "1.3.256", "2.0"],
+    },
+    {
+        "id": "oid-key-parent-sorts-before-its-children",
+        "why": "GETNEXT from a node must reach the subtree under it.",
+        "op": "oid_key_order",
+        "oids": ["1.3.6.1.2", "1.3.6.1", "1.3.6.1.1"],
+        "expect": ["1.3.6.1", "1.3.6.1.1", "1.3.6.1.2"],
+    },
+    {
+        "id": "oid-key-prefix-encodes-to-a-byte-prefix",
+        "why": "A subtree is a range only if a prefix stays a prefix.",
+        "op": "oid_key_prefix",
+        "oid": "1.3.6",
+        "under": "1.3.6.1.2.1",
+        "expect": True,
+    },
+    {
+        "id": "subtree-bound-brackets-the-subtree",
+        "why": "The upper bound of a subtree range.",
+        "op": "subtree_bound",
+        "oid": "1.3.6.1.2.1",
+        "expect": "010101030106010101020102",
+    },
+    {
+        "id": "subtree-bound-carries-past-the-largest-arc",
+        "why": (
+            "The bound of a maxed arc cannot be that arc plus one, so it "
+            "carries into the length byte. It is not itself a valid key -- it "
+            "is the smallest bytestring above everything in the subtree, "
+            "which is all a range needs."
+        ),
+        "op": "subtree_bound",
+        "oid": "1.3.6.1.4.1.4294967295",
+        "expect": "01010103010601010104010105",
+    },
+    {
+        "id": "oid-key-refuses-what-is-not-an-oid",
+        "why": "A key built from nonsense would sort somewhere and answer wrongly.",
+        "op": "oid_key_refuses",
+        "oid": "1.3.six",
+        "expect": "refused",
+    },
+    {
+        "id": "oid-key-refuses-an-arc-above-the-ceiling",
+        "why": "An arc that does not fit four bytes has no encoding.",
+        "op": "oid_key_refuses",
+        "oid": "1.4294967296",
+        "expect": "refused",
+    },
     {
         "id": "meta-schema-version",
         "why": "A reader gates on the schema version before it trusts a table.",
@@ -656,8 +776,39 @@ def run_vectors(connection: Any) -> list[str]:
 
     for vector in VECTORS:
         operation = vector["op"]
+        # One name for answers of every shape -- a string, a list, a mapping,
+        # a bool, None -- because the vectors ask different questions.
+        answer: Any
 
-        if operation == "meta":
+        # The codec operations take no corpus: they are properties of the key
+        # encoding itself, which a reader must satisfy before any query it
+        # makes can find the right row.
+        if operation == "oid_key":
+            answer = oid_key(vector["oid"]).hex()
+
+        elif operation == "oid_from_key":
+            answer = oid_from_key(bytes.fromhex(vector["key"]))
+
+        elif operation == "subtree_bound":
+            answer = subtree_bound(oid_key(vector["oid"])).hex()
+
+        elif operation == "oid_key_order":
+            answer = sorted(vector["oids"], key=oid_key)
+
+        elif operation == "oid_key_prefix":
+            answer = oid_key(vector["under"]).startswith(oid_key(vector["oid"]))
+
+        elif operation == "oid_key_refuses":
+            try:
+                oid_key(vector["oid"])
+
+            except Exception:  # noqa: BLE001
+                answer = "refused"
+
+            else:
+                answer = "accepted"
+
+        elif operation == "meta":
             row = connection.execute(QUERIES["meta"], (vector["key"],)).fetchone()
             answer = row[0] if row else None
 

@@ -430,6 +430,16 @@ back to an anchor, an instance OID no MIB declares at all, the ``9``/``10``/
 that must visit a shadowed OID once rather than once per module, and running
 off the end of the corpus, which is ``endOfMibView`` and not an error.
 
+They also cover the key encoding itself, and those vectors take no corpus:
+they encode, decode, order, bracket and refuse, with the expected bytes
+pinned rather than described. A reader that reimplements the codec -- which
+is the supported thing to do, since reading a corpus is meant to need no
+pysmi -- otherwise has only its own transcription of :ref:`corpus-oid-key` to
+check itself against, and a transcription agrees with the specification right
+up until the specification changes. Two implementations can satisfy every
+ordering property here and still disagree on one length prefix, at which
+point neither can read the other's files, so the bytes are the contract.
+
 ``vectors_as_json()`` renders them for a harness that is not written in
 Python.
 
