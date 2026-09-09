@@ -396,6 +396,14 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
     ``MibNotFoundError`` and, with no compiler attached, swallows it, so a
     module that was never found reports success. Exported symbols are checked
     too.
+
+    The hand-written runtime behavior of pysnmp/pysmi#231 is asserted here
+    rather than in a fixture of its own, because it needs exactly this
+    configuration -- ours ahead of pysnmp's, so what answers is the module we
+    generated and not the hand-edited copy pysnmp ships -- and building a
+    second bundle to get it would double the slowest fixture in the suite.
+    ``tests/test_behavior.py`` settles that a fragment reaches the module it
+    names; what is settled here is what it then does.
     """
 
     #: Empty by construction. An SMIv1 dialect shim with no definitions of its
@@ -477,6 +485,101 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
         )
 
         self.assertEqual([], silent)
+
+    def testTheInetAddressIndexHooksAreAttached(self):
+        """pysnmp dispatches on their presence, so absence is silent."""
+        (InetAddress,) = self.mibBuilder.importSymbols(
+            "INET-ADDRESS-MIB", "InetAddress"
+        )
+
+        for member in ("cloneFromName", "cloneAsName", "typeMap"):
+            with self.subTest(member=member):
+                self.assertTrue(hasattr(InetAddress, member))
+
+    def testAnInetAddressIndexEncodesAsTheTypeBeforeItSays(self):
+        """RFC 4001 section 4, through IP-MIB's ipAddressTable.
+
+        The address is encoded as the concrete type ipAddressAddrType names,
+        so an ipv4(1) row spends four sub-identifiers on it and an ipv6(2) row
+        sixteen -- and neither carries a length prefix, both concrete types
+        being fixed size. Without the hooks the generic InetAddress encodes
+        itself, and every such row is mis-encoded the same way.
+        """
+        InetAddress, InetAddressType = self.mibBuilder.importSymbols(
+            "INET-ADDRESS-MIB", "InetAddress", "InetAddressType"
+        )
+        (ipAddressEntry,) = self.mibBuilder.importSymbols("IP-MIB", "ipAddressEntry")
+
+        for typeName, address, expected in (
+            ("ipv4", bytes((10, 0, 0, 1)), (1, 10, 0, 0, 1)),
+            ("ipv6", bytes(range(16)), (2, *range(16))),
+        ):
+            with self.subTest(addressType=typeName):
+                name = ipAddressEntry.getInstIdFromIndices(
+                    InetAddressType(typeName), InetAddress(address)
+                )
+
+                self.assertEqual(expected, tuple(name))
+
+                addressType, decoded = ipAddressEntry.getIndicesFromInstId(name)
+
+                self.assertEqual(typeName, addressType.prettyPrint())
+                self.assertEqual(address, decoded.asOctets())
+
+    def testASnmpUDPAddressIsAlsoASocketAddress(self):
+        """RFC 3417 section 3, in the form the transport layer takes."""
+        (SnmpUDPAddress,) = self.mibBuilder.importSymbols("SNMPv2-TM", "SnmpUDPAddress")
+
+        address = SnmpUDPAddress(("127.0.0.1", 161))
+
+        self.assertEqual(b"\x7f\x00\x00\x01\x00\xa1", address.asOctets())
+        self.assertEqual(("127.0.0.1", 161), tuple(address))
+
+    def testATransportAddressIsAlsoASocketAddress(self):
+        """RFC 3419 section 3. IPv6 carries flow info and scope id besides."""
+        TransportAddressIPv4, TransportAddressIPv6 = self.mibBuilder.importSymbols(
+            "TRANSPORT-ADDRESS-MIB", "TransportAddressIPv4", "TransportAddressIPv6"
+        )
+
+        self.assertEqual(
+            ("10.1.2.3", 1161), tuple(TransportAddressIPv4(("10.1.2.3", 1161)))
+        )
+        self.assertEqual(
+            ("::1", 1161, 0, 0), tuple(TransportAddressIPv6(("::1", 1161)))
+        )
+
+    def testATagValueRejectsEveryDelimiter(self):
+        """RFC 3413 section 4.1.1, which the SYNTAX does not constrain at all."""
+        from pysnmp.smi import error as smi_error
+
+        SnmpTagValue, SnmpTagList = self.mibBuilder.importSymbols(
+            "SNMP-TARGET-MIB", "SnmpTagValue", "SnmpTagList"
+        )
+
+        self.assertEqual("acme", SnmpTagValue("acme").prettyPrint())
+        self.assertEqual(
+            "host router bridge", SnmpTagList("host router bridge").prettyPrint()
+        )
+
+        for bad in ("a b", "a\tb", "a\rb", "a\nb"):
+            with self.subTest(tagValue=bad):
+                self.assertRaises(smi_error.SmiError, SnmpTagValue, bad)
+
+        for bad in (" acme", "acme ", "a  b"):
+            with self.subTest(tagList=bad):
+                self.assertRaises(smi_error.SmiError, SnmpTagList, bad)
+
+    def testAnEngineIdHasAnInitialValue(self):
+        """RFC 3411 section 5: pysnmp's enterprise number, then local detail."""
+        (SnmpEngineID,) = self.mibBuilder.importSymbols(
+            "SNMP-FRAMEWORK-MIB", "SnmpEngineID"
+        )
+
+        engineId = SnmpEngineID().asOctets()
+
+        self.assertEqual(b"\x80\x00\x4f\xb8\x05", engineId[:5])
+        self.assertLessEqual(5, len(engineId))
+        self.assertGreaterEqual(32, len(engineId))
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

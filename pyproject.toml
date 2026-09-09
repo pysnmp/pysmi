@@ -162,6 +162,11 @@ known-first-party = ["pysmi"]
 # comment, it is the marker docs/source/examples/**.rst splits on -- the text
 # above it is included as prose, the code below it as a literal block.
 "examples/**" = ["PLR2044"]
+# A behavior fragment is not a module: it is appended to a generated one and
+# executed in its namespace, so the symbols it reaches -- the MIB's own classes,
+# mibBuilder -- are undefined where it sits (F821), it carries no docstring
+# because it is not importable (D1), and it attaches lambdas to classes (E731).
+"pysmi/mibs/behavior/*" = ["F821", "D1", "E731"]
 "pysmi/codegen/base.py" = ["RUF012"]
 "pysmi/codegen/jsondoc.py" = ["RUF012"]
 "pysmi/codegen/pysnmp.py" = ["RUF012"]
@@ -183,6 +188,10 @@ known-first-party = ["pysmi"]
 [tool.mypy]
 python_version = "3.10"
 files = ["pysmi"]
+# Package data that happens to be Python: a behavior fragment is appended to a
+# generated module and executed in its namespace, and its file name is a MIB
+# module name, which is not a Python identifier. Nothing imports it.
+exclude = "^pysmi/mibs/behavior/"
 ignore_missing_imports = true
 warn_unreachable = true
 # strict_equality caught a live bug where a tuple was compared against a string,

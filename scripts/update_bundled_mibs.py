@@ -1208,6 +1208,24 @@ so the two cannot disagree. The ASN.1 stays because it is what the compiler
 reads -- resolving an IMPORTS clause means parsing the imported module's source
 -- so the compiled form joins it rather than replacing it.
 
+Five of those compiled modules carry a little more than the ASN.1 says, because
+their specification states a runtime rule that SMIv2 has no syntax to express.
+RFC 4001 section 4 is the clearest case: the encoding of an ``InetAddress``
+index is determined by the value of the ``InetAddressType`` index preceding it
+in the same row, and the RFC says so in a DESCRIPTION clause, in prose. No code
+generator can derive that, so the Python implementing it is written by hand,
+one file per module in ``pysmi/mibs/behavior/``, and appended to what the
+generator renders for that module. ``INET-ADDRESS-MIB``, ``SNMPv2-TM``,
+``SNMP-TARGET-MIB``, ``SNMP-FRAMEWORK-MIB`` and ``TRANSPORT-ADDRESS-MIB`` have
+one; see ``pysmi/mibs/behavior/README.md`` for what belongs there and, more to
+the point, what does not.
+
+This is deliberately not a patch on generated output. The module above a
+fragment is regenerated from the ASN.1 on every build and the fragment is
+appended to whatever that produced, so neither can go stale against the other
+-- which is exactly what happened to the hand-edited copies pysnmp carried for
+eight years. See pysnmp/pysmi#231.
+
 Membership is decided by provenance: a module published by a standards body or
 a multivendor association, whose text is traceable to that publisher. Whether
 the publisher serves it at a fetchable URL is recorded, not required -- it

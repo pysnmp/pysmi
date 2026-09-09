@@ -66,6 +66,24 @@ so the two cannot disagree. The ASN.1 stays because it is what the compiler
 reads -- resolving an IMPORTS clause means parsing the imported module's source
 -- so the compiled form joins it rather than replacing it.
 
+Five of those compiled modules carry a little more than the ASN.1 says, because
+their specification states a runtime rule that SMIv2 has no syntax to express.
+RFC 4001 section 4 is the clearest case: the encoding of an ``InetAddress``
+index is determined by the value of the ``InetAddressType`` index preceding it
+in the same row, and the RFC says so in a DESCRIPTION clause, in prose. No code
+generator can derive that, so the Python implementing it is written by hand,
+one file per module in ``pysmi/mibs/behavior/``, and appended to what the
+generator renders for that module. ``INET-ADDRESS-MIB``, ``SNMPv2-TM``,
+``SNMP-TARGET-MIB``, ``SNMP-FRAMEWORK-MIB`` and ``TRANSPORT-ADDRESS-MIB`` have
+one; see ``pysmi/mibs/behavior/README.md`` for what belongs there and, more to
+the point, what does not.
+
+This is deliberately not a patch on generated output. The module above a
+fragment is regenerated from the ASN.1 on every build and the fragment is
+appended to whatever that produced, so neither can go stale against the other
+-- which is exactly what happened to the hand-edited copies pysnmp carried for
+eight years. See pysnmp/pysmi#231.
+
 Membership is decided by provenance: a module published by a standards body or
 a multivendor association, whose text is traceable to that publisher. Whether
 the publisher serves it at a fetchable URL is recorded, not required -- it
@@ -205,7 +223,7 @@ Inventory
    "DOT3-OAM-MIB", ":rfc:`4878`", "2007-06-14", ""
    "DS1-MIB", ":rfc:`4805`", "2007-03-05", ""
    "DS3-MIB", ":rfc:`3896`", "2004-09-08", ""
-   "DSA-MIB", ":rfc:`1567`", "1993-11-25", ""
+   "DSA-MIB", ":rfc:`1567`", "1993-11-25", "yes"
    "DSG-IF-MIB", "`CableLabs <https://mibs.cablelabs.com/MIBs/DOCSIS/DSG-IF-MIB.mib>`__", "2023-11-22", ""
    "DTI-MIB", "CableLabs", "2006-06-28", ""
    "DVMRP-STD-MIB", "`IETF Internet-Draft <https://www.ietf.org/archive/id/draft-ietf-idmr-dvmrp-mib-11.txt>`__", "2001-11-21", ""
@@ -315,7 +333,7 @@ Inventory
    "RADIUS-ACC-CLIENT-MIB", ":rfc:`4670`", "2006-08-21", ""
    "RADIUS-AUTH-CLIENT-MIB", ":rfc:`4668`", "2006-08-21", ""
    "RADIUS-DYNAUTH-SERVER-MIB", ":rfc:`4673`", "2006-08-29", ""
-   "RDBMS-MIB", ":rfc:`1697`", "1994-06-15", ""
+   "RDBMS-MIB", ":rfc:`1697`", "1994-06-15", "yes"
    "RFC-1212", "maintained here", "--", ""
    "RFC-1215", "maintained here", "--", ""
    "RFC1065-SMI", ":rfc:`1065`", "--", ""
