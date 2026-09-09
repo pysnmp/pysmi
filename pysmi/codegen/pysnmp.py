@@ -45,6 +45,7 @@ from pysmi.codegen.base import (
     with_repaired_imports,
 )
 from pysmi.mibinfo import MibInfo, normalise_revision
+from pysmi.mibs import behavior
 
 logger = logging.getLogger(__name__)
 
@@ -2134,6 +2135,21 @@ for _%(name)s_obj in [%(objects)s]:
             out += self._out[sym]
 
         out += self.gen_exports()
+
+        # A handful of standard modules define a runtime relation the ASN.1
+        # cannot state -- RFC 4001 puts the InetAddress index encoding rule in
+        # a DESCRIPTION clause -- so the Python for it is written by hand and
+        # appended here rather than inferred. It runs in the module's own
+        # namespace, after the exports, so it sees every symbol the module
+        # defined and reaches them by name. See pysnmp/pysmi#231.
+        hand_written = behavior(self.moduleName[0])
+
+        if hand_written:
+            out += (
+                f"\n# Runtime behavior from pysmi/mibs/behavior/"
+                f"{self.moduleName[0]}.py, which no code generator can derive\n"
+                f"# from the ASN.1. See pysnmp/pysmi#231.\n{hand_written}"
+            )
 
         # Annotated, because the reset above narrows the attribute to None for
         # the rest of this function: mypy does not see the clause handlers
