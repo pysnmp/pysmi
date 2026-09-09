@@ -11,7 +11,6 @@ import importlib.machinery
 import logging
 import os
 import py_compile
-import tempfile
 from collections.abc import Iterable
 from typing import Final
 
@@ -19,7 +18,7 @@ from pysmi import error
 from pysmi._aliases import deprecated_camel_case
 from pysmi.compat import decode, encode
 from pysmi.mibinfo import producer_of
-from pysmi.writer.base import AbstractWriter
+from pysmi.writer.base import AbstractWriter, open_new_file
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +87,7 @@ class PyFileWriter(AbstractWriter):
         tfile = None
 
         try:
-            fd, tfile = tempfile.mkstemp(dir=self._path)
+            fd, tfile = open_new_file(self._path)
             os.write(fd, encode(data))
             os.close(fd)
             os.replace(tfile, pyfile)

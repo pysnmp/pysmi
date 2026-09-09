@@ -3,6 +3,24 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.0.0-rc.8](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.7...v3.0.0-rc.8) (2026-09-08)
+
+### Bug Fixes
+
+* **writer:** store a module anyone can read, not only the user who built it ([33943bf](https://github.com/pysnmp/pysmi/commit/33943bfdc95052407e9c7bbd86fef7b0a82bd21a)), closes [#182](https://github.com/pysnmp/pysmi/issues/182)
+
+## [3.0.0-rc.7](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.6...v3.0.0-rc.7) (2026-09-08)
+
+### Features
+
+* **corpus:** build a corpus from many source namespaces, deterministically ([138d99c](https://github.com/pysnmp/pysmi/commit/138d99cb329abe5a84fc87c03825ad7bcdea59bb)), closes [pysnmp/pysnmp#196](https://github.com/pysnmp/pysnmp/issues/196) [#183](https://github.com/pysnmp/pysmi/issues/183) [#182](https://github.com/pysnmp/pysmi/issues/182)
+* **corpus:** let a namespace be resolved against without being published ([beffff6](https://github.com/pysnmp/pysmi/commit/beffff6ff161154a72f012bc6fa3c00fa4300b4a)), closes [#182](https://github.com/pysnmp/pysmi/issues/182)
+
+### Bug Fixes
+
+* **corpus:** keep the docs build and Windows green ([bf06c16](https://github.com/pysnmp/pysmi/commit/bf06c16d3d0763a4dd42389aab8adbcaa03d7585)), closes [#182](https://github.com/pysnmp/pysmi/issues/182)
+* **jsondoc:** emit a module whose symbol is spelled like a Python keyword ([dd7e2d9](https://github.com/pysnmp/pysmi/commit/dd7e2d9f429f75fa604f8a397e9b9257e3a43d5c)), closes [#225](https://github.com/pysnmp/pysmi/issues/225)
+
 ## [3.0.0-rc.6](https://github.com/pysnmp/pysmi/compare/v3.0.0-rc.5...v3.0.0-rc.6) (2026-09-08)
 
 ### Bug Fixes
