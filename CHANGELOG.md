@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.1.0-rc.4](https://github.com/pysnmp/pysmi/compare/v3.1.0-rc.3...v3.1.0-rc.4) (2026-09-09)
+
+### Features
+
+* **mibs:** give snmpEngineTime the elapsed-seconds read RFC 3411 describes ([7a8e948](https://github.com/pysnmp/pysmi/commit/7a8e9488d04e023bc819de8eb613592c127bb004)), closes [#236](https://github.com/pysnmp/pysmi/issues/236) [#231](https://github.com/pysnmp/pysmi/issues/231)
+
 ## [3.1.0-rc.3](https://github.com/pysnmp/pysmi/compare/v3.1.0-rc.2...v3.1.0-rc.3) (2026-09-09)
 
 ### Bug Fixes
