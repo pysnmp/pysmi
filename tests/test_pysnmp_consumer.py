@@ -581,6 +581,20 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
         self.assertLessEqual(5, len(engineId))
         self.assertGreaterEqual(32, len(engineId))
 
+    def testTheEngineIdScalarCarriesThatValueAndNotJustItsClass(self):
+        """pysnmp reads snmpEngineID.syntax as a value, not as a schema.
+
+        The fragment runs after the module built the scalar, so setting
+        SnmpEngineID.defaultValue leaves the syntax already constructed from it
+        valueless unless the fragment rebuilds it. pysnmp/pysmi#236.
+        """
+        (snmpEngineID,) = self.mibBuilder.importSymbols(
+            "SNMP-FRAMEWORK-MIB", "snmpEngineID"
+        )
+
+        self.assertTrue(snmpEngineID.syntax.isValue)
+        self.assertEqual(b"\x80\x00\x4f\xb8\x05", snmpEngineID.syntax.asOctets()[:5])
+
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
 

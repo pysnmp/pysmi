@@ -25,3 +25,11 @@ except Exception:  # noqa: BLE001, S110 - best-effort seed, as above
 _defaultValue += [id(_defaultValue) >> 8 & 0xFF, id(_defaultValue) & 0xFF]
 
 SnmpEngineID.defaultValue = OctetString(_defaultValue).asOctets()
+
+# A fragment runs after the module built its objects, so the syntax the scalar
+# already holds was constructed while defaultValue was unset and is valueless.
+# Rebuild it, now that the class states a default. pysnmp reads this one as a
+# value rather than as a schema -- MibScalarInstance takes snmpEngineID.syntax
+# in pysnmp/smi/mibs/instances/__SNMP-FRAMEWORK-MIB.py, and config.py answers
+# with it for contextEngineId.
+snmpEngineID.syntax = SnmpEngineID()

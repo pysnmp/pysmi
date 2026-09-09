@@ -2213,7 +2213,10 @@ for _%(name)s_obj in [%(objects)s]:
         # a DESCRIPTION clause -- so the Python for it is written by hand and
         # appended here rather than inferred. It runs in the module's own
         # namespace, after the exports, so it sees every symbol the module
-        # defined and reaches them by name. See pysnmp/pysmi#231.
+        # defined and reaches them by name. Objects are built by then, so a
+        # fragment setting a class attribute the constructor reads has to
+        # re-seed what was built from it -- pysnmp/pysmi#236, and
+        # pysmi/mibs/behavior/README.md. See pysnmp/pysmi#231.
         hand_written = behavior(self.moduleName[0])
 
         if hand_written:

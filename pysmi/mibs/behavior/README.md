@@ -40,6 +40,14 @@ defined. So
   base explicitly, `TextualConvention.prettyIn(self, value)`;
 - do not rely on private name mangling. `self.__x` inside a function defined
   outside a class body is `self.__x`, not `self._Foo__x`;
+- re-seed anything already built from a class attribute the fragment sets. The
+  splice point is after the module constructed its objects, so setting an
+  attribute the constructor reads -- `defaultValue`, `subtypeSpec` -- fixes the
+  class and leaves every instance made from it as it was.
+  `SNMP-FRAMEWORK-MIB` sets `SnmpEngineID.defaultValue` and so rebuilds
+  `snmpEngineID.syntax` after it; a fragment that only attaches methods needs
+  nothing, since attribute lookup on a method happens at call time. See
+  pysnmp/pysmi#236;
 - cite the RFC and section that states the relation, in a comment at the top.
 
 `tests/test_behavior.py` checks that every fragment is attached to a module
