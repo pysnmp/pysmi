@@ -655,6 +655,20 @@ class ValidateTestCase(unittest.TestCase):
 
         self.assertEqual(len(validate(self.path)), 2)
 
+    def testReportsADamagedFileRatherThanRaising(self):
+        # Damage does not come back as an answer: a page that will not decode
+        # raises out of whichever query reaches it, integrity_check included.
+        # This function is documented to return a list, so that has to become
+        # one -- writing this test is how the raise was found.
+        with open(self.path, "r+b") as fileObj:
+            fileObj.seek(os.path.getsize(self.path) // 2)
+            fileObj.write(b"\xde\xad\xbe\xef" * 64)
+
+        problems = validate(self.path)
+
+        self.assertTrue(problems)
+        self.assertIn("SQLite", " ".join(problems))
+
     def testRefusesAFileThatIsNotACorpus(self):
         # open_db's job, asserted here so the two cannot drift: validate is
         # documented to raise for this rather than to report it as a problem.
