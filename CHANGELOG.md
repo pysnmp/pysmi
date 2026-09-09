@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.1.0-rc.3](https://github.com/pysnmp/pysmi/compare/v3.1.0-rc.2...v3.1.0-rc.3) (2026-09-09)
+
+### Bug Fixes
+
+* **mibs:** re-seed the objects a behavior fragment's class attribute built ([6d91544](https://github.com/pysnmp/pysmi/commit/6d915448d4076e9335e3bf23d393ea82184c25b7)), closes [#236](https://github.com/pysnmp/pysmi/issues/236)
+
 ## [3.1.0-rc.2](https://github.com/pysnmp/pysmi/compare/v3.1.0-rc.1...v3.1.0-rc.2) (2026-09-09)
 
 ### Features
