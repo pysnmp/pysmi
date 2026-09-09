@@ -156,9 +156,9 @@ Column            Type     Notes
 ``lastupdated``   TEXT     LAST-UPDATED, as the jsondoc normalized it.
 ``revision``      TEXT     Newest readable revision, ``YYYYMMDDHHMMZ``. NULL
                            when the module carries none that is a date.
-``content_hash``  TEXT     :py:func:`~pysmi.codegen.normalized.content_hash`
-                           of the module. Two corpora agree on a module iff
-                           they agree here.
+``content_hash``  TEXT     ``pysmi.codegen.normalized.content_hash()`` of
+                           the module. Two corpora agree on a module iff they
+                           agree here.
 ``nodes``         INTEGER  How many rows this module has in ``node``.
 ================  =======  ===================================================
 
@@ -348,8 +348,8 @@ no producer version anywhere in the file -- and some less obvious ones:
   thing in two builds of one tree.
 * Structured columns are rendered as JSON with sorted keys and no incidental
   whitespace.
-* The file is ``ANALYZE``d and then ``VACUUM``ed, so no free page survives to
-  record how it was filled.
+* The file is ``ANALYZE``\ d and then ``VACUUM``\ ed, so no free page survives
+  to record how it was filled.
 
 A caller that wants its build stamped passes ``corpus_version``, which is data
 it chose rather than data the build observed.

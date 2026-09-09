@@ -37,10 +37,12 @@ laid out identically, and the file is VACUUMed so no free page survives to
 record how it was filled. A caller that wants its build stamped passes
 ``corpusVersion``, which is data it chose rather than data we observed.
 
-.. _corpus-oid-key:
-
 Ordering OIDs as bytes
 ----------------------
+
+The label for this section lives in :doc:`/corpus-schema`, which is the
+specification a reader is written from; defining it here as well would be two
+anchors for one contract.
 
 SQLite compares BLOBs bytewise, so the encoding has to make bytewise order
 equal numeric OID order. Dotted decimal does not: ``"1.3.10"`` sorts below
