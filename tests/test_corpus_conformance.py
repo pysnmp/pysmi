@@ -16,6 +16,7 @@ import os
 import tempfile
 import unittest
 
+from pysmi.corpus import conformance
 from pysmi.corpus.conformance import (
     DOCUMENTS,
     VECTORS,
@@ -110,6 +111,39 @@ class ConformanceTestCase(unittest.TestCase):
                 "oid_key_refuses",
             },
         )
+
+    def testHarnessReportsACodecThatAcceptsWhatItShouldRefuse(self):
+        # The refusal vectors exist for a reader whose codec is too
+        # permissive: one that encodes "1.3.six" to *something* sorts it
+        # somewhere and answers queries about it, wrongly and quietly. That is
+        # the defect they catch, so the harness has to notice a codec that
+        # never raises -- which is what this substitutes.
+        path = build_fixture(os.path.join(tempfile.mkdtemp(), "codec.db"))
+        db = open_db(path)
+
+        original = conformance.oid_key
+
+        def too_permissive(oid):
+            # Permissive exactly where the real codec refuses, and identical
+            # everywhere else -- so this is a reader with one defect rather
+            # than a codec replaced wholesale, and the other vectors still
+            # answer as they should.
+            try:
+                return original(oid)
+
+            except Exception:  # noqa: BLE001
+                return b"\x01\x01"
+
+        try:
+            conformance.oid_key = too_permissive
+            failures = run_vectors(db)
+
+        finally:
+            conformance.oid_key = original
+            db.close()
+
+        self.assertIn("oid-key-refuses-what-is-not-an-oid", failures)
+        self.assertIn("oid-key-refuses-an-arc-above-the-ceiling", failures)
 
     def testHarnessReportsAVectorThatDoesNotHold(self):
         # run_vectors is only useful if it can fail. Every vector passing
