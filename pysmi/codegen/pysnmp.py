@@ -49,6 +49,67 @@ from pysmi.mibs import behavior
 
 logger = logging.getLogger(__name__)
 
+#: The display formats RFC 2579 section 3.1 allows an octet-format
+#: specification to end its third part with.
+OCTET_FORMATS = frozenset("xdoat")
+
+#: Its second part, and the two characters its fourth and fifth parts exclude.
+DIGITS = frozenset("0123456789")
+
+
+def renders_utf8(displayHint: str) -> bool:
+    """Whether *displayHint* renders any part of a value as UTF-8.
+
+    RFC 2579 section 3.1 gives ``t`` as the display format for UTF-8, in the
+    third part of an octet-format specification. Searching the hint for the
+    letter is not the same question: the fourth and fifth parts are single
+    characters that may be anything but a digit or ``*``, so ``2dt2d`` renders
+    two numbers separated by a ``t`` and nothing about it is UTF-8. The hint is
+    walked part by part instead.
+
+    A hint that does not parse as octet-format specifications is not one -- an
+    integer hint such as ``d-2``, or a malformed string -- and renders no UTF-8.
+
+    Args:
+        displayHint: the DISPLAY-HINT text, as written in the module
+
+    Returns:
+        True if a ``t`` appears as a display format.
+    """
+    at, end = 0, len(displayHint)
+
+    while at < end:
+        # 1: the repeat indicator.
+        if displayHint[at] == "*":
+            at += 1
+
+        # 2: the octet length, one or more decimal digits.
+        digits = at
+        while at < end and displayHint[at] in DIGITS:
+            at += 1
+
+        if at in (digits, end):
+            return False
+
+        # 3: the display format.
+        displayFormat = displayHint[at]
+        at += 1
+
+        if displayFormat == "t":
+            return True
+
+        if displayFormat not in OCTET_FORMATS:
+            return False
+
+        # 4 and 5: the display separator and the repeat terminator, each a
+        # single character that is neither a digit nor a ``*`` -- which is what
+        # keeps them from being mistaken for the next specification.
+        for _ in range(2):
+            if at < end and displayHint[at] not in DIGITS and displayHint[at] != "*":
+                at += 1
+
+    return False
+
 
 @deprecated_camel_case
 class PySnmpCodeGen(AbstractCodeGen):
@@ -1302,14 +1363,25 @@ for _%(name)s_obj in [%(objects)s]:
     def gen_display_hint(self, data: TextClause, classmode: bool = False) -> str:
         """Render a DISPLAY-HINT as a class attribute.
 
+        A hint that renders any part of the value as UTF-8 also states the
+        character set the type is in, so it settles the octets-to-text
+        conversion as well as the rendering. pyasn1 reads that off ``encoding``
+        and defaults it to ISO 8859-1, under which every character above U+007F
+        round-trips to the wrong octets, so the hint has to say otherwise.
+
         Args:
             data: rendered clause values
             classmode: unused; a display hint only appears in a type declaration
 
         Returns:
-            The attribute assignment.
+            The attribute assignment, and the encoding where the hint implies one.
         """
-        return self.indent + "displayHint = " + dorepr(data[0]) + "\n"
+        out = self.indent + "displayHint = " + dorepr(data[0]) + "\n"
+
+        if renders_utf8(data[0]):
+            out += self.indent + "encoding = 'utf-8'\n"
+
+        return out
 
     # noinspection PyUnusedLocal
     def gen_def_val(

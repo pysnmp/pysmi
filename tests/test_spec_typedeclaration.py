@@ -15,6 +15,7 @@ underneath it. See pysnmp/pysmi#127.
 import sys
 import unittest
 
+from pysmi.codegen.pysnmp import renders_utf8
 from tests.harness import render_json, render_source
 
 #: One declaration per base type of RFC 2578 section 7.1, plus the sub-typing
@@ -231,12 +232,79 @@ class TextualConventionTestCase(unittest.TestCase):
         self.assertIn("    description = 'Test TC'", self.source)
         self.assertIn("    status = 'current'", self.source)
 
+    def testAUtf8DisplayHintAlsoSetsTheEncoding(self):
+        # RFC 2579 section 3.1 gives "t" as the display format for UTF-8, which
+        # says what the octets are as well as how to render them. pyasn1 reads
+        # that off `encoding` and defaults it to ISO 8859-1, so a hint left to
+        # speak only about rendering converts every character above U+007F to
+        # the wrong octets.
+        mib = MIB.replace('    DISPLAY-HINT "1x:"\n', '    DISPLAY-HINT "255t"\n')
+        source = render_source(mib)
+
+        self.assertIn("    displayHint = '255t'", source)
+        self.assertIn("    encoding = 'utf-8'", source)
+
+    def testAnAsciiDisplayHintLeavesTheEncodingAlone(self):
+        # Only "t" names a character set. "a" is RFC 2579's ascii format, and a
+        # convention that does not ask for UTF-8 must keep pyasn1's default
+        # rather than be quietly widened to it.
+        mib = MIB.replace('    DISPLAY-HINT "1x:"\n', '    DISPLAY-HINT "255a"\n')
+
+        self.assertNotIn("encoding", render_source(mib))
+
+    def testTheHintIsReadAsSpecificationsRatherThanSearchedForTheLetter(self):
+        # RFC 2579 section 3.1 part 4: the display separator is a single
+        # character that may be anything but a decimal digit and a "*", so a "t"
+        # in a hint is only UTF-8 when it lands in part 3. "2dt2d" renders two
+        # numbers with a "t" between them and no UTF-8 anywhere.
+        mib = MIB.replace('    DISPLAY-HINT "1x:"\n', '    DISPLAY-HINT "2dt2d"\n')
+
+        self.assertNotIn("encoding", render_source(mib))
+
     def testAConventionWithoutADisplayHintEmitsNone(self):
         # RFC 2579 section 3.1 makes DISPLAY-HINT optional, and an absent hint
         # must not become an empty one -- "" would render every value as blank.
         mib = MIB.replace('    DISPLAY-HINT "1x:"\n', "")
         self.assertNotIn("displayHint", render_source(mib))
         self.assertNotIn("displayhint", render_json(mib)["TestTextualConvention"])
+
+
+class DisplayHintGrammarTestCase(unittest.TestCase):
+    """Where a ``t`` falls in RFC 2579 section 3.1's octet-format grammar.
+
+    The three parts a ``t`` can occupy read alike in the text of a hint: the
+    display format, the display separator and the repeat terminator. Only the
+    first is UTF-8, so the corners of the grammar are asserted directly rather
+    than through a module each.
+    """
+
+    #: Hint, and whether any part of it renders as UTF-8.
+    HINTS = {
+        # Part 3, the display format, with and without a repeat indicator.
+        "255t": True,
+        "*1t": True,
+        "1x:1t": True,
+        "1a*1t": True,
+        # The other four display formats of part 3.
+        "255a": False,
+        "1x:": False,
+        "1d.1d.1d.1d/2d": False,
+        "0a[2x:2x:2x:2x:2x:2x:2x:2x]0a:2d": False,
+        # Part 4, the display separator, which may be any character but a
+        # decimal digit and a "*".
+        "2dt2d": False,
+        # Not octet-format specifications at all: an integer hint of section
+        # 3.1's first paragraph, and text that parses as neither.
+        "d-2": False,
+        "d": False,
+        "255": False,
+        "": False,
+    }
+
+    def testOnlyADisplayFormatMeansUtf8(self):
+        for hint, utf8 in self.HINTS.items():
+            with self.subTest(displayHint=hint):
+                self.assertEqual(utf8, renders_utf8(hint))
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
