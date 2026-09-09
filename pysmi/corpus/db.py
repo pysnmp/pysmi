@@ -779,6 +779,7 @@ def validate(path: str) -> list[str]:
         PySmiError: the file is not a corpus, as :py:func:`open_db` decides it.
     """
     connection = open_db(path)
+    problems: list[str] = []
 
     try:
         problems = [
@@ -796,6 +797,14 @@ def validate(path: str) -> list[str]:
 
         if integrity != "ok":
             problems.append(f"SQLite reports the file damaged: {integrity}")
+
+    except sqlite3.DatabaseError as exc:
+        # Damage does not always come back as an answer. A page that will not
+        # decode raises out of whichever query reaches it -- integrity_check
+        # included -- so the reply to "is this file sound" arrives as an
+        # exception. It is the same finding either way, and a caller that
+        # asked for a list should not have to catch sqlite3 to hear it.
+        problems.append(f"SQLite cannot read the file: {exc}")
 
     finally:
         connection.close()
