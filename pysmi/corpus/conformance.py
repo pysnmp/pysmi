@@ -325,6 +325,32 @@ VECTORS: Final[tuple[dict[str, Any], ...]] = (
         },
     },
     {
+        "id": "node-without-a-syntax",
+        "why": "A table has no SYNTAX, so its type reference is null. A "
+        "reader must answer none rather than look up a type id of null.",
+        "op": "node",
+        "oid": "1.3.6.1.4.1.99999.2",
+        "module": "FIXTURE-MIB",
+        "expect": {
+            "name": "fixtureTable",
+            "class": "objecttype",
+            "nodetype": "table",
+            "maxaccess": "not-accessible",
+            "status": "current",
+            "units": None,
+            "syntax": None,
+        },
+    },
+    {
+        "id": "node-absent",
+        "why": "An OID the corpus does not define is absent, not an error -- "
+        "the same reason find_module misses rather than raises.",
+        "op": "node",
+        "oid": "1.3.6.1.4.1.99999.2.1.4242",
+        "module": "FIXTURE-MIB",
+        "expect": None,
+    },
+    {
         "id": "node-defval",
         "why": "DEFVAL survives into the corpus; agent-side support needs it.",
         "op": "defval",

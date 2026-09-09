@@ -102,6 +102,42 @@ class ConformanceTestCase(unittest.TestCase):
             },
         )
 
+    def testHarnessReportsAVectorThatDoesNotHold(self):
+        # run_vectors is only useful if it can fail. Every vector passing
+        # against the real fixture proves the fixture; this proves the
+        # harness, by asking it about a corpus that answers differently.
+        import sqlite3
+
+        path = build_fixture(os.path.join(tempfile.mkdtemp(), "broken.db"))
+        connection = sqlite3.connect(path)
+        connection.execute("UPDATE meta SET value = '99' WHERE key = 'corpus_version'")
+        connection.commit()
+        connection.close()
+
+        db = open_db(path)
+
+        try:
+            self.assertIn("meta-corpus-version", run_vectors(db))
+
+        finally:
+            db.close()
+
+    def testSpecOfAnAbsentTypeIsNone(self):
+        # A node with no syntax -- a table, a row, an OBJECT-IDENTITY -- has
+        # a NULL type id, and resolving one must be None rather than a lookup
+        # for id NULL.
+        db = open_db(self.path)
+
+        try:
+            row = db.execute(
+                "SELECT syntax FROM node WHERE name = 'fixtureTable'"
+            ).fetchone()
+
+        finally:
+            db.close()
+
+        self.assertIsNone(row[0])
+
     def testFixtureCarriesAShadowedOid(self):
         # The collision is the case a reader is most likely to get wrong, so
         # losing it from the fixture should fail here rather than silently.

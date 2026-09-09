@@ -127,6 +127,21 @@ class OidKeyTestCase(unittest.TestCase):
         with self.assertRaises(error.PySmiError):
             oid_from_key(b"\x04\x01\x02")
 
+    def testRejectsEmptyKey(self):
+        with self.assertRaises(error.PySmiError):
+            oid_from_key(b"")
+
+    def testSubtreeBoundOfAKeyThatIsAllOnes(self):
+        # Nothing sorts above a key of every byte 0xFF, and SQLite has no
+        # +infinity for a BLOB, so the bound has to get longer rather than
+        # increment. Unreachable from a real OID -- oid_key writes a length
+        # byte first -- but subtree_bound is published for readers to
+        # reimplement, so the boundary is part of what they must match.
+        key = b"\xff\xff"
+
+        self.assertGreater(subtree_bound(key), key)
+        self.assertGreater(subtree_bound(key), key + b"\x00")
+
 
 class SchemaTestCase(unittest.TestCase):
     """What a reader is promised it will find."""
@@ -328,6 +343,60 @@ class WriterTestCase(unittest.TestCase):
 
         self.assertEqual(counts["node"], 2)
 
+    def testDocumentValuesThatAreNotSymbolsAreSkipped(self):
+        # A jsondoc's top-level values are objects, but the writer reads
+        # documents it did not produce -- a hand-edited one, or a future
+        # schema that adds a scalar beside meta -- and one stray value should
+        # not cost the module.
+        document = {
+            "a": scalar("1.3.6.1.4.1.99.1", "a"),
+            "schemaNote": "not a symbol",
+            "meta": {"schema": 1},
+        }
+        path, counts = build({"TEST-MIB": document})
+
+        self.assertEqual(counts["node"], 1)
+        self.assertEqual(counts["type"], 1)
+
+    def testImportsEntriesThatAreNotListsAreSkipped(self):
+        path, counts = build(
+            {
+                "TEST-MIB": document(
+                    a=scalar("1.3.6.1.4.1.99.1", "a"),
+                    imports={
+                        "class": "imports",
+                        "SNMPv2-SMI": ["OBJECT-TYPE"],
+                        "BROKEN": "not a list",
+                    },
+                )
+            }
+        )
+
+        self.assertEqual(counts["import"], 1)
+
+    def testWritingOverAnExistingCorpusReplacesIt(self):
+        # A rebuild writes to the path the last build left a file at, and a
+        # corpus opened immutable must not be a half-overwritten one.
+        directory = tempfile.mkdtemp()
+        path = os.path.join(directory, "core.db")
+
+        for oid in ("1.3.6.1.4.1.99.1", "1.3.6.1.4.1.99.2"):
+            write_db(
+                path,
+                [("TEST-MIB", document(a=scalar(oid, "a")), 0, 0)],
+                {},
+            )
+
+        db = open_db(path)
+
+        try:
+            rows = db.execute("SELECT oid FROM node").fetchall()
+
+        finally:
+            db.close()
+
+        self.assertEqual(rows, [("1.3.6.1.4.1.99.2",)])
+
     def testMalformedOidFailsTheBuild(self):
         # Not skipped: an OID the corpus cannot place is a defect in the
         # corpus, and a build that drops it quietly publishes a hole.
@@ -349,6 +418,19 @@ class OpenTestCase(unittest.TestCase):
 
         finally:
             os.chmod(os.path.dirname(path), 0o700)
+
+    def testRefusesAFileThatIsNotSqliteAtAll(self):
+        # The application_id check needs a readable header to compare; a file
+        # that is not a database at all fails earlier, and has to fail as our
+        # error rather than as a bare sqlite3.DatabaseError.
+        directory = tempfile.mkdtemp()
+        path = os.path.join(directory, "not.db")
+
+        with open(path, "wb") as fileObj:
+            fileObj.write(b"this is not a database" * 64)
+
+        with self.assertRaises(error.PySmiError):
+            open_db(path)
 
     def testRefusesADatabaseThatIsNotACorpus(self):
         directory = tempfile.mkdtemp()
