@@ -271,11 +271,13 @@ class BundledMibsCompileTestCase(unittest.TestCase):
         ``baseMibs`` is where pysmi says which modules are foundational, so a
         module named there but missing from the bundle is a compile that fails
         on an unreachable source for a MIB pysmi already knew it would need.
-        PYSNMP-USM-MIB is the exception: it is pysnmp's own rather than an RFC,
-        and pysnmp ships it.
+
+        No exceptions: a module pysmi does not carry is a module belonging to
+        one consumer, and stubbing it makes pysmi decline to compile what only
+        that consumer publishes. See pysnmp/pysmi#243.
         """
         for mibname in set(PySnmpCodeGen.baseMibs) | set(JsonCodeGen.baseMibs):
-            if mibname in PySnmpCodeGen.fakeMibs or mibname == "PYSNMP-USM-MIB":
+            if mibname in PySnmpCodeGen.fakeMibs:
                 continue
 
             with self.subTest(mib=mibname):

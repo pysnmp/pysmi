@@ -73,8 +73,10 @@ class PrecompiledMibsTestCase(unittest.TestCase):
         compiled = {
             entry.stem for entry in self.out.iterdir() if entry.name != "__init__.py"
         }
-        # Intersected with the bundle: PYSNMP-USM-MIB is a base MIB pysmi
-        # does not carry the ASN.1 for, so it is absent either way.
+        # Every base MIB pysmi does not supply as an SMI stub is one it
+        # bundles the ASN.1 for -- testEveryModuleACodeGeneratorCallsABaseMibIsBundled
+        # holds that -- so the intersection takes nothing away and is here to
+        # keep this assertion about the wheel rather than about baseMibs.
         wouldBeStubbed = bundled & (
             {x for x in PySnmpCodeGen.baseMibs if x not in PySnmpCodeGen.fakeMibs}
             - (

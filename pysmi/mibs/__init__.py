@@ -22,12 +22,6 @@ manifest because provenance and supersession are facts about a module rather
 than about the directory it currently sits in, and because the manifest is
 then still able to say that a module exists and where its text comes from,
 which is the useful answer for one pysmi does not carry.
-
-``behavior/`` is a third directory and holds no MIB text at all, so the
-manifest does not cover it. What is in it is the Python for the handful of
-runtime relations SMIv2 has no syntax to state, which
-:py:class:`~pysmi.codegen.pysnmp.PySnmpCodeGen` appends to the module it names. See
-:py:func:`behavior`.
 """
 
 import importlib.resources
@@ -44,15 +38,6 @@ _MANIFEST = "bundled_mibs.json"
 #: entry in the search path, so the default is to be bundled and a promotion
 #: is the removal of a key rather than the setting of one.
 _FUTURE = "future"
-
-
-#: The subpackage holding hand-written runtime behavior -- see
-#: :py:func:`behavior`.
-_BEHAVIOR = "behavior"
-
-
-#: What a behavior fragment is named: the module, then this.
-_BEHAVIOR_EXT = ".py"
 
 
 @cache
@@ -177,44 +162,3 @@ def _covers(prefix: str, oid: str) -> bool:
     want = prefix.split(".")
 
     return len(want) <= len(arcs) and arcs[: len(want)] == want
-
-
-@cache
-def _behaviors() -> dict[str, Any]:
-    """Every behavior fragment the package carries, keyed by module name.
-
-    Read as package data and scanned once, rather than joined onto a path per
-    lookup: the key is a MIB module name taken off a parse tree, and a name is
-    never turned into a path here.
-    """
-    root = importlib.resources.files(f"{__name__}.{_BEHAVIOR}")
-
-    return {
-        entry.name[: -len(_BEHAVIOR_EXT)]: entry
-        for entry in root.iterdir()
-        if entry.name.endswith(_BEHAVIOR_EXT)
-    }
-
-
-def behavior(module: str) -> str:
-    """Hand-written runtime behavior for ``module``, or an empty string.
-
-    A few standard modules define a runtime relation that SMIv2 has no syntax
-    to state, so no code generator can derive it from the ASN.1: RFC 4001
-    section 4 makes the encoding of an ``InetAddress`` index depend on the
-    value of a preceding ``InetAddressType`` index, and says so in a
-    DESCRIPTION clause. The Python that implements such a relation is kept in
-    ``pysmi/mibs/behavior/``, one file per module named exactly as the module,
-    and :py:class:`~pysmi.codegen.pysnmp.PySnmpCodeGen` appends it to what it renders
-    for that module.
-
-    That is the whole mechanism, and it is deliberately not a patch: the
-    generated module above it is regenerated from the ASN.1 every time, and the
-    fragment is ordinary Python executed in its namespace afterwards, so
-    neither can go stale against the other. See pysnmp/pysmi#231.
-
-    Empty for every other module, which is all but a handful.
-    """
-    entry = _behaviors().get(module)
-
-    return entry.read_text() if entry is not None else ""
