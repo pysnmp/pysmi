@@ -505,9 +505,18 @@ class OpenPathTestCase(unittest.TestCase):
         # "?" ends the path at the query string. SQLite then opens an empty
         # database of the shorter name -- which does not raise, it answers
         # nothing, and the corpus reads as a file with application_id 0.
-        for awkward in ("we?ird", "sharp#", "with space", "per%cent"):
-            with self.subTest(directory=awkward):
-                directory = os.path.join(tempfile.mkdtemp(), awkward)
+        # "?" is the character that motivated the escaping and the only one
+        # here Windows will not accept in a filename -- WinError 123 comes
+        # from mkdir, before any of this is reached. It is tested wherever a
+        # directory can be named that, which is every platform but Windows.
+        awkward = ["sharp#", "with space", "per%cent"]
+
+        if os.name != "nt":
+            awkward.insert(0, "we?ird")
+
+        for name in awkward:
+            with self.subTest(directory=name):
+                directory = os.path.join(tempfile.mkdtemp(), name)
                 os.makedirs(directory)
                 path, _ = build(
                     {"TEST-MIB": document(testScalar=scalar("1.3.6.1.4.1.99.1", "x"))},
