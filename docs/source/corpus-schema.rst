@@ -366,6 +366,41 @@ source tree differ -- which is the property everything above is written to
 preserve.
 
 
+Checking a build before publishing it
+-------------------------------------
+
+:py:func:`pysmi.corpus.db.open_db` decides whether a file is a corpus at all:
+the ``application_id``, a readable header, a schema version the reader
+implements. :py:func:`pysmi.corpus.db.validate` asks the question that one
+cannot -- the file is a corpus, but is it a *sound* one:
+
+.. code-block:: python
+
+   from pysmi.corpus.db import validate
+
+   problems = validate("core.db")
+
+   if problems:
+       for problem in problems:
+           print(problem)
+
+       raise SystemExit(1)
+
+Every check is a universal over a whole build rather than a property of one
+row, which is why they belong here rather than in a publisher's own tests. A
+unit test asserts that one module round-trips; none can say that no module
+among thousands lost its content hash, that no node references a type row that
+is not there, that every scalar carries a syntax, that every tier is in the
+vocabulary, that each ``module.nodes`` agrees with the rows that module
+actually contributed, or that ``oid_key`` orders the whole corpus the way the
+arcs do.
+
+It returns a list rather than raising, because a build wants to see every
+problem it has rather than one per round trip. An empty list is a sound
+corpus. Over pysnmp/mibs' 5,510 modules and 767,450 nodes it is one indexed
+pass, measured at 17 seconds.
+
+
 Proving a reader conforms
 -------------------------
 
