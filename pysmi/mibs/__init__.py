@@ -26,7 +26,7 @@ which is the useful answer for one pysmi does not carry.
 ``behavior/`` is a third directory and holds no MIB text at all, so the
 manifest does not cover it. What is in it is the Python for the handful of
 runtime relations SMIv2 has no syntax to state, which
-:py:class:`~pysmi.codegen.PySnmpCodeGen` appends to the module it names. See
+:py:class:`~pysmi.codegen.pysnmp.PySnmpCodeGen` appends to the module it names. See
 :py:func:`behavior`.
 """
 
@@ -205,7 +205,7 @@ def behavior(module: str) -> str:
     value of a preceding ``InetAddressType`` index, and says so in a
     DESCRIPTION clause. The Python that implements such a relation is kept in
     ``pysmi/mibs/behavior/``, one file per module named exactly as the module,
-    and :py:class:`~pysmi.codegen.PySnmpCodeGen` appends it to what it renders
+    and :py:class:`~pysmi.codegen.pysnmp.PySnmpCodeGen` appends it to what it renders
     for that module.
 
     That is the whole mechanism, and it is deliberately not a patch: the

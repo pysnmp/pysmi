@@ -73,7 +73,7 @@ the encoding of an ``InetAddress`` index depend on the value of the
 a DESCRIPTION clause, in prose.
 
 One file per module, named exactly as the module.
-:py:class:`~pysmi.codegen.PySnmpCodeGen` appends it to what it renders for that
+:py:class:`~pysmi.codegen.pysnmp.PySnmpCodeGen` appends it to what it renders for that
 module, after the exports, so it runs in the generated module's own namespace
 and reaches every symbol the MIB defined by name.
 
