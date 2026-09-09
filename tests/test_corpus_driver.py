@@ -22,6 +22,7 @@ See pysnmp/pysmi#182.
 import json
 import os
 import shutil
+import sqlite3
 import tempfile
 import textwrap
 import unittest
@@ -29,7 +30,7 @@ from unittest import mock
 
 from pysmi import error
 from pysmi.corpus import CorpusDriver, CorpusOutputs, Namespace, check_disjoint
-from pysmi.corpus.driver import STANDARD_TXT_EXCLUDED_PREFIXES
+from pysmi.corpus.driver import STANDARD_TXT_EXCLUDED_PREFIXES, CorpusReport
 
 
 def module(name, oid, *, revision="202401010000Z", description="a module"):
@@ -685,6 +686,50 @@ class InputSetTestCase(CorpusTestCase):
             [Namespace("nowhere", os.path.join(self.root, "nowhere"), "vendor")],
             self.outputs(),
         )
+
+    def testTheDatabaseIsBuiltWhenAskedFor(self):
+        outputs = self.outputs(core_db=os.path.join(self.root, "output", "core.db"))
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertTrue(os.path.exists(outputs.core_db))
+        self.assertGreater(report.db["module"], 0)
+        self.assertEqual(report.db["node"], report.db["node"])
+
+    def testTheDatabaseIsNotBuiltUnlessAskedFor(self):
+        # Building one costs a pass over the whole jsondoc tree, so the
+        # default layout must not pay for it.
+        outputs = self.outputs()
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertIsNone(outputs.core_db)
+        self.assertEqual(report.db, {})
+
+    def testTheCorpusCacheIsKeyedByWhatWasAskedFor(self):
+        # write_index and write_db both read the jsondoc tree, and the read is
+        # cached so a 5,000-module tree is not read twice. Caching the first
+        # answer under every selector would make a narrow call poison a wide
+        # one: an index over one module followed by a database over all of
+        # them would write only that module.
+        outputs = self.outputs(core_db=os.path.join(self.root, "output", "core.db"))
+        driver = CorpusDriver(self.namespaces(), outputs)
+        report = CorpusReport()
+
+        driver.stage(report)
+        driver.compile(report)
+
+        driver.write_index(report, ["ALPHA-MIB"])
+        driver.write_db(report, None)
+
+        connection = sqlite3.connect(outputs.core_db)
+
+        try:
+            modules = {x[0] for x in connection.execute("SELECT name FROM module")}
+
+        finally:
+            connection.close()
+
+        self.assertIn("ALPHA-MIB", modules)
+        self.assertIn("BETA-MIB", modules)
 
     def testAnIndexWithoutJsonIsRefused(self):
         # The index is built from the jsondoc tree, so asking for one without

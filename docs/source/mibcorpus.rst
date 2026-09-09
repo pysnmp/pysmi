@@ -107,8 +107,33 @@ What it produces
      - What the build did: the failure inventory, the modules more than one
        namespace holds, the node counts, and how long each phase took.
 
+One artifact is **not** in that layout and has to be asked for by name:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 82
+
+   * - Artifact
+     - What it is
+   * - ``core.db``
+     - The corpus database: every node the corpus defines, keyed for lookup
+       by OID and by name, and ordered for GETNEXT. See
+       :doc:`/corpus-schema`. Building it costs a pass nothing else needs,
+       which is why it is opt-in rather than part of the default layout.
+
 ``--emit`` narrows this to the artifacts named, so a build can ask for just the
 index or just the JSON.
+
+``core.db`` and the two indexes are projections of the jsondoc tree, so a build
+asking for any of them has to emit ``json`` as well. Where the corpus is not
+meant to carry the JSON, send it somewhere outside the corpus and remove it
+afterwards:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output \
+       --emit=asn1 --emit=index-v2 --emit=core-db \
+       --emit=json:build/scratch-jsondoc
 
 Every artifact but ``report.json`` is byte-reproducible. The report is the
 build's log and records elapsed time.

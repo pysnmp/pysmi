@@ -48,6 +48,7 @@ This example showcases some of its features:
    /pysmi/compiler/mibresolution
    /pysmi/corpus/driver
    /pysmi/corpus/index
+   /pysmi/corpus/db
 
 .. _camel-case-deprecation:
 
