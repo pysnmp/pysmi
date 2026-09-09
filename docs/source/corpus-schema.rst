@@ -299,11 +299,16 @@ The whole access pattern, in the order a trap receiver runs it:
        return None
 
    def node(db, oid):
-       """The node at an exact OID, whichever module owns it."""
+       """The node at an exact OID, from the module that owns the arc."""
+       # Not ORDER BY module LIMIT 1. Two modules may define one OID, and
+       # which of them answers is oid_index's decision -- resolving it by
+       # module name instead means a real collision is settled alphabetically.
+       module = find_module(db, oid)
+
        return db.execute(
            "SELECT module, name, class, nodetype, maxaccess, syntax "
-           "FROM node WHERE oid_key = ? ORDER BY module LIMIT 1",
-           (oid_key(oid),),
+           "FROM node WHERE oid_key = ? AND module = ?",
+           (oid_key(oid), module),
        ).fetchone()
 
    def next_node(db, oid):

@@ -48,6 +48,10 @@ from pysmi.corpus.db import oid_key, subtree_bound, write_db
 #:     Defines an OID ``FIXTURE-MIB`` also defines, so a reader has to get the
 #:     winner from ``oid_index`` rather than from whichever ``node`` row it
 #:     met first. This is the ``1.3.6.1.6.3.1`` collision in miniature.
+#: ``SMIV1-MIB``
+#:     Declares no MODULE-IDENTITY, which SMIv1 modules do not, so
+#:     ``module.oid`` and ``module.revision`` are NULL. A reader that assumes
+#:     either is set fails on a large part of any real corpus.
 #: ``DEEP-MIB``
 #:     An anchor far down a long OID, so ``find_module`` has to chop many arcs
 #:     before it resolves -- the ≤20-lookups-per-trap budget, exercised.
@@ -170,6 +174,23 @@ DOCUMENTS: Final[dict[str, dict[str, Any]]] = {
         },
         "meta": {"schema": 1},
     },
+    "SMIV1-MIB": {
+        "smiv1Anchor": {
+            "name": "smiv1Anchor",
+            "oid": "1.3.6.1.4.1.99996",
+            "class": "objectidentity",
+        },
+        "smiv1Scalar": {
+            "name": "smiv1Scalar",
+            "oid": "1.3.6.1.4.1.99996.1",
+            "class": "objecttype",
+            "nodetype": "scalar",
+            "maxaccess": "read-only",
+            "status": "mandatory",
+            "syntax": {"type": "OCTET STRING", "class": "type"},
+        },
+        "meta": {"schema": 1},
+    },
     "DEEP-MIB": {
         "deepMib": {
             "name": "deepMib",
@@ -195,6 +216,7 @@ DOCUMENTS: Final[dict[str, dict[str, Any]]] = {
 TIERS: Final[dict[str, str]] = {
     "FIXTURE-MIB": "standard",
     "SHADOW-MIB": "vendor",
+    "SMIV1-MIB": "vendor",
     "DEEP-MIB": "vendor",
 }
 
@@ -206,6 +228,7 @@ TIERS: Final[dict[str, str]] = {
 RANKED: Final[dict[str, str]] = {
     "1.3.6.1.4.1.99999": "FIXTURE-MIB",
     "1.3.6.1.4.1.99998": "SHADOW-MIB",
+    "1.3.6.1.4.1.99996": "SMIV1-MIB",
     "1.3.6.1.4.1.99997.1.2.3.4.5.6.7": "DEEP-MIB",
 }
 
@@ -493,13 +516,31 @@ VECTORS: Final[tuple[dict[str, Any], ...]] = (
         "expect": "202601010000Z",
     },
     {
-        "id": "module-without-identity-oid",
-        "why": "An SMIv1 module declares no MODULE-IDENTITY, so the column "
-        "is nullable and a reader must not assume it is set.",
+        "id": "module-identity-oid",
+        "why": "A module that declares a MODULE-IDENTITY records its OID.",
         "op": "module_field",
         "module": "SHADOW-MIB",
         "field": "oid",
         "expect": "1.3.6.1.4.1.99998",
+    },
+    {
+        "id": "module-without-identity-oid",
+        "why": "An SMIv1 module declares no MODULE-IDENTITY, so the column is "
+        "nullable and a reader must not assume it is set.",
+        "op": "module_field",
+        "module": "SMIV1-MIB",
+        "field": "oid",
+        "expect": None,
+    },
+    {
+        "id": "module-without-identity-revision",
+        "why": "Same module, same reason: no MODULE-IDENTITY means no "
+        "REVISION and no LAST-UPDATED, so the revision is null rather than "
+        "an empty string a reader might sort against.",
+        "op": "module_field",
+        "module": "SMIV1-MIB",
+        "field": "revision",
+        "expect": None,
     },
 )
 

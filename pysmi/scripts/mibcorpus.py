@@ -260,6 +260,13 @@ _ARTIFACTS: Final = {
     "report": ("report", "report.json"),
 }
 
+#: Artifacts a build produces only when asked for by name.
+#:
+#: The default layout is what pysnmp/mibs publishes, and the corpus database is
+#: not part of it: building one costs a pass over the whole jsondoc tree that
+#: nothing else needs, so a plain ``mibcorpus`` run must not pay for it.
+_OPT_IN: Final = frozenset({"core-db"})
+
 
 def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
     """Where each artifact goes: the full published layout, or a subset.
@@ -274,7 +281,10 @@ def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
     outputs = CorpusOutputs()
 
     if emitted is None:
-        for attribute, default in _ARTIFACTS.values():
+        for artifact, (attribute, default) in _ARTIFACTS.items():
+            if artifact in _OPT_IN:
+                continue
+
             setattr(outputs, attribute, os.path.join(directory, default))
 
         return outputs

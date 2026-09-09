@@ -309,8 +309,22 @@ def _blob(value: Any) -> str | None:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
-def _module_row(module: str, document: dict[str, Any], tier: str) -> tuple[Any, ...]:
-    """The ``module`` row for one jsondoc."""
+def _module_row(
+    module: str, document: dict[str, Any], tier: str, nodes: int
+) -> tuple[Any, ...]:
+    """The ``module`` row for one jsondoc.
+
+    Args:
+        module: the module's descriptor
+        document: the jsondoc
+        tier: the tier its namespace declared
+        nodes: how many rows this module actually contributed to ``node``.
+            Passed in rather than counted here: the two would be counted by
+            different rules -- this one would include the ``pysmiFakeCol``
+            templates and the duplicate OIDs the writer collapses -- and a
+            column that disagrees with ``SELECT count(*)`` is worse than no
+            column.
+    """
     identity = next(
         (
             x
@@ -327,11 +341,7 @@ def _module_row(module: str, document: dict[str, Any], tier: str) -> tuple[Any, 
         _text(identity.get("lastupdated")),
         newest_revision(document) or None,
         content_hash(document),
-        sum(
-            1
-            for x in document.values()
-            if isinstance(x, dict) and x.get("class") in NODE_CLASSES and x.get("oid")
-        ),
+        nodes,
     )
 
 
@@ -538,14 +548,25 @@ def write_db(
         for module, document, _, _ in corpus:
             tier = tiers.get(module, DEFAULT_TIER)
 
+            # Materialized before the module row is written, because that row
+            # records how many nodes this module contributed and the only
+            # honest source for that is what was inserted. INSERT OR REPLACE
+            # over the (oid_key, module) key collapses a module that declares
+            # one OID twice, so the batch length is not it either.
+            nodes = list(_node_rows(module, document, types))
+            stored = len({(row[0], row[1]) for row in nodes})
+
             connection.execute(
                 "INSERT OR REPLACE INTO module VALUES (?,?,?,?,?,?,?)",
-                _module_row(module, document, tier),
+                _module_row(module, document, tier, stored),
             )
             counts["module"] += 1
+            counts["node"] += stored
+
+            if nodes:
+                connection.executemany(_INSERT_NODE, nodes)
 
             for table, statement, rows in (
-                ("node", _INSERT_NODE, _node_rows(module, document, types)),
                 ("symbol", _INSERT_SYMBOL, _symbol_rows(module, document, types)),
                 ("import", _INSERT_IMPORT, _import_rows(module, document)),
             ):

@@ -306,9 +306,10 @@ class CorpusDriver:
         }
         #: Which namespace each module name came from, for the index tiers.
         self._tierOfModule: dict[str, int] = {}
-        self._corpus: (
-            tuple[list[tuple[str, dict[str, Any], int, int]], dict[str, str]] | None
-        ) = None
+        self._corpus: dict[
+            tuple[str, ...] | None,
+            tuple[list[tuple[str, dict[str, Any], int, int]], dict[str, str]],
+        ] = {}
         self._modulesOfNamespace: dict[str, list[str]] = {}
 
     @staticmethod
@@ -733,8 +734,14 @@ class CorpusDriver:
             :py:func:`~pysmi.corpus.index.read_documents` and
             :py:func:`~pysmi.corpus.index.rank_index` produce them.
         """
-        if self._corpus is not None:
-            return self._corpus
+        # Keyed by the selector, not merely memoized: write_index and write_db
+        # are public and a caller may ask for a named subset and then for all
+        # of it. Caching the first answer under both would silently write the
+        # subset twice.
+        selector = None if compiled is None else tuple(sorted(set(compiled)))
+
+        if selector in self._corpus:
+            return self._corpus[selector]
 
         if not self._outputs.json:
             raise error.PySmiError(
@@ -756,13 +763,13 @@ class CorpusDriver:
 
         documents = list(
             corpus_index.read_documents(
-                self._outputs.json, self._tierOfModule, rfcs, compiled
+                self._outputs.json, self._tierOfModule, rfcs, selector
             )
         )
 
-        self._corpus = (documents, corpus_index.rank_index(documents))
+        self._corpus[selector] = (documents, corpus_index.rank_index(documents))
 
-        return self._corpus
+        return self._corpus[selector]
 
     def write_db(
         self, report: CorpusReport, compiled: "Iterable[str] | None" = None

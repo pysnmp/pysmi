@@ -471,12 +471,22 @@ class OpenTestCase(unittest.TestCase):
         self.assertFalse(os.path.exists(path + "-wal"))
         self.assertFalse(os.path.exists(path + "-journal"))
 
-    def testIsReadableByAnyoneWhoCanReachIt(self):
-        # A corpus served by a container running as another uid answers 403
-        # for every module if the build's umask reached the file.
+    def testIsCreatedTheWayAnOrdinaryFileIs(self):
+        # The defect this guards against is mkstemp's 0600, which made a whole
+        # build's output readable only by the uid that ran it -- invisible
+        # until a container running as another user served it (pysnmp/mibs#365).
+        #
+        # The assertion is 0666 minus the umask rather than a bit mask: a mask
+        # of 0o044 passes on 0640, where an unrelated uid still cannot read the
+        # corpus, and a mask of 0o004 fails on 0640 even though the umask asked
+        # for that. What is being pinned is that the writer chooses no mode of
+        # its own, so the caller's umask is what decides.
+        umask = os.umask(0)
+        os.umask(umask)
+
         path, _ = build({"TEST-MIB": document(a=scalar("1.3.6.1.4.1.99.1", "a"))})
 
-        self.assertTrue(os.stat(path).st_mode & 0o044)
+        self.assertEqual(os.stat(path).st_mode & 0o777, 0o666 & ~umask)
 
 
 if __name__ == "__main__":
