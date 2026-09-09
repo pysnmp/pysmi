@@ -355,6 +355,39 @@ A caller that wants its build stamped passes ``corpus_version``, which is data
 it chose rather than data the build observed.
 
 
+Proving a reader conforms
+-------------------------
+
+:py:mod:`pysmi.corpus.conformance` publishes a small fixed corpus and the
+answers a reader of it must give. It exists because the contract between the
+two repositories is data: pysnmp's reader is correct or not in a repository
+this one cannot test, and this writer's output is consumed in a repository
+that does not run these tests.
+
+.. code-block:: python
+
+   from pysmi.corpus.conformance import VECTORS, build_fixture
+
+   build_fixture("conformance.db")
+
+   for vector in VECTORS:
+       ...  # dispatch on vector["op"], compare against vector["expect"]
+
+The fixture is **built rather than shipped**, so it is always this tree's
+writer over this tree's documents rather than a committed copy free to drift
+from it. It is deterministic, so a harness may cache it.
+
+The vectors cover the cases that break readers rather than the common path:
+an OID two modules define, a leaf that is not in the index and has to chop
+back to an anchor, an instance OID no MIB declares at all, the ``9``/``10``/
+``256`` neighbours that catch string comparison and single-byte arcs, a walk
+that must visit a shadowed OID once rather than once per module, and running
+off the end of the corpus, which is ``endOfMibView`` and not an error.
+
+``vectors_as_json()`` renders them for a harness that is not written in
+Python.
+
+
 Building one
 ------------
 
