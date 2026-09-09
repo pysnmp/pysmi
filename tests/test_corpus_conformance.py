@@ -99,6 +99,15 @@ class ConformanceTestCase(unittest.TestCase):
                 "same_syntax",
                 "import_source",
                 "module_field",
+                # The codec, which takes no corpus: a reader that encodes a
+                # key differently finds nothing and walks in the wrong order,
+                # and every operation above fails without naming the cause.
+                "oid_key",
+                "oid_from_key",
+                "subtree_bound",
+                "oid_key_order",
+                "oid_key_prefix",
+                "oid_key_refuses",
             },
         )
 
