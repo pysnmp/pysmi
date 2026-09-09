@@ -3,6 +3,19 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [3.1.0-rc.2](https://github.com/pysnmp/pysmi/compare/v3.1.0-rc.1...v3.1.0-rc.2) (2026-09-09)
+
+### Features
+
+* **corpus:** check a build for the invariants a corpus must not violate ([08fa621](https://github.com/pysnmp/pysmi/commit/08fa621201a1198aa55f6f98339b2bac8aa79c5e)), closes [#230](https://github.com/pysnmp/pysmi/issues/230) [#230](https://github.com/pysnmp/pysmi/issues/230) [pysnmp/mibs#363](https://github.com/pysnmp/mibs/issues/363) [pysnmp/pysnmp#199](https://github.com/pysnmp/pysnmp/issues/199)
+* **corpus:** let a build stamp the database it writes ([ba93a13](https://github.com/pysnmp/pysmi/commit/ba93a1314ad88dcb6c789dfe550196752308d8bc)), closes [#230](https://github.com/pysnmp/pysmi/issues/230) [pysnmp/pysnmp#199](https://github.com/pysnmp/pysnmp/issues/199)
+* **corpus:** make the key encoding part of the conformance contract ([ee392d0](https://github.com/pysnmp/pysmi/commit/ee392d0c4353eddc36937698653638dbe05ddb55)), closes [#184](https://github.com/pysnmp/pysmi/issues/184) [#230](https://github.com/pysnmp/pysmi/issues/230) [pysnmp/pysnmp#199](https://github.com/pysnmp/pysnmp/issues/199)
+
+### Bug Fixes
+
+* **corpus:** report a damaged corpus rather than raising sqlite3 out of validate ([93c40cf](https://github.com/pysnmp/pysmi/commit/93c40cf989bde668b48b82ceb455ff18d9bbc658))
+* **tests:** do not name a directory "we?ird" on a platform that forbids it ([d325e5f](https://github.com/pysnmp/pysmi/commit/d325e5f3ca8d94fa2c96d5315334e46622091e78)), closes [#235](https://github.com/pysnmp/pysmi/issues/235) [#235](https://github.com/pysnmp/pysmi/issues/235)
+
 ## [3.1.0-rc.1](https://github.com/pysnmp/pysmi/compare/v3.0.0...v3.1.0-rc.1) (2026-09-09)
 
 ### Features
