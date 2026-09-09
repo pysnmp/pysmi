@@ -704,6 +704,48 @@ class InputSetTestCase(CorpusTestCase):
         self.assertIsNone(outputs.core_db)
         self.assertEqual(report.db, {})
 
+    def testTheBuildIsStampedWithWhatTheCallerGaveIt(self):
+        # write_db has taken these since it was written, and until now nothing
+        # could pass them: no driver argument, no command-line option. A
+        # database nothing can stamp leaves corpus_version unset for every
+        # build mibcorpus produces, so a consumer cannot tell two apart.
+        outputs = self.outputs(core_db=os.path.join(self.root, "output", "core.db"))
+        CorpusDriver(
+            self.namespaces(),
+            outputs,
+            corpusVersion="2.1.0",
+            corpusId="pysnmp/mibs",
+        ).run()
+
+        connection = sqlite3.connect(outputs.core_db)
+
+        try:
+            meta = dict(connection.execute("SELECT key, value FROM meta"))
+
+        finally:
+            connection.close()
+
+        self.assertEqual(meta["corpus_version"], "2.1.0")
+        self.assertEqual(meta["corpus_id"], "pysnmp/mibs")
+
+    def testAnUnstampedBuildSaysSoRatherThanInventingOne(self):
+        # A version taken from a clock or a checkout would make two builds of
+        # one source tree differ, which is the property write_db exists to
+        # preserve.
+        outputs = self.outputs(core_db=os.path.join(self.root, "output", "core.db"))
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        connection = sqlite3.connect(outputs.core_db)
+
+        try:
+            meta = dict(connection.execute("SELECT key, value FROM meta"))
+
+        finally:
+            connection.close()
+
+        self.assertIsNone(meta.get("corpus_version"))
+        self.assertIsNone(meta.get("corpus_id"))
+
     def testTheCorpusCacheIsKeyedByWhatWasAskedFor(self):
         # write_index and write_db both read the jsondoc tree, and the read is
         # cached so a 5,000-module tree is not read twice. Caching the first

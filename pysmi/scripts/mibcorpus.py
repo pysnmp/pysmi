@@ -43,6 +43,8 @@ def start() -> None:
     namespaceArgs: list[tuple[str, bool]] = []
     outputs = CorpusOutputs()
     explicitOutputs = False
+    corpusVersion = ""
+    corpusId = ""
 
     helpMessage = """\
     Usage: {} [--help]
@@ -91,6 +93,13 @@ def start() -> None:
                 jsondoc tree, so a build asking for one has to emit json
                 too -- to a scratch path outside the corpus, where the
                 corpus is not meant to carry it.
+        --corpus-version - what to stamp core.db as, recorded verbatim in
+                its metadata. Nothing is invented when this is absent: a
+                version taken from a clock or from a checkout would make
+                two builds of one source tree differ, and the database is
+                written to be reproducible. A publisher passes its release.
+        --corpus-id - a stable name for the corpus core.db is a build of,
+                so a consumer holding two can tell whose each one is.
         --fail-on-errors - exit non-zero when any module failed to
                 compile. Off by default: a corpus of MIBs nobody controls
                 always carries some that do not compile, and the report
@@ -112,6 +121,8 @@ def start() -> None:
                 "output-directory=",
                 "frozen-index=",
                 "emit=",
+                "corpus-version=",
+                "corpus-id=",
                 "no-bundled-mibs",
                 "fail-on-errors",
             ],
@@ -171,6 +182,12 @@ def start() -> None:
             emitted.append(opt[1])
             explicitOutputs = True
 
+        if opt[0] == "--corpus-version":
+            corpusVersion = opt[1]
+
+        if opt[0] == "--corpus-id":
+            corpusId = opt[1]
+
         if opt[0] == "--no-bundled-mibs":
             bundledMibsFlag = False
 
@@ -209,7 +226,13 @@ def start() -> None:
     outputs.frozen_index = frozenIndex or None
 
     try:
-        report = CorpusDriver(namespaces, outputs, useBundledMibs=bundledMibsFlag).run()
+        report = CorpusDriver(
+            namespaces,
+            outputs,
+            useBundledMibs=bundledMibsFlag,
+            corpusVersion=corpusVersion or None,
+            corpusId=corpusId or None,
+        ).run()
 
     except error.PySmiError as exc:
         sys.stderr.write(f"ERROR: {exc}\r\n")

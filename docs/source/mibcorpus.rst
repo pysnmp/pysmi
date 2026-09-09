@@ -31,6 +31,8 @@ it.
          [--output-directory=<DIRECTORY>]
          [--frozen-index=<FILE>]
          [--emit=<ARTIFACT>[:<PATH>]]
+         [--corpus-version=<VERSION>]
+         [--corpus-id=<NAME>]
          [--no-bundled-mibs]
          [--fail-on-errors]
 
