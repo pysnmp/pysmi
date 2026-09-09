@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [4.0.0-rc.2](https://github.com/pysnmp/pysmi/compare/v4.0.0-rc.1...v4.0.0-rc.2) (2026-09-09)
+
+### Features
+
+* **codegen:** declare the pysnmp API the generator emits ([fe233aa](https://github.com/pysnmp/pysmi/commit/fe233aa467883571f25df52f237779db9b1148db))
+
 ## [4.0.0-rc.1](https://github.com/pysnmp/pysmi/compare/v3.1.0-rc.4...v4.0.0-rc.1) (2026-09-09)
 
 ### ⚠ BREAKING CHANGES
