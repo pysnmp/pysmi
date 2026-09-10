@@ -178,6 +178,10 @@ class MibStatus(str):
     #: constants. Set only when something was ``shadowed``, since with one
     #: copy there was nothing to decide.
     precedence: str
+    #: What the patch for this module did to the copy that was used, one of the
+    #: status constants in :py:mod:`pysmi.patches`. Empty when pysmi has no
+    #: patch for it, which is the usual case.
+    patch: str
     #: URL the MIB was read from.
     path: str
     #: File the MIB was read from.
@@ -1404,6 +1408,7 @@ class MibCompiler:
                         ),
                         shadowed=tuple(shadowedMibs.get(mibname, ())),
                         precedence=precedenceOfMib.get(mibname, ""),
+                        patch=fileInfo.patch,
                     )
 
             except error.PySmiError as exc:

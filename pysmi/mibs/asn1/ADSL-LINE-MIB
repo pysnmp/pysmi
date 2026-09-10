@@ -3351,6 +3351,7 @@
                   static profiles are implemented."
 
              OBJECT      adslAtucConfMinSnrMgn
+             MIN-ACCESS  read-wr
              MIN-ACCESS  read-write
              DESCRIPTION
                  "Read-write access is applicable when

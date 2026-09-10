@@ -396,10 +396,18 @@ Inventory
 Patched modules
 ---------------
 
-The published text of these modules does not compile. Each is bundled as its
-publisher's text with a patch applied, kept in ``scripts/mib-patches/`` and
-re-applied on every refresh; a patch whose context has moved makes the refresh
-fail rather than silently fuzzing. The defect each one repairs:
+The published text of these modules does not compile. Each is stored here as
+its publisher printed it, with the repair kept beside it as a unified diff in
+``pysmi/mibs/patches/`` -- so a refresh diffs against the publisher and what
+pysmi changes stays visible as a diff of its own.
+
+Every reader applies the diff on the way out, so a caller pointing
+``--mib-source`` at their own copy of one of these gets the same repaired text
+pysmi's own copy yields; ``mibdump --no-mib-patches`` turns that off. The wheel
+carries the repaired text as well, for a consumer reading ``pysmi/mibs/asn1``
+straight off disk rather than through a reader. A patch whose context has moved
+makes the refresh fail rather than silently fuzzing. The defect each one
+repairs:
 
 ``ADSL-LINE-MIB``
     RFC 2662 carries a truncated ``MIN-ACCESS  read-wr`` line, orphaned in the published text.

@@ -200,7 +200,7 @@ class ZipReader(AbstractReader):
 
         return list(seen)
 
-    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def fetch_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Read a MIB from the ZIP archive.
 
         Raises:

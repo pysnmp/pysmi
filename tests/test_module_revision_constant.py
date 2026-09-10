@@ -27,6 +27,7 @@ from pysmi.codegen import PySnmpCodeGen
 from pysmi.compiler import MibCompiler, revision_of
 from pysmi.mibinfo import normalise_revision, strip_comments
 from pysmi.parser import SmiV1CompatParser
+from pysmi.patches import PatchSet
 from pysmi.reader import PackageReader
 from pysmi.writer import CallbackWriter
 from tests.harness import symbol_table
@@ -385,8 +386,18 @@ class ConstantMatchesTheCompilerTestCase(unittest.TestCase):
         # being compared -- the same silent pass the constant exists to remove.
         self.assertEqual(sorted(rendered), names)
 
+        patches = PatchSet.bundled()
+
         for name in names:
             asn1 = sources.joinpath(name).read_text(encoding="utf-8", errors="replace")
+
+            # The tree holds the published text and the compile above read it
+            # through a reader, which repairs it. HPR-MIB is the module that
+            # makes the difference visible: published, its LAST-UPDATED is the
+            # thirteen-character "970514000000Z" that denotes no date at all,
+            # so revision_of reports None while the rendered module carries the
+            # repaired 1997 stamp. Compare like with like.
+            asn1, _status = patches.apply(name, asn1)
 
             with self.subTest(module=name):
                 self.assertEqual(revision_of(asn1), constant_in(rendered[name]))

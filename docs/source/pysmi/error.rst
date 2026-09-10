@@ -68,3 +68,9 @@ Writer
 
 .. autoexception:: pysmi.error.PySmiWriterError
   :members:
+
+Patches
+-------
+
+.. autoexception:: pysmi.error.PySmiPatchError
+  :members:

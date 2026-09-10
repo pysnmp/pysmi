@@ -7,12 +7,10 @@ DSA-MIB DEFINITIONS ::= BEGIN
           DisplayString,    TimeStamp,
           TEXTUAL-CONVENTION
                      FROM SNMPv2-TC
-          MODULE-COMPLIANCE, OBJECT-GROUP
-                     FROM SNMPv2-CONF
           mib-2
                      FROM RFC1213-MIB
           applIndex, DistinguishedName
-                     FROM NETWORK-SERVICES-MIB;
+                     FROM APPLICATION-MIB;
 
         dsaMIB MODULE-IDENTITY
            LAST-UPDATED "9311250000Z"

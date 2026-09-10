@@ -44,7 +44,7 @@ class CallbackReader(AbstractReader):
         """Identify this reader by the callback it asks for MIBs."""
         return f'{self.__class__.__name__}{{"{self._cbFun}"}}'
 
-    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def fetch_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Ask the user callback for the MIB source.
 
         Raises:

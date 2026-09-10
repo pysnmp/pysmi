@@ -6,12 +6,16 @@
 #
 """Interface shared by the readers, and the MIB file name guessing they share."""
 
+import logging
 import os
 from collections.abc import Iterable
 from typing import Any
 
 from pysmi._aliases import deprecated_camel_case
 from pysmi.mibinfo import MibInfo
+from pysmi.patches import APPLIED, PatchSet
+
+logger = logging.getLogger(__name__)
 
 
 @deprecated_camel_case
@@ -22,7 +26,7 @@ class AbstractReader:
     server, a ZIP archive. The compiler tries its readers in the order they
     were added and takes the first that produces the module.
 
-    Subclasses implement :py:meth:`get_data`. The file name guessing in
+    Subclasses implement :py:meth:`fetch_data`. The file name guessing in
     :py:meth:`get_mib_variants` is shared by all of them, since a MIB module is
     named inside the file but a reader only has the file name to go on.
     """
@@ -36,6 +40,21 @@ class AbstractReader:
     #: trip for a web server -- so only local readers are consulted that way,
     #: and a remote one keeps its place in plain first-match order.
     isLocal = False
+
+    #: Whether to offer each module the patch for it, if there is one.
+    #:
+    #: On, because a MIB that does not compile is not what the caller asked for
+    #: and pysmi knows how to fix twelve of them. Turn it off to see exactly
+    #: what a source holds -- which is what the bundle refresh wants, since its
+    #: job is to notice when a publisher's text has moved.
+    usePatches = True
+
+    #: Which patches to offer, or ``None`` for the set pysmi ships.
+    #:
+    #: A caller with patches of their own points this at a
+    #: :py:class:`~pysmi.patches.PatchSet` built from their directory. Ignored
+    #: when ``usePatches`` is off.
+    patchSet: PatchSet | None = None
 
     maxMibSize = 10000000  # MIBs can't be that large
     fuzzyMatching = True  # try different file names while searching for MIB
@@ -104,7 +123,14 @@ class AbstractReader:
         return ((x, x + y) for x in filenames for y in options.get("exts", self.exts))
 
     def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
-        """Fetch the ASN.1 source of a MIB module.
+        """Fetch the ASN.1 source of a MIB module, patched if it needs it.
+
+        Subclasses implement :py:meth:`fetch_data`; this adds the part every
+        source needs alike. Some published MIBs do not compile, and the fix for
+        each is a small diff kept in :py:mod:`pysmi.patches`. Applying it here
+        rather than to pysmi's own bundled copies is what makes the fix reach a
+        caller's own copy of the module too -- see that module for why that
+        matters to source precedence.
 
         Args:
             mibname (str): MIB module name to fetch
@@ -114,6 +140,49 @@ class AbstractReader:
 
         Returns:
             The module's :py:class:`~pysmi.mibinfo.MibInfo` and its ASN.1 text.
+            :py:attr:`~pysmi.mibinfo.MibInfo.patch` records what the patch for
+            this module did, if there is one.
+
+        Raises:
+            PySmiReaderFileNotFoundError: this source does not have the MIB.
+            PySmiReaderFileNotModifiedError: the source is older than requested.
+        """
+        mibinfo, data = self.fetch_data(mibname, **options)
+
+        if not self.usePatches:
+            return mibinfo, data
+
+        available = self.patchSet if self.patchSet is not None else PatchSet.bundled()
+
+        # The name the module is filed under here, not the alias the file name
+        # happened to spell, since a patch is cut against the module.
+        data, mibinfo.patch = available.apply(mibname, data)
+
+        if mibinfo.patch == APPLIED:
+            logger.info(
+                "patched MIB %s from %s",
+                mibname,
+                mibinfo.path,
+                extra={"mib": mibname, "path": mibinfo.path},
+            )
+
+        return mibinfo, data
+
+    def fetch_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+        """Fetch the ASN.1 source of a MIB module from this source.
+
+        The part of :py:meth:`get_data` that differs per source. Implement this
+        rather than *get_data*, so the module comes back patched.
+
+        Args:
+            mibname (str): MIB module name to fetch
+
+        Keyword Args:
+            options: passed through to :py:meth:`get_mib_variants`
+
+        Returns:
+            The module's :py:class:`~pysmi.mibinfo.MibInfo` and its ASN.1 text,
+            exactly as this source holds them.
 
         Raises:
             PySmiReaderFileNotFoundError: this source does not have the MIB.

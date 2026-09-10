@@ -39,6 +39,9 @@ from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 #: Where the generated modules land inside the wheel.
 DEST = "pysmi/mibs/pysnmp"
 
+#: Where the ASN.1 lives, in the tree and in the wheel alike.
+ASN1 = "pysmi/mibs/asn1"
+
 #: A malformed OID can send the code generator round a cycle; the default
 #: limit turns that into a bare RecursionError far from the MIB that caused
 #: it. Same value tests/test_bundled_mibs_compile.py uses.
@@ -62,16 +65,85 @@ class PrecompiledMibsHook(BuildHookInterface[Any]):
         if self.target_name != "wheel":
             return
 
+        self._patched = patch_asn1(Path(self.root))
+
+        for name, staged in self._patched.items():
+            build_data["force_include"][str(staged)] = f"{ASN1}/{name}"
+
         self._tmp = build(Path(self.root))
 
         build_data["force_include"][str(self._tmp)] = DEST
 
     def finalize(self, version: str, build_data: dict[str, Any], artifact: str) -> None:
-        """Drop the staging directory once the wheel holds a copy."""
+        """Drop the staging directories once the wheel holds a copy."""
+        for staged in getattr(self, "_patched", {}).values():
+            shutil.rmtree(staged.parent, ignore_errors=True)
+            break
+
         tmp = getattr(self, "_tmp", None)
 
         if tmp:
             shutil.rmtree(tmp, ignore_errors=True)
+
+
+def patch_asn1(root: Path) -> "dict[str, Path]":
+    """Stage patched copies of the bundled modules that carry a patch.
+
+    The tree holds each module as its publisher printed it, so that ``git diff``
+    on a bundle refresh is a diff against the publisher and the repairs pysmi
+    makes are visible as a diff of their own. The *wheel* holds the repaired
+    text, because a consumer reading ``pysmi/mibs/asn1`` straight off disk --
+    the ``pysnmp/mibs`` mirror, a build that copies the directory -- is not
+    going through a reader and cannot apply anything.
+
+    Reading through pysmi gets the same text either way: the reader applies the
+    patch to the tree's copy and recognises it as already applied on the wheel's.
+
+    Args:
+        root: the repository root, holding ``pysmi/mibs/asn1``.
+
+    Returns:
+        Module name to the staged patched file, for the caller to force into
+        the wheel. The caller owns the directory they sit in.
+
+    Raises:
+        RuntimeError: a patch did not apply to the text in the tree, which
+            means the two have gone out of step.
+    """
+    sys.path.insert(0, str(root))
+
+    from pysmi.patches import APPLIED, PatchSet
+
+    patches = PatchSet.bundled()
+    asn1 = root / ASN1
+    out = Path(tempfile.mkdtemp(prefix="pysmi-patched-asn1-"))
+
+    staged: dict[str, Path] = {}
+
+    for mibname in patches.modules():
+        source = asn1 / mibname
+
+        if not source.exists():
+            # A patch for a module the bundle does not carry -- one held in
+            # pysmi/mibs/future, which the wheel excludes.
+            continue
+
+        text = source.read_text(encoding="utf-8", errors="replace")
+        patched, status = patches.apply(mibname, text)
+
+        if status != APPLIED:
+            shutil.rmtree(out, ignore_errors=True)
+            raise RuntimeError(
+                f"{mibname}: its patch did not apply to the bundled text "
+                f"({status or 'no patch found'}); the tree should hold the "
+                "published text and pysmi/mibs/patches the repair"
+            )
+
+        target = out / mibname
+        target.write_text(patched, encoding="utf-8", newline="")
+        staged[mibname] = target
+
+    return staged
 
 
 def build(root: Path) -> Path:

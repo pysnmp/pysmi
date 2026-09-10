@@ -252,7 +252,7 @@ class FileReader(AbstractReader):
         What the scan learns is added to that index, but only for a module
         no file name in the tree would have led to anyway -- one declared in
         a file named for something else. Those are the modules
-        :py:meth:`get_data` cannot presently find at all, so indexing them
+        :py:meth:`~pysmi.reader.base.AbstractReader.get_data` cannot presently find at all, so indexing them
         turns a name it would fail on into one it resolves. Every other
         module keeps being looked up by the file names
         :py:meth:`~pysmi.reader.base.AbstractReader.get_mib_variants`
@@ -322,7 +322,7 @@ class FileReader(AbstractReader):
 
         return list(seen)
 
-    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def fetch_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Read a MIB from the local directory tree.
 
         Raises:

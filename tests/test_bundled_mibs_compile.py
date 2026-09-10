@@ -28,6 +28,7 @@ from pysmi.codegen import JsonCodeGen, PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
+from pysmi.patches import PatchSet
 from pysmi.reader import PackageReader
 from pysmi.writer import CallbackWriter
 from scripts.update_bundled_mibs import PATCHES, PUBLISHERS, bundled, future, manifest
@@ -90,6 +91,7 @@ class BundledMibsCompileTestCase(unittest.TestCase):
         what someone adding a module to the manifest needs to see.
         """
         parser = SmiV1CompatParser()
+        patches = PatchSet.bundled()
         outside = {}
 
         for mibname in BUNDLED:
@@ -98,6 +100,12 @@ class BundledMibsCompileTestCase(unittest.TestCase):
                 .joinpath(mibname)
                 .read_text(errors="replace")
             )
+            # The tree holds each module as its publisher printed it, and four
+            # of those do not parse. Reading one straight off disk is not what
+            # a consumer does -- a reader applies the patch, and the wheel
+            # carries the repaired text -- so this does the same by hand.
+            text, _status = patches.apply(mibname, text)
+
             _info, symtable = SymtableCodeGen().gen_code(parser.parse(text)[0], {})
 
             for imported in symtable.get("imports", {}):

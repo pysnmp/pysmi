@@ -17,7 +17,6 @@ refuse a patch whose context has moved rather than fuzz it into place.
 """
 
 import pathlib
-import re
 import tempfile
 import unittest
 from unittest import mock
@@ -178,75 +177,11 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertEqual(0, update_bundled_mibs.verify())
 
 
-ORIGINAL = "alpha\nbeta\ngamma\n"
-PATCH = """\
---- a/TEST-MIB
-+++ b/TEST-MIB
-@@ -1,3 +1,3 @@
- alpha
--beta
-+BETA
- gamma
-"""
-
-
-class ApplyPatchTestCase(unittest.TestCase):
-    def testAPatchIsAppliedWhereItsContextMatches(self):
-        patched = update_bundled_mibs.apply_patch(ORIGINAL.encode(), PATCH, "TEST-MIB")
-
-        self.assertEqual("alpha\nBETA\ngamma\n", patched.decode())
-
-    def testAPatchWhoseContextHasMovedIsRefused(self):
-        """A moved context means the publisher's text changed under the patch.
-
-        Fuzzing it into place would bundle a module nobody has reviewed in its
-        new form, and the whole point of keeping the patch separate is that
-        somebody can see what was changed and why.
-        """
-        moved = "alpha\nbeta and more\ngamma\n"
-
-        with self.assertRaises(SystemExit) as raised:
-            update_bundled_mibs.apply_patch(moved.encode(), PATCH, "TEST-MIB")
-
-        self.assertIn("no longer applies", str(raised.exception))
-
-    def testEveryBundledPatchRoundTripsAgainstTheBundledCopy(self):
-        """Each bundled file must be exactly its patch applied to something.
-
-        This is the offline half of ``--check``. It cannot tell whether the
-        publisher's text has moved -- only the network can -- but it does catch
-        a bundled file edited by hand past what its patch accounts for, which
-        would leave bytes in the package that no patch and no publisher
-        explains.
-
-        Both tiers. A held module's patch is a claim about its bytes just as a
-        carried one's is, and checking it costs nothing -- this is the one part
-        of ``--check`` that needs no network, so it is the one part the held
-        tier does not lose.
-        """
-        modules = {
-            name: entry
-            for name, entry in update_bundled_mibs.manifest().items()
-            if "patch" in entry
-        }
-
-        for mibname, entry in sorted(modules.items()):
-            with self.subTest(mib=mibname):
-                patch = (update_bundled_mibs.PATCHES / entry["patch"]).read_text()
-                held = update_bundled_mibs.directory(entry) / mibname
-                ours = held.read_bytes()
-
-                # Reversing the patch off our copy recovers the publisher's
-                # text; re-applying it has to give our copy back, byte for
-                # byte.
-                published = update_bundled_mibs.apply_patch(
-                    ours, _invert(patch), mibname
-                )
-
-                self.assertEqual(
-                    ours,
-                    update_bundled_mibs.apply_patch(published, patch, mibname),
-                )
+# The applier itself moved to pysmi.patches when patches became something every
+# reader applies rather than something this script does once. Its tests, and the
+# round-trip of every bundled patch against the copy in the tree, live in
+# tests/test_patches.py. What stays this script's own is the strictness above:
+# a patch that no longer applies to the published text fails the refresh.
 
 
 class IeeeIndexTestCase(unittest.TestCase):
@@ -388,26 +323,6 @@ def _stamped(revision: bytes | str) -> bytes:
         b'alpha MODULE-IDENTITY LAST-UPDATED "' + str(revision).encode() + b'"\n'
         b"END\n"
     )
-
-
-def _invert(patch: str) -> str:
-    """Turn a unified diff around, so it undoes what it would have done."""
-    header = re.compile(r"^@@ -(\d+(?:,\d+)?) \+(\d+(?:,\d+)?) @@(.*)$")
-    flipped = {"+": "-", "-": "+"}
-    out = []
-
-    for chunk in patch.split("\n"):
-        found = header.match(chunk)
-        if chunk.startswith(("--- ", "+++ ")):
-            out.append(chunk)
-        elif found:
-            out.append(f"@@ -{found.group(2)} +{found.group(1)} @@{found.group(3)}")
-        elif chunk[:1] in flipped:
-            out.append(flipped[chunk[0]] + chunk[1:])
-        else:
-            out.append(chunk)
-
-    return "\n".join(out)
 
 
 if __name__ == "__main__":
