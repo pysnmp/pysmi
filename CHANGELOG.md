@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [4.0.0-rc.3](https://github.com/pysnmp/pysmi/compare/v4.0.0-rc.2...v4.0.0-rc.3) (2026-09-10)
+
+### Features
+
+* **corpus:** publish the precedence rule as vectors both projects run ([26f0262](https://github.com/pysnmp/pysmi/commit/26f0262013f31b633711767c8d43c7e313696563)), closes [#248](https://github.com/pysnmp/pysmi/issues/248)
+
 ## [4.0.0-rc.2](https://github.com/pysnmp/pysmi/compare/v4.0.0-rc.1...v4.0.0-rc.2) (2026-09-09)
 
 ### Features
