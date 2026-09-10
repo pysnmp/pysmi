@@ -3,6 +3,49 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [4.0.0](https://github.com/pysnmp/pysmi/compare/v3.1.0...v4.0.0) (2026-09-10)
+
+### ⚠ BREAKING CHANGES
+
+* **patches:** readers implement fetch_data() rather than get_data(); a
+subclass overriding get_data() still works but skips patching. Patching is on
+by default -- mibdump --no-mib-patches turns it off, --mib-patch-source
+replaces the bundled set, and AbstractReader.usePatches/patchSet are the
+library equivalents. pysmi/mibs/asn1 in the source tree now holds the
+published text for the twelve patched modules; the wheel is unchanged.
+
+Closes #185.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+* **mibs:** pysmi.mibs.behavior() is gone and generated modules no longer
+carry a spliced runtime-behavior tail. Consumers relying on that tail must
+apply their own behavior at load time, as pysnmp now does. PYSNMP-USM-MIB is
+no longer in PySnmpCodeGen.baseMibs, so a StubSearcher built from it no longer
+reports that module as up to date.
+
+### Features
+
+* **codegen:** declare the pysnmp API the generator emits ([fe233aa](https://github.com/pysnmp/pysmi/commit/fe233aa467883571f25df52f237779db9b1148db))
+* **corpus:** check a build for the invariants a corpus must not violate ([08fa621](https://github.com/pysnmp/pysmi/commit/08fa621201a1198aa55f6f98339b2bac8aa79c5e)), closes [#230](https://github.com/pysnmp/pysmi/issues/230) [#230](https://github.com/pysnmp/pysmi/issues/230) [pysnmp/mibs#363](https://github.com/pysnmp/mibs/issues/363) [pysnmp/pysnmp#199](https://github.com/pysnmp/pysnmp/issues/199)
+* **corpus:** let a build stamp the database it writes ([ba93a13](https://github.com/pysnmp/pysmi/commit/ba93a1314ad88dcb6c789dfe550196752308d8bc)), closes [#230](https://github.com/pysnmp/pysmi/issues/230) [pysnmp/pysnmp#199](https://github.com/pysnmp/pysnmp/issues/199)
+* **corpus:** make the key encoding part of the conformance contract ([ee392d0](https://github.com/pysnmp/pysmi/commit/ee392d0c4353eddc36937698653638dbe05ddb55)), closes [#184](https://github.com/pysnmp/pysmi/issues/184) [#230](https://github.com/pysnmp/pysmi/issues/230) [pysnmp/pysnmp#199](https://github.com/pysnmp/pysnmp/issues/199)
+* **corpus:** publish the precedence rule as vectors both projects run ([26f0262](https://github.com/pysnmp/pysmi/commit/26f0262013f31b633711767c8d43c7e313696563)), closes [#248](https://github.com/pysnmp/pysmi/issues/248)
+* **mibs:** attach hand-written runtime behavior to a bundled module ([888b944](https://github.com/pysnmp/pysmi/commit/888b944eede7b617755ae34f501fdccec6e4b692)), closes [#231](https://github.com/pysnmp/pysmi/issues/231)
+* **mibs:** give snmpEngineTime the elapsed-seconds read RFC 3411 describes ([7a8e948](https://github.com/pysnmp/pysmi/commit/7a8e9488d04e023bc819de8eb613592c127bb004)), closes [#236](https://github.com/pysnmp/pysmi/issues/236) [#231](https://github.com/pysnmp/pysmi/issues/231)
+* **patches:** carry the patch with the MIB, not with the bundle ([8e22340](https://github.com/pysnmp/pysmi/commit/8e2234042c4c9cb3a4b54557ea9671fb55cc1805))
+
+### Bug Fixes
+
+* **ci:** keep the behavior fragments out of mypy's file list and name the codegen by its module ([7dd4952](https://github.com/pysnmp/pysmi/commit/7dd495206d32ebb0b6b8b47cba075ce3864cd4e5))
+* **codegen:** set the encoding a UTF-8 DISPLAY-HINT states ([58a3e3f](https://github.com/pysnmp/pysmi/commit/58a3e3f2a26d19d53cce4f5c4d252029c8417519))
+* **corpus:** report a damaged corpus rather than raising sqlite3 out of validate ([93c40cf](https://github.com/pysnmp/pysmi/commit/93c40cf989bde668b48b82ceb455ff18d9bbc658))
+* **mibs:** re-seed the objects a behavior fragment's class attribute built ([6d91544](https://github.com/pysnmp/pysmi/commit/6d915448d4076e9335e3bf23d393ea82184c25b7)), closes [#236](https://github.com/pysnmp/pysmi/issues/236)
+* **tests:** do not name a directory "we?ird" on a platform that forbids it ([d325e5f](https://github.com/pysnmp/pysmi/commit/d325e5f3ca8d94fa2c96d5315334e46622091e78)), closes [#235](https://github.com/pysnmp/pysmi/issues/235) [#235](https://github.com/pysnmp/pysmi/issues/235)
+
+### Code Refactoring
+
+* **mibs:** hand MIB runtime behavior back to pysnmp ([40c7f22](https://github.com/pysnmp/pysmi/commit/40c7f225ebbbd9ba7ab424441ed8b903ac651e42)), closes [#236](https://github.com/pysnmp/pysmi/issues/236) [#231](https://github.com/pysnmp/pysmi/issues/231) [#236](https://github.com/pysnmp/pysmi/issues/236)
+
 ## [4.0.0-rc.4](https://github.com/pysnmp/pysmi/compare/v4.0.0-rc.3...v4.0.0-rc.4) (2026-09-10)
 
 > **Corrected.** The notes generated for this release announced a breaking
