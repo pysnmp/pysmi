@@ -444,6 +444,53 @@ point neither can read the other's files, so the bytes are the contract.
 Python.
 
 
+Proving the precedence rule agrees
+----------------------------------
+
+"Newest MODULE-IDENTITY revision wins, configured order breaks ties only" is
+implemented three times, in two repositories that cannot import each other.
+pysmi ranks a module found in several sources
+(:py:func:`pysmi.compiler.rank_by_revision`) and ranks modules anchored at the
+same OID (:py:func:`pysmi.corpus.index.rank_index`). pysnmp ranks the same
+module found in several MIB directories, and again when several corpora carry
+it. pysmi is an optional dependency of pysnmp, so pysnmp cannot import the
+rule at runtime; pysmi cannot import pysnmp at all.
+
+:py:mod:`pysmi.corpus.precedence` publishes the decisions as data, the same
+way the fixture above publishes the reader contract:
+
+.. code-block:: python
+
+   from pysmi.corpus.precedence import VECTORS, run_vectors
+
+   run_vectors()  # [] -- this side answers what it publishes
+
+   for vector in VECTORS:
+       ...  # dispatch on vector["op"], compare against vector["expect"]
+
+Three operations. ``normalise_revision`` pins the widening of RFC 2578's
+two-digit-year form and the refusal of a stamp that is not a date, because
+the ranking is a string comparison over its output and two implementations
+that agree on the ranking and disagree on the normalisation still resolve
+differently. ``module_precedence`` is the module-name rule: candidates in
+configured order, to the order they rank in and which ``PRECEDENCE_*`` rule
+put the winner first. ``oid_precedence`` is the corpus rule, which carries
+terms the module-name rule has nowhere to put -- obsolete over live, tier,
+how strongly a module claims the arc, publishing RFC, and the module name
+last so the rule is total and a rebuild cannot change its mind.
+
+The two rules part company on an undated candidate. In the module-name rule a
+single undated copy disables the comparison and the caller's source order
+decides, because an undated module may well be the newer one. A corpus has no
+source order to fall back to, so there an unplaceable revision sorts after
+every placeable one instead.
+
+Both projects run the vectors in their own CI, so a change on either side that
+would break the other fails in whichever project moved, rather than surfacing
+much later as a trap decoded against the wrong definition. See
+pysnmp/pysmi#248.
+
+
 Building one
 ------------
 
