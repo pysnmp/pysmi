@@ -24,11 +24,12 @@ import unittest
 from importlib import resources
 
 from hatch_build import build as build_precompiled
+from hatch_build import patch_asn1
 from pysmi.codegen import JsonCodeGen, PySnmpCodeGen
 from pysmi.codegen.symtable import SymtableCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
-from pysmi.reader import PackageReader
+from pysmi.reader import FileReader
 from pysmi.writer import CallbackWriter
 from scripts.update_bundled_mibs import PATCHES, PUBLISHERS, bundled, future, manifest
 
@@ -39,6 +40,30 @@ from scripts.update_bundled_mibs import PATCHES, PUBLISHERS, bundled, future, ma
 #: entries are still held to the provenance rules, which do not depend on
 #: whether anything reads the text.
 BUNDLED = sorted(bundled())
+
+#: The repository root, which is what the build hook is pointed at.
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+#: The bundle as a distribution carries it: the tree's published text with the
+#: repairs in ``scripts/mib-patches`` applied. Compiling the tree directly would
+#: be asserting something no consumer sees -- four of those modules do not parse
+#: as published, which is why they carry a patch -- so everything here that
+#: compiles or parses the bundle reads this instead. Staged once for the module,
+#: since it is 210 files and nothing below writes to it.
+REPAIRED: pathlib.Path
+
+
+def setUpModule():
+    """Stage the repaired bundle the distribution would ship."""
+    global REPAIRED
+
+    REPAIRED = patch_asn1(ROOT)
+
+
+def tearDownModule():
+    """Drop the staging directory."""
+    shutil.rmtree(REPAIRED, ignore_errors=True)
+
 
 #: The LAST-UPDATED a few load-bearing modules should carry, per the RFC the
 #: manifest pins them to.
@@ -58,7 +83,7 @@ class BundledMibsCompileTestCase(unittest.TestCase):
             CallbackWriter(lambda *a: None),
             useBundledMibs=False,
         )
-        self.compiler.add_sources(PackageReader("pysmi.mibs.asn1"))
+        self.compiler.add_sources(FileReader(str(REPAIRED)))
         # A malformed OID in one module can send the code generator round a
         # cycle; the default limit turns that into a bare RecursionError far
         # from the MIB that caused it. Restored in tearDown.
@@ -93,11 +118,8 @@ class BundledMibsCompileTestCase(unittest.TestCase):
         outside = {}
 
         for mibname in BUNDLED:
-            text = (
-                resources.files("pysmi.mibs.asn1")
-                .joinpath(mibname)
-                .read_text(errors="replace")
-            )
+            text = (REPAIRED / mibname).read_text(errors="replace")
+
             _info, symtable = SymtableCodeGen().gen_code(parser.parse(text)[0], {})
 
             for imported in symtable.get("imports", {}):
@@ -208,7 +230,7 @@ class BundledMibsCompileTestCase(unittest.TestCase):
         so a future change to ``constImports`` cannot reintroduce it.
         See pysnmp/pysmi#196.
         """
-        out = build_precompiled(pathlib.Path(__file__).parent.parent)
+        out = build_precompiled(ROOT, REPAIRED)
 
         try:
             offenders = {}
@@ -242,7 +264,7 @@ class BundledMibsCompileTestCase(unittest.TestCase):
 
         self.assertEqual({"SNMPv2-SMI", "SNMPv2-TC", "SNMPv2-CONF"}, set(expected))
 
-        out = build_precompiled(pathlib.Path(__file__).parent.parent)
+        out = build_precompiled(ROOT, REPAIRED)
 
         try:
             emitted = {p.stem for p in out.glob("*.py") if not p.name.startswith("__")}

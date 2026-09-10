@@ -396,10 +396,20 @@ Inventory
 Patched modules
 ---------------
 
-The published text of these modules does not compile. Each is bundled as its
-publisher's text with a patch applied, kept in ``scripts/mib-patches/`` and
-re-applied on every refresh; a patch whose context has moved makes the refresh
-fail rather than silently fuzzing. The defect each one repairs:
+The published text of these modules does not compile. Each is stored here as
+its publisher printed it, with the repair kept beside it as a unified diff in
+``scripts/mib-patches/`` -- so a refresh diffs against the publisher and what
+pysmi changes stays visible as a diff of its own.
+
+The repairs are applied when a distribution is built, to both the ASN.1 an
+install carries and the pysnmp modules rendered from it. PySMI does not patch
+anything at read time: a source is read exactly as it stands, so a caller
+pointing ``--mib-source`` at their own copy of one of these compiles the defect
+along with it. Patch your own copies before PySMI sees them, or rebuild PySMI
+from source with your own diffs in that directory -- the distribution is the
+opinion, and a different opinion is a different build. A patch whose context has
+moved makes the refresh fail rather than silently fuzzing. The defect each one
+repairs:
 
 ``ADSL-LINE-MIB``
     RFC 2662 carries a truncated ``MIN-ACCESS  read-wr`` line, orphaned in the published text.

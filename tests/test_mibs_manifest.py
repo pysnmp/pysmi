@@ -15,15 +15,19 @@ answering ``None`` in production and passing in CI.
 """
 
 import json
+import shutil
+import tempfile
 import unittest
+from pathlib import Path
 
 from pysmi import compiler as compiler_module
 from pysmi import mibs
 from pysmi.codegen import JsonCodeGen
 from pysmi.parser import SmiV1CompatParser
-from pysmi.reader import FileReader, PackageReader
+from pysmi.reader import FileReader
 from pysmi.writer import CallbackWriter
 from scripts import update_bundled_mibs
+from scripts.patches import APPLIED, PatchSet
 
 
 class ManifestShipsInThePackageTestCase(unittest.TestCase):
@@ -166,6 +170,37 @@ class SupersessionIsNotPerOidTestCase(unittest.TestCase):
     )
 
     @classmethod
+    def setUpClass(cls):
+        """Stage both tiers with pysmi's repairs applied.
+
+        The tree holds the publisher's text, and four of these modules do not
+        parse as published -- that is what their patch is for. The repairs go
+        on when a distribution is built, so a claim about "the text" is a claim
+        about the repaired text, and that is what is compiled here.
+        """
+        cls.repaired = Path(tempfile.mkdtemp(prefix="pysmi-manifest-asn1-"))
+        patches = PatchSet.bundled()
+
+        for directory in (update_bundled_mibs.DEST, update_bundled_mibs.FUTURE):
+            for source in update_bundled_mibs.held_files(directory):
+                text = source.read_text(encoding="utf-8", errors="replace")
+                text, status = patches.apply(source.name, text)
+
+                if status not in ("", APPLIED):
+                    raise AssertionError(
+                        f"{source.name}: patch did not apply ({status})"
+                    )
+
+                (cls.repaired / source.name).write_text(
+                    text, encoding="utf-8", newline=""
+                )
+
+    @classmethod
+    def tearDownClass(cls):
+        """Drop the staging directory."""
+        shutil.rmtree(cls.repaired, ignore_errors=True)
+
+    @classmethod
     def _oids(cls, name, compiler, documents):
         """Every OID *name* declares, or ``None`` when the bundle has no source.
 
@@ -212,10 +247,7 @@ class SupersessionIsNotPerOidTestCase(unittest.TestCase):
             ),
             useBundledMibs=False,
         )
-        compiler.add_sources(
-            PackageReader("pysmi.mibs.asn1"),
-            FileReader(str(update_bundled_mibs.FUTURE)),
-        )
+        compiler.add_sources(FileReader(str(self.repaired)))
 
         for name, entry in sorted(mibs.manifest().items()):
             for successor in sorted(set(entry.get("successors_reviewed", {}).values())):
