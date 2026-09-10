@@ -84,7 +84,7 @@ intSrvConformance      OBJECT IDENTIFIER ::= { intSrv 4 }
        SYNTAX   INTEGER (1..255)
 
     Port ::= TEXTUAL-CONVENTION
-        -- DISPLAY-HINT "d" ---- illegal for OCTET STRING.
+        DISPLAY-HINT "d"
         STATUS   current
         DESCRIPTION
            "The value of the UDP or TCP Source or Destina-

@@ -170,6 +170,7 @@ AST into desired representation of the MIB.
 
    /pysmi/codegen/jsondoc/jsoncodegen
    /pysmi/codegen/pysnmp/pysnmpcodegen
+   /pysmi/codegen/pysnmp/pysnmpsurface
    /pysmi/codegen/null/nullcodegen
    /pysmi/codegen/symtable/symtablecodegen
 

@@ -357,7 +357,48 @@ no producer version anywhere in the file -- and some less obvious ones:
   to record how it was filled.
 
 A caller that wants its build stamped passes ``corpus_version``, which is data
-it chose rather than data the build observed.
+it chose rather than data the build observed. From the command line that is
+``mibcorpus --corpus-version``, with ``--corpus-id`` naming the corpus it is a
+build of; both are recorded verbatim and both are absent from the metadata
+when the build was given neither. Nothing is invented in their place, because
+a version taken from a clock or from a checkout would make two builds of one
+source tree differ -- which is the property everything above is written to
+preserve.
+
+
+Checking a build before publishing it
+-------------------------------------
+
+:py:func:`pysmi.corpus.db.open_db` decides whether a file is a corpus at all:
+the ``application_id``, a readable header, a schema version the reader
+implements. :py:func:`pysmi.corpus.db.validate` asks the question that one
+cannot -- the file is a corpus, but is it a *sound* one:
+
+.. code-block:: python
+
+   from pysmi.corpus.db import validate
+
+   problems = validate("core.db")
+
+   if problems:
+       for problem in problems:
+           print(problem)
+
+       raise SystemExit(1)
+
+Every check is a universal over a whole build rather than a property of one
+row, which is why they belong here rather than in a publisher's own tests. A
+unit test asserts that one module round-trips; none can say that no module
+among thousands lost its content hash, that no node references a type row that
+is not there, that every scalar carries a syntax, that every tier is in the
+vocabulary, that each ``module.nodes`` agrees with the rows that module
+actually contributed, or that ``oid_key`` orders the whole corpus the way the
+arcs do.
+
+It returns a list rather than raising, because a build wants to see every
+problem it has rather than one per round trip. An empty list is a sound
+corpus. Over pysnmp/mibs' 5,510 modules and 767,450 nodes it is one indexed
+pass, measured at 17 seconds.
 
 
 Proving a reader conforms
@@ -389,8 +430,75 @@ back to an anchor, an instance OID no MIB declares at all, the ``9``/``10``/
 that must visit a shadowed OID once rather than once per module, and running
 off the end of the corpus, which is ``endOfMibView`` and not an error.
 
+They also cover the key encoding itself, and those vectors take no corpus:
+they encode, decode, order, bracket and refuse, with the expected bytes
+pinned rather than described. A reader that reimplements the codec -- which
+is the supported thing to do, since reading a corpus is meant to need no
+pysmi -- otherwise has only its own transcription of :ref:`corpus-oid-key` to
+check itself against, and a transcription agrees with the specification right
+up until the specification changes. Two implementations can satisfy every
+ordering property here and still disagree on one length prefix, at which
+point neither can read the other's files, so the bytes are the contract.
+
 ``vectors_as_json()`` renders them for a harness that is not written in
 Python.
+
+The vectors are held to the schema rather than to themselves. ``pysmi``'s own
+test suite runs them under SQLite's authorizer, collects every column they
+read, and fails when the schema declares one no vector asks about -- so a
+table or a column added here cannot reach a consumer with nothing describing
+it. A column deliberately outside the contract is recorded with the reason it
+is, and recording one that a vector does in fact read fails too, so the list
+cannot outlive its justification. ``SCHEMA_VERSION`` is pinned beside it: a
+bump fails until someone has been through the vectors, which is the point at
+which a v2 either gains vectors for what it added or says why it did not.
+
+
+Proving the precedence rule agrees
+----------------------------------
+
+"Newest MODULE-IDENTITY revision wins, configured order breaks ties only" is
+implemented three times, in two repositories that cannot import each other.
+pysmi ranks a module found in several sources
+(:py:func:`pysmi.compiler.rank_by_revision`) and ranks modules anchored at the
+same OID (:py:func:`pysmi.corpus.index.rank_index`). pysnmp ranks the same
+module found in several MIB directories, and again when several corpora carry
+it. pysmi is an optional dependency of pysnmp, so pysnmp cannot import the
+rule at runtime; pysmi cannot import pysnmp at all.
+
+:py:mod:`pysmi.corpus.precedence` publishes the decisions as data, the same
+way the fixture above publishes the reader contract:
+
+.. code-block:: python
+
+   from pysmi.corpus.precedence import VECTORS, run_vectors
+
+   run_vectors()  # [] -- this side answers what it publishes
+
+   for vector in VECTORS:
+       ...  # dispatch on vector["op"], compare against vector["expect"]
+
+Three operations. ``normalise_revision`` pins the widening of RFC 2578's
+two-digit-year form and the refusal of a stamp that is not a date, because
+the ranking is a string comparison over its output and two implementations
+that agree on the ranking and disagree on the normalisation still resolve
+differently. ``module_precedence`` is the module-name rule: candidates in
+configured order, to the order they rank in and which ``PRECEDENCE_*`` rule
+put the winner first. ``oid_precedence`` is the corpus rule, which carries
+terms the module-name rule has nowhere to put -- obsolete over live, tier,
+how strongly a module claims the arc, publishing RFC, and the module name
+last so the rule is total and a rebuild cannot change its mind.
+
+The two rules part company on an undated candidate. In the module-name rule a
+single undated copy disables the comparison and the caller's source order
+decides, because an undated module may well be the newer one. A corpus has no
+source order to fall back to, so there an unplaceable revision sorts after
+every placeable one instead.
+
+Both projects run the vectors in their own CI, so a change on either side that
+would break the other fails in whichever project moved, rather than surfacing
+much later as a trap decoded against the wrong definition. See
+pysnmp/pysmi#248.
 
 
 Building one

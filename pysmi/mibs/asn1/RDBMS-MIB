@@ -6,10 +6,8 @@
           FROM SNMPv2-SMI
       DisplayString, DateAndTime, AutonomousType
           FROM SNMPv2-TC
-      MODULE-COMPLIANCE, OBJECT-GROUP
-          FROM SNMPv2-CONF
-      applIndex, applRFC1565Group
-          FROM NETWORK-SERVICES-MIB
+      applIndex, applGroup
+          FROM APPLICATION-MIB
       mib-2
           FROM RFC1213-MIB;
 
@@ -1270,8 +1268,8 @@
            implement the RDBMS MIB"
       MODULE HOST-RESOURCES-MIB
           MANDATORY-GROUPS    { hrSystem }
-      MODULE NETWORK-SERVICES-MIB
-          MANDATORY-GROUPS { applRFC1565Group }
+      MODULE APPLICATION-MIB
+          MANDATORY-GROUPS { applGroup }
       MODULE RDBMS-MIB
           MANDATORY-GROUPS { rdbmsGroup }
 

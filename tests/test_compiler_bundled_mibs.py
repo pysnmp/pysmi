@@ -38,6 +38,7 @@ from pysmi.reader import FileReader
 from pysmi.searcher import AnyFileSearcher
 from pysmi.writer import CallbackWriter, FileWriter
 from scripts import update_bundled_mibs
+from scripts.patches import PatchSet
 
 BUNDLED_PACKAGE = "pysmi.mibs.asn1"
 
@@ -488,11 +489,19 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
 
     def testTheBundleIsTwoHundredAndTenModulesThirtyTwoOfThemUndated(self):
         names = bundled_mib_names(BUNDLED_PACKAGE)
+        patches = PatchSet.bundled()
+        # Through the patch set, because that is what a reader gives the
+        # compiler and therefore what precedence actually compares. The tree
+        # holds the published text, in which HPR-MIB's LAST-UPDATED denotes no
+        # date and would count as a thirty-third undated module.
         undated = {
             name
             for name in names
             if revision_of(
-                (importlib.resources.files(BUNDLED_PACKAGE) / name).read_text()
+                patches.apply(
+                    name,
+                    (importlib.resources.files(BUNDLED_PACKAGE) / name).read_text(),
+                )[0]
             )
             is None
         }

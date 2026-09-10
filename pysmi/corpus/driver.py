@@ -282,6 +282,8 @@ class CorpusDriver:
         useBundledMibs: bool = True,
         rebuild: bool = True,
         stubs: "Mapping[str, Iterable[str]] | None" = None,
+        corpusVersion: str | None = None,
+        corpusId: str | None = None,
     ) -> None:
         """Create a driver over the given input set."""
         if not namespaces:
@@ -300,6 +302,12 @@ class CorpusDriver:
         self._useBundledMibs = useBundledMibs
         self._rebuild = rebuild
         self._stubs = {k: list(v) for k, v in (stubs or {}).items()}
+        #: What to stamp core.db as. Carried rather than derived: a value this
+        #: process observed -- a clock, a checkout's describe -- would make two
+        #: builds of one source tree differ, which is the property the database
+        #: is written to preserve.
+        self._corpusVersion = corpusVersion
+        self._corpusId = corpusId
         self._parseCache = InMemoryParseCache()
         self._readers: dict[str, AbstractReader] = {
             x.name: self._reader_for(x) for x in self._namespaces
@@ -792,7 +800,14 @@ class CorpusDriver:
             for name, tier in self._tierOfModule.items()
         }
 
-        report.db = corpus_db.write_db(self._outputs.core_db, documents, tiers, ranked)
+        report.db = corpus_db.write_db(
+            self._outputs.core_db,
+            documents,
+            tiers,
+            ranked,
+            corpusVersion=self._corpusVersion,
+            corpusId=self._corpusId,
+        )
 
         logger.info(
             "corpus database: %d modules, %d nodes",

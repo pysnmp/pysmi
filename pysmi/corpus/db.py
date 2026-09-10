@@ -64,6 +64,7 @@ properties fall out and both are load-bearing:
 import json
 import os
 import sqlite3
+import urllib.request
 from collections.abc import Iterable, Iterator
 from typing import Any, Final
 
@@ -635,8 +636,22 @@ def open_db(path: str) -> sqlite3.Connection:
         PySmiError: the file is not a corpus, or is a schema version this
             pysmi does not know how to read.
     """
-    uri = f"file:{os.path.abspath(path)}?immutable=1"
-    connection = sqlite3.connect(uri, uri=True)
+    # Percent-encoded because this is a URI, not a path. A directory named
+    # "we?ird" otherwise ends the path at the "?" and SQLite opens an empty
+    # database of the shorter name -- which does not raise, it answers
+    # nothing, and the corpus reads as a file with application_id 0.
+    #
+    # The connect is inside the try for the same reason the checks below it
+    # are: a directory, or a file this process may not read, fails here rather
+    # than at the first PRAGMA, and this function is documented to raise
+    # PySmiError for a path that is not a corpus.
+    uri = f"file:{urllib.request.pathname2url(os.path.abspath(path))}?immutable=1"
+
+    try:
+        connection = sqlite3.connect(uri, uri=True)
+
+    except sqlite3.Error as exc:
+        raise error.PySmiError(f"cannot open corpus database {path}: {exc}") from exc
 
     try:
         version = connection.execute("PRAGMA user_version").fetchone()[0]
@@ -660,3 +675,138 @@ def open_db(path: str) -> sqlite3.Connection:
         )
 
     return connection
+
+
+#: The checks :py:func:`validate` runs that are a single counting query.
+#:
+#: Each is a statement returning one number that must be zero, and the text to
+#: report when it is not. They are written out rather than composed from table
+#: names for the reason ``_INSERT_NODE`` and its neighbours are.
+_COUNT_CHECKS: Final[tuple[tuple[str, str], ...]] = (
+    (
+        "SELECT count(*) FROM node WHERE module NOT IN (SELECT name FROM module)",
+        "{count} node rows name a module the corpus does not carry",
+    ),
+    (
+        "SELECT count(*) FROM oid_index WHERE module NOT IN (SELECT name FROM module)",
+        "{count} oid_index rows name a module the corpus does not carry",
+    ),
+    (
+        "SELECT count(*) FROM node WHERE syntax IS NOT NULL "
+        "AND syntax NOT IN (SELECT id FROM type)",
+        "{count} nodes reference a type row that is not there",
+    ),
+    (
+        "SELECT count(*) FROM node "
+        "WHERE nodetype IN ('scalar', 'column') AND syntax IS NULL",
+        "{count} scalars or columns carry no syntax",
+    ),
+    (
+        # Only the empty string: the column is NOT NULL, so the schema already
+        # refuses the other half of "no hash" and a check for it is a branch
+        # that can never fire.
+        "SELECT count(*) FROM module WHERE content_hash = ''",
+        "{count} modules carry no content hash",
+    ),
+    (
+        "SELECT count(*) FROM module WHERE tier NOT IN ('standard', 'draft', 'vendor')",
+        "{count} modules carry a tier outside the vocabulary",
+    ),
+    (
+        "SELECT count(*) FROM module WHERE nodes <> "
+        "(SELECT count(*) FROM node WHERE node.module = module.name)",
+        "{count} modules have a nodes column disagreeing with their node rows",
+    ),
+)
+
+
+def _misordered(connection: sqlite3.Connection) -> int:
+    """How many nodes ``oid_key`` order visits out of numeric OID order.
+
+    Nothing about a mis-ordered key raises. A walk simply visits nodes in an
+    order that is not OID order, which reads to a consumer as a MIB defect
+    rather than as an encoding defect -- so it is worth asserting directly,
+    over every OID rather than over a chosen few. It is the check that catches
+    a string comparison putting 1.3.10 below 1.3.9, and a single-byte arc
+    losing everything above 255.
+
+    Args:
+        connection: an open corpus
+
+    Returns:
+        The number of positions where the order breaks.
+    """
+    previous: tuple[int, ...] | None = None
+    broken = 0
+
+    for (oid,) in connection.execute("SELECT DISTINCT oid FROM node ORDER BY oid_key"):
+        current = arcs(oid)
+
+        if previous is not None and current < previous:
+            broken += 1
+
+        previous = current
+
+    return broken
+
+
+def validate(path: str) -> list[str]:
+    """Check a corpus for the invariants a build must not violate.
+
+    :py:func:`open_db` refuses a file that is not a corpus at all -- wrong
+    ``application_id``, unreadable header, a schema version this pysmi does not
+    implement. This asks the next question, which that cannot: the file is a
+    corpus, but is it a *sound* one.
+
+    Every check here is a universal over a whole build rather than a property
+    of one row, which is why they live here and not in the unit tests: the
+    writer's tests assert that one module round-trips, and none of them can
+    say that no module in a 5,510-module corpus lost its content hash. A
+    publisher runs this before it ships the file.
+
+    Nothing here is expensive except the ordering scan, which is one indexed
+    pass.
+
+    Args:
+        path: the database
+
+    Returns:
+        One string per problem found, empty when the corpus is sound. A list
+        rather than an exception because a build wants to see every problem it
+        has, not the first one.
+
+    Raises:
+        PySmiError: the file is not a corpus, as :py:func:`open_db` decides it.
+    """
+    connection = open_db(path)
+    problems: list[str] = []
+
+    try:
+        problems = [
+            complaint.format(count=count)
+            for statement, complaint in _COUNT_CHECKS
+            if (count := connection.execute(statement).fetchone()[0])
+        ]
+
+        broken = _misordered(connection)
+
+        if broken:
+            problems.append(f"{broken} nodes are out of OID order by oid_key")
+
+        integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
+
+        if integrity != "ok":
+            problems.append(f"SQLite reports the file damaged: {integrity}")
+
+    except sqlite3.DatabaseError as exc:
+        # Damage does not always come back as an answer. A page that will not
+        # decode raises out of whichever query reaches it -- integrity_check
+        # included -- so the reply to "is this file sound" arrives as an
+        # exception. It is the same finding either way, and a caller that
+        # asked for a list should not have to catch sqlite3 to hear it.
+        problems.append(f"SQLite cannot read the file: {exc}")
+
+    finally:
+        connection.close()
+
+    return problems

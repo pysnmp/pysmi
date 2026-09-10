@@ -17,7 +17,7 @@ import pathlib
 import shutil
 import unittest
 
-from hatch_build import build
+from hatch_build import build, patch_asn1
 from pysmi.codegen import PySnmpCodeGen
 
 ROOT = pathlib.Path(__file__).parent.parent
@@ -26,7 +26,11 @@ ROOT = pathlib.Path(__file__).parent.parent
 class PrecompiledMibsTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.out = build(ROOT)
+        # The distribution's ASN.1, not the tree's: the repairs in
+        # scripts/mib-patches are applied as a distribution is built, and the
+        # modules below are rendered from that repaired text.
+        cls.asn1 = patch_asn1(ROOT)
+        cls.out = build(ROOT, cls.asn1)
 
     @classmethod
     def tearDownClass(cls):
@@ -73,8 +77,10 @@ class PrecompiledMibsTestCase(unittest.TestCase):
         compiled = {
             entry.stem for entry in self.out.iterdir() if entry.name != "__init__.py"
         }
-        # Intersected with the bundle: PYSNMP-USM-MIB is a base MIB pysmi
-        # does not carry the ASN.1 for, so it is absent either way.
+        # Every base MIB pysmi does not supply as an SMI stub is one it
+        # bundles the ASN.1 for -- testEveryModuleACodeGeneratorCallsABaseMibIsBundled
+        # holds that -- so the intersection takes nothing away and is here to
+        # keep this assertion about the wheel rather than about baseMibs.
         wouldBeStubbed = bundled & (
             {x for x in PySnmpCodeGen.baseMibs if x not in PySnmpCodeGen.fakeMibs}
             - (

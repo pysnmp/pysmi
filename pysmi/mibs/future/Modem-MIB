@@ -24,7 +24,7 @@ mdmMIB MODULE-IDENTITY
              E-mail: waldbusser@cmu.edu"
     DESCRIPTION
             "The MIB module for management of dial-up modems."
-    ::= { mdmMib 1 }
+    ::= { mdmMIB 1 }
 
 mdmMib OBJECT IDENTIFIER ::= { mib-2 38 }
 

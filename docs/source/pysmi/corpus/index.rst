@@ -10,3 +10,16 @@ resolving an OID to one module to load needs.
 
 .. automodule:: pysmi.corpus.index
   :members:
+
+.. _corpus.precedence:
+
+Precedence vectors
+------------------
+
+The ranking rule above, and the one
+:py:meth:`~pysmi.compiler.MibCompiler.compile` applies to a module found in
+several sources, published as data so that pysnmp's three copies of it cannot
+drift from these. See :doc:`/corpus-schema`.
+
+.. automodule:: pysmi.corpus.precedence
+  :members:

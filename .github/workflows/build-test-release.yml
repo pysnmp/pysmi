@@ -13,10 +13,14 @@ on:
   # cut by dispatching this workflow by hand.
   workflow_dispatch:
 
-# One run per ref: a new push supersedes the one still in flight. A dispatch is
-# never cancelled, it is the only thing that can cut a release.
+# One run per ref: a new push supersedes the one still in flight. cancel-in-
+# progress is read off the *incoming* run, so a dispatch cannot protect itself
+# from one -- and semantic-release pushes the release commit to the very branch
+# it is releasing, which queued a push run that cancelled the dispatch between
+# the git plugin (commit + tag) and the github plugin (the GitHub release).
+# Giving the dispatch a lane of its own is what actually keeps it uncancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && 'release' || 'ci' }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 # Read-only by default; the publish job raises only what Trusted Publishing

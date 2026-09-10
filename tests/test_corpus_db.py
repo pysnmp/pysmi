@@ -35,6 +35,7 @@ from pysmi.corpus.db import (
     oid_key,
     open_db,
     subtree_bound,
+    validate,
     write_db,
 )
 
@@ -491,3 +492,198 @@ class OpenTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OpenPathTestCase(unittest.TestCase):
+    """That a path reaches SQLite as a path, not as most of one.
+
+    The same two defects were found and fixed in pysnmp's reader, which opens
+    the same file the same way; this is the writer side of that contract.
+    """
+
+    def testAPathWithUriPunctuationOpensTheFileItNames(self):
+        # "?" ends the path at the query string. SQLite then opens an empty
+        # database of the shorter name -- which does not raise, it answers
+        # nothing, and the corpus reads as a file with application_id 0.
+        # "?" is the character that motivated the escaping and the only one
+        # here Windows will not accept in a filename -- WinError 123 comes
+        # from mkdir, before any of this is reached. It is tested wherever a
+        # directory can be named that, which is every platform but Windows.
+        awkward = ["sharp#", "with space", "per%cent"]
+
+        if os.name != "nt":
+            awkward.insert(0, "we?ird")
+
+        for name in awkward:
+            with self.subTest(directory=name):
+                directory = os.path.join(tempfile.mkdtemp(), name)
+                os.makedirs(directory)
+                path, _ = build(
+                    {"TEST-MIB": document(testScalar=scalar("1.3.6.1.4.1.99.1", "x"))},
+                    tiers={"TEST-MIB": "vendor"},
+                )
+                moved = os.path.join(directory, "core.db")
+                os.rename(path, moved)
+
+                connection = open_db(moved)
+
+                try:
+                    application = connection.execute(
+                        "PRAGMA application_id"
+                    ).fetchone()[0]
+
+                finally:
+                    connection.close()
+
+                self.assertEqual(application, APPLICATION_ID)
+
+    def testADirectoryIsRefusedAsAPySmiError(self):
+        # os.path.exists is not "SQLite can open it": a directory gets past
+        # every check and fails in connect, which is outside the try unless
+        # it is put inside one.
+        directory = tempfile.mkdtemp()
+
+        with self.assertRaises(error.PySmiError):
+            open_db(directory)
+
+
+class ValidateTestCase(unittest.TestCase):
+    """The invariants a build must not violate.
+
+    open_db decides whether a file is a corpus. These decide whether it is a
+    sound one, which is a question only a whole build can answer -- no test
+    over one module can say that no module among thousands lost its content
+    hash. Each one is checked by corrupting a corpus that passes, because a
+    validator that cannot fail is worse than none: it reports "sound" for
+    every input, including the broken ones it exists to catch.
+    """
+
+    def setUp(self):
+        self.path, _ = build(
+            {
+                "TEST-MIB": document(
+                    testMib={
+                        "name": "testMib",
+                        "oid": "1.3.6.1.4.1.99",
+                        "class": "moduleidentity",
+                        "lastupdated": "2026-01-01 00:00",
+                        "revisions": [{"revision": "2026-01-01 00:00"}],
+                    },
+                    testScalar=scalar("1.3.6.1.4.1.99.1", "testScalar"),
+                    testOther=scalar("1.3.6.1.4.1.99.2", "testOther"),
+                )
+            },
+            tiers={"TEST-MIB": "vendor"},
+            ranked={"1.3.6.1.4.1.99": "TEST-MIB"},
+        )
+
+    def corrupt(self, *statements):
+        """Break the corpus, the way a defective build would have written it."""
+        connection = sqlite3.connect(self.path)
+
+        try:
+            for statement in statements:
+                connection.execute(statement)
+
+            connection.commit()
+
+        finally:
+            connection.close()
+
+    def testASoundCorpusHasNoProblems(self):
+        self.assertEqual(validate(self.path), [])
+
+    def testCatchesANodeNamingAModuleTheCorpusLacks(self):
+        self.corrupt("UPDATE node SET module = 'GONE-MIB' WHERE name = 'testScalar'")
+
+        self.assertIn("node rows name a module", " ".join(validate(self.path)))
+
+    def testCatchesAnIndexRowNamingAModuleTheCorpusLacks(self):
+        self.corrupt("UPDATE oid_index SET module = 'GONE-MIB'")
+
+        self.assertIn("oid_index rows name a module", " ".join(validate(self.path)))
+
+    def testCatchesADanglingTypeReference(self):
+        self.corrupt("UPDATE node SET syntax = 9999 WHERE name = 'testScalar'")
+
+        self.assertIn("type row that is not there", " ".join(validate(self.path)))
+
+    def testCatchesAScalarThatLostItsSyntax(self):
+        self.corrupt("UPDATE node SET syntax = NULL WHERE name = 'testScalar'")
+
+        self.assertIn("carry no syntax", " ".join(validate(self.path)))
+
+    def testCatchesAModuleThatLostItsContentHash(self):
+        # An empty hash means "cannot tell whether two corpora agree", which
+        # is the one answer the hash exists to prevent. A NULL one is not
+        # checked because the column is NOT NULL: SQLite refuses the update,
+        # which is how this test found that half of the check unreachable.
+        self.corrupt("UPDATE module SET content_hash = ''")
+
+        self.assertIn("no content hash", " ".join(validate(self.path)))
+
+    def testTheSchemaItselfRefusesANullContentHash(self):
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.corrupt("UPDATE module SET content_hash = NULL")
+
+    def testCatchesATierOutsideTheVocabulary(self):
+        self.corrupt("UPDATE module SET tier = 'enterprise'")
+
+        self.assertIn("tier outside the vocabulary", " ".join(validate(self.path)))
+
+    def testCatchesANodesColumnThatDisagreesWithTheRows(self):
+        # The column is passed to the writer rather than counted by it, so
+        # nothing but this notices when the two drift.
+        self.corrupt("UPDATE module SET nodes = nodes + 1")
+
+        self.assertIn("disagreeing with their node rows", " ".join(validate(self.path)))
+
+    def testCatchesAKeyThatOrdersWrongly(self):
+        # A key that no longer encodes its own OID: the walk still runs, and
+        # visits this node somewhere it does not belong. Nothing raises.
+        connection = sqlite3.connect(self.path)
+
+        try:
+            connection.execute(
+                "UPDATE node SET oid_key = ? WHERE name = ?",
+                (oid_key("1.3.6.1.4.1.1"), "testOther"),
+            )
+            connection.commit()
+
+        finally:
+            connection.close()
+
+        self.assertIn("out of OID order", " ".join(validate(self.path)))
+
+    def testReportsEveryProblemRatherThanTheFirst(self):
+        # A build wants its whole list, not one round trip per defect.
+        self.corrupt(
+            "UPDATE module SET tier = 'enterprise'",
+            "UPDATE node SET syntax = NULL WHERE name = 'testScalar'",
+        )
+
+        self.assertEqual(len(validate(self.path)), 2)
+
+    def testReportsADamagedFileRatherThanRaising(self):
+        # Damage does not come back as an answer: a page that will not decode
+        # raises out of whichever query reaches it, integrity_check included.
+        # This function is documented to return a list, so that has to become
+        # one -- writing this test is how the raise was found.
+        with open(self.path, "r+b") as fileObj:
+            fileObj.seek(os.path.getsize(self.path) // 2)
+            fileObj.write(b"\xde\xad\xbe\xef" * 64)
+
+        problems = validate(self.path)
+
+        self.assertTrue(problems)
+        self.assertIn("SQLite", " ".join(problems))
+
+    def testRefusesAFileThatIsNotACorpus(self):
+        # open_db's job, asserted here so the two cannot drift: validate is
+        # documented to raise for this rather than to report it as a problem.
+        directory = tempfile.mkdtemp()
+        path = os.path.join(directory, "empty.db")
+        sqlite3.connect(path).close()
+
+        with self.assertRaises(error.PySmiError):
+            validate(path)

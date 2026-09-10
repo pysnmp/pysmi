@@ -26,7 +26,13 @@ import unittest
 import pytest
 
 from hatch_build import build as build_precompiled
+from hatch_build import patch_asn1
 from pysmi.codegen import PySnmpCodeGen
+from pysmi.codegen.pysnmp_surface import (
+    BUILDER_MEMBERS,
+    NODE_METHODS,
+    VALUE_METHODS,
+)
 from tests.harness import render_pysnmp
 from tests.test_spec_index import MULTI_MIB
 from tests.test_spec_objecttype import ACCESS_MIB
@@ -348,7 +354,9 @@ class PrecompiledBundleTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.out = build_precompiled(pathlib.Path(__file__).parent.parent)
+        root = pathlib.Path(__file__).parent.parent
+        cls.asn1 = patch_asn1(root)
+        cls.out = build_precompiled(root, cls.asn1)
 
         from pysnmp.smi import builder
 
@@ -396,6 +404,14 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
     ``MibNotFoundError`` and, with no compiler attached, swallows it, so a
     module that was never found reports success. Exported symbols are checked
     too.
+
+    The hand-written runtime behavior of pysnmp/pysmi#231 is asserted here
+    rather than in a fixture of its own, because it needs exactly this
+    configuration -- ours ahead of pysnmp's, so what answers is the module we
+    generated and not the hand-edited copy pysnmp ships -- and building a
+    second bundle to get it would double the slowest fixture in the suite.
+    ``tests/test_behavior.py`` settles that a fragment reaches the module it
+    names; what is settled here is what it then does.
     """
 
     #: Empty by construction. An SMIv1 dialect shim with no definitions of its
@@ -428,7 +444,9 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
     def setUpClass(cls):
         from pysnmp.smi import builder
 
-        cls.out = build_precompiled(pathlib.Path(__file__).parent.parent)
+        root = pathlib.Path(__file__).parent.parent
+        cls.asn1 = patch_asn1(root)
+        cls.out = build_precompiled(root, cls.asn1)
         cls.modules = sorted(
             path.stem for path in cls.out.glob("*.py") if not path.name.startswith("__")
         )
@@ -477,6 +495,74 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
         )
 
         self.assertEqual([], silent)
+
+
+class DeclaredSurfaceTestCase(unittest.TestCase):
+    """Every member pysmi emits a call to still exists upstream.
+
+    :py:mod:`pysmi.codegen.pysnmp_surface` states what the generated source
+    calls, and :py:mod:`tests.test_pysnmp_surface` holds that statement to the
+    generator without importing pysnmp. This is the other half: it resolves the
+    same names against the installed pysnmp, so a member removed upstream is
+    named here rather than surfacing as an AttributeError somewhere inside a
+    generated module hundreds of lines long.
+
+    A failure is not a pysmi defect, which is why this file does not gate. It
+    is the notice that the contract moved. pysnmp/pysnmp#133 added
+    ``setReference`` to the conformance classes and pysmi had been dropping
+    REFERENCE text from three macros for want of it; the reverse, a removal,
+    had no notice at all before this.
+    """
+
+    #: The base modules a declared class may be bound from. pysnmp implements
+    #: each of these in Python rather than compiling it from ASN.1.
+    BASE_MODULES = ("SNMPv2-SMI", "SNMPv2-CONF", "SNMPv2-TC", "ASN1")
+
+    @classmethod
+    def setUpClass(cls):
+        from pysnmp.smi.builder import MibBuilder
+        from pysnmp.smi.error import SmiError
+
+        cls.mibBuilder = MibBuilder()
+        cls.notFound = SmiError
+
+    def resolve(self, name):
+        """The class *name* is bound to, from whichever base module has it."""
+        for module in self.BASE_MODULES:
+            try:
+                return self.mibBuilder.importSymbols(module, name)[0]
+            except self.notFound:
+                continue
+        self.fail(f"{name} is in no pysnmp base module: {self.BASE_MODULES}")
+
+    def testTheBuilderStillHasTheMembersWeCall(self):
+        for name in sorted(BUILDER_MEMBERS):
+            with self.subTest(member=name):
+                self.assertTrue(
+                    hasattr(self.mibBuilder, name),
+                    f"MibBuilder.{name} is gone; pysmi emits it in every module",
+                )
+
+    def testEveryNodeClassStillCarriesTheCallsWeMakeOnIt(self):
+        for method, receivers in sorted(NODE_METHODS.items()):
+            for receiver in receivers:
+                with self.subTest(method=method, receiver=receiver):
+                    self.assertTrue(
+                        hasattr(self.resolve(receiver), method),
+                        f"{receiver}.{method}() is gone; pysmi emits it",
+                    )
+
+    def testTheBaseTypesStillCarryTheValueCalls(self):
+        # Which type carries a value is the MIB's choice, so each of these
+        # names the base types the call has to work on rather than a node
+        # class: setFixedLength reaches only a string, the other two any syntax.
+        for method, receivers in sorted(VALUE_METHODS.items()):
+            for receiver in receivers:
+                with self.subTest(method=method, receiver=receiver):
+                    self.assertTrue(
+                        hasattr(self.resolve(receiver), method),
+                        f"{receiver}.{method}() is gone; pysmi emits it",
+                    )
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])

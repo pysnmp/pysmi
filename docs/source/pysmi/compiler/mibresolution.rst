@@ -11,3 +11,21 @@ the two agree by construction.
 
 .. autoclass:: pysmi.compiler.MibResolution
   :members:
+
+.. _compiler.rank_by_revision:
+
+The rule itself
+~~~~~~~~~~~~~~~
+
+The ranking is exposed separately from the resolution that reports it, because
+pysnmp implements the same rule over its own candidates and
+:py:mod:`pysmi.corpus.precedence` publishes vectors that both sides run. A rule
+kept private is a rule the vectors can only approximate.
+
+.. autofunction:: pysmi.compiler.rank_by_revision
+
+.. autodata:: pysmi.compiler.PRECEDENCE_NEWEST_REVISION
+
+.. autodata:: pysmi.compiler.PRECEDENCE_EQUAL_REVISIONS
+
+.. autodata:: pysmi.compiler.PRECEDENCE_NO_REVISION

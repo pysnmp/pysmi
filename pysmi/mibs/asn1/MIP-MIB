@@ -258,7 +258,7 @@
 
     mipSecViolatorAddress  OBJECT-TYPE
         SYNTAX      IpAddress
-        MAX-ACCESS  read-only
+        MAX-ACCESS  accessible-for-notify
         STATUS      current
         DESCRIPTION
                 "Violator's IP address. The violator is not necessary
@@ -2096,7 +2096,7 @@
                 function within a home agent."
         ::= { mipGroups 12 }
 
-    mipSecNotificationsGroup NOTIFICATION-GROUP
+    mipSecNotifcationsGroup NOTIFICATION-GROUP
         NOTIFICATIONS { mipAuthFailure }
         STATUS      current
         DESCRIPTION

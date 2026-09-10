@@ -66,6 +66,16 @@ so the two cannot disagree. The ASN.1 stays because it is what the compiler
 reads -- resolving an IMPORTS clause means parsing the imported module's source
 -- so the compiled form joins it rather than replacing it.
 
+A handful of those modules state a runtime rule SMIv2 has no syntax to express,
+so no code generator can derive it: RFC 4001 section 4 makes the encoding of an
+``InetAddress`` index depend on the value of the ``InetAddressType`` index
+preceding it in the same row, and says so in a DESCRIPTION clause, in prose.
+What a compiled module carries is what the ASN.1 says and nothing more. The
+Python for such a rule belongs to the runtime that acts on it -- pysnmp keeps
+it in ``pysnmp/smi/mibs/behavior/`` and applies it as a module loads -- because
+it is engine policy rather than MIB semantics, and because a defect in it
+should not need a pysmi release to fix. See pysnmp/pysmi#243.
+
 Membership is decided by provenance: a module published by a standards body or
 a multivendor association, whose text is traceable to that publisher. Whether
 the publisher serves it at a fetchable URL is recorded, not required -- it
@@ -205,7 +215,7 @@ Inventory
    "DOT3-OAM-MIB", ":rfc:`4878`", "2007-06-14", ""
    "DS1-MIB", ":rfc:`4805`", "2007-03-05", ""
    "DS3-MIB", ":rfc:`3896`", "2004-09-08", ""
-   "DSA-MIB", ":rfc:`1567`", "1993-11-25", ""
+   "DSA-MIB", ":rfc:`1567`", "1993-11-25", "yes"
    "DSG-IF-MIB", "`CableLabs <https://mibs.cablelabs.com/MIBs/DOCSIS/DSG-IF-MIB.mib>`__", "2023-11-22", ""
    "DTI-MIB", "CableLabs", "2006-06-28", ""
    "DVMRP-STD-MIB", "`IETF Internet-Draft <https://www.ietf.org/archive/id/draft-ietf-idmr-dvmrp-mib-11.txt>`__", "2001-11-21", ""
@@ -315,7 +325,7 @@ Inventory
    "RADIUS-ACC-CLIENT-MIB", ":rfc:`4670`", "2006-08-21", ""
    "RADIUS-AUTH-CLIENT-MIB", ":rfc:`4668`", "2006-08-21", ""
    "RADIUS-DYNAUTH-SERVER-MIB", ":rfc:`4673`", "2006-08-29", ""
-   "RDBMS-MIB", ":rfc:`1697`", "1994-06-15", ""
+   "RDBMS-MIB", ":rfc:`1697`", "1994-06-15", "yes"
    "RFC-1212", "maintained here", "--", ""
    "RFC-1215", "maintained here", "--", ""
    "RFC1065-SMI", ":rfc:`1065`", "--", ""
@@ -386,10 +396,20 @@ Inventory
 Patched modules
 ---------------
 
-The published text of these modules does not compile. Each is bundled as its
-publisher's text with a patch applied, kept in ``scripts/mib-patches/`` and
-re-applied on every refresh; a patch whose context has moved makes the refresh
-fail rather than silently fuzzing. The defect each one repairs:
+The published text of these modules does not compile. Each is stored here as
+its publisher printed it, with the repair kept beside it as a unified diff in
+``scripts/mib-patches/`` -- so a refresh diffs against the publisher and what
+pysmi changes stays visible as a diff of its own.
+
+The repairs are applied when a distribution is built, to both the ASN.1 an
+install carries and the pysnmp modules rendered from it. PySMI does not patch
+anything at read time: a source is read exactly as it stands, so a caller
+pointing ``--mib-source`` at their own copy of one of these compiles the defect
+along with it. Patch your own copies before PySMI sees them, or rebuild PySMI
+from source with your own diffs in that directory -- the distribution is the
+opinion, and a different opinion is a different build. A patch whose context has
+moved makes the refresh fail rather than silently fuzzing. The defect each one
+repairs:
 
 ``ADSL-LINE-MIB``
     RFC 2662 carries a truncated ``MIN-ACCESS  read-wr`` line, orphaned in the published text.

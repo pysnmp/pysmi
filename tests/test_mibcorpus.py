@@ -14,6 +14,7 @@ format. See the open question in :ref:`mibs-as-data`.
 import json
 import os
 import shutil
+import sqlite3
 import tempfile
 import textwrap
 import unittest
@@ -183,6 +184,61 @@ class RunTestCase(unittest.TestCase):
         )
 
         self.assertEqual(["A-MIB.json"], os.listdir(os.path.join(self.out, "json")))
+
+    def testTheBuildIsStampedWithWhatTheCommandLineGaveIt(self):
+        # write_db has taken these since it was written and until now nothing
+        # could pass them, so every core.db mibcorpus produced left both keys
+        # unset. This is the end of that path: command line to metadata.
+        scratch = os.path.join(self.root, "scratch")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=core-db",
+                f"--emit=json:{scratch}",
+                "--corpus-version=2.0.2",
+                "--corpus-id=pysnmp/mibs",
+            ),
+        )
+
+        connection = sqlite3.connect(os.path.join(self.out, "core.db"))
+
+        try:
+            meta = dict(connection.execute("SELECT key, value FROM meta"))
+
+        finally:
+            connection.close()
+
+        self.assertEqual(meta["corpus_version"], "2.0.2")
+        self.assertEqual(meta["corpus_id"], "pysnmp/mibs")
+
+    def testAnUnstampedBuildCarriesNeitherKey(self):
+        # Nothing is invented in their place: a version taken from a clock or
+        # a checkout would make two builds of one source tree differ.
+        scratch = os.path.join(self.root, "scratch")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=core-db",
+                f"--emit=json:{scratch}",
+            ),
+        )
+
+        connection = sqlite3.connect(os.path.join(self.out, "core.db"))
+
+        try:
+            meta = dict(connection.execute("SELECT key, value FROM meta"))
+
+        finally:
+            connection.close()
+
+        self.assertNotIn("corpus_version", meta)
+        self.assertNotIn("corpus_id", meta)
 
     def testResolvingAgainstNothingPublishedIsASoftwareError(self):
         self.assertEqual(

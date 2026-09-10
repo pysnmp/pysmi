@@ -4,7 +4,7 @@
                   experimental, Counter
                           FROM RFC1155-SMI
                   PhysAddress
-                          FROM RFC1213-MIB
+                          FROM RFC-1213
                   OBJECT-TYPE
                           FROM RFC-1212;
 

@@ -137,10 +137,17 @@ machinery behind them:
 A handful of entries also carry a ``patch``. The published text of those
 modules does not compile -- a truncated line left in the RFC, an IMPORTS clause
 missing a symbol the module goes on to use, a bound one past the top of
-Integer32. The patch is applied to the fetched text after every fetch and lives
-in ``scripts/mib-patches/`` where it can be read; the manifest's ``reason``
-says what defect it repairs. Bundling the pysnmp/mibs mirror's hand-repaired
-copy instead would have hidden all of that.
+Integer32. What gets stored is the published text, unmodified; the repair lives
+beside it as a unified diff in ``scripts/mib-patches/``, and the manifest's
+``reason`` says what defect it repairs. Bundling the pysnmp/mibs mirror's
+hand-repaired copy instead would have hidden all of that.
+
+The diff is checked here, not applied: a patch whose context has moved means the
+publisher changed the very lines it repairs, and that fails the refresh. Who
+applies it is ``hatch_build.py``, as a distribution is built, so what a consumer
+installs -- both the ASN.1 and the pysnmp modules rendered from it -- carries the
+repair. pysmi itself patches nothing at read time. Storing the published text is
+what keeps a refresh diff a diff against the publisher.
 
 What belongs in the bundle
 --------------------------
@@ -210,6 +217,15 @@ from pysmi.mibinfo import strip_comments
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
+
+# Run as a script, sys.path[0] is scripts/; imported as
+# scripts.update_bundled_mibs by the tests, it is the repository root. Naming
+# the root explicitly makes the patch engine beside this file resolve either
+# way, without scripts/ having to become a package.
+sys.path.insert(0, str(ROOT))
+
+from scripts.patches import APPLIED, apply_patch
+
 DEST = ROOT / "pysmi" / "mibs" / "asn1"
 FUTURE = ROOT / "pysmi" / "mibs" / "future"
 MANIFEST = ROOT / "pysmi" / "mibs" / "bundled_mibs.json"
@@ -424,60 +440,6 @@ def extract_draft(mibname: str, draft: str) -> bytes:
     return textwrap.dedent(cut(mibname, body, draft).decode()).encode()
 
 
-HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
-
-
-def apply_patch(text: bytes, patch: str, mibname: str) -> bytes:
-    """Apply a unified diff, refusing anything whose context has moved.
-
-    Deliberately strict and dependency-free: a patch that no longer matches the
-    text it was cut against means the source moved, which is a thing to look
-    at, not to fuzz past.
-    """
-    lines = text.decode("utf-8", "replace").split("\n")
-    out: list[str] = []
-    cursor = 0
-
-    for chunk in patch.split("\n"):
-        if chunk.startswith(("--- ", "+++ ")):
-            continue
-
-        header = HUNK.match(chunk)
-        if header:
-            start = int(header.group(1)) - 1
-            if start < cursor:
-                raise SystemExit(f"{mibname}: overlapping hunks in its patch")
-            out.extend(lines[cursor:start])
-            cursor = start
-            continue
-
-        if not chunk:
-            continue
-
-        mark, body = chunk[0], chunk[1:]
-
-        if mark == "+":
-            out.append(body)
-        elif mark in " -":
-            if cursor >= len(lines) or lines[cursor] != body:
-                found = lines[cursor] if cursor < len(lines) else "<end of file>"
-                raise SystemExit(
-                    f"{mibname}: its patch no longer applies -- line {cursor + 1} "
-                    f"reads {found!r}, the patch expects {body!r}"
-                )
-            if mark == " ":
-                out.append(body)
-            cursor += 1
-        elif mark == "\\":
-            continue
-        else:
-            raise SystemExit(f"{mibname}: unreadable line in its patch: {chunk!r}")
-
-    out.extend(lines[cursor:])
-
-    return "\n".join(out).encode()
-
-
 IEEE_DIRECTORY = "https://www.ieee802.org/1/files/public/MIBs/"
 
 DRAFT_ARCHIVE = "https://www.ietf.org/archive/id/{}.txt"
@@ -595,7 +557,24 @@ def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
         data = as_utf8(download(entry["url"]))
 
     if "patch" in entry:
-        data = apply_patch(data, (PATCHES / entry["patch"]).read_text(), mibname)
+        # The published text is what gets stored, so that a refresh diffs
+        # against the publisher and the repairs pysmi makes stay visible as a
+        # diff of their own. The patch is checked here rather than applied:
+        # hatch_build.py applies it as a distribution is built, but a patch
+        # whose context has moved means the publisher changed the very lines it
+        # repairs, which is a thing to look at rather than to discover later as
+        # a MIB that stopped compiling.
+        _patched, status = apply_patch(
+            data.decode("utf-8", "replace"),
+            (PATCHES / entry["patch"]).read_text(),
+            mibname,
+        )
+
+        if status != APPLIED:
+            raise SystemExit(
+                f"{mibname}: its patch no longer applies to the published text "
+                f"({status}) -- see {PATCHES / entry['patch']}"
+            )
 
     return data
 
@@ -1208,6 +1187,16 @@ so the two cannot disagree. The ASN.1 stays because it is what the compiler
 reads -- resolving an IMPORTS clause means parsing the imported module's source
 -- so the compiled form joins it rather than replacing it.
 
+A handful of those modules state a runtime rule SMIv2 has no syntax to express,
+so no code generator can derive it: RFC 4001 section 4 makes the encoding of an
+``InetAddress`` index depend on the value of the ``InetAddressType`` index
+preceding it in the same row, and says so in a DESCRIPTION clause, in prose.
+What a compiled module carries is what the ASN.1 says and nothing more. The
+Python for such a rule belongs to the runtime that acts on it -- pysnmp keeps
+it in ``pysnmp/smi/mibs/behavior/`` and applies it as a module loads -- because
+it is engine policy rather than MIB semantics, and because a defect in it
+should not need a pysmi release to fix. See pysnmp/pysmi#243.
+
 Membership is decided by provenance: a module published by a standards body or
 a multivendor association, whose text is traceable to that publisher. Whether
 the publisher serves it at a fetchable URL is recorded, not required -- it
@@ -1315,10 +1304,20 @@ PAGE_PATCHES = """\
 Patched modules
 ---------------
 
-The published text of these modules does not compile. Each is bundled as its
-publisher's text with a patch applied, kept in ``scripts/mib-patches/`` and
-re-applied on every refresh; a patch whose context has moved makes the refresh
-fail rather than silently fuzzing. The defect each one repairs:
+The published text of these modules does not compile. Each is stored here as
+its publisher printed it, with the repair kept beside it as a unified diff in
+``scripts/mib-patches/`` -- so a refresh diffs against the publisher and what
+pysmi changes stays visible as a diff of its own.
+
+The repairs are applied when a distribution is built, to both the ASN.1 an
+install carries and the pysnmp modules rendered from it. PySMI does not patch
+anything at read time: a source is read exactly as it stands, so a caller
+pointing ``--mib-source`` at their own copy of one of these compiles the defect
+along with it. Patch your own copies before PySMI sees them, or rebuild PySMI
+from source with your own diffs in that directory -- the distribution is the
+opinion, and a different opinion is a different build. A patch whose context has
+moved makes the refresh fail rather than silently fuzzing. The defect each one
+repairs:
 """
 
 PAGE_HISTORICAL = """\
