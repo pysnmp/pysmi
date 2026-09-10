@@ -65,8 +65,8 @@ def rank_by_revision(revisions: Sequence[str | None]) -> tuple[list[int], str]:
     """Order candidate copies of one module, newest MODULE-IDENTITY first.
 
     The rule in one place, because it is implemented more than once and in
-    more than one repository: :py:meth:`MibCompiler._candidates` ranks a
-    module found in several sources, pysnmp ranks the same module found in
+    more than one repository: :py:meth:`~pysmi.compiler.MibCompiler.resolve`
+    ranks a module found in several sources, pysnmp ranks the same module found in
     several MIB directories and again when several corpora carry it. They
     have to agree, and none of them can import the others
     (pysnmp/pysmi#248), so this is what
