@@ -343,19 +343,6 @@ class MibInfo:
     #: SHA-256 of the ASN.1 source, newlines normalised to ``\n``
     digest: str = ""
 
-    #: What the patch for this module did to the text the reader returned.
-    #:
-    #: One of :py:data:`~pysmi.patches.APPLIED`,
-    #: :py:data:`~pysmi.patches.ALREADY_APPLIED`,
-    #: :py:data:`~pysmi.patches.NOT_APPLICABLE`, or
-    #: :py:data:`~pysmi.patches.UNPATCHED` -- the empty string -- when pysmi has
-    #: no patch for the module or the reader was told not to apply one.
-    #:
-    #: *already-applied* is a patched module just as much as *applied* is: it is
-    #: what pysmi's own bundled copies report, having been patched at the time
-    #: they were fetched.
-    patch: str = ""
-
     def __init__(self, **kwargs: Any) -> None:
         """Set the given fields, leaving the rest at their class defaults.
 

@@ -26,6 +26,7 @@ import unittest
 import pytest
 
 from hatch_build import build as build_precompiled
+from hatch_build import patch_asn1
 from pysmi.codegen import PySnmpCodeGen
 from pysmi.codegen.pysnmp_surface import (
     BUILDER_MEMBERS,
@@ -353,7 +354,9 @@ class PrecompiledBundleTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.out = build_precompiled(pathlib.Path(__file__).parent.parent)
+        root = pathlib.Path(__file__).parent.parent
+        cls.asn1 = patch_asn1(root)
+        cls.out = build_precompiled(root, cls.asn1)
 
         from pysnmp.smi import builder
 
@@ -441,7 +444,9 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
     def setUpClass(cls):
         from pysnmp.smi import builder
 
-        cls.out = build_precompiled(pathlib.Path(__file__).parent.parent)
+        root = pathlib.Path(__file__).parent.parent
+        cls.asn1 = patch_asn1(root)
+        cls.out = build_precompiled(root, cls.asn1)
         cls.modules = sorted(
             path.stem for path in cls.out.glob("*.py") if not path.name.startswith("__")
         )

@@ -34,11 +34,11 @@ from pysmi.compiler import (
 )
 from pysmi.mibinfo import source_digest
 from pysmi.parser import SmiV1CompatParser
-from pysmi.patches import PatchSet
 from pysmi.reader import FileReader
 from pysmi.searcher import AnyFileSearcher
 from pysmi.writer import CallbackWriter, FileWriter
 from scripts import update_bundled_mibs
+from scripts.patches import PatchSet
 
 BUNDLED_PACKAGE = "pysmi.mibs.asn1"
 

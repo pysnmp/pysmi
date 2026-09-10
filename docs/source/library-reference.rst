@@ -225,18 +225,6 @@ comes from and, for those a later RFC replaced, which module took over.
 
    /pysmi/mibs
 
-MIB patches
------------
-
-Some published MIBs do not compile. PySMI carries a diff for each, and every
-reader applies it to whatever source the text came from -- so the repair reaches
-a caller's own copy of the module, not only PySMI's bundled one.
-
-.. toctree::
-   :maxdepth: 2
-
-   /pysmi/patches
-
 Exceptions
 ----------
 

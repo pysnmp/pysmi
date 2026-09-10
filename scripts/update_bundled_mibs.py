@@ -138,18 +138,16 @@ A handful of entries also carry a ``patch``. The published text of those
 modules does not compile -- a truncated line left in the RFC, an IMPORTS clause
 missing a symbol the module goes on to use, a bound one past the top of
 Integer32. What gets stored is the published text, unmodified; the repair lives
-beside it as a unified diff in ``pysmi/mibs/patches/``, and the manifest's
+beside it as a unified diff in ``scripts/mib-patches/``, and the manifest's
 ``reason`` says what defect it repairs. Bundling the pysnmp/mibs mirror's
 hand-repaired copy instead would have hidden all of that.
 
 The diff is checked here, not applied: a patch whose context has moved means the
 publisher changed the very lines it repairs, and that fails the refresh. Who
-applies it is :py:mod:`pysmi.patches` -- every reader, on the way out, to
-whatever source the text came from, so a caller's own copy of one of these
-modules is repaired too. ``hatch_build.py`` applies it as well, so the wheel
-carries the repaired text for a consumer reading ``pysmi/mibs/asn1`` off disk
-rather than through a reader. Storing the published text is what keeps a refresh
-diff a diff against the publisher.
+applies it is ``hatch_build.py``, as a distribution is built, so what a consumer
+installs -- both the ASN.1 and the pysnmp modules rendered from it -- carries the
+repair. pysmi itself patches nothing at read time. Storing the published text is
+what keeps a refresh diff a diff against the publisher.
 
 What belongs in the bundle
 --------------------------
@@ -216,14 +214,22 @@ from functools import cache
 from typing import Any
 
 from pysmi.mibinfo import strip_comments
-from pysmi.patches import APPLIED, apply_patch
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
+
+# Run as a script, sys.path[0] is scripts/; imported as
+# scripts.update_bundled_mibs by the tests, it is the repository root. Naming
+# the root explicitly makes the patch engine beside this file resolve either
+# way, without scripts/ having to become a package.
+sys.path.insert(0, str(ROOT))
+
+from scripts.patches import APPLIED, apply_patch
+
 DEST = ROOT / "pysmi" / "mibs" / "asn1"
 FUTURE = ROOT / "pysmi" / "mibs" / "future"
 MANIFEST = ROOT / "pysmi" / "mibs" / "bundled_mibs.json"
-PATCHES = ROOT / "pysmi" / "mibs" / "patches"
+PATCHES = HERE / "mib-patches"
 INVENTORY = ROOT / "docs" / "source" / "bundled-mibs.rst"
 
 RFC = "https://www.rfc-editor.org/rfc/rfc{}.txt"
@@ -554,10 +560,10 @@ def fetch(mibname: str, entry: dict[str, Any]) -> bytes:
         # The published text is what gets stored, so that a refresh diffs
         # against the publisher and the repairs pysmi makes stay visible as a
         # diff of their own. The patch is checked here rather than applied:
-        # readers apply it, and the wheel carries the repaired text, but a
-        # patch whose context has moved means the publisher changed the very
-        # lines it repairs, which is a thing to look at rather than to discover
-        # later as a MIB that stopped compiling.
+        # hatch_build.py applies it as a distribution is built, but a patch
+        # whose context has moved means the publisher changed the very lines it
+        # repairs, which is a thing to look at rather than to discover later as
+        # a MIB that stopped compiling.
         _patched, status = apply_patch(
             data.decode("utf-8", "replace"),
             (PATCHES / entry["patch"]).read_text(),
@@ -1300,15 +1306,17 @@ Patched modules
 
 The published text of these modules does not compile. Each is stored here as
 its publisher printed it, with the repair kept beside it as a unified diff in
-``pysmi/mibs/patches/`` -- so a refresh diffs against the publisher and what
+``scripts/mib-patches/`` -- so a refresh diffs against the publisher and what
 pysmi changes stays visible as a diff of its own.
 
-Every reader applies the diff on the way out, so a caller pointing
-``--mib-source`` at their own copy of one of these gets the same repaired text
-pysmi's own copy yields; ``mibdump --no-mib-patches`` turns that off. The wheel
-carries the repaired text as well, for a consumer reading ``pysmi/mibs/asn1``
-straight off disk rather than through a reader. A patch whose context has moved
-makes the refresh fail rather than silently fuzzing. The defect each one
+The repairs are applied when a distribution is built, to both the ASN.1 an
+install carries and the pysnmp modules rendered from it. PySMI does not patch
+anything at read time: a source is read exactly as it stands, so a caller
+pointing ``--mib-source`` at their own copy of one of these compiles the defect
+along with it. Patch your own copies before PySMI sees them, or rebuild PySMI
+from source with your own diffs in that directory -- the distribution is the
+opinion, and a different opinion is a different build. A patch whose context has
+moved makes the refresh fail rather than silently fuzzing. The defect each one
 repairs:
 """
 

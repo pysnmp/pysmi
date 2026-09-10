@@ -15,7 +15,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any, Final
 
-from pysmi import debug, error, patches
+from pysmi import debug, error
 from pysmi.borrower import AnyFileBorrower, PyFileBorrower
 from pysmi.borrower.base import AbstractBorrower
 from pysmi.cache.base import AbstractParseCache
@@ -28,7 +28,6 @@ from pysmi.compiler import (
     bundled_mib_names,
 )
 from pysmi.parser import SmiV1CompatParser
-from pysmi.patches import PatchSet
 from pysmi.reader import getReadersFromUrls
 from pysmi.reader.base import AbstractReader
 from pysmi.searcher import (
@@ -79,28 +78,6 @@ def _parse_emit(spec: str) -> "_Destination":
         raise error.PySmiError(f"unknown --emit modifier: +{suffix}")
 
     return _Destination(fmt, directory or None, bool(plus))
-
-
-def _patch_set(directories: list[str]) -> "PatchSet | None":
-    """Build the patch set the readers should offer.
-
-    Args:
-        directories: what ``--mib-patch-source`` was given, in order.
-
-    Returns:
-        The patches those directories hold, later ones winning, or ``None`` for
-        the bundled set when none were named.
-    """
-    if not directories:
-        return None
-
-    merged: dict[str, str] = {}
-
-    for directory in directories:
-        found = PatchSet.from_directory(directory)
-        merged.update({name: found.patch_for(name) or "" for name in found.modules()})
-
-    return PatchSet(merged)
 
 
 def _enumerate_sources(sourceReaders: list["AbstractReader"]) -> list[str]:
@@ -464,19 +441,6 @@ def _compile_to(
             )
             sys.stderr.write(f"Repaired MIBs: {repairedMibs}\n")
 
-            # A patched module is a module whose text is not what its publisher
-            # printed, so the build says which ones and how they got that way.
-            # already-applied is the bundled copies, patched when they were
-            # fetched; applied is a source of the caller's that pysmi fixed on
-            # the way in, which is the case this line exists for.
-            patchedMibs = ", ".join(
-                f"{x} ({getattr(processed[x], 'patch', '')})"
-                for x in sorted(processed)
-                if getattr(processed[x], "patch", "")
-                in (patches.APPLIED, patches.ALREADY_APPLIED)
-            )
-            sys.stderr.write(f"Patched MIBs: {patchedMibs}\n")
-
             # A module resolved to a copy other than the one the caller
             # thought they configured is worth more than a line in the
             # summary: it is why an upgrade of pysmi can change compiled
@@ -600,8 +564,6 @@ def start() -> None:
     buildIndexFlag = False
     writeMibsFlag = True
     repairImportsFlag = True
-    mibPatchesFlag = True
-    mibPatchSources: list[str] = []
     strictSourcesFlag = False
 
     helpMessage = """\
@@ -635,8 +597,6 @@ def start() -> None:
         [--keep-texts-layout]
         [--strict-imports]
         [--strict-sources]
-        [--no-mib-patches]
-        [--mib-patch-source=<DIRECTORY>]
         <MIB-NAME> [MIB-NAME [...]]]
     Where:
         URI      - file, zip, http, https schemes are supported.
@@ -713,17 +673,7 @@ def start() -> None:
         --strict-sources - fail a MIB that more than one source has a
                 different copy of. Without this, the precedence above picks
                 one and the copies passed over are named on the "MIBs found
-                in more than one source" line of the report.
-        --no-mib-patches - read every source exactly as it stands. Twelve
-                published MIBs do not compile, and pysmi carries a diff for
-                each that every reader applies on the way out, so a copy of
-                one from --mib-source is fixed the same way the bundled copy
-                is. Patched modules are named on the "Patched MIBs" line of
-                the report. Use this to see what a source actually holds.
-        --mib-patch-source - read patches from this directory instead of the
-                bundled set, one <MODULE>.patch per module, unified diff. May
-                be given more than once; a later directory wins for a module
-                both hold.""".format(
+                in more than one source" line of the report.""".format(
         os.path.basename(sys.argv[0]), "|".join(sorted(debug.DEBUG_CATEGORIES))
     )
 
@@ -762,8 +712,6 @@ def start() -> None:
                 "keep-texts-layout",
                 "strict-imports",
                 "strict-sources",
-                "no-mib-patches",
-                "mib-patch-source=",
             ],
         )
 
@@ -886,12 +834,6 @@ def start() -> None:
         if opt[0] == "--strict-sources":
             strictSourcesFlag = True
 
-        if opt[0] == "--no-mib-patches":
-            mibPatchesFlag = False
-
-        if opt[0] == "--mib-patch-source":
-            mibPatchSources.append(opt[1])
-
     if not mibSources:
         mibSources = ["https://pysnmp.github.io:443/mibs/asn1/@mib@"]
 
@@ -914,12 +856,7 @@ def start() -> None:
     # listings, and the module index --build-all fills in while enumerating.
     try:
         sourceReaders = list(
-            getReadersFromUrls(
-                *mibSources,
-                fuzzyMatching=doFuzzyMatchingFlag,
-                usePatches=mibPatchesFlag,
-                patchSet=_patch_set(mibPatchSources),
-            )
+            getReadersFromUrls(*mibSources, fuzzyMatching=doFuzzyMatchingFlag)
         )
 
     except error.PySmiError as exc:

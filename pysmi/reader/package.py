@@ -57,7 +57,7 @@ class PackageReader(AbstractReader):
         """Names of the modules bundled in the package.
 
         Only files directly inside the package are candidates, matching what
-        :py:meth:`~pysmi.reader.base.AbstractReader.get_data` searches. Each is read and its module headers
+        :py:meth:`get_data` searches. Each is read and its module headers
         lexed; ``.py`` files and anything else that declares no module
         contributes nothing.
         """
@@ -111,7 +111,7 @@ class PackageReader(AbstractReader):
 
         return list(seen)
 
-    def fetch_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Read a MIB out of the package's bundled resources.
 
         Raises:

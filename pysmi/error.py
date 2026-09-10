@@ -193,14 +193,3 @@ class PySmiWriterError(PySmiError):
     Raised when the destination cannot be created or written, or when a
     caller-supplied callback raises while receiving the output.
     """
-
-
-class PySmiPatchError(PySmiError):
-    """A MIB patch could not be read.
-
-    Raised for a patch that is not a well-formed unified diff -- an unreadable
-    line, or hunks that run backwards. A patch whose *context* does not match
-    the text it is offered is not this: that is the ordinary case of a source
-    the patch was not cut against, and it is reported as not applicable rather
-    than raised.
-    """

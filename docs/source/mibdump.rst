@@ -46,8 +46,6 @@ into various formats.
          [--keep-texts-layout]
          [--repair-imports]
          [--strict-sources]
-         [--no-mib-patches]
-         [--mib-patch-source=<DIRECTORY>]
          <MIB-NAME> [MIB-NAME [...]]]
    Where:
        URI      - file, zip, http, https schemes are supported.
@@ -101,16 +99,6 @@ into various formats.
                   different copy of. Without this, the precedence above picks
                   one and the copies passed over are named on the "MIBs found
                   in more than one source" line of the report.
-       --no-mib-patches - read every source exactly as it stands. Twelve
-                  published MIBs do not compile, and pysmi carries a diff for
-                  each that every reader applies on the way out, so a copy of
-                  one from --mib-source is fixed the same way pysmi's own is.
-                  Patched modules are named on the "Patched MIBs" line of the
-                  report. Use this to see what a source actually holds.
-       --mib-patch-source - read patches from this directory instead of the
-                  bundled set, one <MODULE>.patch per module, unified diff.
-                  May be given more than once; a later directory wins for a
-                  module both hold.
 
 
 When JSON destination format is requested, for each MIB module *mibdump*

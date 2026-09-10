@@ -62,7 +62,7 @@ class HttpReader(AbstractReader):
         """Identify this reader by the URL template it fetches from."""
         return self._url
 
-    def fetch_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
+    def get_data(self, mibname: str, **options: Any) -> tuple[MibInfo, str]:
         """Download a MIB over HTTP, trying each candidate file name in turn.
 
         Raises:

@@ -17,7 +17,7 @@ import pathlib
 import shutil
 import unittest
 
-from hatch_build import build
+from hatch_build import build, patch_asn1
 from pysmi.codegen import PySnmpCodeGen
 
 ROOT = pathlib.Path(__file__).parent.parent
@@ -26,7 +26,11 @@ ROOT = pathlib.Path(__file__).parent.parent
 class PrecompiledMibsTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.out = build(ROOT)
+        # The distribution's ASN.1, not the tree's: the repairs in
+        # scripts/mib-patches are applied as a distribution is built, and the
+        # modules below are rendered from that repaired text.
+        cls.asn1 = patch_asn1(ROOT)
+        cls.out = build(ROOT, cls.asn1)
 
     @classmethod
     def tearDownClass(cls):

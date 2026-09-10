@@ -4,55 +4,60 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-"""MIB patches, carried with the MIB rather than applied once at bundle time.
+"""The repairs pysmi makes to published MIBs, applied while a distribution builds.
 
 Some published MIBs do not compile. ``SMUX-MIB`` imports ``OBJECT-TYPE`` from a
 module called ``RFC1212``, and no such module exists -- it is ``RFC-1212``.
 ``HPR-MIB`` is published with ``LAST-UPDATED "970514000000Z"``, which is
 thirteen characters and so reads as the wide form, year 9705 of month 14. These
 are defects in the published text, and the fix for each is a small diff against
-it.
+it, kept in ``scripts/mib-patches``.
 
-Those diffs used to be applied by the bundle-refresh script, which meant the fix
-reached exactly one set of files: pysmi's own copies under ``pysmi/mibs/asn1``.
-A caller pointing ``--mib-source`` at their own ``SMUX-MIB``, or at a checkout of
-``pysnmp/mibs``, got the published text and the failure the patch exists to
-prevent. Worse, source precedence resolves duplicate modules by newest
-MODULE-IDENTITY revision, so a caller's *unpatched* copy could outrank pysmi's
-patched one and silently reintroduce a break pysmi already knows how to fix.
+The repository holds each module as its publisher printed it, so that ``git
+diff`` on a bundle refresh is a diff against the publisher and the repairs pysmi
+makes are a diff of their own, reviewable on their own terms. The *distribution*
+holds the repaired text: ``hatch_build.py`` applies these diffs as the wheel is
+built, and both the ASN.1 the wheel carries and the pysnmp modules rendered from
+it are the repaired form.
 
-So a patch travels with the MIB instead. Every reader applies the bundled set on
-the way out, whatever source the text came from, and records on the module's
-:py:class:`~pysmi.mibinfo.MibInfo` that it did. Reading a MIB means reading the
-MIB and its patch.
+So this is build tooling, and it neither ships nor runs at runtime. pysmi reads
+what a source actually holds and does not patch anything on the way past. A
+consumer wanting a different set of repairs rebuilds from source with their own
+diffs here, rather than configuring the reader; a consumer with MIBs of their own
+patches them before pysmi sees them. The distribution is the opinion.
 
-Three things follow from applying at read time rather than at refresh time:
+Two things follow from applying at build time:
 
-* A patch is offered to text it was not cut against -- a caller's copy from
-  another publisher, a different revision, a copy someone has already hand-fixed.
-  Context that does not match is therefore the ordinary case and not an error.
-  It is reported as :py:data:`NOT_APPLICABLE` and the text passes through
-  unchanged. Only a patch that is not a well-formed diff raises.
-* pysmi's own bundled copies are already patched, so the same patch is offered to
-  text that already carries it. That is detected by trying the patch backwards --
-  the dry run ``patch -R`` does -- and reported as :py:data:`ALREADY_APPLIED`,
-  which is a patched module just as much as :py:data:`APPLIED` is.
-* Matching is exact. A patch that no longer applies to the text it was cut
-  against means the source moved, which is a thing to look at rather than to
-  fuzz past, and the bundle refresh still fails loudly on it.
+* The bundled copy a patch is cut against is the *published* text, so a patch
+  that no longer applies means the publisher moved. That is a thing to look at
+  rather than to fuzz past: matching is exact, and both the build and the bundle
+  refresh fail loudly on it.
+* The same diff is nevertheless offered to text that already carries it -- the
+  tests read the wheel's copies back. That is detected by trying the patch
+  backwards, the dry run ``patch -R`` does, and reported as
+  :py:data:`ALREADY_APPLIED`.
 """
 
 import logging
 import re
-from importlib import resources
-from typing import TYPE_CHECKING, NamedTuple
-
-from pysmi import error
-
-if TYPE_CHECKING:
-    import pathlib
+from pathlib import Path
+from typing import NamedTuple
 
 logger = logging.getLogger(__name__)
+
+#: Where the diffs live, beside this module.
+PATCHES = Path(__file__).resolve().parent / "mib-patches"
+
+
+class PatchError(Exception):
+    """A MIB patch is not a well-formed unified diff.
+
+    Raised for an unreadable line or hunks that run backwards. A patch whose
+    *context* does not match the text it is offered is not this: that is the
+    ordinary case of text the patch was not cut against, and it is reported as
+    :py:data:`NOT_APPLICABLE` rather than raised.
+    """
+
 
 #: The text carried the patch already -- pysmi's own bundled copies do.
 ALREADY_APPLIED = "already-applied"
@@ -102,7 +107,7 @@ def parse_patch(patch: str, mibname: str) -> tuple[Hunk, ...]:
         The hunks, in the order they appear.
 
     Raises:
-        PySmiPatchError: the diff is malformed -- an unreadable line, or hunks
+        PatchError: the diff is malformed -- an unreadable line, or hunks
             that do not run forwards.
     """
     lines = patch.split("\n")
@@ -135,9 +140,7 @@ def parse_patch(patch: str, mibname: str) -> tuple[Hunk, ...]:
             start = int(header[1]) - 1
 
             if hunks and start < hunks[-1].old_start + len(hunks[-1].before):
-                raise error.PySmiPatchError(
-                    f"{mibname}: overlapping hunks in its patch", mibname=mibname
-                )
+                raise PatchError(f"{mibname}: overlapping hunks in its patch")
 
             old_start, new_start = start, int(header[3]) - 1
             before, after = [], []
@@ -158,9 +161,7 @@ def parse_patch(patch: str, mibname: str) -> tuple[Hunk, ...]:
         elif mark == "\\":
             continue
         else:
-            raise error.PySmiPatchError(
-                f"{mibname}: unreadable line in its patch: {line!r}", mibname=mibname
-            )
+            raise PatchError(f"{mibname}: unreadable line in its patch: {line!r}")
 
     flush()
 
@@ -211,7 +212,7 @@ def apply_patch(text: str, patch: str, mibname: str) -> tuple[str, str]:
         text unchanged.
 
     Raises:
-        PySmiPatchError: the diff is malformed. Context that does not match is
+        PatchError: the diff is malformed. Context that does not match is
             not malformed; it is :py:data:`NOT_APPLICABLE`.
     """
     hunks = parse_patch(patch, mibname)
@@ -244,12 +245,13 @@ def apply_patch(text: str, patch: str, mibname: str) -> tuple[str, str]:
 
 
 class PatchSet:
-    """The patches available to a reader, keyed by module name.
+    """The repairs pysmi makes, keyed by module name.
 
-    A reader holds one of these and offers the matching patch to every module it
-    produces. :py:meth:`bundled` is the set pysmi ships and the default for every
-    reader; a caller with their own patches points :py:meth:`from_directory` at
-    them, and one who wants none sets the reader's ``patchSet`` to ``None``.
+    :py:meth:`bundled` is the set in ``scripts/mib-patches``, which is what
+    ``hatch_build.py`` applies as a distribution is built and what the tests
+    check against the published text. :py:meth:`from_directory` reads any other
+    directory of ``<MODULE>.patch`` files, which is how a fork building its own
+    distribution supplies a different opinion.
     """
 
     def __init__(self, patches: dict[str, str] | None = None) -> None:
@@ -304,7 +306,7 @@ class PatchSet:
         try:
             return apply_patch(text, patch, mibname)
 
-        except error.PySmiPatchError as exc:
+        except PatchError as exc:
             logger.error(  # noqa: TRY400 -- the traceback adds nothing here
                 "MIB %s has a malformed patch, leaving its text alone: %s",
                 mibname,
@@ -315,7 +317,7 @@ class PatchSet:
             return text, UNPATCHED
 
     @classmethod
-    def from_directory(cls, path: "str | pathlib.Path") -> "PatchSet":
+    def from_directory(cls, path: "str | Path") -> "PatchSet":
         """Read every ``<MODULE>.patch`` in a directory.
 
         The file name before ``.patch`` is the module name, so the set can be
@@ -327,8 +329,6 @@ class PatchSet:
         Returns:
             The patches it holds. Empty when the directory does not exist.
         """
-        from pathlib import Path
-
         directory = Path(path)
 
         if not directory.is_dir():
@@ -343,23 +343,15 @@ class PatchSet:
 
     @classmethod
     def bundled(cls) -> "PatchSet":
-        """The patches pysmi ships, in ``pysmi/mibs/patches``.
+        """The repairs pysmi makes, from ``scripts/mib-patches``.
 
-        Read once and shared, since the set does not change while the process
-        runs and every reader wants the same one.
+        Read once and shared, since the set does not change while the build
+        runs and everything that wants it wants the same one.
         """
         global _BUNDLED
 
         if _BUNDLED is None:
-            root = resources.files("pysmi") / "mibs" / "patches"
-
-            _BUNDLED = cls(
-                {
-                    entry.name[: -len(".patch")]: entry.read_text(encoding="utf-8")
-                    for entry in sorted(root.iterdir(), key=lambda e: e.name)
-                    if entry.name.endswith(".patch")
-                }
-            )
+            _BUNDLED = cls.from_directory(PATCHES)
 
         return _BUNDLED
 

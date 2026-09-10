@@ -4,7 +4,13 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-"""Compile the bundled ASN.1 MIBs into pysnmp modules while the wheel is built.
+"""Repair and compile the bundled ASN.1 MIBs while the wheel is built.
+
+Two things happen here, in order. First the repairs in ``scripts/mib-patches``
+are applied to the bundled ASN.1: the repository holds each module as its
+publisher printed it, and the distribution holds pysmi's opinion of it. Then
+that repaired ASN.1 is compiled into pysnmp modules, so the two halves of what
+a consumer installs are the same text.
 
 pysmi keeps the ASN.1 because it is what the compiler reads: resolving an
 IMPORTS clause means parsing the imported module's source, so the text cannot
@@ -65,70 +71,77 @@ class PrecompiledMibsHook(BuildHookInterface[Any]):
         if self.target_name != "wheel":
             return
 
-        self._patched = patch_asn1(Path(self.root))
+        self._asn1 = patch_asn1(Path(self.root))
 
-        for name, staged in self._patched.items():
-            build_data["force_include"][str(staged)] = f"{ASN1}/{name}"
+        # Every module, not only the twelve that changed, so that what the
+        # wheel carries and what was compiled below are the same bytes by
+        # construction rather than by the two agreeing about which files the
+        # patches touched.
+        for staged in sorted(self._asn1.iterdir()):
+            build_data["force_include"][str(staged)] = f"{ASN1}/{staged.name}"
 
-        self._tmp = build(Path(self.root))
+        self._tmp = build(Path(self.root), self._asn1)
 
         build_data["force_include"][str(self._tmp)] = DEST
 
     def finalize(self, version: str, build_data: dict[str, Any], artifact: str) -> None:
         """Drop the staging directories once the wheel holds a copy."""
-        for staged in getattr(self, "_patched", {}).values():
-            shutil.rmtree(staged.parent, ignore_errors=True)
-            break
+        for attr in ("_asn1", "_tmp"):
+            staged = getattr(self, attr, None)
 
-        tmp = getattr(self, "_tmp", None)
-
-        if tmp:
-            shutil.rmtree(tmp, ignore_errors=True)
+            if staged:
+                shutil.rmtree(staged, ignore_errors=True)
 
 
-def patch_asn1(root: Path) -> "dict[str, Path]":
-    """Stage patched copies of the bundled modules that carry a patch.
+def patch_asn1(root: Path) -> Path:
+    """Stage the bundled ASN.1 with pysmi's repairs applied.
 
     The tree holds each module as its publisher printed it, so that ``git diff``
     on a bundle refresh is a diff against the publisher and the repairs pysmi
-    makes are visible as a diff of their own. The *wheel* holds the repaired
-    text, because a consumer reading ``pysmi/mibs/asn1`` straight off disk --
-    the ``pysnmp/mibs`` mirror, a build that copies the directory -- is not
-    going through a reader and cannot apply anything.
+    makes are visible as a diff of their own. The distribution holds the
+    repaired text, because that is what a consumer installs: pysmi does not
+    patch anything at read time, so a module that ships unrepaired stays
+    unrepaired for everyone who reads it.
 
-    Reading through pysmi gets the same text either way: the reader applies the
-    patch to the tree's copy and recognises it as already applied on the wheel's.
+    The repairs are ``scripts/mib-patches``, which is build tooling and is not
+    itself shipped. A consumer wanting a different set of them rebuilds from
+    source with their own diffs there.
 
     Args:
         root: the repository root, holding ``pysmi/mibs/asn1``.
 
     Returns:
-        Module name to the staged patched file, for the caller to force into
-        the wheel. The caller owns the directory they sit in.
+        A directory holding every bundled module, the patched ones repaired.
+        The caller owns it.
 
     Raises:
         RuntimeError: a patch did not apply to the text in the tree, which
-            means the two have gone out of step.
+            means the publisher's copy and the repair have gone out of step.
     """
     sys.path.insert(0, str(root))
 
-    from pysmi.patches import APPLIED, PatchSet
+    from scripts.patches import APPLIED, PatchSet
 
     patches = PatchSet.bundled()
-    asn1 = root / ASN1
     out = Path(tempfile.mkdtemp(prefix="pysmi-patched-asn1-"))
 
-    staged: dict[str, Path] = {}
+    # Files only. The bundle is a flat directory of modules, and anything else
+    # that has appeared in it -- a stale __pycache__, an editor's backup -- is
+    # not part of it and must not be staged, since every staged entry is forced
+    # into the wheel as a file.
+    for source in sorted((root / ASN1).iterdir()):
+        if source.is_file():
+            shutil.copy2(source, out / source.name)
 
     for mibname in patches.modules():
-        source = asn1 / mibname
+        target = out / mibname
 
-        if not source.exists():
+        if not target.exists():
             # A patch for a module the bundle does not carry -- one held in
             # pysmi/mibs/future, which the wheel excludes.
             continue
 
-        text = source.read_text(encoding="utf-8", errors="replace")
+        text = target.read_text(encoding="utf-8", errors="replace")
         patched, status = patches.apply(mibname, text)
 
         if status != APPLIED:
@@ -136,21 +149,22 @@ def patch_asn1(root: Path) -> "dict[str, Path]":
             raise RuntimeError(
                 f"{mibname}: its patch did not apply to the bundled text "
                 f"({status or 'no patch found'}); the tree should hold the "
-                "published text and pysmi/mibs/patches the repair"
+                "published text and scripts/mib-patches the repair"
             )
 
-        target = out / mibname
         target.write_text(patched, encoding="utf-8", newline="")
-        staged[mibname] = target
 
-    return staged
+    return out
 
 
-def build(root: Path) -> Path:
-    """Compile every bundled MIB under *root* into a fresh directory.
+def build(root: Path, asn1: Path) -> Path:
+    """Compile every bundled MIB in *asn1* into a fresh directory.
 
     Args:
-        root: the repository root, holding ``pysmi/mibs/asn1``.
+        root: the repository root, for importing pysmi itself.
+        asn1: the ASN.1 to compile -- the staging directory
+            :py:func:`patch_asn1` produced, so the modules are rendered from
+            the same repaired text the wheel ships.
 
     Returns:
         A temporary directory holding one pysnmp module per bundled MIB, plus
@@ -162,8 +176,6 @@ def build(root: Path) -> Path:
     sys.path.insert(0, str(root))
 
     from pysmi.corpus import CorpusDriver, CorpusOutputs, Namespace
-
-    asn1 = root / "pysmi" / "mibs" / "asn1"
 
     UNGENERATABLE = _ungeneratable()
 

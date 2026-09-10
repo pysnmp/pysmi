@@ -4,17 +4,18 @@
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysmi/license.html
 #
-"""A patch travels with the MIB, so every caller's copy gets the fix.
+"""The repository holds the publisher's text; the distribution holds the repair.
 
-The patches used to be applied by the bundle-refresh script, which reached
-pysmi's own copies and nothing else. These pin the behaviour that replaced that:
-a reader offers every module the patch for it, whatever source the text came
-from, and says on the module's :py:class:`~pysmi.mibinfo.MibInfo` what happened.
+Twelve published MIBs do not compile, and the fix for each is a diff in
+``scripts/mib-patches``. The repository stores each module unmodified, so a
+bundle refresh diffs against the publisher and the repairs are reviewable on
+their own; ``hatch_build.py`` applies them as a distribution is built, to both
+the ASN.1 the wheel carries and the pysnmp modules rendered from it.
 
-The interesting cases are the ones that are *not* a clean forward apply --
-text that already carries the patch, text the patch was never cut against, and
-a patch that is not a diff at all -- because those are what applying at read
-time introduces and applying at refresh time never had to face.
+These pin that split. The patch engine itself is build tooling and is not
+shipped, so what is checked here is the engine's behaviour, that every patch
+still applies cleanly to the published text in the tree, and that a build
+produces one repaired bundle rather than a repaired half and a published half.
 """
 
 import shutil
@@ -23,20 +24,16 @@ import textwrap
 import unittest
 from pathlib import Path
 
-from pysmi import error
-from pysmi.compiler import revision_of
-from pysmi.mibinfo import MibInfo
-from pysmi.patches import (
+from scripts.patches import (
     ALREADY_APPLIED,
     APPLIED,
     NOT_APPLICABLE,
     UNPATCHED,
+    PatchError,
     PatchSet,
     apply_patch,
     parse_patch,
 )
-from pysmi.reader import FileReader
-from pysmi.reader.base import AbstractReader
 
 BUNDLED_ASN1 = Path(__file__).resolve().parent.parent / "pysmi" / "mibs" / "asn1"
 BUNDLED_FUTURE = Path(__file__).resolve().parent.parent / "pysmi" / "mibs" / "future"
@@ -127,7 +124,7 @@ class PatchParsingTestCase(unittest.TestCase):
         """A line that is not a diff line is a malformed patch."""
         patch = "--- a/M\n+++ b/M\n@@ -1,1 +1,1 @@\n?what\n"
 
-        with self.assertRaises(error.PySmiPatchError):
+        with self.assertRaises(PatchError):
             parse_patch(patch, "M")
 
     def testHunksMustRunForwards(self):
@@ -138,7 +135,7 @@ class PatchParsingTestCase(unittest.TestCase):
             "@@ -1,2 +1,2 @@\n-one\n+ONE\n two\n"
         )
 
-        with self.assertRaises(error.PySmiPatchError):
+        with self.assertRaises(PatchError):
             parse_patch(patch, "M")
 
     def testTrailingNewlineIsNotAHunkLine(self):
@@ -284,7 +281,7 @@ class BundledPatchSetTestCase(unittest.TestCase):
         """
         broken = PatchSet({"TEST-MIB": "--- a/M\n+++ b/M\n@@ -1,1 +1,1 @@\n?what\n"})
 
-        with self.assertLogs("pysmi.patches", level="ERROR"):
+        with self.assertLogs("scripts.patches", level="ERROR"):
             out, status = broken.apply("TEST-MIB", SAMPLE)
 
         self.assertEqual(UNPATCHED, status)
@@ -292,14 +289,18 @@ class BundledPatchSetTestCase(unittest.TestCase):
 
 
 class PatchSetSourceTestCase(unittest.TestCase):
-    """Where a reader's patches come from."""
+    """Where the repairs are read from."""
 
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.tmp)
 
     def testFromDirectoryKeysOnTheFileName(self):
-        """``<MODULE>.patch`` names the module, so lookup opens nothing."""
+        """``<MODULE>.patch`` names the module, so lookup opens nothing.
+
+        This is also how a fork supplies its own opinion: point a build at a
+        different directory of diffs rather than configure anything at runtime.
+        """
         (Path(self.tmp) / "TEST-MIB.patch").write_text(SAMPLE_PATCH)
         (Path(self.tmp) / "notes.txt").write_text("ignored")
 
@@ -309,204 +310,53 @@ class PatchSetSourceTestCase(unittest.TestCase):
         self.assertEqual(SAMPLE_PATCH, found.patch_for("TEST-MIB"))
 
     def testMissingDirectoryIsEmptyRatherThanAnError(self):
-        """A caller naming a directory that is not there gets no patches."""
+        """Naming a directory that is not there gets no patches."""
         self.assertEqual(0, len(PatchSet.from_directory(Path(self.tmp) / "nope")))
 
     def testBundledSetIsSharedRatherThanReread(self):
-        """Every reader wants the same set, and it does not change."""
+        """The set does not change while a build runs."""
         self.assertIs(PatchSet.bundled(), PatchSet.bundled())
 
 
-class ReaderPatchingTestCase(unittest.TestCase):
-    """The point of all of it: a caller's own copy gets the fix."""
+class DistributionShipsRepairedTextTestCase(unittest.TestCase):
+    """The tree holds the publisher's text; the distribution holds the repair."""
 
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.tmp)
-
-        self.published = _published("HPR-MIB")
-        self.patched = _repaired("HPR-MIB")
-
-        (self.tmp / "HPR-MIB").write_text(self.published)
-
-    def testCallersOwnCopyComesBackPatched(self):
-        """A source pointed at the published text yields the fixed text.
-
-        This is the whole issue: before, the fix reached pysmi's bundled copies
-        and nothing else, so a caller with their own ``HPR-MIB`` got the
-        published text and the failure the patch exists to prevent.
-        """
-        info, data = FileReader(str(self.tmp)).get_data("HPR-MIB")
-
-        self.assertEqual(APPLIED, info.patch)
-        self.assertEqual(self.patched, data)
-
-    def testUnpatchedCopyNoLongerOutranksThePatchedOne(self):
-        """The precedence hazard the issue named is closed.
-
-        Source precedence takes the newest MODULE-IDENTITY revision. HPR-MIB's
-        published ``LAST-UPDATED "970514000000Z"`` is what the patch repairs, so
-        while the fix reached only the bundle, a caller's published copy and
-        pysmi's patched one disagreed about the module's revision. Read through
-        a reader they now agree, because they are the same text.
-        """
-        _info, fromCaller = FileReader(str(self.tmp)).get_data("HPR-MIB")
-        _info, fromBundle = FileReader(str(BUNDLED_ASN1)).get_data("HPR-MIB")
-
-        self.assertEqual(revision_of(fromBundle), revision_of(fromCaller))
-
-    def testWheelCopyIsRecognisedAsAlreadyPatched(self):
-        """The wheel ships the repaired text, and reading it does not re-patch.
-
-        The tree holds the published text; ``hatch_build.patch_asn1`` repairs it
-        into the wheel, so an installed pysmi reads what this stages.
-        """
-        wheel = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, wheel)
-        (wheel / "HPR-MIB").write_text(self.patched)
-
-        info, data = FileReader(str(wheel)).get_data("HPR-MIB")
-
-        self.assertEqual(ALREADY_APPLIED, info.patch)
-        self.assertEqual(self.patched, data)
-
-    def testTreeCopyIsPatchedOnTheWayOut(self):
-        """Reading pysmi's own tree gives the same text the wheel ships."""
-        info, data = FileReader(str(BUNDLED_ASN1)).get_data("HPR-MIB")
-
-        self.assertEqual(APPLIED, info.patch)
-        self.assertEqual(self.patched, data)
-
-    def testUsePatchesOffShowsWhatTheSourceHolds(self):
-        """Turning patching off is how the bundle refresh sees a moved source."""
-        reader = FileReader(str(self.tmp)).set_options(usePatches=False)
-
-        info, data = reader.get_data("HPR-MIB")
-
-        self.assertEqual(UNPATCHED, info.patch)
-        self.assertEqual(self.published, data)
-
-    def testCallerSuppliedPatchSetReplacesTheBundledOne(self):
-        """``patchSet`` is how a caller brings patches pysmi does not ship."""
-        (self.tmp / "TEST-MIB").write_text(SAMPLE)
-
-        reader = FileReader(str(self.tmp)).set_options(
-            patchSet=PatchSet({"TEST-MIB": SAMPLE_PATCH})
-        )
-
-        info, data = reader.get_data("TEST-MIB")
-
-        self.assertEqual(APPLIED, info.patch)
-        self.assertIn("FROM RFC-1212;", data)
-
-        # ... and only those: the bundled set is replaced, not added to.
-        info, _data = reader.get_data("HPR-MIB")
-
-        self.assertEqual(UNPATCHED, info.patch)
-
-    def testUnpatchedModuleIsUntouched(self):
-        """A module pysmi has no patch for reads exactly as it is stored."""
-        text = (BUNDLED_ASN1 / "SNMPv2-SMI").read_text(encoding="utf-8")
-
-        info, data = FileReader(str(BUNDLED_ASN1)).get_data("SNMPv2-SMI")
-
-        self.assertEqual(UNPATCHED, info.patch)
-        self.assertEqual(text, data)
-
-    def testPatchIsKeyedOnTheModuleNotTheFileName(self):
-        """A patch is cut against a module, so the file's spelling is not it.
-
-        Readers find a module under several file names, so keying on the name
-        the file happened to use would leave ``hpr-mib.txt`` unpatched.
-        """
-        odd = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, odd)
-        (odd / "hpr-mib.txt").write_text(self.published)
-
-        info, data = FileReader(str(odd)).get_data("HPR-MIB")
-
-        self.assertEqual(APPLIED, info.patch)
-        self.assertEqual(self.patched, data)
-
-
-class ReaderContractTestCase(unittest.TestCase):
-    """Patching sits in the base reader, so every source gets it alike."""
-
-    def testEveryShippedReaderImplementsFetchData(self):
-        """A reader that overrode *get_data* would silently skip patching."""
-        from pysmi.reader.callback import CallbackReader
-        from pysmi.reader.httpclient import HttpReader
-        from pysmi.reader.localfile import FileReader as _FileReader
-        from pysmi.reader.package import PackageReader
-        from pysmi.reader.zipreader import ZipReader
-
-        for cls in (CallbackReader, HttpReader, _FileReader, PackageReader, ZipReader):
-            with self.subTest(reader=cls.__name__):
-                self.assertNotIn("get_data", vars(cls))
-                self.assertIn("fetch_data", vars(cls))
-
-    def testPatchingAppliesToAnySource(self):
-        """A reader that is not a directory is patched the same way."""
-
-        class _Reader(AbstractReader):
-            def fetch_data(self, mibname, **options):
-                return MibInfo(name=mibname, path="test://x"), SAMPLE
-
-        reader = _Reader().set_options(patchSet=PatchSet({"TEST-MIB": SAMPLE_PATCH}))
-
-        info, data = reader.get_data("TEST-MIB")
-
-        self.assertEqual(APPLIED, info.patch)
-        self.assertIn("FROM RFC-1212;", data)
-
-
-class CompilerReportsPatchesTestCase(unittest.TestCase):
-    """A patched module is not what its publisher printed, so the build says so."""
-
-    def testCompiledStatusCarriesThePatch(self):
-        from pysmi.codegen import JsonCodeGen
-        from pysmi.compiler import MibCompiler
-        from pysmi.parser import SmiV1CompatParser
-        from pysmi.writer import CallbackWriter
-
-        compiler = MibCompiler(
-            SmiV1CompatParser(), JsonCodeGen(), CallbackWriter(lambda *args: None)
-        )
-        compiler.add_sources(FileReader(str(BUNDLED_ASN1)))
-
-        processed = compiler.compile("SNMPv2-MIB")
-
-        self.assertEqual("", getattr(processed["SNMPv2-MIB"], "patch", ""))
-
-
-class WheelShipsRepairedTextTestCase(unittest.TestCase):
-    """The tree holds the publisher's text; the wheel holds the repaired text."""
-
-    def testEveryPatchedModuleIsStagedForTheWheel(self):
-        """``patch_asn1`` repairs exactly the bundled modules that have a patch.
-
-        A consumer reading ``pysmi/mibs/asn1`` straight off an installed pysmi
-        -- the ``pysnmp/mibs`` mirror, a build that copies the directory -- is
-        not going through a reader and cannot apply anything, so the wheel has
-        to carry the text already repaired.
-        """
         from hatch_build import patch_asn1
 
-        root = Path(__file__).resolve().parent.parent
-        staged = patch_asn1(root)
-        self.addCleanup(lambda: shutil.rmtree(next(iter(staged.values())).parent, True))
+        self.root = Path(__file__).resolve().parent.parent
+        self.staged = patch_asn1(self.root)
+        self.addCleanup(shutil.rmtree, self.staged, True)
 
+    def testTheWholeBundleIsStagedNotOnlyTheRepairedModules(self):
+        """Staging is a complete ASN.1 tree, because the compile reads it.
+
+        The pysnmp modules the wheel carries are rendered from this directory,
+        so it has to hold every module the wheel does -- not only the twelve
+        that changed.
+        """
+        tree = {path.name for path in BUNDLED_ASN1.iterdir() if path.is_file()}
+
+        self.assertEqual(tree, {path.name for path in self.staged.iterdir()})
+
+    def testEveryPatchedModuleIsRepairedForTheDistribution(self):
+        """``patch_asn1`` repairs exactly the bundled modules that have a patch.
+
+        pysmi does not patch anything at read time, so a module that ships
+        unrepaired stays unrepaired for everyone who reads it -- through a
+        reader, or straight off disk.
+        """
         carried = {
             name
             for name in PatchSet.bundled().modules()
             if (BUNDLED_ASN1 / name).exists()
         }
 
-        self.assertEqual(carried, set(staged))
+        self.assertTrue(carried)
 
-        for mibname, path in staged.items():
+        for mibname in sorted(carried):
             with self.subTest(mib=mibname):
-                text = path.read_text(encoding="utf-8")
+                text = (self.staged / mibname).read_text(encoding="utf-8")
 
                 self.assertEqual(_repaired(mibname), text)
                 self.assertNotEqual(_published(mibname), text)
@@ -514,18 +364,131 @@ class WheelShipsRepairedTextTestCase(unittest.TestCase):
                     ALREADY_APPLIED, PatchSet.bundled().apply(mibname, text)[1]
                 )
 
+    def testUnpatchedModulesAreStagedUnchanged(self):
+        """Staging repairs the twelve and copies the rest byte for byte."""
+        for mibname in ("SNMPv2-SMI", "IF-MIB", "SNMPv2-TC"):
+            with self.subTest(mib=mibname):
+                self.assertNotIn(mibname, PatchSet.bundled())
+                self.assertEqual(
+                    (BUNDLED_ASN1 / mibname).read_bytes(),
+                    (self.staged / mibname).read_bytes(),
+                )
+
     def testHeldModulesAreNotStaged(self):
         """``future/`` is not in the wheel, so nothing stages its patches."""
-        from hatch_build import patch_asn1
-
-        root = Path(__file__).resolve().parent.parent
-        staged = patch_asn1(root)
-        self.addCleanup(lambda: shutil.rmtree(next(iter(staged.values())).parent, True))
-
         for mibname in ("CLNS-MIB", "Modem-MIB", "SMUX-MIB"):
             with self.subTest(mib=mibname):
                 self.assertTrue((BUNDLED_FUTURE / mibname).exists())
-                self.assertNotIn(mibname, staged)
+                self.assertFalse((self.staged / mibname).exists())
+
+    def testAPatchThatNoLongerAppliesFailsTheBuild(self):
+        """A publisher who moved the repaired lines stops the build.
+
+        Fuzzing it into place would ship a module nobody has reviewed in its
+        new form, which is the whole reason the repair is kept as a diff.
+        """
+        from hatch_build import patch_asn1
+
+        fake = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, fake, True)
+
+        (fake / "pysmi" / "mibs" / "asn1").mkdir(parents=True)
+        (fake / "scripts").mkdir()
+        shutil.copy(self.root / "scripts" / "patches.py", fake / "scripts")
+        shutil.copytree(
+            self.root / "scripts" / "mib-patches", fake / "scripts" / "mib-patches"
+        )
+
+        # HPR-MIB as the publisher prints it, with the line the patch repairs
+        # changed under it.
+        moved = _published("HPR-MIB").replace('"970514000000Z"', '"9705140000Z"')
+        (fake / "pysmi" / "mibs" / "asn1" / "HPR-MIB").write_text(moved)
+
+        with self.assertRaises(RuntimeError) as raised:
+            patch_asn1(fake)
+
+        self.assertIn("HPR-MIB", str(raised.exception))
+        self.assertIn("did not apply", str(raised.exception))
+
+
+class RenderedModulesComeFromRepairedTextTestCase(unittest.TestCase):
+    """The two halves of the wheel are compiled from the same text."""
+
+    def testTheBuildHookCompilesWhatItStages(self):
+        """``build`` is handed the staging directory, not the tree.
+
+        The tree holds the published text, so compiling it would render pysnmp
+        modules carrying the very defects the patches repair while the ASN.1
+        beside them in the wheel was repaired. Nothing downstream would notice:
+        both halves would be present and only one of them right.
+        """
+        from unittest import mock
+
+        import hatch_build
+
+        root = Path(__file__).resolve().parent.parent
+        hook = hatch_build.PrecompiledMibsHook(
+            str(root), {}, None, None, str(root), "wheel"
+        )
+
+        rendered = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, rendered, True)
+
+        build_data = {"force_include": {}}
+
+        with mock.patch.object(hatch_build, "build", return_value=rendered) as compiled:
+            hook.initialize("1.0", build_data)
+
+        self.addCleanup(shutil.rmtree, hook._asn1, True)
+
+        staged = compiled.call_args.args[1]
+
+        self.assertEqual(hook._asn1, staged)
+
+        # And what was forced into the wheel came out of that same directory,
+        # so the ASN.1 and the modules rendered from it cannot disagree.
+        sources = {
+            Path(source).parent
+            for source, target in build_data["force_include"].items()
+            if target.startswith(f"{hatch_build.ASN1}/")
+        }
+
+        self.assertEqual({staged}, sources)
+        self.assertEqual(
+            _repaired("HPR-MIB"), (staged / "HPR-MIB").read_text(encoding="utf-8")
+        )
+
+
+class PatchToolingIsNotShippedTestCase(unittest.TestCase):
+    """The repairs are an opinion the distribution carries, not a runtime knob."""
+
+    def testNoPatchToolingLivesUnderThePackage(self):
+        """``scripts/`` is outside ``pysmi``, so the wheel cannot pick it up.
+
+        The wheel packages ``pysmi`` alone. Keeping the engine and the diffs out
+        of that tree is what makes "not shipped" a property of the layout rather
+        than of an exclude list somebody has to maintain.
+        """
+        package = Path(__file__).resolve().parent.parent / "pysmi"
+
+        self.assertEqual([], sorted(package.rglob("*.patch")))
+        self.assertFalse((package / "patches.py").exists())
+        self.assertFalse((package / "mibs" / "patches").exists())
+
+    def testReadersDoNotPatch(self):
+        """Reading a MIB gives back what the source holds, defects and all."""
+        from pysmi.reader import FileReader
+
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+
+        published = _published("HPR-MIB")
+        (tmp / "HPR-MIB").write_text(published)
+
+        _info, data = FileReader(str(tmp)).get_data("HPR-MIB")
+
+        self.assertEqual(published, data)
+        self.assertNotEqual(_repaired("HPR-MIB"), data)
 
 
 class PatchDocumentationTestCase(unittest.TestCase):

@@ -20,15 +20,16 @@ pysnmp/pysnmp#198.
 """
 
 import ast
+import pathlib
+import shutil
 import unittest
-from importlib import resources
 
+from hatch_build import patch_asn1
 from pysmi.codegen import PySnmpCodeGen
 from pysmi.compiler import MibCompiler, revision_of
 from pysmi.mibinfo import normalise_revision, strip_comments
 from pysmi.parser import SmiV1CompatParser
-from pysmi.patches import PatchSet
-from pysmi.reader import PackageReader
+from pysmi.reader import FileReader
 from pysmi.writer import CallbackWriter
 from tests.harness import symbol_table
 
@@ -363,7 +364,13 @@ class ConstantMatchesTheCompilerTestCase(unittest.TestCase):
     """
 
     def testEveryBundledModuleAgreesWithRevisionOf(self):
-        sources = resources.files("pysmi.mibs.asn1")
+        # The repaired bundle a distribution ships, since that is the text a
+        # loader's constants will have been rendered from. Four bundled modules
+        # do not parse as published, which is why they carry a patch.
+        root = pathlib.Path(__file__).resolve().parent.parent
+        sources = patch_asn1(root)
+        self.addCleanup(shutil.rmtree, sources, True)
+
         names = sorted(
             entry.name
             for entry in sources.iterdir()
@@ -378,7 +385,7 @@ class ConstantMatchesTheCompilerTestCase(unittest.TestCase):
             ),
             useBundledMibs=False,
         )
-        compiler.add_sources(PackageReader("pysmi.mibs.asn1"))
+        compiler.add_sources(FileReader(str(sources)))
         compiler.compile(*names, noDeps=True, rebuild=True)
 
         # Every bundled module has to render. Skipping the ones that did not
@@ -386,18 +393,8 @@ class ConstantMatchesTheCompilerTestCase(unittest.TestCase):
         # being compared -- the same silent pass the constant exists to remove.
         self.assertEqual(sorted(rendered), names)
 
-        patches = PatchSet.bundled()
-
         for name in names:
-            asn1 = sources.joinpath(name).read_text(encoding="utf-8", errors="replace")
-
-            # The tree holds the published text and the compile above read it
-            # through a reader, which repairs it. HPR-MIB is the module that
-            # makes the difference visible: published, its LAST-UPDATED is the
-            # thirteen-character "970514000000Z" that denotes no date at all,
-            # so revision_of reports None while the rendered module carries the
-            # repaired 1997 stamp. Compare like with like.
-            asn1, _status = patches.apply(name, asn1)
+            asn1 = (sources / name).read_text(encoding="utf-8", errors="replace")
 
             with self.subTest(module=name):
                 self.assertEqual(revision_of(asn1), constant_in(rendered[name]))

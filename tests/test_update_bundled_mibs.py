@@ -177,11 +177,12 @@ class UpdateBundledMibsAtomicityTestCase(unittest.TestCase):
         self.assertEqual(0, update_bundled_mibs.verify())
 
 
-# The applier itself moved to pysmi.patches when patches became something every
-# reader applies rather than something this script does once. Its tests, and the
-# round-trip of every bundled patch against the copy in the tree, live in
-# tests/test_patches.py. What stays this script's own is the strictness above:
-# a patch that no longer applies to the published text fails the refresh.
+# The applier itself moved to scripts/patches.py when the repairs became
+# something a distribution build applies rather than something this script does
+# once. Its tests, and the round-trip of every patch against the published copy
+# in the tree, live in tests/test_patches.py. What stays this script's own is
+# the strictness above: a patch that no longer applies to the published text
+# fails the refresh.
 
 
 class IeeeIndexTestCase(unittest.TestCase):
