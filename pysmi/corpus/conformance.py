@@ -662,6 +662,38 @@ VECTORS: Final[tuple[dict[str, Any], ...]] = (
         "field": "revision",
         "expect": None,
     },
+    {
+        "id": "module-lastupdated",
+        "why": "LAST-UPDATED as the module wrote it, not the normalized "
+        "revision beside it: a reader showing provenance wants the text, and "
+        "one sorting wants the revision, so the two columns are not "
+        "interchangeable.",
+        "op": "module_field",
+        "module": "FIXTURE-MIB",
+        "field": "lastupdated",
+        "expect": "2026-01-01 00:00",
+    },
+    {
+        "id": "module-node-count",
+        "why": "The number of node rows the module contributes, so a reader "
+        "can size a load or report a module it read nothing from without "
+        "counting the tree.",
+        "op": "module_field",
+        "module": "FIXTURE-MIB",
+        "field": "nodes",
+        "expect": 8,
+    },
+    {
+        "id": "module-content-hash",
+        "why": "The canonical content hash of the module's model rows, which "
+        "is what a consumer caches against. Pinned to a value rather than a "
+        "shape: a hash that changes for the same source means the "
+        "normalization moved under everyone caching on it.",
+        "op": "module_field",
+        "module": "SMIV1-MIB",
+        "field": "content_hash",
+        "expect": "93556a1102d595ad32d75a9ca6945f4da085f2757fb8aeadb78cdbf746b872ea",
+    },
 )
 
 
