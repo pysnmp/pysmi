@@ -5,22 +5,35 @@ through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHAN
 
 ## [4.0.0-rc.4](https://github.com/pysnmp/pysmi/compare/v4.0.0-rc.3...v4.0.0-rc.4) (2026-09-10)
 
-### ⚠ BREAKING CHANGES
+> **Corrected.** The notes generated for this release announced a breaking
+> reader API — `fetch_data()`, `AbstractReader.usePatches`/`patchSet`,
+> `mibdump --no-mib-patches`/`--mib-patch-source` — that the tag does not
+> contain. That API was added and then withdrawn within the same pull request,
+> and only the first commit's `BREAKING CHANGE:` footer reached the generator.
+> Nothing in `4.0.0-rc.4` breaks a caller of `4.0.0-rc.3`. See
+> [#254](https://github.com/pysnmp/pysmi/issues/254).
+>
+> The `4.0.0` major is still warranted by
+> [4.0.0-rc.1](https://github.com/pysnmp/pysmi/releases/tag/v4.0.0-rc.1), which
+> removed `pysmi.mibs.behavior()`.
 
-* **patches:** readers implement fetch_data() rather than get_data(); a
-subclass overriding get_data() still works but skips patching. Patching is on
-by default -- mibdump --no-mib-patches turns it off, --mib-patch-source
-replaces the bundled set, and AbstractReader.usePatches/patchSet are the
-library equivalents. pysmi/mibs/asn1 in the source tree now holds the
-published text for the twelve patched modules; the wheel is unchanged.
+### Changes
 
-Closes #185.
-
-Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
-
-### Features
-
-* **patches:** carry the patch with the MIB, not with the bundle ([8e22340](https://github.com/pysnmp/pysmi/commit/8e2234042c4c9cb3a4b54557ea9671fb55cc1805))
+* **patches:** apply the twelve MIB repairs when a distribution is built
+rather than when the bundle is refreshed
+([8e22340](https://github.com/pysnmp/pysmi/commit/8e2234042c4c9cb3a4b54557ea9671fb55cc1805),
+[84bb507](https://github.com/pysnmp/pysmi/commit/84bb50707192244b54ae4f09462c03b4407d039a)).
+The source tree now holds each publisher's text verbatim and the diffs live in
+`scripts/mib-patches/`, so a refresh diffs against the publisher and what pysmi
+repairs is a diff of its own. `hatch_build.py` applies them into the
+distribution, whose `pysmi/mibs/asn1/` is byte-identical to rc.3's. Neither
+`scripts/patches.py` nor the diffs are installed. Closes
+[#185](https://github.com/pysnmp/pysmi/issues/185).
+* **corpus:** conformance vectors now cover every column the DDL declares, and
+the schema version is pinned so a schema change cannot land without the vectors
+moving with it
+([c97f985](https://github.com/pysnmp/pysmi/commit/c97f985803d351140d860db858b8d6fc778f7d07)). Closes
+[#251](https://github.com/pysnmp/pysmi/issues/251).
 
 ## [4.0.0-rc.3](https://github.com/pysnmp/pysmi/compare/v4.0.0-rc.2...v4.0.0-rc.3) (2026-09-10)
 
