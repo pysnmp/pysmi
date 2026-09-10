@@ -14,7 +14,8 @@ through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHAN
 > [#254](https://github.com/pysnmp/pysmi/issues/254).
 >
 > The `4.0.0` major is still warranted by
-> [4.0.0-rc.1](#400-rc1-2026-09-09), which removed `pysmi.mibs.behavior()`.
+> [4.0.0-rc.1](https://github.com/pysnmp/pysmi/releases/tag/v4.0.0-rc.1), which
+> removed `pysmi.mibs.behavior()`.
 
 ### Changes
 
