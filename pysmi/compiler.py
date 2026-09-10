@@ -16,6 +16,7 @@ fails.
 import copy
 import logging
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from functools import cache
 from hashlib import sha256
@@ -58,6 +59,50 @@ _LAST_UPDATED: Final = re.compile(r'LAST-UPDATED\s+"(\d{10}Z|\d{12}Z)"')
 PRECEDENCE_NEWEST_REVISION: Final = "newest MODULE-IDENTITY revision"
 PRECEDENCE_NO_REVISION: Final = "source order; no MODULE-IDENTITY revision to compare"
 PRECEDENCE_EQUAL_REVISIONS: Final = "source order; equal MODULE-IDENTITY revisions"
+
+
+def rank_by_revision(revisions: Sequence[str | None]) -> tuple[list[int], str]:
+    """Order candidate copies of one module, newest MODULE-IDENTITY first.
+
+    The rule in one place, because it is implemented more than once and in
+    more than one repository: :py:meth:`~pysmi.compiler.MibCompiler.resolve`
+    ranks a module found in several sources, pysnmp ranks the same module found in
+    several MIB directories and again when several corpora carry it. They
+    have to agree, and none of them can import the others
+    (pysnmp/pysmi#248), so this is what
+    :py:mod:`pysmi.corpus.precedence` publishes vectors for.
+
+    Comparing revisions takes one on every copy: an undated copy cannot be
+    placed against a dated one, so a single undated candidate leaves the
+    whole decision to the order it was given in. The sort is stable, so
+    copies sharing the newest revision keep that order too.
+
+    Args:
+        revisions: one normalised revision per candidate, in the order the
+            caller's configuration supplies them, ``None`` where the
+            candidate declares no MODULE-IDENTITY.
+
+    Returns:
+        Indices into *revisions*, best first, and which rule put that one
+        first -- one of the ``PRECEDENCE_*`` constants, or ``""`` when there
+        is nothing to rank.
+    """
+    if len(revisions) < 2:
+        return list(range(len(revisions))), ""
+
+    if not all(revisions):
+        return list(range(len(revisions))), PRECEDENCE_NO_REVISION
+
+    if len(set(revisions)) == 1:
+        return list(range(len(revisions))), PRECEDENCE_EQUAL_REVISIONS
+
+    order = sorted(
+        range(len(revisions)),
+        key=lambda i: revisions[i] or "",
+        reverse=True,
+    )
+
+    return order, PRECEDENCE_NEWEST_REVISION
 
 
 @cache
@@ -631,23 +676,11 @@ class MibCompiler:
             # themselves and only the bundled copy moves.
             candidates.sort(key=lambda c: c[0] is self._bundledSource)
 
-        revisions = [revision_of(data) for _, _, data in candidates]
-
-        if not all(revisions):
-            return candidates, PRECEDENCE_NO_REVISION
-
-        if len(set(revisions)) == 1:
-            return candidates, PRECEDENCE_EQUAL_REVISIONS
-
-        # Stable, so copies sharing the newest revision keep the order they
-        # were asked in.
-        ordered = sorted(
-            zip(revisions, candidates, strict=True),
-            key=lambda p: p[0] or "",
-            reverse=True,
+        order, precedence = rank_by_revision(
+            [revision_of(data) for _, _, data in candidates]
         )
 
-        return [candidate for _, candidate in ordered], PRECEDENCE_NEWEST_REVISION
+        return [candidates[i] for i in order], precedence
 
     def resolve(self, mibname: str) -> "MibResolution | None":
         """Which copy of *mibname* the configured sources supply, without compiling it.
