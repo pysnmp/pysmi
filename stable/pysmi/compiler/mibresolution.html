@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Source resolution &#8212; SNMP SMI compiler 3.1.0 documentation</title>
+    <title>Source resolution &#8212; SNMP SMI compiler 4.0.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=f6a572b4" />
-    <script src="../../_static/documentation_options.js?v=dd1205ac"></script>
+    <script src="../../_static/documentation_options.js?v=3304f9e4"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="../../_static/favicon.ico"/>
@@ -177,6 +177,78 @@ constants. Empty when only one source had the module.</p>
 
 </dd></dl>
 
+<section id="the-rule-itself">
+<span id="compiler-rank-by-revision"></span><h2>The rule itself<a class="headerlink" href="#the-rule-itself" title="Link to this heading">¶</a></h2>
+<p>The ranking is exposed separately from the resolution that reports it, because
+pysnmp implements the same rule over its own candidates and
+<a class="reference internal" href="../corpus/index.html#module-pysmi.corpus.precedence" title="pysmi.corpus.precedence"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.precedence</span></code></a> publishes vectors that both sides run. A rule
+kept private is a rule the vectors can only approximate.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.compiler.rank_by_revision">
+<span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">rank_by_revision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">revisions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.compiler.rank_by_revision" title="Link to this definition">¶</a></dt>
+<dd><p>Order candidate copies of one module, newest MODULE-IDENTITY first.</p>
+<p>The rule in one place, because it is implemented more than once and in
+more than one repository: <a class="reference internal" href="mibcompiler.html#pysmi.compiler.MibCompiler.resolve" title="pysmi.compiler.MibCompiler.resolve"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resolve()</span></code></a>
+ranks a module found in several sources, pysnmp ranks the same module found in
+several MIB directories and again when several corpora carry it. They
+have to agree, and none of them can import the others
+(pysnmp/pysmi#248), so this is what
+<a class="reference internal" href="../corpus/index.html#module-pysmi.corpus.precedence" title="pysmi.corpus.precedence"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.precedence</span></code></a> publishes vectors for.</p>
+<p>Comparing revisions takes one on every copy: an undated copy cannot be
+placed against a dated one, so a single undated candidate leaves the
+whole decision to the order it was given in. The sort is stable, so
+copies sharing the newest revision keep that order too.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>revisions</strong> – one normalised revision per candidate, in the order the
+caller’s configuration supplies them, <code class="docutils literal notranslate"><span class="pre">None</span></code> where the
+candidate declares no MODULE-IDENTITY.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Indices into <em>revisions</em>, best first, and which rule put that one
+first – one of the <code class="docutils literal notranslate"><span class="pre">PRECEDENCE_*</span></code> constants, or <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> when there
+is nothing to rank.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.compiler.PRECEDENCE_NEWEST_REVISION">
+<span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">PRECEDENCE_NEWEST_REVISION</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'newest</span> <span class="pre">MODULE-IDENTITY</span> <span class="pre">revision'</span></span><a class="headerlink" href="#pysmi.compiler.PRECEDENCE_NEWEST_REVISION" title="Link to this definition">¶</a></dt>
+<dd><p>Why one copy of a module was compiled and the others passed over. Carried
+on <a class="reference internal" href="mibstatus.html#pysmi.compiler.MibStatus.precedence" title="pysmi.compiler.MibStatus.precedence"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MibStatus.precedence</span></code></a> and named in the log, so a build can show
+not only what it resolved to but which rule resolved it.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.compiler.PRECEDENCE_EQUAL_REVISIONS">
+<span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">PRECEDENCE_EQUAL_REVISIONS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'source</span> <span class="pre">order;</span> <span class="pre">equal</span> <span class="pre">MODULE-IDENTITY</span> <span class="pre">revisions'</span></span><a class="headerlink" href="#pysmi.compiler.PRECEDENCE_EQUAL_REVISIONS" title="Link to this definition">¶</a></dt>
+<dd><p>str(object=’’) -&gt; str
+str(bytes_or_buffer[, encoding[, errors]]) -&gt; str</p>
+<p>Create a new string object from the given object. If encoding or
+errors is specified, then the object must expose a data buffer
+that will be decoded using the given encoding and error handler.
+Otherwise, returns the result of object.__str__() (if defined)
+or repr(object).
+encoding defaults to ‘utf-8’.
+errors defaults to ‘strict’.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.compiler.PRECEDENCE_NO_REVISION">
+<span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">PRECEDENCE_NO_REVISION</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'source</span> <span class="pre">order;</span> <span class="pre">no</span> <span class="pre">MODULE-IDENTITY</span> <span class="pre">revision</span> <span class="pre">to</span> <span class="pre">compare'</span></span><a class="headerlink" href="#pysmi.compiler.PRECEDENCE_NO_REVISION" title="Link to this definition">¶</a></dt>
+<dd><p>str(object=’’) -&gt; str
+str(bytes_or_buffer[, encoding[, errors]]) -&gt; str</p>
+<p>Create a new string object from the given object. If encoding or
+errors is specified, then the object must expose a data buffer
+that will be decoded using the given encoding and error handler.
+Otherwise, returns the result of object.__str__() (if defined)
+or repr(object).
+encoding defaults to ‘utf-8’.
+errors defaults to ‘strict’.</p>
+</dd></dl>
+
+</section>
 </section>
 
 

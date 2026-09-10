@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Bundled base MIBs &#8212; SNMP SMI compiler 3.1.0 documentation</title>
+    <title>Bundled base MIBs &#8212; SNMP SMI compiler 4.0.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
-    <script src="_static/documentation_options.js?v=dd1205ac"></script>
+    <script src="_static/documentation_options.js?v=3304f9e4"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="icon" href="_static/favicon.ico"/>
@@ -174,6 +174,15 @@ a schedule: it is built from the ASN.1 beside it every time a distribution is,
 so the two cannot disagree. The ASN.1 stays because it is what the compiler
 reads – resolving an IMPORTS clause means parsing the imported module’s source
 – so the compiled form joins it rather than replacing it.</p>
+<p>A handful of those modules state a runtime rule SMIv2 has no syntax to express,
+so no code generator can derive it: RFC 4001 section 4 makes the encoding of an
+<code class="docutils literal notranslate"><span class="pre">InetAddress</span></code> index depend on the value of the <code class="docutils literal notranslate"><span class="pre">InetAddressType</span></code> index
+preceding it in the same row, and says so in a DESCRIPTION clause, in prose.
+What a compiled module carries is what the ASN.1 says and nothing more. The
+Python for such a rule belongs to the runtime that acts on it – pysnmp keeps
+it in <code class="docutils literal notranslate"><span class="pre">pysnmp/smi/mibs/behavior/</span></code> and applies it as a module loads – because
+it is engine policy rather than MIB semantics, and because a defect in it
+should not need a pysmi release to fix. See pysnmp/pysmi#243.</p>
 <p>Membership is decided by provenance: a module published by a standards body or
 a multivendor association, whose text is traceable to that publisher. Whether
 the publisher serves it at a fetchable URL is recorded, not required – it
@@ -455,7 +464,7 @@ may want.</p>
 <tr class="row-odd"><td><p>DSA-MIB</p></td>
 <td><p><span class="target" id="index-29"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc1567.html"><strong>RFC 1567</strong></a></p></td>
 <td><p>1993-11-25</p></td>
-<td></td>
+<td><p>yes</p></td>
 </tr>
 <tr class="row-even"><td><p>DSG-IF-MIB</p></td>
 <td><p><a class="reference external" href="https://mibs.cablelabs.com/MIBs/DOCSIS/DSG-IF-MIB.mib">CableLabs</a></p></td>
@@ -1005,7 +1014,7 @@ may want.</p>
 <tr class="row-odd"><td><p>RDBMS-MIB</p></td>
 <td><p><span class="target" id="index-95"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc1697.html"><strong>RFC 1697</strong></a></p></td>
 <td><p>1994-06-15</p></td>
-<td></td>
+<td><p>yes</p></td>
 </tr>
 <tr class="row-even"><td><p>RFC-1212</p></td>
 <td><p>maintained here</p></td>
@@ -1332,10 +1341,19 @@ may want.</p>
 </section>
 <section id="patched-modules">
 <span id="bundled-mib-patches"></span><h2>Patched modules<a class="headerlink" href="#patched-modules" title="Link to this heading">¶</a></h2>
-<p>The published text of these modules does not compile. Each is bundled as its
-publisher’s text with a patch applied, kept in <code class="docutils literal notranslate"><span class="pre">scripts/mib-patches/</span></code> and
-re-applied on every refresh; a patch whose context has moved makes the refresh
-fail rather than silently fuzzing. The defect each one repairs:</p>
+<p>The published text of these modules does not compile. Each is stored here as
+its publisher printed it, with the repair kept beside it as a unified diff in
+<code class="docutils literal notranslate"><span class="pre">scripts/mib-patches/</span></code> – so a refresh diffs against the publisher and what
+pysmi changes stays visible as a diff of its own.</p>
+<p>The repairs are applied when a distribution is built, to both the ASN.1 an
+install carries and the pysnmp modules rendered from it. PySMI does not patch
+anything at read time: a source is read exactly as it stands, so a caller
+pointing <code class="docutils literal notranslate"><span class="pre">--mib-source</span></code> at their own copy of one of these compiles the defect
+along with it. Patch your own copies before PySMI sees them, or rebuild PySMI
+from source with your own diffs in that directory – the distribution is the
+opinion, and a different opinion is a different build. A patch whose context has
+moved makes the refresh fail rather than silently fuzzing. The defect each one
+repairs:</p>
 <dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">ADSL-LINE-MIB</span></code></dt><dd><p>RFC 2662 carries a truncated <code class="docutils literal notranslate"><span class="pre">MIN-ACCESS</span>&#160; <span class="pre">read-wr</span></code> line, orphaned in the published text.</p>
 </dd>
