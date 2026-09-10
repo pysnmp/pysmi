@@ -3,6 +3,25 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [4.0.0-rc.4](https://github.com/pysnmp/pysmi/compare/v4.0.0-rc.3...v4.0.0-rc.4) (2026-09-10)
+
+### ⚠ BREAKING CHANGES
+
+* **patches:** readers implement fetch_data() rather than get_data(); a
+subclass overriding get_data() still works but skips patching. Patching is on
+by default -- mibdump --no-mib-patches turns it off, --mib-patch-source
+replaces the bundled set, and AbstractReader.usePatches/patchSet are the
+library equivalents. pysmi/mibs/asn1 in the source tree now holds the
+published text for the twelve patched modules; the wheel is unchanged.
+
+Closes #185.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+
+### Features
+
+* **patches:** carry the patch with the MIB, not with the bundle ([8e22340](https://github.com/pysnmp/pysmi/commit/8e2234042c4c9cb3a4b54557ea9671fb55cc1805))
+
 ## [4.0.0-rc.3](https://github.com/pysnmp/pysmi/compare/v4.0.0-rc.2...v4.0.0-rc.3) (2026-09-10)
 
 ### Features
