@@ -443,6 +443,16 @@ point neither can read the other's files, so the bytes are the contract.
 ``vectors_as_json()`` renders them for a harness that is not written in
 Python.
 
+The vectors are held to the schema rather than to themselves. ``pysmi``'s own
+test suite runs them under SQLite's authorizer, collects every column they
+read, and fails when the schema declares one no vector asks about -- so a
+table or a column added here cannot reach a consumer with nothing describing
+it. A column deliberately outside the contract is recorded with the reason it
+is, and recording one that a vector does in fact read fails too, so the list
+cannot outlive its justification. ``SCHEMA_VERSION`` is pinned beside it: a
+bump fails until someone has been through the vectors, which is the point at
+which a v2 either gains vectors for what it added or says why it did not.
+
 
 Proving the precedence rule agrees
 ----------------------------------
