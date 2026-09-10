@@ -483,7 +483,7 @@ class PatchToolingIsNotShippedTestCase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, tmp, True)
 
         published = _published("HPR-MIB")
-        (tmp / "HPR-MIB").write_text(published)
+        (tmp / "HPR-MIB").write_text(published, newline="")
 
         _info, data = FileReader(str(tmp)).get_data("HPR-MIB")
 
