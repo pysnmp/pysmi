@@ -21,6 +21,8 @@ because that is what the registry says, and the output is a rendering of IANA's
 record rather than a corrected version of it. pysnmp/pysmi#281.
 """
 
+import contextlib
+import io
 import os
 import shutil
 import tempfile
@@ -190,6 +192,72 @@ class ReduceTestCase(unittest.TestCase):
         self.assertEqual(reduce_registry(PUBLISHED), reduce_registry(PUBLISHED))
 
 
+class ReduceRowsTestCase(unittest.TestCase):
+    """Which registrants a downstream repository commits.
+
+    IANA revises 66,807 registrations daily, so committing the whole registry
+    is a large file and a large monthly diff. A corpus may instead commit the
+    registrants its own arcs use. pysnmp/mibs#407.
+    """
+
+    def testTheDefaultKeepsEveryRegistration(self):
+        """Like the field set: the reducer does not assume for the caller."""
+        self.assertEqual(
+            len(reduce_registry(PUBLISHED).split("\n")),
+            len(reduce_registry(PUBLISHED, None, None).split("\n")),
+        )
+        self.assertIn("Altiga", reduce_registry(PUBLISHED))
+
+    def testAnArcListNarrowsIt(self):
+        reduced = reduce_registry(PUBLISHED, None, [9])
+
+        self.assertIn("Cisco Systems, Inc.", reduced)
+        self.assertNotIn("Altiga", reduced)
+
+    def testTheHeaderSurvivesTheNarrowing(self):
+        """A snapshot of one registrant is still read back by load_registry,
+        which needs the header to know what the columns are."""
+        reduced = reduce_registry(PUBLISHED, None, [9])
+
+        self.assertEqual(",".join(FIELDS), reduced.split("\n")[0])
+
+    def testKeepingNothingIsARegistryWithNoRows(self):
+        reduced = reduce_registry(PUBLISHED, None, [])
+
+        self.assertEqual(",".join(FIELDS), reduced.strip())
+
+    def testANumberTheRegistryDoesNotHaveIsNotAnError(self):
+        """The registry's own gaps are a fact about the registry. Refusing
+        would make a corpus's arc list unusable as input, since a corpus can
+        perfectly well reach an arc nobody registered."""
+        reduced = reduce_registry(PUBLISHED, None, [9, 4294967295])
+
+        self.assertIn("Cisco Systems, Inc.", reduced)
+        self.assertEqual(2, len(reduced.strip().split("\n")))
+
+    def testItComposesWithTheFieldSet(self):
+        reduced = reduce_registry(PUBLISHED, ["number", "organization"], [9])
+
+        self.assertEqual('number,organization\n9,"Cisco Systems, Inc."\n', reduced)
+
+    def testTheRowsAreStillInNumericOrder(self):
+        numbers = [
+            line.split(",")[0]
+            for line in reduce_registry(PUBLISHED, None, [3076, 9, 42])
+            .strip()
+            .split("\n")[1:]
+        ]
+
+        self.assertEqual(["9", "42", "3076"], numbers)
+
+    def testANarrowedSnapshotReducesToItself(self):
+        """A refresh that changes nothing produces no diff, which is the whole
+        reason a repository can commit one of these."""
+        once = reduce_registry(PUBLISHED, None, [9, 42])
+
+        self.assertEqual(once, reduce_registry(PUBLISHED, None, [9, 42]))
+
+
 class LoadTestCase(unittest.TestCase):
     """Both forms are read, because a caller may hold either."""
 
@@ -268,6 +336,52 @@ class ReducerCliTestCase(unittest.TestCase):
         self.assertEqual(
             cli.EX_NOINPUT, cli.main(["pen", os.path.join(self.tmp, "nope")])
         )
+
+    def published(self, name="pen.txt", text=PUBLISHED):
+        path = os.path.join(self.tmp, name)
+
+        with open(path, "w", encoding="utf-8") as fileObj:
+            fileObj.write(text)
+
+        return path
+
+    def captured(self, *arguments):
+        out = io.StringIO()
+
+        with contextlib.redirect_stdout(out):
+            code = cli.main(["pen", *arguments])
+
+        return code, out.getvalue()
+
+    def testOnlyNarrowsTheRows(self):
+        code, written = self.captured("--only=9", self.published())
+
+        self.assertEqual(cli.EX_OK, code)
+        self.assertIn("Cisco Systems, Inc.", written)
+        self.assertNotIn("Altiga", written)
+
+    def testOnlyFromReadsThemFromAFile(self):
+        """What a corpus writes out of its own arcs: one number per line."""
+        arcs = self.published("arcs.txt", "# the arcs this corpus uses\n9\n\n42\n")
+
+        code, written = self.captured(f"--only-from={arcs}", self.published())
+
+        self.assertEqual(cli.EX_OK, code)
+        self.assertIn("Cisco", written)
+        self.assertIn("42,,Nobody", written)
+        self.assertNotIn("Altiga", written)
+
+    def testItRefusesSomethingThatIsNotANumber(self):
+        code, _ = self.captured("--only=9,cisco", self.published())
+
+        self.assertEqual(cli.EX_USAGE, code)
+
+    def testItReportsAnArcListItCannotRead(self):
+        code, _ = self.captured(
+            f"--only-from={os.path.join(self.tmp, 'nope')}", self.published()
+        )
+
+        self.assertEqual(cli.EX_NOINPUT, code)
 
 
 class NotBundledTestCase(unittest.TestCase):

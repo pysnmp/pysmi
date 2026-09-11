@@ -227,12 +227,23 @@ def parse_registry(text: str) -> Iterator[Registrant]:
         yield Registrant(int(found[1]), organization, contact, email)
 
 
-def reduce_registry(text: str, fields: "Iterable[str] | None" = None) -> str:
-    """Reduce the published registry to the fields a corpus wants.
+def reduce_registry(
+    text: str,
+    fields: "Iterable[str] | None" = None,
+    only: "Iterable[int] | None" = None,
+) -> str:
+    """Reduce the published registry to the rows and fields a corpus wants.
 
-    A downstream repository commits the result, so which fields leave IANA's
-    copy is that repository's decision rather than this function's. The default
-    is the whole record; a corpus wanting less names less.
+    A downstream repository commits the result, so what leaves IANA's copy is
+    that repository's decision rather than this function's. The default is the
+    whole registry, whole records; a corpus wanting less names less.
+
+    The registry is 66,807 registrations and IANA revises it daily, so a
+    repository committing all of it commits a large file and re-diffs the whole
+    of it every month. *only* is the other choice: keep the registrants this
+    corpus's own arcs use, and accept that a module arriving later under an
+    arc the snapshot predates goes nameless until the next refresh, which a
+    build reports rather than leaving to be found on a rendered page.
 
     Nothing is normalised. An email comes out as ``davej&cisco.com`` because
     that is what the registry says, and the output is a rendering of IANA's
@@ -244,6 +255,10 @@ def reduce_registry(text: str, fields: "Iterable[str] | None" = None) -> str:
             written. Defaults to all of them. ``number`` is kept whether or not
             it is named -- a row that does not say which arc it is about is not
             a registration.
+        only: the enterprise numbers to keep. Defaults to every registration.
+            A number the registry does not have is not an error and produces no
+            row: the registry's own gaps are a fact about the registry, and
+            refusing here would make a corpus's arc list unusable as input.
 
     Returns:
         The reduced form: a header naming the fields kept, then one row per
@@ -271,7 +286,12 @@ def reduce_registry(text: str, fields: "Iterable[str] | None" = None) -> str:
 
     writer.writerow(wanted)
 
+    kept = None if only is None else set(only)
+
     for registrant in sorted(parse_registry(text), key=lambda x: x.number):
+        if kept is not None and registrant.number not in kept:
+            continue
+
         writer.writerow([getattr(registrant, name) for name in wanted])
 
     return out.getvalue()
