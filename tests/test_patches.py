@@ -12,10 +12,12 @@ bundle refresh diffs against the publisher and the repairs are reviewable on
 their own; ``hatch_build.py`` applies them as a distribution is built, to both
 the ASN.1 the wheel carries and the pysnmp modules rendered from it.
 
-These pin that split. The patch engine itself is build tooling and is not
-shipped, so what is checked here is the engine's behaviour, that every patch
-still applies cleanly to the published text in the tree, and that a build
-produces one repaired bundle rather than a repaired half and a published half.
+These pin that split. The engine ships -- :py:mod:`pysmi.patches` and the
+``mibpatch`` tool are there for anyone with MIBs of their own -- but pysmi's
+twelve diffs do not, being already applied to the ASN.1 the wheel carries. So
+what is checked here is the engine's behaviour, that every patch still applies
+cleanly to the published text in the tree, and that a build produces one
+repaired bundle rather than a repaired half and a published half.
 """
 
 import shutil
@@ -29,9 +31,10 @@ from scripts.patches import (
     APPLIED,
     NOT_APPLICABLE,
     UNPATCHED,
-    PatchError,
     PatchSet,
+    PySmiPatchError,
     apply_patch,
+    bundled_patches,
     parse_patch,
 )
 
@@ -83,7 +86,7 @@ def _published(mibname: str) -> str:
 
 def _repaired(mibname: str) -> str:
     """The module as the wheel ships it: the tree's copy with its patch on."""
-    text, status = PatchSet.bundled().apply(mibname, _published(mibname))
+    text, status = bundled_patches().apply(mibname, _published(mibname))
 
     if status != APPLIED:
         raise RuntimeError(f"{mibname}: its patch did not apply ({status})")
@@ -124,7 +127,7 @@ class PatchParsingTestCase(unittest.TestCase):
         """A line that is not a diff line is a malformed patch."""
         patch = "--- a/M\n+++ b/M\n@@ -1,1 +1,1 @@\n?what\n"
 
-        with self.assertRaises(PatchError):
+        with self.assertRaises(PySmiPatchError):
             parse_patch(patch, "M")
 
     def testHunksMustRunForwards(self):
@@ -135,7 +138,7 @@ class PatchParsingTestCase(unittest.TestCase):
             "@@ -1,2 +1,2 @@\n-one\n+ONE\n two\n"
         )
 
-        with self.assertRaises(PatchError):
+        with self.assertRaises(PySmiPatchError):
             parse_patch(patch, "M")
 
     def testTrailingNewlineIsNotAHunkLine(self):
@@ -212,7 +215,7 @@ class BundledPatchSetTestCase(unittest.TestCase):
     """The patches pysmi ships, against the copies pysmi ships."""
 
     def setUp(self):
-        self.patches = PatchSet.bundled()
+        self.patches = bundled_patches()
 
     def testBundleShipsPatches(self):
         """The set is package data, so an installed pysmi has it.
@@ -281,7 +284,7 @@ class BundledPatchSetTestCase(unittest.TestCase):
         """
         broken = PatchSet({"TEST-MIB": "--- a/M\n+++ b/M\n@@ -1,1 +1,1 @@\n?what\n"})
 
-        with self.assertLogs("scripts.patches", level="ERROR"):
+        with self.assertLogs("pysmi.patches", level="ERROR"):
             out, status = broken.apply("TEST-MIB", SAMPLE)
 
         self.assertEqual(UNPATCHED, status)
@@ -315,7 +318,7 @@ class PatchSetSourceTestCase(unittest.TestCase):
 
     def testBundledSetIsSharedRatherThanReread(self):
         """The set does not change while a build runs."""
-        self.assertIs(PatchSet.bundled(), PatchSet.bundled())
+        self.assertIs(bundled_patches(), bundled_patches())
 
 
 class DistributionShipsRepairedTextTestCase(unittest.TestCase):
@@ -348,7 +351,7 @@ class DistributionShipsRepairedTextTestCase(unittest.TestCase):
         """
         carried = {
             name
-            for name in PatchSet.bundled().modules()
+            for name in bundled_patches().modules()
             if (BUNDLED_ASN1 / name).exists()
         }
 
@@ -361,14 +364,14 @@ class DistributionShipsRepairedTextTestCase(unittest.TestCase):
                 self.assertEqual(_repaired(mibname), text)
                 self.assertNotEqual(_published(mibname), text)
                 self.assertEqual(
-                    ALREADY_APPLIED, PatchSet.bundled().apply(mibname, text)[1]
+                    ALREADY_APPLIED, bundled_patches().apply(mibname, text)[1]
                 )
 
     def testUnpatchedModulesAreStagedUnchanged(self):
         """Staging repairs the twelve and copies the rest byte for byte."""
         for mibname in ("SNMPv2-SMI", "IF-MIB", "SNMPv2-TC"):
             with self.subTest(mib=mibname):
-                self.assertNotIn(mibname, PatchSet.bundled())
+                self.assertNotIn(mibname, bundled_patches())
                 self.assertEqual(
                     (BUNDLED_ASN1 / mibname).read_bytes(),
                     (self.staged / mibname).read_bytes(),
@@ -459,21 +462,38 @@ class RenderedModulesComeFromRepairedTextTestCase(unittest.TestCase):
         )
 
 
-class PatchToolingIsNotShippedTestCase(unittest.TestCase):
-    """The repairs are an opinion the distribution carries, not a runtime knob."""
+class PysmisOwnRepairsAreNotShippedTestCase(unittest.TestCase):
+    """The engine ships; the repairs pysmi makes to its own bundle do not.
 
-    def testNoPatchToolingLivesUnderThePackage(self):
-        """``scripts/`` is outside ``pysmi``, so the wheel cannot pick it up.
+    Those are two different things, and only the second is an opinion. The
+    engine and ``mibpatch`` are a capability any consumer has MIBs of their own
+    to point at. The twelve diffs under ``scripts/mib-patches`` are pysmi's
+    answer for pysmi's bundle, already applied to the ASN.1 the wheel carries,
+    so shipping them would be shipping the same repair twice.
+    """
 
-        The wheel packages ``pysmi`` alone. Keeping the engine and the diffs out
-        of that tree is what makes "not shipped" a property of the layout rather
-        than of an exclude list somebody has to maintain.
+    def testTheDiffsLiveOutsideThePackage(self):
+        """``scripts/`` is outside ``pysmi``, so the wheel cannot pick them up.
+
+        The wheel packages ``pysmi`` alone, which makes "not shipped" a property
+        of the layout rather than of an exclude list somebody has to maintain.
         """
         package = Path(__file__).resolve().parent.parent / "pysmi"
 
         self.assertEqual([], sorted(package.rglob("*.patch")))
-        self.assertFalse((package / "patches.py").exists())
         self.assertFalse((package / "mibs" / "patches").exists())
+
+    def testTheEngineIsImportableFromTheInstalledPackage(self):
+        """A consumer patching their own tree needs it at runtime, not at build."""
+        from pysmi.patches import PatchSet, apply_patch, make_patch  # noqa: F401
+        from pysmi.scripts import mibpatch  # noqa: F401
+
+    def testTheBundledSetIsReadFromOutsideThePackage(self):
+        """Where pysmi's own diffs come from is a build-time path, not a package one."""
+        from scripts.patches import PATCHES
+
+        self.assertEqual("mib-patches", PATCHES.name)
+        self.assertEqual("scripts", PATCHES.parent.name)
 
     def testReadersDoNotPatch(self):
         """Reading a MIB gives back what the source holds, defects and all."""
@@ -496,7 +516,7 @@ class PatchDocumentationTestCase(unittest.TestCase):
 
     def testEveryPatchNamesItsModule(self):
         """The diff headers name the module the file is named for."""
-        patches = PatchSet.bundled()
+        patches = bundled_patches()
 
         for mibname in patches.modules():
             with self.subTest(mib=mibname):

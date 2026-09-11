@@ -27,7 +27,7 @@ from pysmi.parser import SmiV1CompatParser
 from pysmi.reader import FileReader
 from pysmi.writer import CallbackWriter
 from scripts import update_bundled_mibs
-from scripts.patches import APPLIED, PatchSet
+from scripts.patches import APPLIED, bundled_patches
 
 
 class ManifestShipsInThePackageTestCase(unittest.TestCase):
@@ -179,7 +179,7 @@ class SupersessionIsNotPerOidTestCase(unittest.TestCase):
         about the repaired text, and that is what is compiled here.
         """
         cls.repaired = Path(tempfile.mkdtemp(prefix="pysmi-manifest-asn1-"))
-        patches = PatchSet.bundled()
+        patches = bundled_patches()
 
         for directory in (update_bundled_mibs.DEST, update_bundled_mibs.FUTURE):
             for source in update_bundled_mibs.held_files(directory):
