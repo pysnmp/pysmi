@@ -419,6 +419,16 @@ class CorpusDriver:
         self._namespaceOfReader = {
             id(reader): name for name, reader in self._readers.items()
         }
+        #: The same answer keyed by what a reader reads rather than by which
+        #: object it is, for a resolution served by a reader this driver did
+        #: not construct. :py:class:`~pysmi.compiler.MibCompiler` adds its own
+        #: priority reader over ``pysmi.mibs.asn1``, so a manifest declaring a
+        #: namespace over that package is served by the compiler's instance
+        #: and identity alone reports no namespace at all. First declaration
+        #: wins, which is the precedence order the namespaces are already in.
+        self._namespaceOfSource: dict[str, str] = {}
+        for name, reader in self._readers.items():
+            self._namespaceOfSource.setdefault(str(reader), name)
 
     @staticmethod
     def _reader_for(namespace: Namespace) -> AbstractReader:
@@ -813,6 +823,9 @@ class CorpusDriver:
         build ran, which is nobody's business downstream.
         """
         namespace = self._namespaceOfReader.get(id(resolution.source), "")
+
+        if not namespace and resolution.source is not None:
+            namespace = self._namespaceOfSource.get(str(resolution.source), "")
 
         return {
             "namespace": namespace,
