@@ -1,3 +1,6 @@
+Defect: SMI-MISDECLARED-ACCESS https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-misdeclared-access
+Defect: SMI-UNDEFINED-NAME https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-undefined-name
+
 --- a/MIP-MIB
 +++ b/MIP-MIB
 @@ -258,7 +258,7 @@

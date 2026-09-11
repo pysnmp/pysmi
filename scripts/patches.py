@@ -24,6 +24,7 @@ repairs edits this directory and rebuilds. The distribution is the opinion.
 
 from pathlib import Path
 
+from pysmi.defects import DefectRef
 from pysmi.error import PySmiPatchError
 from pysmi.patches import (
     ALREADY_APPLIED,
@@ -32,10 +33,13 @@ from pysmi.patches import (
     NOT_APPLICABLE,
     UNPATCHED,
     Hunk,
+    PatchHeader,
     PatchSet,
     apply_patch,
+    format_header,
     make_patch,
     parse_patch,
+    split_patch,
 )
 
 __all__ = [
@@ -45,13 +49,17 @@ __all__ = [
     "NOT_APPLICABLE",
     "PATCHES",
     "UNPATCHED",
+    "DefectRef",
     "Hunk",
+    "PatchHeader",
     "PatchSet",
     "PySmiPatchError",
     "apply_patch",
     "bundled_patches",
+    "format_header",
     "make_patch",
     "parse_patch",
+    "split_patch",
 ]
 
 #: Where the diffs live, beside this module.
