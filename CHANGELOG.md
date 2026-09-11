@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [4.1.1](https://github.com/pysnmp/pysmi/compare/v4.1.0...v4.1.1) (2026-09-11)
+
+### Bug Fixes
+
+* **mibdump:** remove the built-in MIB borrowers, all of which are 404 ([533c361](https://github.com/pysnmp/pysmi/commit/533c3611639af89c26ef975e5e6bcab3c48bdf1e))
+
 ## [4.1.0](https://github.com/pysnmp/pysmi/compare/v4.0.0...v4.1.0) (2026-09-11)
 
 ### Features
