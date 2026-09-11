@@ -252,6 +252,13 @@ class MibResolution:
     #: Which rule put the winner first, one of the ``PRECEDENCE_*``
     #: constants. Empty when only one source had the module.
     precedence: str = ""
+    #: The reader that supplied the winning copy, or ``None`` where the
+    #: resolution was built without one. A caller that configured its sources
+    #: knows what each one is for -- a corpus build knows which namespace --
+    #: and ``path`` alone does not say, since two namespaces can be two
+    #: directories under one root. Identity is the lookup: this is the same
+    #: object that was passed to :py:meth:`MibCompiler.add_sources`.
+    source: "AbstractReader | None" = None
 
 
 @deprecated_camel_case
@@ -709,7 +716,7 @@ class MibCompiler:
         if not candidates:
             return None
 
-        _, mibInfo, mibData = candidates[0]
+        source, mibInfo, mibData = candidates[0]
 
         return MibResolution(
             name=mibname,
@@ -723,6 +730,7 @@ class MibCompiler:
                 if info.digest != mibInfo.digest
             ),
             precedence=precedence,
+            source=source,
         )
 
     def add_searchers(self, *searchers: "AbstractSearcher") -> "MibCompiler":

@@ -35,7 +35,7 @@ from pysmi.corpus.db import SCHEMA_VERSION, open_db
 #: someone having looked at the vectors: a v2 that adds a table nothing asks
 #: about reaches pysnmp -- which reads this corpus from a specification, not
 #: from our writer -- with no vector describing the new surface.
-PINNED_SCHEMA_VERSION = 1
+PINNED_SCHEMA_VERSION = 2
 
 #: Columns the schema declares that no vector reads, and the reason each one
 #: is deliberately not part of the contract.
@@ -166,6 +166,7 @@ class ConformanceTestCase(unittest.TestCase):
                 "same_syntax",
                 "import_source",
                 "module_field",
+                "provenance",
                 # The codec, which takes no corpus: a reader that encodes a
                 # key differently finds nothing and walks in the wrong order,
                 # and every operation above fails without naming the cause.

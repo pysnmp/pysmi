@@ -80,7 +80,7 @@ from pysmi.corpus.namespace import DEFAULT_TIER
 #: A consumer gates on it and refuses what it does not understand. It is
 #: deliberately not the corpus version: conflating the two would force a
 #: pysnmp release on every corpus rebuild (pysnmp/pysnmp#196).
-SCHEMA_VERSION: Final = 1
+SCHEMA_VERSION: Final = 2
 
 #: SQLite's ``application_id``, so ``file`` and any other tool that reads the
 #: header can tell a corpus from an unrelated database. "PSMI" as big-endian
@@ -181,6 +181,14 @@ SCHEMA: Final[tuple[str, ...]] = (
     ) WITHOUT ROWID
     """,
     """
+    CREATE TABLE provenance (
+        module    TEXT PRIMARY KEY,
+        namespace TEXT NOT NULL,
+        file      TEXT NOT NULL,
+        digest    TEXT NOT NULL
+    ) WITHOUT ROWID
+    """,
+    """
     CREATE TABLE oid_index (
         oid_key BLOB PRIMARY KEY,
         oid     TEXT NOT NULL,
@@ -201,6 +209,7 @@ SCHEMA: Final[tuple[str, ...]] = (
 _INSERT_NODE: Final = "INSERT OR REPLACE INTO node VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
 _INSERT_SYMBOL: Final = "INSERT OR REPLACE INTO symbol VALUES (?,?,?,?,?,?)"
 _INSERT_IMPORT: Final = "INSERT OR REPLACE INTO import VALUES (?,?,?)"
+_INSERT_PROVENANCE: Final = "INSERT OR REPLACE INTO provenance VALUES (?,?,?,?)"
 
 
 def oid_key(oid: str) -> bytes:
@@ -501,6 +510,7 @@ def write_db(
     ranked: dict[str, str] | None = None,
     corpusVersion: str | None = None,
     corpusId: str | None = None,
+    provenance: dict[str, dict[str, str]] | None = None,
 ) -> dict[str, int]:
     """Write a corpus database.
 
@@ -519,6 +529,11 @@ def write_db(
             given would make two builds of one source tree differ.
         corpusId: a stable name for the corpus this is a build of, so a
             consumer can tell two corpora apart when both are version 3.
+        provenance: per module, the ``namespace`` that supplied it, the
+            ``file`` read relative to that namespace, and that file's
+            ``digest``. A module not named here gets no ``provenance`` row:
+            the absence says the build did not record one, which a reader can
+            act on, and a row of empty strings would not.
 
     Returns:
         How many rows each table received, keyed by table name.
@@ -528,7 +543,17 @@ def write_db(
     """
     connection = _connect(path)
     counts = dict.fromkeys(
-        ("module", "type", "node", "symbol", "import", "oid_index", "meta"), 0
+        (
+            "module",
+            "type",
+            "node",
+            "symbol",
+            "import",
+            "provenance",
+            "oid_index",
+            "meta",
+        ),
+        0,
     )
 
     # Sorted by module name so the b-tree is filled in one order whatever order
@@ -576,6 +601,26 @@ def write_db(
                 if batch:
                     connection.executemany(statement, batch)
                     counts[table] += len(batch)
+
+        if provenance:
+            # Only for modules this build carries. Provenance for a module the
+            # corpus does not publish would be a row about nothing.
+            carried = {module for module, _, _, _ in corpus}
+
+            origins = [
+                (
+                    module,
+                    origin.get("namespace", ""),
+                    origin.get("file", ""),
+                    origin.get("digest", ""),
+                )
+                for module, origin in sorted(provenance.items())
+                if module in carried
+            ]
+
+            if origins:
+                connection.executemany(_INSERT_PROVENANCE, origins)
+                counts["provenance"] = len(origins)
 
         if ranked:
             connection.executemany(

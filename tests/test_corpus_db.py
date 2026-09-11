@@ -405,6 +405,84 @@ class WriterTestCase(unittest.TestCase):
             build({"TEST-MIB": document(a=scalar("1.3.6.1.4.six", "a"))})
 
 
+class ProvenanceTestCase(unittest.TestCase):
+    """Where each module came from (pysnmp/pysmi#278).
+
+    The build knows which namespace supplied a module, which file it read and
+    what that file's digest was. None of it used to survive the build, so
+    nothing downstream could answer the first question anyone asks of a MIB
+    they did not publish.
+    """
+
+    ORIGIN = {
+        "namespace": "vendor",
+        "file": "acme/TEST-MIB",
+        "digest": "sha256:abc",
+    }
+
+    def rows(self, path):
+        db = open_db(path)
+
+        try:
+            return {
+                module: (namespace, file, digest)
+                for module, namespace, file, digest in db.execute(
+                    "SELECT module, namespace, file, digest FROM provenance"
+                )
+            }
+
+        finally:
+            db.close()
+
+    def corpus(self, provenance=None):
+        return build(
+            {
+                "TEST-MIB": document(a=scalar("1.3.6.1.4.1.99.1", "a")),
+                "OTHER-MIB": document(b=scalar("1.3.6.1.4.1.98.1", "b")),
+            },
+            provenance=provenance,
+        )
+
+    def testItIsWrittenPerModule(self):
+        path, counts = self.corpus({"TEST-MIB": self.ORIGIN})
+
+        self.assertEqual(1, counts["provenance"])
+        self.assertEqual(
+            {"TEST-MIB": ("vendor", "acme/TEST-MIB", "sha256:abc")}, self.rows(path)
+        )
+
+    def testAModuleWithNoOriginGetsNoRow(self):
+        """Absence is the answer, and it is not the same as empty strings.
+
+        A reader rendering provenance has to be able to say "not recorded"
+        rather than showing blanks.
+        """
+        path, _ = self.corpus({"TEST-MIB": self.ORIGIN})
+
+        self.assertNotIn("OTHER-MIB", self.rows(path))
+
+    def testProvenanceForAModuleTheCorpusDoesNotCarryIsNotWritten(self):
+        """It would be a row about nothing, and a join would find it."""
+        path, counts = self.corpus({"TEST-MIB": self.ORIGIN, "ABSENT-MIB": self.ORIGIN})
+
+        self.assertEqual(1, counts["provenance"])
+        self.assertEqual(["TEST-MIB"], sorted(self.rows(path)))
+
+    def testABuildThatRecordedNothingWritesNoRows(self):
+        path, counts = self.corpus()
+
+        self.assertEqual(0, counts["provenance"])
+        self.assertEqual({}, self.rows(path))
+
+    def testTwoBuildsOfOneCorpusAgreeByteForByte(self):
+        """The table must not cost the file its reproducibility."""
+        first, _ = self.corpus({"TEST-MIB": self.ORIGIN})
+        second, _ = self.corpus({"TEST-MIB": self.ORIGIN})
+
+        with open(first, "rb") as one, open(second, "rb") as two:
+            self.assertEqual(one.read(), two.read())
+
+
 class OpenTestCase(unittest.TestCase):
     """What :py:func:`open_db` refuses."""
 
@@ -669,9 +747,14 @@ class ValidateTestCase(unittest.TestCase):
         # raises out of whichever query reaches it, integrity_check included.
         # This function is documented to return a list, so that has to become
         # one -- writing this test is how the raise was found.
+        # A wide span rather than one short write at the midpoint: where the
+        # midpoint lands depends on how many tables the schema has, and a
+        # write that happens to fall in free space damages nothing.
+        size = os.path.getsize(self.path)
+
         with open(self.path, "r+b") as fileObj:
-            fileObj.seek(os.path.getsize(self.path) // 2)
-            fileObj.write(b"\xde\xad\xbe\xef" * 64)
+            fileObj.seek(size // 4)
+            fileObj.write(b"\xde\xad\xbe\xef" * (size // 8 // 4))
 
         problems = validate(self.path)
 
