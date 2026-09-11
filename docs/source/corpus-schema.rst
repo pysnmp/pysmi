@@ -56,6 +56,19 @@ Two versions, kept apart on purpose.
 Conflating them would force a pysnmp release on every corpus rebuild, which is
 the mistake pysnmp/pysnmp#196 records.
 
+What each schema version added:
+
+===  =====================================================================
+v1   The layout this page describes, less ``provenance``.
+v2   ``provenance``: which namespace supplied each module, which file was
+     read, and that file's digest. See pysnmp/pysmi#278.
+===  =====================================================================
+
+A reader gates on the version before it trusts a table, so a corpus written at
+one version is not read by a reader written for another. Both move together:
+:py:mod:`pysmi.corpus.conformance` carries a vector for everything a version
+added, and a consumer runs those vectors against its own reader.
+
 The file also carries ``application_id`` ``0x50534D49`` (``PSMI``), so a reader
 -- or ``file`` -- can tell a corpus from an unrelated database before trusting
 its tables.
@@ -251,6 +264,40 @@ Column        Type  Notes
 ``name``      TEXT  The symbol imported.
 ``source``    TEXT  The module it is imported from.
 ============  ====  ======================================================
+
+provenance
+~~~~~~~~~~
+
+Where each module came from. A build knows, for every module it publishes,
+which namespace supplied it, which file it read and what that file's digest
+was; none of it used to survive the build, so nothing downstream could answer
+"where did this file come from and is it the vendor's text" -- which is the
+first question anyone asks of a MIB they did not publish.
+
+=============  ====  =====================================================
+Column         Type  Notes
+=============  ====  =====================================================
+``module``     TEXT  Primary key.
+``namespace``  TEXT  The namespace that supplied the copy that won. Two
+                     namespaces may be two directories under one root, so
+                     the path does not say it.
+``file``       TEXT  The file read, **relative to that namespace's root**.
+                     Never absolute: this file is byte-reproducible, and a
+                     path carrying the directory a build happened to run in
+                     would end that.
+``digest``     TEXT  Digest of that file's text, as PySMI's
+                     ``source_digest`` computes it: ``sha256:`` and the hex,
+                     taken over normalised line endings, so a CRLF checkout
+                     hashes the same as the LF copy it was made from.
+=============  ====  =====================================================
+
+**A module may have no row here**, and that is a different answer from a row
+of empty strings: it means the build did not record an origin for it. A reader
+rendering provenance must say so rather than showing blanks.
+
+``shadowed`` in the build report is the origin story for exactly the modules
+more than one namespace held a differing copy of, which is a small minority.
+This is the answer for the rest.
 
 oid_index
 ~~~~~~~~~

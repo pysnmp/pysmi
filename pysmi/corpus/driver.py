@@ -39,7 +39,7 @@ import logging
 import os
 import tempfile
 import time
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final
 
@@ -49,7 +49,7 @@ from pysmi.cache.memory import InMemoryParseCache
 from pysmi.codegen.base import AbstractCodeGen
 from pysmi.codegen.jsondoc import JsonCodeGen
 from pysmi.codegen.pysnmp import PySnmpCodeGen
-from pysmi.compiler import MibCompiler, bundled_mib_names
+from pysmi.compiler import MibCompiler, MibResolution, bundled_mib_names
 from pysmi.corpus import closure as corpus_closure
 from pysmi.corpus import db as corpus_db
 from pysmi.corpus import index as corpus_index
@@ -62,6 +62,7 @@ from pysmi.searcher.anyfile import AnyFileSearcher
 from pysmi.searcher.base import AbstractSearcher
 from pysmi.searcher.stub import StubSearcher
 from pysmi.writer.base import AbstractWriter
+from pysmi.writer.callback import CallbackWriter
 from pysmi.writer.localfile import FileWriter
 from pysmi.writer.pyfile import PyFileWriter
 
@@ -184,6 +185,12 @@ class CorpusReport:
     #: Modules more than one namespace holds a differing copy of: which file
     #: was used, which were passed over, and which rule decided.
     shadowed: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: Where each published module came from: the namespace that supplied it,
+    #: the file read, and that file's digest. :py:attr:`shadowed` is the
+    #: origin story for exactly the modules more than one namespace held a
+    #: differing copy of, which is a small minority; this is the answer for
+    #: the rest. See pysnmp/pysmi#278.
+    provenance: dict[str, dict[str, str]] = field(default_factory=dict)
     #: Modules the corpus publishes, counted once however many namespaces
     #: hold one: what compiled, which is what every artifact carries. A
     #: module that failed, and anything that imports it, is not in this
@@ -219,6 +226,7 @@ class CorpusReport:
             "failed": self.failed,
             "unprocessed": self.unprocessed,
             "shadowed": self.shadowed,
+            "provenance": self.provenance,
             "modules": self.modules,
             "staged": self.staged,
             "nodes": self.nodes,
@@ -345,6 +353,17 @@ class CorpusDriver:
             tuple[list[tuple[str, dict[str, Any], int, int]], dict[str, str]],
         ] = {}
         self._modulesOfNamespace: dict[str, list[str]] = {}
+        #: Where each module came from, per module selection. Filled by
+        #: staging, which resolves every module anyway, and computed on its
+        #: own only for a build that asked for provenance without asking for
+        #: the ASN.1 tree.
+        self._provenance: dict[tuple[str, ...] | None, dict[str, dict[str, str]]] = {}
+        #: Namespace name per reader, by identity, so a resolution can say
+        #: which namespace supplied it. Two namespaces may be two directories
+        #: under one root, so the path alone does not answer it.
+        self._namespaceOfReader = {
+            id(reader): name for name, reader in self._readers.items()
+        }
 
     @staticmethod
     def _reader_for(namespace: Namespace) -> AbstractReader:
@@ -653,6 +672,145 @@ class CorpusDriver:
 
         return results
 
+    @staticmethod
+    def _selector(compiled: "Iterable[str] | None") -> tuple[str, ...] | None:
+        """A hashable key for one module selection, for the per-build caches."""
+        return None if compiled is None else tuple(sorted(set(compiled)))
+
+    def _resolutions(
+        self, compiled: "Iterable[str] | None"
+    ) -> "Iterator[MibResolution]":
+        """Which copy of each published module the sources supply.
+
+        One pass, streamed rather than collected, because a resolution carries
+        the module's whole text and a corpus holds thousands of them.
+
+        Which copy wins is
+        :py:meth:`~pysmi.compiler.MibCompiler.resolve`'s answer, which is the
+        same rule -- applied by the same code -- that decides which copy the
+        compile uses. That is what makes the published ASN.1 the text the
+        published ``.py`` and ``.json`` beside it were generated from, and
+        what makes the provenance recorded beside them true of that text.
+
+        Args:
+            compiled: the modules this build compiled, or ``None`` for every
+                module the namespaces hold.
+
+        Yields:
+            One resolution per published module, in namespace order, each
+            module once.
+        """
+        # A resolver over the same source set, with no code generator or
+        # writer doing anything: this asks where a module comes from, which
+        # costs a read of the sources and not a compile.
+        resolver = MibCompiler(
+            SmiV1CompatParser(tempdir=""),
+            JsonCodeGen(),
+            CallbackWriter(lambda *_: None),
+            useBundledMibs=self._useBundledMibs,
+            parseCache=self._parseCache,
+        )
+        resolver.add_sources(*[self._readers[x.name] for x in self._namespaces])
+
+        seen: set[str] = set()
+        publishable = None if compiled is None else set(compiled)
+
+        for namespace in self._published:
+            for module in self._module_sets()[namespace.name]:
+                if module in seen:
+                    continue
+
+                if publishable is not None and module not in publishable:
+                    continue
+
+                resolution = resolver.resolve(module)
+
+                if resolution is None:
+                    logger.error(
+                        "%s vanished from the sources between enumeration and staging",
+                        module,
+                        extra={"mib": module},
+                    )
+                    continue
+
+                seen.add(module)
+
+                yield resolution
+
+    def _origin(self, resolution: "MibResolution") -> dict[str, str]:
+        """Where one module came from, as the report and the database carry it.
+
+        The file is recorded relative to the namespace that supplied it, never
+        as the absolute path the build happened to read. ``core.db`` is
+        byte-reproducible, and a path carrying a checkout directory or a
+        runner's scratch space would end that -- as well as saying where this
+        build ran, which is nobody's business downstream.
+        """
+        namespace = self._namespaceOfReader.get(id(resolution.source), "")
+
+        return {
+            "namespace": namespace,
+            "file": self._relative_source(namespace, resolution),
+            "digest": resolution.digest,
+        }
+
+    def _relative_source(self, namespace: str, resolution: "MibResolution") -> str:
+        """The path *resolution* was read from, relative to its namespace root.
+
+        Falls back to the file name, which is what a package namespace has and
+        all a caller can use of it.
+        """
+        source = next(
+            (
+                x.source
+                for x in self._namespaces
+                if x.name == namespace and not x.is_package
+            ),
+            None,
+        )
+
+        if source and resolution.path:
+            try:
+                relative = os.path.relpath(
+                    os.path.abspath(resolution.path), os.path.abspath(source)
+                )
+
+            except ValueError:
+                # Different drives on Windows. The file name is still true.
+                return resolution.file
+
+            if not relative.startswith(os.pardir):
+                return relative.replace(os.sep, "/")
+
+        return resolution.file
+
+    def provenance(
+        self, compiled: "Iterable[str] | None" = None
+    ) -> dict[str, dict[str, str]]:
+        """Where every published module came from.
+
+        Free after :py:meth:`stage`, which resolves every module in order to
+        write it and records this on the way past. A build that asked for the
+        database but not for the ASN.1 tree pays one resolution pass here,
+        which is the cost of the answer rather than an accident of ordering.
+
+        Args:
+            compiled: the modules this build compiled, as :py:meth:`stage`
+                takes it.
+
+        Returns:
+            Per module, the namespace that supplied it, the file read
+            relative to that namespace, and that file's digest.
+        """
+        selector = self._selector(compiled)
+
+        if selector not in self._provenance:
+            self._provenance[selector] = {
+                x.name: self._origin(x) for x in self._resolutions(compiled)
+            }
+
+        return self._provenance[selector]
+
     def stage(
         self, report: CorpusReport, compiled: "Iterable[str] | None" = None
     ) -> dict[str, str]:
@@ -670,7 +828,8 @@ class CorpusDriver:
         rather than whichever copy a parallel job happened to copy last.
 
         Args:
-            report: filled in with what was staged and what was shadowed
+            report: filled in with what was staged, what was shadowed, and
+                where each module came from
             compiled: the modules this build compiled, which is what the
                 corpus publishes. A module that does not compile -- and, by
                 the same result, everything that imports it -- is left out,
@@ -690,52 +849,32 @@ class CorpusDriver:
         started = time.time()
         os.makedirs(directory, exist_ok=True)
 
-        # A resolver over the same source set, with no code generator or
-        # writer doing anything: this asks where a module comes from, which
-        # costs a read of the sources and not a compile.
-        resolver = MibCompiler(
-            SmiV1CompatParser(tempdir=""),
-            JsonCodeGen(),
-            FileWriter(directory),
-            useBundledMibs=self._useBundledMibs,
-            parseCache=self._parseCache,
-        )
-        resolver.add_sources(*[self._readers[x.name] for x in self._namespaces])
-
         staged: dict[str, str] = {}
-        publishable = None if compiled is None else set(compiled)
+        provenance: dict[str, dict[str, str]] = {}
 
-        for namespace in self._published:
-            for module in self._module_sets()[namespace.name]:
-                if module in staged:
-                    continue
+        for resolution in self._resolutions(compiled):
+            with open(
+                os.path.join(directory, resolution.name),
+                "w",
+                encoding="utf-8",
+                newline="",
+            ) as fileObj:
+                fileObj.write(resolution.data)
 
-                if publishable is not None and module not in publishable:
-                    continue
+            staged[resolution.name] = resolution.path
+            provenance[resolution.name] = self._origin(resolution)
 
-                resolution = resolver.resolve(module)
+            if resolution.shadowed:
+                report.shadowed[resolution.name] = {
+                    "used": resolution.path,
+                    "shadowed": list(resolution.shadowed),
+                    "precedence": resolution.precedence,
+                }
 
-                if resolution is None:
-                    logger.error(
-                        "%s vanished from the sources between enumeration and staging",
-                        module,
-                        extra={"mib": module},
-                    )
-                    continue
-
-                with open(
-                    os.path.join(directory, module), "w", encoding="utf-8", newline=""
-                ) as fileObj:
-                    fileObj.write(resolution.data)
-
-                staged[module] = resolution.path
-
-                if resolution.shadowed:
-                    report.shadowed[module] = {
-                        "used": resolution.path,
-                        "shadowed": list(resolution.shadowed),
-                        "precedence": resolution.precedence,
-                    }
+        # Staging resolved every module, so provenance is already answered
+        # and the pass that would answer it again is not run.
+        self._provenance[self._selector(compiled)] = provenance
+        report.provenance = provenance
 
         report.staged = len(staged)
         report.seconds["stage"] = time.time() - started
@@ -866,6 +1005,10 @@ class CorpusDriver:
         if not self._outputs.core_db:
             return
 
+        # Free after staging, which resolved every module anyway. A build
+        # asking for the database without the ASN.1 tree pays one resolution
+        # pass for it, which is what the answer costs.
+
         started = time.time()
 
         documents, ranked = self._read_corpus(compiled)
@@ -881,6 +1024,7 @@ class CorpusDriver:
             ranked,
             corpusVersion=self._corpusVersion,
             corpusId=self._corpusId,
+            provenance=self.provenance(compiled),
         )
 
         logger.info(
@@ -1063,6 +1207,13 @@ class CorpusDriver:
         self.write_index(report, published)
         self.write_db(report, published)
         self.write_closure(report, published)
+
+        # Whatever answered provenance -- staging, or the database asking for
+        # it -- the report carries it. A build that asked for neither says
+        # nothing rather than paying a pass to fill in a field.
+        report.provenance = self._provenance.get(
+            self._selector(published), report.provenance
+        )
 
         report.seconds["total"] = time.time() - started
 

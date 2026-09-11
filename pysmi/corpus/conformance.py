@@ -370,7 +370,7 @@ VECTORS: Final[tuple[dict[str, Any], ...]] = (
         "why": "A reader gates on the schema version before it trusts a table.",
         "op": "meta",
         "key": "schema_version",
-        "expect": "1",
+        "expect": "2",
     },
     {
         "id": "meta-corpus-version",
@@ -618,6 +618,57 @@ VECTORS: Final[tuple[dict[str, Any], ...]] = (
         "name": "TEXTUAL-CONVENTION",
         "expect": "SNMPv2-TC",
     },
+    # Provenance, added with schema v2. Where a module came from is the first
+    # question anyone asks of a MIB they did not publish, and until the build
+    # writes it down nothing downstream can answer it. See pysnmp/pysmi#278.
+    {
+        "id": "provenance-names-the-namespace-and-file",
+        "why": "Where a module came from is the first question anyone asks "
+        "of a MIB they did not publish, and only the build knows it.",
+        "op": "provenance",
+        "module": "FIXTURE-MIB",
+        "expect": [
+            "standard",
+            "FIXTURE-MIB",
+            "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        ],
+    },
+    {
+        "id": "provenance-is-per-module-not-per-arc",
+        "why": "SHADOW-MIB defines an OID FIXTURE-MIB also defines and comes "
+        "from a different namespace. A reader asking where the arc came "
+        "from has to get the answer for the module it asked about.",
+        "op": "provenance",
+        "module": "SHADOW-MIB",
+        "expect": [
+            "vendor",
+            "acme/SHADOW-MIB",
+            "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        ],
+    },
+    {
+        "id": "provenance-is-absent-when-it-was-not-recorded",
+        "why": "A corpus may hold a module whose origin the build did not "
+        "record. That is a different answer from an origin of empty "
+        "strings, and a reader must not render the second for the first.",
+        "op": "provenance",
+        "module": "DEEP-MIB",
+        "expect": None,
+    },
+    {
+        "id": "provenance-file-is-relative-to-its-namespace",
+        "why": "core.db is byte-reproducible. An absolute path would carry "
+        "the checkout directory the build ran in, which differs between "
+        "two builds of one source tree and is nobody's business "
+        "downstream.",
+        "op": "provenance",
+        "module": "SMIV1-MIB",
+        "expect": [
+            "vendor",
+            "acme/SMIV1-MIB",
+            "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        ],
+    },
     {
         "id": "module-tier",
         "why": "Tier is declared by the build's manifest, not inferred from "
@@ -697,6 +748,35 @@ VECTORS: Final[tuple[dict[str, Any], ...]] = (
 )
 
 
+#: Where the fixture's modules came from, as a build records it.
+#:
+#: ``DEEP-MIB`` is deliberately absent: a corpus may hold a module whose
+#: origin the build did not record -- one staged by a caller rather than
+#: resolved, or a build that predates the ``provenance`` table -- and a
+#: reader has to tell that from a module whose origin is known. An empty
+#: row would not say it; a missing row does.
+PROVENANCE: Final[dict[str, dict[str, str]]] = {
+    "FIXTURE-MIB": {
+        "namespace": "standard",
+        "file": "FIXTURE-MIB",
+        "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    },
+    "SHADOW-MIB": {
+        # A different namespace from the module whose OID it collides with,
+        # which is the case provenance exists to answer: two namespaces held
+        # the arc and a reader wants to know which file each came from.
+        "namespace": "vendor",
+        "file": "acme/SHADOW-MIB",
+        "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    },
+    "SMIV1-MIB": {
+        "namespace": "vendor",
+        "file": "acme/SMIV1-MIB",
+        "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    },
+}
+
+
 def build_fixture(path: str) -> str:
     """Write the conformance corpus.
 
@@ -716,6 +796,7 @@ def build_fixture(path: str) -> str:
         ranked=RANKED,
         corpusVersion=CORPUS_VERSION,
         corpusId="pysmi-conformance",
+        provenance=PROVENANCE,
     )
 
     return path
@@ -777,6 +858,7 @@ QUERIES: Final[dict[str, str]] = {
     ),
     "type": "SELECT spec FROM type WHERE id = ?",
     "import_source": "SELECT source FROM import WHERE module = ? AND name = ?",
+    "provenance": "SELECT namespace, file, digest FROM provenance WHERE module = ?",
 }
 
 
@@ -950,6 +1032,12 @@ def run_vectors(connection: Any) -> list[str]:
                 QUERIES["import_source"], (vector["module"], vector["name"])
             ).fetchone()
             answer = row[0] if row else None
+
+        elif operation == "provenance":
+            row = connection.execute(
+                QUERIES["provenance"], (vector["module"],)
+            ).fetchone()
+            answer = list(row) if row else None
 
         elif operation == "module_field":
             # The field is one of this module's own literals, never a caller's.

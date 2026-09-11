@@ -31,6 +31,7 @@ from unittest import mock
 from pysmi import error
 from pysmi.corpus import CorpusDriver, CorpusOutputs, Namespace, check_disjoint
 from pysmi.corpus.driver import STANDARD_TXT_EXCLUDED_PREFIXES, CorpusReport
+from pysmi.mibinfo import source_digest
 
 
 def module(name, oid, *, revision="202401010000Z", description="a module"):
@@ -161,6 +162,102 @@ class CorpusTestCase(unittest.TestCase):
                     found[os.path.relpath(path, base)] = fileObj.read()
 
         return found
+
+
+class ProvenanceTestCase(CorpusTestCase):
+    """Where each published module came from (pysnmp/pysmi#278).
+
+    The build resolves every module in order to stage it, so it knows which
+    namespace supplied the copy that won, which file it read and what that
+    file's digest was. None of it used to survive the build.
+    """
+
+    def testEveryStagedModuleHasAnOrigin(self):
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual(["ALPHA-MIB", "BETA-MIB"], sorted(report.provenance))
+
+    def testTheOriginNamesTheNamespaceThatSuppliedIt(self):
+        """Two namespaces are two directories under one root here, which is why
+        the path alone cannot answer it."""
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual("alpha", report.provenance["ALPHA-MIB"]["namespace"])
+        self.assertEqual("beta", report.provenance["BETA-MIB"]["namespace"])
+
+    def testTheFileIsRelativeToItsNamespace(self):
+        """An absolute path would carry the directory this build ran in, which
+        differs between two builds of one source tree."""
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual("ALPHA-MIB", report.provenance["ALPHA-MIB"]["file"])
+        self.assertNotIn(self.root, report.provenance["ALPHA-MIB"]["file"])
+
+    def testTheDigestIsOfTheTextThatWasStaged(self):
+        """The provenance has to be true of the ASN.1 published beside it."""
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        with open(
+            os.path.join(self.root, "output", "asn1", "ALPHA-MIB"),
+            encoding="utf-8",
+            newline="",
+        ) as fileObj:
+            staged = fileObj.read()
+
+        self.assertEqual(
+            source_digest(staged), report.provenance["ALPHA-MIB"]["digest"]
+        )
+
+    def testTheShadowedModuleIsRecordedAsComingFromTheWinner(self):
+        """Shadowing says which copies lost; provenance says which one won."""
+        self.write("beta", "ALPHA-MIB", module("ALPHA-MIB", 41, description="other"))
+
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertIn("ALPHA-MIB", report.shadowed)
+        self.assertEqual("alpha", report.provenance["ALPHA-MIB"]["namespace"])
+
+    def testItReachesTheDatabase(self):
+        outputs = self.outputs(core_db=os.path.join(self.root, "output", "core.db"))
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual(2, report.db["provenance"])
+
+        connection = sqlite3.connect(outputs.core_db)
+
+        try:
+            rows = dict(connection.execute("SELECT module, namespace FROM provenance"))
+
+        finally:
+            connection.close()
+
+        self.assertEqual({"ALPHA-MIB": "alpha", "BETA-MIB": "beta"}, rows)
+
+    def testTheDatabaseGetsItWithoutTheAsn1Tree(self):
+        """Staging answers provenance for free; a build that did not stage
+        pays one resolution pass for it rather than going without."""
+        outputs = self.outputs(
+            asn1=None, core_db=os.path.join(self.root, "output", "core.db")
+        )
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual(0, report.staged)
+        self.assertEqual(2, report.db["provenance"])
+        self.assertEqual(["ALPHA-MIB", "BETA-MIB"], sorted(report.provenance))
+
+    def testABuildThatAsksForNeitherRecordsNothing(self):
+        """Provenance costs a resolution pass. A build wanting neither the
+        tree nor the database does not pay it to fill in a report field."""
+        outputs = CorpusOutputs(
+            json=os.path.join(self.root, "output", "json"),
+            report=os.path.join(self.root, "output", "report.json"),
+        )
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual({}, report.provenance)
 
 
 class ImportClosureTestCase(CorpusTestCase):
