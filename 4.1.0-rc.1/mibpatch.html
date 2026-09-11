@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>The mibpatch tool &#8212; SNMP SMI compiler 4.1.0rc1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=f6a572b4" />
+    <script src="_static/documentation_options.js?v=bc0c5704"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="_static/favicon.ico"/>
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Bundled base MIBs" href="bundled-mibs.html" />
+    <link rel="prev" title="The mibcorpus tool" href="mibcorpus.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="contents.html">
+    <img class="logo" src="_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibcorpus.html">The <em>mibcorpus</em> tool</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">The <em>mibpatch</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="corpus-schema.html">Corpus database schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
+<li class="toctree-l2"><a class="reference internal" href="library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="contents.html">Documentation overview</a><ul>
+  <li><a href="documentation.html">PySMI documentation</a><ul>
+      <li>Previous: <a href="mibcorpus.html" title="previous chapter">The <em>mibcorpus</em> tool</a></li>
+      <li>Next: <a href="bundled-mibs.html" title="next chapter">Bundled base MIBs</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="the-mibpatch-tool">
+<span id="mibpatch"></span><h1>The <em>mibpatch</em> tool<a class="headerlink" href="#the-mibpatch-tool" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>Plenty of published MIBs use an SMIv2 base symbol without naming it in
+IMPORTS, which <span class="target" id="index-0"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2578.html"><strong>RFC 2578</strong></a> Section 3.2 does not allow. PySMI compiles them
+anyway: where the omitted symbol is one a base module exports, the import that
+was meant is not in doubt, so the compiler supplies it and names what it
+supplied on the “Repaired MIBs” line of the report. See
+<a class="reference internal" href="mibdump.html#repairing-imports"><span class="std std-ref">Repairing missing IMPORTS</span></a> for that behaviour and the <code class="docutils literal notranslate"><span class="pre">--strict-imports</span></code> flag
+that turns it off.</p>
+<p>That repair lives in memory for the length of the run that made it. It suits a
+consumer compiling somebody else’s MIBs, and it suits nobody who <em>owns</em> a tree
+of them: the same defect is rediscovered on every run, the correction is never
+reviewed, and the only record it happened is a line in a report that scrolls
+past.</p>
+<p>The <em>mibpatch</em> tool makes the repair a file instead. It scans a source tree,
+works out the same corrections the compiler would have made, and writes each
+one out as a unified diff. Those diffs go into version control, where they can
+be read before anything runs; <code class="docutils literal notranslate"><span class="pre">--apply</span></code> writes them into the MIBs themselves,
+after which the tree compiles under <code class="docutils literal notranslate"><span class="pre">mibdump</span> <span class="pre">--strict-imports</span></code> and nothing is
+repaired at runtime at all.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>mibpatch<span class="w"> </span>--help
+Synopsis:
+Write<span class="w"> </span>the<span class="w"> </span>repairs<span class="w"> </span>a<span class="w"> </span>tree<span class="w"> </span>of<span class="w"> </span>MIBs<span class="w"> </span>needs<span class="w"> </span>out<span class="w"> </span>as<span class="w"> </span>reviewable<span class="w"> </span>patches
+Documentation:
+https://github.com/pysnmp/pysmi
+
+Usage:<span class="w"> </span>mibpatch<span class="w"> </span><span class="o">[</span>--help<span class="o">]</span>
+<span class="w">    </span><span class="o">[</span>--version<span class="o">]</span>
+<span class="w">    </span><span class="o">[</span>--quiet<span class="o">]</span>
+<span class="w">    </span><span class="o">[</span>--debug<span class="o">=</span>&lt;all<span class="p">|</span>borrower<span class="p">|</span>codegen<span class="p">|</span>compiler<span class="p">|</span>grammar<span class="p">|</span>lexer<span class="p">|</span>parser<span class="p">|</span>reader<span class="p">|</span>searcher<span class="p">|</span>writer&gt;<span class="o">]</span>
+<span class="w">    </span><span class="o">[</span>--source<span class="o">=</span>&lt;DIRECTORY&gt;<span class="o">]</span>
+<span class="w">    </span><span class="o">[</span>--output-directory<span class="o">=</span>&lt;DIRECTORY&gt;<span class="o">]</span>
+<span class="w">    </span><span class="o">[</span>--check<span class="o">]</span>
+<span class="w">    </span><span class="o">[</span>--apply<span class="o">]</span>
+</pre></div>
+</div>
+<section id="writing-the-repairs-down">
+<h2>Writing the repairs down<a class="headerlink" href="#writing-the-repairs-down" title="Link to this heading">¶</a></h2>
+<p>Point the tool at a directory of ASN.1 modules. It reads every file in it,
+parses each one, and writes <code class="docutils literal notranslate"><span class="pre">&lt;MODULE&gt;.patch</span></code> for every module it can repair:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>mibpatch<span class="w"> </span>--source<span class="w"> </span>./mibs<span class="w"> </span>--output-directory<span class="w"> </span>./mib-patches
+Read<span class="w"> </span><span class="m">214</span><span class="w"> </span>modules,<span class="w"> </span><span class="m">209</span><span class="w"> </span>needing<span class="w"> </span>nothing
+Repairs<span class="w"> </span>derived<span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="m">4</span><span class="w"> </span>modules:
+<span class="w"> </span>ACME-CHASSIS-MIB<span class="w"> </span><span class="o">(</span>TruthValue<span class="w"> </span>from<span class="w"> </span>SNMPv2-TC<span class="o">)</span>
+<span class="w"> </span>ACME-POWER-MIB<span class="w"> </span><span class="o">(</span>enterprises<span class="w"> </span>from<span class="w"> </span>SNMPv2-SMI<span class="o">)</span>
+<span class="w"> </span>...
+No<span class="w"> </span>repair<span class="w"> </span>could<span class="w"> </span>be<span class="w"> </span>derived<span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="m">1</span><span class="w"> </span>modules,<span class="w"> </span>so<span class="w"> </span>a<span class="w"> </span>patch<span class="w"> </span><span class="k">for</span><span class="w"> </span>each<span class="w"> </span>has<span class="w"> </span>to<span class="w"> </span>be<span class="w"> </span>written<span class="w"> </span>by<span class="w"> </span>hand:
+<span class="w"> </span>ACME-LEGACY-MIB<span class="w"> </span><span class="o">(</span>Bad<span class="w"> </span>grammar<span class="w"> </span>near<span class="w"> </span>token<span class="w"> </span><span class="nb">type</span><span class="w"> </span>STRING,<span class="w"> </span>value<span class="w"> </span><span class="s2">"x"</span>,<span class="w"> </span>line<span class="w"> </span><span class="m">84</span><span class="o">)</span>
+</pre></div>
+</div>
+<p>A patch is named after the module rather than the file it was found in, because
+that is what it is keyed by everywhere else. The sources are not touched.</p>
+</section>
+<section id="what-can-and-cannot-be-derived">
+<h2>What can and cannot be derived<a class="headerlink" href="#what-can-and-cannot-be-derived" title="Link to this heading">¶</a></h2>
+<p>A repair can be generated only when the correction can be <em>decided</em>. A missing
+base-SMI import can be: the symbol is undefined, unimported, and exactly one
+base module exports it, so there is nothing to guess at.</p>
+<p>A module that does not parse cannot be. There is no symbol table to reason
+from, so the tool reports it and moves on – that module needs a patch written
+by hand. This is not a corner case: most of the twelve repairs PySMI carries
+for its own bundle are that kind, fixing a module that fails to parse at all
+(see <a class="reference internal" href="bundled-mibs.html#bundled-mib-patches"><span class="std std-ref">Patched modules</span></a>). The tool tells you which modules need a human
+rather than guessing on their behalf.</p>
+</section>
+<section id="applying-them">
+<h2>Applying them<a class="headerlink" href="#applying-them" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">--apply</span></code> writes each repaired module back over its source, as well as
+writing the diff:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>mibpatch<span class="w"> </span>--source<span class="w"> </span>./mibs<span class="w"> </span>--output-directory<span class="w"> </span>./mib-patches<span class="w"> </span>--apply
+$<span class="w"> </span>mibdump<span class="w"> </span>--mib-source<span class="w"> </span>./mibs<span class="w"> </span>--strict-imports<span class="w"> </span>ACME-CHASSIS-MIB
+Created/updated<span class="w"> </span>MIBs:<span class="w"> </span>ACME-CHASSIS-MIB
+...
+Repaired<span class="w"> </span>MIBs:
+</pre></div>
+</div>
+<p>The MIBs are now correct on disk, <code class="docutils literal notranslate"><span class="pre">--strict-imports</span></code> passes, and the
+“Repaired MIBs” line is empty because there was nothing left to repair. That is
+the state the tool exists to reach.</p>
+<p>Applying is idempotent. A patch offered to text that already carries it is
+recognised as such rather than applied twice, so running <code class="docutils literal notranslate"><span class="pre">--apply</span></code> over an
+already-patched tree changes nothing. A module’s line endings survive it: a
+CRLF file goes back as CRLF, since repairing a module should not also reformat
+the file it came from.</p>
+</section>
+<section id="keeping-them-honest">
+<h2>Keeping them honest<a class="headerlink" href="#keeping-them-honest" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">--check</span></code> writes nothing and exits <code class="docutils literal notranslate"><span class="pre">79</span></code> when the patches on disk are not
+the ones the tree needs:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>mibpatch<span class="w"> </span>--source<span class="w"> </span>./mibs<span class="w"> </span>--output-directory<span class="w"> </span>./mib-patches<span class="w"> </span>--check
+Patches<span class="w"> </span>on<span class="w"> </span>disk<span class="w"> </span>disagree<span class="w"> </span>with<span class="w"> </span>the<span class="w"> </span>sources<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">2</span><span class="w"> </span>ways:
+<span class="w"> </span>ACME-FAN-MIB:<span class="w"> </span>needs<span class="w"> </span>a<span class="w"> </span>patch,<span class="w"> </span>and<span class="w"> </span>none<span class="w"> </span>is<span class="w"> </span>written
+<span class="w"> </span>ACME-PSU-MIB:<span class="w"> </span>needs<span class="w"> </span>no<span class="w"> </span>patch,<span class="w"> </span>but<span class="w"> </span>one<span class="w"> </span>is<span class="w"> </span>written
+</pre></div>
+</div>
+<p>That is a CI gate over a MIB tree. It catches a module that grew a new defect,
+a patch that no longer describes the repair its module needs, and a patch left
+behind by a module whose publisher fixed it.</p>
+<p>It is right in both of the trees it might be run in. A tree holding published
+text with patches beside it is stale when a patch is missing or wrong. A tree
+that <code class="docutils literal notranslate"><span class="pre">--apply</span></code> has been run over holds the <em>repaired</em> text, so no repair is
+derived for it any more – but its patches are not surplus, they are already
+applied, and <code class="docutils literal notranslate"><span class="pre">--check</span></code> tells those two apart rather than failing on the
+second.</p>
+</section>
+<section id="scanning-more-than-one-tree">
+<h2>Scanning more than one tree<a class="headerlink" href="#scanning-more-than-one-tree" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">--source</span></code> is repeatable, and each directory is walked recursively:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>mibpatch<span class="w"> </span>--source<span class="w"> </span>./vendor-mibs<span class="w"> </span>--source<span class="w"> </span>./standard-mibs<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--output-directory<span class="w"> </span>./mib-patches<span class="w"> </span>--check
+</pre></div>
+</div>
+<p>A patch for a module that no scanned source holds is left alone rather than
+reported, since the tree being scanned is not necessarily the only one the
+patch set covers.</p>
+</section>
+<section id="using-a-patch-set-from-python">
+<h2>Using a patch set from Python<a class="headerlink" href="#using-a-patch-set-from-python" title="Link to this heading">¶</a></h2>
+<p>The diffs the tool writes are read back by
+<a class="reference internal" href="pysmi/patches.html#pysmi.patches.PatchSet.from_directory" title="pysmi.patches.PatchSet.from_directory"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pysmi.patches.PatchSet.from_directory()</span></code></a>, which is how a caller applies
+them without shelling out:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.patches</span><span class="w"> </span><span class="kn">import</span> <span class="n">APPLIED</span><span class="p">,</span> <span class="n">PatchSet</span>
+
+<span class="n">patches</span> <span class="o">=</span> <span class="n">PatchSet</span><span class="o">.</span><span class="n">from_directory</span><span class="p">(</span><span class="s2">"./mib-patches"</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="s2">"ACME-CHASSIS-MIB"</span><span class="p">,</span> <span class="n">source_text</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="n">APPLIED</span><span class="p">:</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="pysmi/patches.html#patches"><span class="std std-ref">MIB patches</span></a> for the rest of that interface.</p>
+</section>
+<section id="how-pysmi-uses-the-same-machinery">
+<h2>How PySMI uses the same machinery<a class="headerlink" href="#how-pysmi-uses-the-same-machinery" title="Link to this heading">¶</a></h2>
+<p>PySMI repairs twelve of its own bundled modules exactly this way, except that
+its diffs are applied when a distribution is built rather than to a checkout:
+the repository holds each module as its publisher printed it, and the wheel
+holds the repaired text. <a class="reference internal" href="bundled-mibs.html#bundled-mib-patches"><span class="std std-ref">Patched modules</span></a> describes that split and
+why it is drawn where it is.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

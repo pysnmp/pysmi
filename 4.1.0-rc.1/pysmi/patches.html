@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>MIB patches &#8212; SNMP SMI compiler 4.1.0rc1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=f6a572b4" />
+    <script src="../_static/documentation_options.js?v=bc0c5704"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Local file reader" href="reader/localfile/filereader.html" />
+    <link rel="prev" title="Corpus database" href="corpus/db.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../contents.html">
+    <img class="logo" src="../_static/logo.svg" alt="Logo" />
+    
+  </a>
+</p>
+
+
+
+<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">PySMI documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../mibdump.html">The <em>mibdump</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mibcopy.html">The <em>mibcopy</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mibcorpus.html">The <em>mibcorpus</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mibpatch.html">The <em>mibpatch</em> tool</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../corpus-schema.html">Corpus database schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mibs-as-data.html">MIBs as data: layering review</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../library-reference.html">PySMI library</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../contents.html">Documentation overview</a><ul>
+  <li><a href="../documentation.html">PySMI documentation</a><ul>
+  <li><a href="../library-reference.html">PySMI library</a><ul>
+      <li>Previous: <a href="corpus/db.html" title="previous chapter">Corpus database</a></li>
+      <li>Next: <a href="reader/localfile/filereader.html" title="next chapter">Local file reader</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="mib-patches">
+<span id="patches"></span><h1>MIB patches<a class="headerlink" href="#mib-patches" title="Link to this heading">¶</a></h1>
+<p>A published MIB that does not compile is repaired by a diff against its text.
+That is a durable, reviewable form for a repair: it names the defect, it
+carries the correction, and it lives in version control where it can be read
+before anything runs.</p>
+<p><a class="reference internal" href="#module-pysmi.patches" title="pysmi.patches"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.patches</span></code></a> reads, applies and writes those diffs.
+<a class="reference internal" href="#module-pysmi.patchgen" title="pysmi.patchgen"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.patchgen</span></code></a> derives them, working out the same corrections
+<code class="docutils literal notranslate"><span class="pre">pysmi.codegen.symtable</span></code> would otherwise make in memory as a module
+compiles. The <code class="docutils literal notranslate"><span class="pre">mibpatch</span></code> tool is the command line over both – see
+<a class="reference internal" href="../mibpatch.html#mibpatch"><span class="std std-ref">The mibpatch tool</span></a> for the workflow.</p>
+<p>Nothing here runs while a MIB is compiled. PySMI reads what a source actually
+holds and does not patch anything on the way past; patching a tree is something
+done to it beforehand, deliberately, with the diffs to show for it.</p>
+<section id="applying-a-patch-set">
+<h2>Applying a patch set<a class="headerlink" href="#applying-a-patch-set" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.patches</span><span class="w"> </span><span class="kn">import</span> <span class="n">ALREADY_APPLIED</span><span class="p">,</span> <span class="n">APPLIED</span><span class="p">,</span> <span class="n">PatchSet</span>
+
+<span class="n">patches</span> <span class="o">=</span> <span class="n">PatchSet</span><span class="o">.</span><span class="n">from_directory</span><span class="p">(</span><span class="s2">"./mib-patches"</span><span class="p">)</span>
+
+<span class="n">text</span><span class="p">,</span> <span class="n">status</span> <span class="o">=</span> <span class="n">patches</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="s2">"HPR-MIB"</span><span class="p">,</span> <span class="n">source_text</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The status tells apart the three things that can happen to text a patch is
+offered. <a class="reference internal" href="#pysmi.patches.APPLIED" title="pysmi.patches.APPLIED"><code class="xref py py-data docutils literal notranslate"><span class="pre">APPLIED</span></code></a> means it was repaired just now;
+<a class="reference internal" href="#pysmi.patches.ALREADY_APPLIED" title="pysmi.patches.ALREADY_APPLIED"><code class="xref py py-data docutils literal notranslate"><span class="pre">ALREADY_APPLIED</span></code></a> means the text already carried the
+repair, which is what a patched tree gives back; and
+<a class="reference internal" href="#pysmi.patches.NOT_APPLICABLE" title="pysmi.patches.NOT_APPLICABLE"><code class="xref py py-data docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code></a> means the patch was cut against
+different text, which is how a publisher moving under you is detected rather
+than papered over.</p>
+</section>
+<section id="deriving-one">
+<h2>Deriving one<a class="headerlink" href="#deriving-one" title="Link to this heading">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.patchgen</span><span class="w"> </span><span class="kn">import</span> <span class="n">REPAIRABLE</span><span class="p">,</span> <span class="n">inspect</span>
+
+<span class="n">defect</span> <span class="o">=</span> <span class="n">inspect</span><span class="p">(</span><span class="n">source_text</span><span class="p">,</span> <span class="n">mibname</span><span class="o">=</span><span class="s2">"ACME-MIB"</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">defect</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">REPAIRABLE</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">defect</span><span class="o">.</span><span class="n">patch</span><span class="p">)</span>
+</pre></div>
+</div>
+<p id="module-pysmi.patches">Reading, applying and writing the diffs that repair a broken MIB.</p>
+<p>Some published MIBs do not compile. <code class="docutils literal notranslate"><span class="pre">SMUX-MIB</span></code> imports <code class="docutils literal notranslate"><span class="pre">OBJECT-TYPE</span></code> from a
+module called <code class="docutils literal notranslate"><span class="pre">RFC1212</span></code>, and no such module exists – it is <code class="docutils literal notranslate"><span class="pre">RFC-1212</span></code>.
+<code class="docutils literal notranslate"><span class="pre">HPR-MIB</span></code> is published with <code class="docutils literal notranslate"><span class="pre">LAST-UPDATED</span> <span class="pre">&quot;970514000000Z&quot;</span></code>, which is
+thirteen characters and so reads as the wide form, year 9705 of month 14. These
+are defects in the published text, and the fix for each is a small diff against
+it.</p>
+<p>A diff is the durable, reviewable form of a repair. It names the defect, it
+carries the correction, and it lives in version control where it can be read
+before anything runs – unlike a repair made in memory as a module is compiled,
+which exists only for the length of the run that made it. <a class="reference internal" href="#module-pysmi.scripts.mibpatch" title="pysmi.scripts.mibpatch"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.scripts.mibpatch</span></code></a>
+writes them, this module reads and applies them, and <code class="docutils literal notranslate"><span class="pre">hatch_build.py</span></code> uses it
+to repair pysmi’s own bundle as a distribution is built.</p>
+<p>Nothing here runs while a MIB is compiled. pysmi reads what a source actually
+holds and does not patch anything on the way past; patching a tree is a thing
+done to it beforehand, deliberately, with the diffs to show for it.</p>
+<p>Two things follow from applying a diff rather than fuzzing text:</p>
+<ul class="simple">
+<li><p>The copy a patch is cut against is the text as published, so a patch that no
+longer applies means the publisher moved. That is a thing to look at rather
+than to paper over: matching is exact, and callers fail loudly on it.</p></li>
+<li><p>The same diff is nevertheless offered to text that already carries it. That
+is detected by trying the patch backwards, the dry run <code class="docutils literal notranslate"><span class="pre">patch</span> <span class="pre">-R</span></code> does, and
+reported as <a class="reference internal" href="#pysmi.patches.ALREADY_APPLIED" title="pysmi.patches.ALREADY_APPLIED"><code class="xref py py-data docutils literal notranslate"><span class="pre">ALREADY_APPLIED</span></code></a>.</p></li>
+</ul>
+<p id="module-pysmi.patchgen">Turning a repair pysmi would make in memory into a diff against the source.</p>
+<p><code class="docutils literal notranslate"><span class="pre">pysmi.codegen.symtable</span></code> repairs a module that uses an SMIv2 base symbol
+without naming it in IMPORTS, and does so as the module compiles: the repair
+lives for the length of the run that made it and leaves the source alone. That
+is the right default for consuming a MIB and the wrong one for owning a tree of
+them, where the same defect is rediscovered on every run and nobody ever sees
+the correction written down.</p>
+<p>This module makes the other choice available. It finds the same defect the
+compiler does, works out the same correction, and then writes it into the
+module’s <em>text</em> rather than into a symbol table – so it can be handed to
+<a class="reference internal" href="#pysmi.patches.make_patch" title="pysmi.patches.make_patch"><code class="xref py py-func docutils literal notranslate"><span class="pre">make_patch()</span></code></a> and kept as a diff. Patch a tree once, and
+the repair is in version control, visible before anything runs, and the compiler
+can be told to stop repairing anything at all.</p>
+<p>What can be generated is exactly what can be <em>decided</em>. A missing base-SMI
+import can be: the symbol is undefined, unimported, and exactly one base module
+exports it, so there is nothing to guess at. A MIB that does not parse cannot
+be, because there is no symbol table to reason from – those repairs are still
+written by hand, and <a class="reference internal" href="#pysmi.patchgen.Defect" title="pysmi.patchgen.Defect"><code class="xref py py-class docutils literal notranslate"><span class="pre">Defect</span></code></a> reports them as needing one.</p>
+<p id="module-pysmi.scripts.mibpatch">The <em>mibpatch</em> tool: write down the repairs a tree of MIBs needs.</p>
+<p>pysmi repairs a module that uses an SMIv2 base symbol without naming it in
+IMPORTS, and does it in memory, every run, leaving no trace in the source. That
+suits a consumer compiling somebody else’s MIBs. It suits nobody who <em>owns</em> a
+tree of them: the defect is rediscovered on every run, the correction is never
+reviewed, and the only record it happened is a line in a report.</p>
+<p>This tool makes the repair a file. It scans a source tree, works out the same
+corrections the compiler would have made, and writes each one as a unified diff
+under an output directory. Those diffs are reviewable, they go into version
+control, and <code class="docutils literal notranslate"><span class="pre">--apply</span></code> writes them into the tree – after which the modules
+compile under <code class="docutils literal notranslate"><span class="pre">mibdump</span> <span class="pre">--strict-imports</span></code> and no repair happens at runtime at
+all.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--check</span></code> writes nothing and fails when the patches on disk are not the ones
+the tree needs, which is the same job in a CI gate: a MIB that grew a new defect,
+or a patch left behind by one that was fixed upstream.</p>
+<p>What cannot be derived is reported rather than guessed at. A module that does
+not parse has no symbol table to reason from, so its patch has to be written by
+hand – the twelve in <code class="docutils literal notranslate"><span class="pre">scripts/mib-patches</span></code> mostly are.</p>
+</section>
+<section id="statuses">
+<h2>Statuses<a class="headerlink" href="#statuses" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.patches.APPLIED">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patches.</span></span><span class="sig-name descname"><span class="pre">APPLIED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'applied'</span></span><a class="headerlink" href="#pysmi.patches.APPLIED" title="Link to this definition">¶</a></dt>
+<dd><p>The patch was applied to this text just now.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.patches.ALREADY_APPLIED">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patches.</span></span><span class="sig-name descname"><span class="pre">ALREADY_APPLIED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'already-applied'</span></span><a class="headerlink" href="#pysmi.patches.ALREADY_APPLIED" title="Link to this definition">¶</a></dt>
+<dd><p>The text carried the patch already – pysmi’s own bundled copies do.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.patches.NOT_APPLICABLE">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patches.</span></span><span class="sig-name descname"><span class="pre">NOT_APPLICABLE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'not-applicable'</span></span><a class="headerlink" href="#pysmi.patches.NOT_APPLICABLE" title="Link to this definition">¶</a></dt>
+<dd><p>There is a patch for this module, but it was cut against different text.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.patches.UNPATCHED">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patches.</span></span><span class="sig-name descname"><span class="pre">UNPATCHED</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.patches.UNPATCHED" title="Link to this definition">¶</a></dt>
+<dd><p>No patch is known for this module.</p>
+</dd></dl>
+
+</section>
+<section id="reading-and-applying">
+<h2>Reading and applying<a class="headerlink" href="#reading-and-applying" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.patches.PatchSet">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.patches.</span></span><span class="sig-name descname"><span class="pre">PatchSet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">patches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.patches.PatchSet" title="Link to this definition">¶</a></dt>
+<dd><p>A set of repairs, keyed by module name.</p>
+<p><a class="reference internal" href="#pysmi.patches.PatchSet.from_directory" title="pysmi.patches.PatchSet.from_directory"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_directory()</span></code></a> reads a directory of <code class="docutils literal notranslate"><span class="pre">&lt;MODULE&gt;.patch</span></code> files,
+which is what <a class="reference internal" href="#module-pysmi.scripts.mibpatch" title="pysmi.scripts.mibpatch"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.scripts.mibpatch</span></code></a> writes and what
+<code class="docutils literal notranslate"><span class="pre">hatch_build.py</span></code> applies to pysmi’s own bundle as a distribution is
+built. Constructing one directly from a mapping is for a caller holding
+diffs that never went to disk.</p>
+<p>Hold a mapping of module name to diff.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>patches</strong> – module name to unified diff. Empty when omitted.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.patches.PatchSet.__contains__">
+<span class="sig-name descname"><span class="pre">__contains__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><span class="pre">object</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#pysmi.patches.PatchSet.__contains__" title="Link to this definition">¶</a></dt>
+<dd><p>Whether this set has a patch for <em>mibname</em>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.patches.PatchSet.__len__">
+<span class="sig-name descname"><span class="pre">__len__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#pysmi.patches.PatchSet.__len__" title="Link to this definition">¶</a></dt>
+<dd><p>How many modules this set can patch.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.patches.PatchSet.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.patches.PatchSet.__repr__" title="Link to this definition">¶</a></dt>
+<dd><p>Show how many modules this set can patch.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.patches.PatchSet.apply">
+<span class="sig-name descname"><span class="pre">apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.patches.PatchSet.apply" title="Link to this definition">¶</a></dt>
+<dd><p>Offer this set’s patch for <em>mibname</em>, if it has one.</p>
+<p>A malformed patch is logged and the text passes through, because a
+reader’s job is to produce the module: refusing to read a MIB at all
+because a patch for it is broken would be a worse failure than handing
+back the text the source actually holds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mibname</strong> (<em>str</em>) – the module the text belongs to.</p></li>
+<li><p><strong>text</strong> – the module’s ASN.1 source.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The text and one of <a class="reference internal" href="#pysmi.patches.APPLIED" title="pysmi.patches.APPLIED"><code class="xref py py-data docutils literal notranslate"><span class="pre">APPLIED</span></code></a>, <a class="reference internal" href="#pysmi.patches.ALREADY_APPLIED" title="pysmi.patches.ALREADY_APPLIED"><code class="xref py py-data docutils literal notranslate"><span class="pre">ALREADY_APPLIED</span></code></a>,
+<a class="reference internal" href="#pysmi.patches.NOT_APPLICABLE" title="pysmi.patches.NOT_APPLICABLE"><code class="xref py py-data docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code></a> or <a class="reference internal" href="#pysmi.patches.UNPATCHED" title="pysmi.patches.UNPATCHED"><code class="xref py py-data docutils literal notranslate"><span class="pre">UNPATCHED</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.patches.PatchSet.from_directory">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.patches.PatchSet" title="pysmi.patches.PatchSet"><span class="pre">PatchSet</span></a></span></span><a class="headerlink" href="#pysmi.patches.PatchSet.from_directory" title="Link to this definition">¶</a></dt>
+<dd><p>Read every <code class="docutils literal notranslate"><span class="pre">&lt;MODULE&gt;.patch</span></code> in a directory.</p>
+<p>The file name before <code class="docutils literal notranslate"><span class="pre">.patch</span></code> is the module name, so the set can be
+looked up without opening anything.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> – the directory to read.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The patches it holds. Empty when the directory does not exist.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.patches.PatchSet.modules">
+<span class="sig-name descname"><span class="pre">modules</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.patches.PatchSet.modules" title="Link to this definition">¶</a></dt>
+<dd><p>Names of the modules this set has a patch for, sorted.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pysmi.patches.PatchSet.patch_for">
+<span class="sig-name descname"><span class="pre">patch_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.patches.PatchSet.patch_for" title="Link to this definition">¶</a></dt>
+<dd><p>The diff for <em>mibname</em>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when there is not one.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.patches.apply_patch">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patches.</span></span><span class="sig-name descname"><span class="pre">apply_patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.patches.apply_patch" title="Link to this definition">¶</a></dt>
+<dd><p>Offer a patch to a MIB’s text.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – the module’s ASN.1 source.</p></li>
+<li><p><strong>patch</strong> – the diff to offer it.</p></li>
+<li><p><strong>mibname</strong> (<em>str</em>) – the module’s name, named in errors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The text and what happened to it – <a class="reference internal" href="#pysmi.patches.APPLIED" title="pysmi.patches.APPLIED"><code class="xref py py-data docutils literal notranslate"><span class="pre">APPLIED</span></code></a> with the patched
+text, or <a class="reference internal" href="#pysmi.patches.ALREADY_APPLIED" title="pysmi.patches.ALREADY_APPLIED"><code class="xref py py-data docutils literal notranslate"><span class="pre">ALREADY_APPLIED</span></code></a> or <a class="reference internal" href="#pysmi.patches.NOT_APPLICABLE" title="pysmi.patches.NOT_APPLICABLE"><code class="xref py py-data docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code></a> with the
+text unchanged.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="error.html#pysmi.error.PySmiPatchError" title="pysmi.error.PySmiPatchError"><strong>PySmiPatchError</strong></a> – the diff is malformed. Context that does not match is
+    not malformed; it is <a class="reference internal" href="#pysmi.patches.NOT_APPLICABLE" title="pysmi.patches.NOT_APPLICABLE"><code class="xref py py-data docutils literal notranslate"><span class="pre">NOT_APPLICABLE</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.patches.parse_patch">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patches.</span></span><span class="sig-name descname"><span class="pre">parse_patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">patch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pysmi.patches.Hunk" title="pysmi.patches.Hunk"><span class="pre">Hunk</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.patches.parse_patch" title="Link to this definition">¶</a></dt>
+<dd><p>Read a unified diff into hunks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>patch</strong> – the diff, as written in a <code class="docutils literal notranslate"><span class="pre">.patch</span></code> file.</p></li>
+<li><p><strong>mibname</strong> (<em>str</em>) – the module it belongs to, named in errors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The hunks, in the order they appear.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="error.html#pysmi.error.PySmiPatchError" title="pysmi.error.PySmiPatchError"><strong>PySmiPatchError</strong></a> – the diff is malformed – an unreadable line, or hunks
+    that do not run forwards.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.patches.make_patch">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patches.</span></span><span class="sig-name descname"><span class="pre">make_patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">before</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">after</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.patches.make_patch" title="Link to this definition">¶</a></dt>
+<dd><p>Cut a unified diff from a module’s text to its repaired text.</p>
+<p>The inverse of <a class="reference internal" href="#pysmi.patches.apply_patch" title="pysmi.patches.apply_patch"><code class="xref py py-func docutils literal notranslate"><span class="pre">apply_patch()</span></code></a>, and written in the same shape as the
+patches under <code class="docutils literal notranslate"><span class="pre">scripts/mib-patches</span></code>: <code class="docutils literal notranslate"><span class="pre">a/&lt;MODULE&gt;</span></code> to <code class="docutils literal notranslate"><span class="pre">b/&lt;MODULE&gt;</span></code>,
+three lines of context, no timestamps. A diff with no timestamps in it is
+one that only changes when the repair does, so a regenerated patch is
+byte-identical to the one already in the tree unless something real moved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mibname</strong> (<em>str</em>) – the module the diff is for, used in its <code class="docutils literal notranslate"><span class="pre">---</span></code>/<code class="docutils literal notranslate"><span class="pre">+++</span></code>
+headers.</p></li>
+<li><p><strong>before</strong> – the module’s text as its publisher printed it.</p></li>
+<li><p><strong>after</strong> – the same text, repaired.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The diff, ending in a newline, or <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> when the two texts are equal
+– there being no patch to write for a module that needs no repair.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.patches.Hunk">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.patches.</span></span><span class="sig-name descname"><span class="pre">Hunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">before</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">after</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.patches.Hunk" title="Link to this definition">¶</a></dt>
+<dd><p>One <code class="docutils literal notranslate"><span class="pre">&#64;&#64;</span></code> block of a unified diff.</p>
+<p><em>before</em> and <em>after</em> are the hunk’s two sides with their marks dropped, so
+applying it forwards means finding <em>before</em> at <em>old_start</em> and putting
+<em>after</em> in its place, and applying it backwards means the reverse. Holding
+both sides is what lets the same hunk be tried either way.</p>
+<p>Create new instance of Hunk(old_start, new_start, before, after)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.patches.Hunk.after">
+<span class="sig-name descname"><span class="pre">after</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pysmi.patches.Hunk.after" title="Link to this definition">¶</a></dt>
+<dd><p>The post-image lines this hunk produces – its context and additions.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.patches.Hunk.before">
+<span class="sig-name descname"><span class="pre">before</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pysmi.patches.Hunk.before" title="Link to this definition">¶</a></dt>
+<dd><p>The pre-image lines this hunk covers – its context and removals.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.patches.Hunk.new_start">
+<span class="sig-name descname"><span class="pre">new_start</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#pysmi.patches.Hunk.new_start" title="Link to this definition">¶</a></dt>
+<dd><p>Line the hunk starts at in the post-image, counting from zero.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.patches.Hunk.old_start">
+<span class="sig-name descname"><span class="pre">old_start</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#pysmi.patches.Hunk.old_start" title="Link to this definition">¶</a></dt>
+<dd><p>Line the hunk starts at in the pre-image, counting from zero.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="deriving">
+<h2>Deriving<a class="headerlink" href="#deriving" title="Link to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.patchgen.REPAIRABLE">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patchgen.</span></span><span class="sig-name descname"><span class="pre">REPAIRABLE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'repairable'</span></span><a class="headerlink" href="#pysmi.patchgen.REPAIRABLE" title="Link to this definition">¶</a></dt>
+<dd><p>The module did parse, and every repair it needed could be worked out.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.patchgen.CLEAN">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patchgen.</span></span><span class="sig-name descname"><span class="pre">CLEAN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'clean'</span></span><a class="headerlink" href="#pysmi.patchgen.CLEAN" title="Link to this definition">¶</a></dt>
+<dd><p>The module did parse and needs nothing – no patch is written for it.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.patchgen.UNPARSEABLE">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patchgen.</span></span><span class="sig-name descname"><span class="pre">UNPARSEABLE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'unparseable'</span></span><a class="headerlink" href="#pysmi.patchgen.UNPARSEABLE" title="Link to this definition">¶</a></dt>
+<dd><p>The module does not parse, so there is no symbol table to reason from and
+no repair can be derived. A patch for it has to be written by hand.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.patchgen.Defect">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.patchgen.</span></span><span class="sig-name descname"><span class="pre">Defect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">imports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.patchgen.Defect" title="Link to this definition">¶</a></dt>
+<dd><p>What one module in a scanned tree needs, and whether it can be given it.</p>
+<p>Create new instance of Defect(mibname, status, imports, reason, patch)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.patchgen.Defect.imports">
+<span class="sig-name descname"><span class="pre">imports</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#pysmi.patchgen.Defect.imports" title="Link to this definition">¶</a></dt>
+<dd><p>Base-SMI symbols the module uses without importing, mapped to the module
+that exports each. Empty unless <em>status</em> is <a class="reference internal" href="#pysmi.patchgen.REPAIRABLE" title="pysmi.patchgen.REPAIRABLE"><code class="xref py py-data docutils literal notranslate"><span class="pre">REPAIRABLE</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.patchgen.Defect.mibname">
+<span class="sig-name descname"><span class="pre">mibname</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.patchgen.Defect.mibname" title="Link to this definition">¶</a></dt>
+<dd><p>The module’s name, taken from its text rather than its file name.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.patchgen.Defect.patch">
+<span class="sig-name descname"><span class="pre">patch</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.patchgen.Defect.patch" title="Link to this definition">¶</a></dt>
+<dd><p>The diff that repairs it, or <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> when there is nothing to write.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.patchgen.Defect.reason">
+<span class="sig-name descname"><span class="pre">reason</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.patchgen.Defect.reason" title="Link to this definition">¶</a></dt>
+<dd><p>Why the module could not be read, when <em>status</em> is
+<a class="reference internal" href="#pysmi.patchgen.UNPARSEABLE" title="pysmi.patchgen.UNPARSEABLE"><code class="xref py py-data docutils literal notranslate"><span class="pre">UNPARSEABLE</span></code></a>. Empty otherwise.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.patchgen.Defect.status">
+<span class="sig-name descname"><span class="pre">status</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.patchgen.Defect.status" title="Link to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#pysmi.patchgen.REPAIRABLE" title="pysmi.patchgen.REPAIRABLE"><code class="xref py py-data docutils literal notranslate"><span class="pre">REPAIRABLE</span></code></a>, <a class="reference internal" href="#pysmi.patchgen.CLEAN" title="pysmi.patchgen.CLEAN"><code class="xref py py-data docutils literal notranslate"><span class="pre">CLEAN</span></code></a> or <a class="reference internal" href="#pysmi.patchgen.UNPARSEABLE" title="pysmi.patchgen.UNPARSEABLE"><code class="xref py py-data docutils literal notranslate"><span class="pre">UNPARSEABLE</span></code></a>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.patchgen.inspect">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patchgen.</span></span><span class="sig-name descname"><span class="pre">inspect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">mibname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.patchgen.Defect" title="pysmi.patchgen.Defect"><span class="pre">Defect</span></a></span></span><a class="headerlink" href="#pysmi.patchgen.inspect" title="Link to this definition">¶</a></dt>
+<dd><p>Work out what one module needs and cut the diff that gives it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – the module’s ASN.1 source.</p></li>
+<li><p><strong>mibname</strong> (<em>str</em>) – what to call it if it cannot be parsed, since an
+unparseable module cannot be asked its own name. The name in the
+text wins whenever there is one.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The <a class="reference internal" href="#pysmi.patchgen.Defect" title="pysmi.patchgen.Defect"><code class="xref py py-class docutils literal notranslate"><span class="pre">Defect</span></code></a>, carrying a diff when one could be derived.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.patchgen.missing_imports">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patchgen.</span></span><span class="sig-name descname"><span class="pre">missing_imports</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.patchgen.missing_imports" title="Link to this definition">¶</a></dt>
+<dd><p>Parse a module and report the base-SMI imports it leaves out.</p>
+<p>The same question <code class="docutils literal notranslate"><span class="pre">pysmi.codegen.symtable</span></code> asks itself as it
+compiles, asked here without compiling anything: the symbol table is built
+for this module alone, which is all
+<a class="reference internal" href="codegen/symtable/symtablecodegen.html#pysmi.codegen.symtable.SymtableCodeGen.missing_canonical_imports" title="pysmi.codegen.symtable.SymtableCodeGen.missing_canonical_imports"><code class="xref py py-meth docutils literal notranslate"><span class="pre">missing_canonical_imports()</span></code></a>
+consults.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>text</strong> – the module’s ASN.1 source.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The module’s name and the symbols it omits, mapped to the module that
+exports each. The mapping is empty for a module that imports
+everything it uses.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="error.html#pysmi.error.PySmiError" title="pysmi.error.PySmiError"><strong>PySmiError</strong></a> – the module does not parse, or parses into something the
+    symbol table cannot be built from.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.patchgen.repair_imports">
+<span class="sig-prename descclassname"><span class="pre">pysmi.patchgen.</span></span><span class="sig-name descname"><span class="pre">repair_imports</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.patchgen.repair_imports" title="Link to this definition">¶</a></dt>
+<dd><p>Write the missing imports into a module’s text.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – the module’s ASN.1 source.</p></li>
+<li><p><strong>missing</strong> – base-SMI symbols it omits, mapped to the module exporting
+each – what <a class="reference internal" href="codegen/symtable/symtablecodegen.html#pysmi.codegen.symtable.SymtableCodeGen.missing_canonical_imports" title="pysmi.codegen.symtable.SymtableCodeGen.missing_canonical_imports"><code class="xref py py-meth docutils literal notranslate"><span class="pre">missing_canonical_imports()</span></code></a>
+found.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The text with its IMPORTS clause amended, or unchanged when <em>missing</em>
+is empty or the clause could not be located.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
