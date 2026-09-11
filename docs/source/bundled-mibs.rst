@@ -545,9 +545,9 @@ Holding them says three things:
 - **They are not installed.** A wheel does not carry ``future/``; only the
   repository and the sdist do. The compiler never registers the directory, and
   ``pysmi/mibs/pysnmp/`` holds no compiled form of them. Note that most are not
-  at https://pysnmp.github.io/mibs/asn1/ either, since that tree is built from
-  this bundle -- the way to get one back is to promote it, below, not to fetch
-  it from the mirror.
+  in the `MIB distribution <https://pysnmp.github.io/mibs/>`_ either, since
+  that tree is built from this bundle -- the way to get one back is to promote
+  it, below, not to fetch it from the mirror.
 - **Their freshness is not maintained.** ``--check`` does not re-fetch these
   or ask the RFC Editor whether their pins still stand. A copy here may be
   years behind its publisher, and by design nothing reports it. That is the

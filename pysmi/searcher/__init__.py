@@ -2,7 +2,7 @@
 # This file is part of pysmi software.
 #
 # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
-# License: http://snmplabs.com/pysmi/license.html
+# License: https://github.com/pysnmp/pysmi/blob/main/LICENSE.rst
 #
 """Deciding whether a MIB module has already been transformed."""
 
