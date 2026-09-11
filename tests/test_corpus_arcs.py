@@ -29,6 +29,7 @@ from pysmi.corpus.arcs import (
     counts,
     prefixes,
     render_arcs,
+    unregistered,
 )
 from pysmi.registry.pen import Registrant
 from pysmi.registry.smi import ArcName
@@ -202,6 +203,86 @@ class ScopeTestCase(unittest.TestCase):
         )
 
         self.assertNotIn("1.3.6.1.4.1.99.1.2.3", found)
+
+
+class UnregisteredEnterpriseTestCase(unittest.TestCase):
+    """Which enterprise arcs the PEN registry did not name.
+
+    A corpus that commits a reduced PEN snapshot -- the registrants its own
+    arcs use rather than all 66,807 -- goes stale the moment it gains a module
+    under a newer arc, and nothing about the build says so. This is the build
+    saying so. See pysnmp/mibs#407.
+    """
+
+    RANKED = {
+        "1.3.6.1.4.1.9.1": "CISCO-MIB",
+        "1.3.6.1.4.1.99999.1": "NEW-MIB",
+    }
+
+    def found(self, enterprises, modules=None):
+        return arcs(corpus(**(modules or {})), self.RANKED, {}, enterprises)
+
+    def testAnArcTheRegistryNamesIsNotReported(self):
+        found = self.found({9: Registrant(9, "Cisco Systems, Inc.")})
+
+        self.assertNotIn(9, unregistered(found))
+
+    def testAnArcTheSnapshotPredatesIsReported(self):
+        """The whole point: the snapshot has Cisco and not the new arc."""
+        found = self.found({9: Registrant(9, "Cisco Systems, Inc.")})
+
+        self.assertEqual((99999,), unregistered(found))
+
+    def testAModuleDescriptorDoesNotCountAsARegistration(self):
+        """A vendor's own descriptor says what it calls its subtree, not who
+        registered it, and it is the registrant a refresh would supply."""
+        found = self.found(
+            {},
+            {"NEW-MIB": document(anchor="1.3.6.1.4.1.99999")},
+        )
+
+        self.assertEqual(MODULE, found["1.3.6.1.4.1.99999"].source)
+        self.assertIn(99999, unregistered(found))
+
+    def testANonEnterpriseArcIsNeverReported(self):
+        """Only a bare enterprise arc has a registrant to be missing. 1.3.6.1
+        is nobody's PEN, and nor is anything below an enterprise arc."""
+        found = arcs(corpus(), {"1.3.6.1.2.1.1": "SNMPv2-MIB"}, {}, {})
+
+        self.assertEqual((), unregistered(found))
+
+    def testTheNumbersAreAscending(self):
+        found = self.found({})
+
+        self.assertEqual([9, 99999], sorted(unregistered(found)))
+        self.assertEqual((9, 99999), unregistered(found))
+
+    def testTheCountReachesTheReport(self):
+        """It is a number in report.json, not only a log line, so a build that
+        nobody watched can still be asked."""
+        tally = counts(self.found({9: Registrant(9, "Cisco Systems, Inc.")}))
+
+        self.assertEqual(1, tally["unregistered-enterprises"])
+
+    def testABuildThatNamesThemAllReportsZero(self):
+        tally = counts(
+            self.found(
+                {
+                    9: Registrant(9, "Cisco Systems, Inc."),
+                    99999: Registrant(99999, "New Vendor"),
+                }
+            )
+        )
+
+        self.assertEqual(0, tally["unregistered-enterprises"])
+
+    def testTheBuildWarnsRatherThanFailing(self):
+        """An arc registered to nobody is a real thing, so this is a prompt to
+        refresh the snapshot and never a reason to fail the build."""
+        with self.assertLogs("pysmi.corpus.arcs", level="WARNING") as caught:
+            counts(self.found({}))
+
+        self.assertIn("99999", "\n".join(caught.output))
 
 
 class DocumentTestCase(unittest.TestCase):

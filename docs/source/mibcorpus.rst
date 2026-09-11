@@ -543,6 +543,35 @@ reader has to be able to tell them apart. Strongest first:
 **An arc nothing names says so**, with an empty name rather than a borrowed
 one. The build report counts them.
 
+When a committed PEN snapshot has gone stale
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A repository that commits the whole Private Enterprise Numbers registry
+commits 66,807 registrants and re-diffs all of them every time IANA moves,
+which is daily. Committing only the registrants its own arcs use is a far
+smaller file and a far smaller monthly diff, at the cost of going stale: the
+first module the corpus gains under a newer enterprise arc has no registrant
+in the snapshot, and that registrant's page renders nameless.
+
+Nothing about the build would otherwise say so -- the arc is still in the
+index, still reachable, still rendered, just blank. So the build says it:
+
+.. code-block:: text
+
+   WARNING  3 enterprise arc(s) no PEN registrant names: 62373, 99999, 100001
+
+and ``report.json`` carries the count as ``arcs.unregistered-enterprises``, so
+a build nobody watched can still be asked. ``arcs.json`` carries every one of
+them, since a log line is not the artifact.
+
+It is a **warning and never a failure**. An arc can be registered to nobody,
+and IANA's registry has gaps of its own. An arc a module names is still
+counted: the module's own descriptor says what the vendor calls its subtree,
+not who registered it, and it is the registrant a refresh would supply.
+
+:py:func:`pysmi.corpus.arcs.unregistered` is the same answer as data, for a
+build that wants to act on it.
+
 What is in the inventory
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
