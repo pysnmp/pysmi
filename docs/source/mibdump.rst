@@ -483,10 +483,22 @@ As another workaround PySMI offers the *borrow* feature. It allows
 PySMI to fetch already transformed MIBs even if corresponding
 ASN.1 MIB can't be found or parsed.
 
-Default source of pre-compiled MIBs for pysnmp target is:
+.. warning::
 
-* http://pysnmp.github.com/mibs/fulltexts/@mib@
-* http://pysnmp.github.com/mibs/notexts/@mib@
+   The compiled-module trees the built-in defaults name
+   (``.../mibs/fulltexts/@mib@`` and ``.../mibs/notexts/@mib@``) are no longer
+   published, and one of the two default URLs names a host that does not
+   resolve. Every built-in borrower is a 404 today, so the feature does
+   nothing unless you point it somewhere with ``--mib-borrower``.
+
+   Those trees were withdrawn deliberately. A compiled pysnmp module is not
+   data: it is Python that ``MibBuilder.loadModule()`` runs through ``exec()``.
+   Fetching one over HTTP is fetching code to execute, authenticated by
+   nothing but TLS. The supported shape is to pull the ASN.1 and compile it,
+   which is what the ``--mib-source`` default already does; where a
+   pre-rendered form is wanted, the `MIB distribution
+   <https://pysnmp.github.io/mibs/>`_ publishes ``json/``, which is parsed
+   rather than run.
 
 If you wish to modify this default list use one or more
 --mib-borrower options.
