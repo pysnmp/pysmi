@@ -3,6 +3,18 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [4.1.0](https://github.com/pysnmp/pysmi/compare/v4.0.0...v4.1.0) (2026-09-11)
+
+### Features
+
+* **corpus:** let a manifest declare what the corpus is, not only where it comes from ([f712c4b](https://github.com/pysnmp/pysmi/commit/f712c4b8627193ee3521572437c333f41fc95e6f)), closes [#263](https://github.com/pysnmp/pysmi/issues/263)
+* **corpus:** stage the jsondoc a projection needs instead of asking the caller to ([8f4cac8](https://github.com/pysnmp/pysmi/commit/8f4cac891a857437eb426d7b860bf1da4679627e)), closes [#262](https://github.com/pysnmp/pysmi/issues/262)
+* **patches:** generate a MIB's repair as a patch instead of making it at runtime ([ee01ccc](https://github.com/pysnmp/pysmi/commit/ee01ccc77f53ce9683ccda4ef7236c83fa1a9def))
+
+### Bug Fixes
+
+* **corpus:** publish only what compiled, in every artifact ([e6489d1](https://github.com/pysnmp/pysmi/commit/e6489d1272ba19d3bee15f51f606581b342110d2)), closes [#269](https://github.com/pysnmp/pysmi/issues/269)
+
 ## [4.1.0-rc.2](https://github.com/pysnmp/pysmi/compare/v4.1.0-rc.1...v4.1.0-rc.2) (2026-09-11)
 
 ### Features
