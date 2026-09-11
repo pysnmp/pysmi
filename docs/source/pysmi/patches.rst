@@ -38,6 +38,27 @@ repair, which is what a patched tree gives back; and
 different text, which is how a publisher moving under you is detected rather
 than papered over.
 
+Reading why a repair exists
+---------------------------
+
+A patch opens with the defect it repairs, above the diff, as an identifier and
+the page documenting it:
+
+.. code-block:: python
+
+   for defect in patches.defects_for("HPR-MIB"):
+       print(defect.id, defect.url)
+
+:doc:`/mib-defects` is that catalogue, and :py:mod:`pysmi.defects` is it in
+Python. An identifier PySMI does not know is read the same way, so a tree with
+repairs and a catalogue of its own needs no configuring here.
+
+A patch naming no defect is still a patch --
+:py:meth:`~pysmi.patches.PatchSet.header_for` gives back an empty
+:py:class:`~pysmi.patches.PatchHeader` for it, and ``None`` only when there is
+no patch at all. Everything that reads a diff skips the block, so this is a
+convention over the format rather than a change to it.
+
 Deriving one
 ------------
 
@@ -82,6 +103,33 @@ Reading and applying
 .. autoclass:: pysmi.patches.Hunk
   :members:
 
+Defects
+-------
+
+.. automodule:: pysmi.defects
+
+.. autoclass:: pysmi.patches.PatchHeader
+  :members:
+
+.. autofunction:: pysmi.patches.split_patch
+
+.. autofunction:: pysmi.patches.format_header
+
+.. autoclass:: pysmi.defects.DefectRef
+  :members:
+
+.. autoclass:: pysmi.defects.DefectClass
+  :members:
+
+.. autodata:: pysmi.defects.CATALOGUE
+  :no-value:
+
+.. autofunction:: pysmi.defects.ref
+
+.. autofunction:: pysmi.defects.url
+
+.. autofunction:: pysmi.defects.summary
+
 Deriving
 --------
 
@@ -99,3 +147,5 @@ Deriving
 .. autofunction:: pysmi.patchgen.missing_imports
 
 .. autofunction:: pysmi.patchgen.repair_imports
+
+.. autofunction:: pysmi.patchgen.repair_defects

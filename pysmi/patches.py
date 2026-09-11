@@ -32,14 +32,43 @@ Two things follow from applying a diff rather than fuzzing text:
 * The same diff is nevertheless offered to text that already carries it. That
   is detected by trying the patch backwards, the dry run ``patch -R`` does, and
   reported as :py:data:`ALREADY_APPLIED`.
+
+A diff carries the correction. It does not name the defect, and the defect is
+what decides whether the repair should still exist -- a repair to text the
+publisher has since fixed should go, and a local preference dressed as a repair
+should never have been there. So a patch file opens with a header naming the
+defect it repairs, one ``Defect:`` line per defect: an identifier, and where
+that identifier is documented.
+
+.. code-block:: diff
+
+    Defect: SMI-UNPUBLISHED-MODULE https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-unpublished-module
+
+    --- a/SMUX-MIB
+    +++ b/SMUX-MIB
+    @@ -4,7 +4,7 @@
+
+The explanation lives once, in :py:mod:`pysmi.defects` and on the page it is
+rendered to, rather than being written out again in every patch that repairs
+the same kind of thing. An identifier pysmi does not know is read the same way:
+a downstream corpus names its own defects and points at its own page.
+
+This is a convention over the format rather than a change to it.
+:py:func:`parse_patch` ignores everything before the first ``@@``, and so does
+GNU ``patch``, so a header is readable by every tool that reads a diff and
+every patch written without one stays valid. :py:func:`split_patch` reads it,
+:py:meth:`PatchSet.defects_for` looks it up, and :py:func:`make_patch` writes
+it.
 """
 
 import difflib
 import logging
 import re
+from collections.abc import Iterable
 from pathlib import Path
 from typing import NamedTuple
 
+from pysmi.defects import DefectRef
 from pysmi.error import PySmiPatchError
 
 logger = logging.getLogger(__name__)
@@ -64,6 +93,15 @@ UNPATCHED = ""
 
 HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 
+#: The one field a patch header defines, repeatable: an identifier and,
+#: optionally, the URL that documents it. Everything else in the block is prose.
+DEFECT = re.compile(r"^Defect:[ \t]*(\S+)(?:[ \t]+(\S+))?[ \t]*$")
+
+#: The first line of the diff proper, so the header block is everything above
+#: it. ``diff`` and ``Index:`` are not written here, but a patch cut by another
+#: tool carries them and they are not part of anybody's reason.
+DIFF_START = re.compile(r"^(?:--- |\+\+\+ |@@ |diff |Index: )")
+
 
 class Hunk(NamedTuple):
     """One ``@@`` block of a unified diff.
@@ -87,8 +125,106 @@ class Hunk(NamedTuple):
     after: tuple[str, ...]
 
 
+class PatchHeader(NamedTuple):
+    """What a patch file says about the repair, above the diff.
+
+    Empty in both fields for a patch written without a header, which every
+    patch was before the convention existed.
+    """
+
+    #: The defects the patch repairs, in the order the file names them. A
+    #: patch may repair more than one -- ``DNS-SERVER-MIB`` repairs three.
+    defects: tuple[DefectRef, ...]
+
+    #: Everything else in the header block, with blank lines at either end
+    #: dropped. Free text, and normally empty: what a defect is belongs in the
+    #: catalogue the identifier points at, not repeated in every patch that
+    #: repairs one. It is here for what is particular to this patch and
+    #: nowhere else -- an unclassified defect, a note on why the repair was
+    #: made the way it was.
+    body: str
+
+
+def split_patch(patch: str) -> tuple[PatchHeader, str]:
+    """Separate a patch file's header block from its diff.
+
+    Args:
+        patch: the contents of a ``.patch`` file.
+
+    Returns:
+        The header, and the diff as it stands from its first ``---``, ``@@`` or
+        ``diff`` line. A patch with no header gives back an empty
+        :py:class:`PatchHeader` and itself unchanged, so this round-trips
+        through :py:func:`format_header` either way.
+    """
+    lines = patch.split("\n")
+
+    for index, line in enumerate(lines):
+        if DIFF_START.match(line):
+            return _read_header(lines[:index]), "\n".join(lines[index:])
+
+    # No diff in it at all. Malformed, but that is parse_patch's judgement to
+    # make against a module name, not this function's.
+    return _read_header(lines), ""
+
+
+def _read_header(lines: list[str]) -> PatchHeader:
+    """Read a header block's lines into its defect references and its prose."""
+    defects: list[DefectRef] = []
+    body: list[str] = []
+
+    for line in lines:
+        found = DEFECT.match(line)
+
+        if found:
+            defects.append(DefectRef(found[1], found[2] or ""))
+            continue
+
+        body.append(line)
+
+    while body and not body[0].strip():
+        body.pop(0)
+
+    while body and not body[-1].strip():
+        body.pop()
+
+    return PatchHeader(tuple(defects), "\n".join(body))
+
+
+def format_header(defects: "Iterable[DefectRef] | None" = None, body: str = "") -> str:
+    """Write a header block, ending in the blank line that separates it from the diff.
+
+    Args:
+        defects: the defects the patch repairs, one ``Defect:`` line each.
+            :py:func:`pysmi.defects.ref` builds one of pysmi's.
+        body: free text under them, for what the catalogue cannot say.
+
+    Returns:
+        The block, or ``""`` when there is nothing to say -- a patch naming no
+        defect is written exactly as it was before the convention existed.
+    """
+    lines = [f"Defect: {defect.id} {defect.url}".rstrip() for defect in defects or ()]
+
+    if not lines and not body:
+        return ""
+
+    if body:
+        if lines:
+            lines.append("")
+
+        lines.extend(body.rstrip("\n").split("\n"))
+
+    lines.append("")
+
+    return "\n".join(lines) + "\n"
+
+
 def parse_patch(patch: str, mibname: str) -> tuple[Hunk, ...]:
     """Read a unified diff into hunks.
+
+    Everything above the first ``@@`` is skipped, which is what makes a header
+    block a convention over the format rather than a change to it: GNU ``patch``
+    skips it too. :py:func:`split_patch` is what reads it.
 
     Args:
         patch: the diff, as written in a ``.patch`` file.
@@ -235,7 +371,13 @@ def apply_patch(text: str, patch: str, mibname: str) -> tuple[str, str]:
     return (out.replace("\n", "\r\n") if crlf else out), APPLIED
 
 
-def make_patch(mibname: str, before: str, after: str) -> str:
+def make_patch(
+    mibname: str,
+    before: str,
+    after: str,
+    defects: "Iterable[DefectRef] | None" = None,
+    body: str = "",
+) -> str:
     """Cut a unified diff from a module's text to its repaired text.
 
     The inverse of :py:func:`apply_patch`, and written in the same shape as the
@@ -244,15 +386,22 @@ def make_patch(mibname: str, before: str, after: str) -> str:
     one that only changes when the repair does, so a regenerated patch is
     byte-identical to the one already in the tree unless something real moved.
 
+    *defects* and *body* are written above it as a header block, so a repair
+    regenerated from a patch that carried one keeps it: read the old file with
+    :py:func:`split_patch` and hand its header back here.
+
     Args:
         mibname (str): the module the diff is for, used in its ``---``/``+++``
             headers.
         before: the module's text as its publisher printed it.
         after: the same text, repaired.
+        defects: the defects it repairs, one ``Defect:`` line each.
+        body: free text under them, for what the catalogue cannot say.
 
     Returns:
-        The diff, ending in a newline, or ``""`` when the two texts are equal
-        -- there being no patch to write for a module that needs no repair.
+        The patch, ending in a newline, or ``""`` when the two texts are equal
+        -- there being no patch to write for a module that needs no repair,
+        and so no defect for it to name.
     """
     # Matching is done over normalised newlines, so cut the diff over them too.
     # A patch carrying CRLF in its context lines would not apply to the same
@@ -273,11 +422,15 @@ def make_patch(mibname: str, before: str, after: str) -> str:
         lineterm="",
     )
 
-    return "\n".join(diff) + "\n"
+    return format_header(defects, body) + "\n".join(diff) + "\n"
 
 
 class PatchSet:
     """A set of repairs, keyed by module name.
+
+    A patch is held as the file holds it, header and all, since everything that
+    reads one skips what it does not want: :py:meth:`apply` goes to the hunks,
+    :py:meth:`defects_for` goes to the header.
 
     :py:meth:`from_directory` reads a directory of ``<MODULE>.patch`` files,
     which is what :py:mod:`pysmi.scripts.mibpatch` writes and what
@@ -311,8 +464,30 @@ class PatchSet:
         return tuple(sorted(self._patches))
 
     def patch_for(self, mibname: str) -> str | None:
-        """The diff for *mibname*, or ``None`` when there is not one."""
+        """The patch file for *mibname*, header and all, or ``None``."""
         return self._patches.get(mibname)
+
+    def header_for(self, mibname: str) -> PatchHeader | None:
+        """What the patch for *mibname* says about the repair, or ``None``.
+
+        A patch written without a header gives back an empty
+        :py:class:`PatchHeader` rather than ``None``: the patch exists and
+        names no defect, which is a different thing from there being no patch.
+        """
+        patch = self._patches.get(mibname)
+
+        return None if patch is None else split_patch(patch)[0]
+
+    def defects_for(self, mibname: str) -> tuple[DefectRef, ...]:
+        """The defects the patch for *mibname* says it repairs.
+
+        Empty when there is no patch, and when the patch predates the
+        convention and names none. A caller telling those apart wants
+        :py:meth:`header_for`.
+        """
+        header = self.header_for(mibname)
+
+        return header.defects if header else ()
 
     def apply(self, mibname: str, text: str) -> tuple[str, str]:
         """Offer this set's patch for *mibname*, if it has one.

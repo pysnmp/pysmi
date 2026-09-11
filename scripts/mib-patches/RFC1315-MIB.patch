@@ -1,3 +1,5 @@
+Defect: SMI-UNPUBLISHED-MODULE https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-unpublished-module
+
 --- a/RFC1315-MIB
 +++ b/RFC1315-MIB
 @@ -6,7 +6,7 @@

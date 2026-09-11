@@ -90,9 +90,10 @@ def start() -> None:
                 Same in a manifest as "publish": false.
         --output-directory - where the artifacts go, laid out as the
                 published corpus is: asn1/, notexts/, texts/, json/,
-                index.csv, index-v2.csv, standard.txt and report.json.
-                core.db is not in the default layout -- ask for it by
-                name, because building it costs a pass nothing else needs.
+                index.csv, index-v2.csv, standard.txt, closure.json and
+                report.json. core.db is not in the default layout -- ask
+                for it by name, because building it costs a pass nothing
+                else needs.
         --frozen-index - the snapshot index.csv replays, so that consumers
                 keying on the module an OID resolves to keep the answers
                 they already have. Absent, index.csv is the ranked index.
@@ -100,12 +101,13 @@ def start() -> None:
                 turns off the full layout, so a build can ask for just
                 the index or just the JSON. ARTIFACT is one of asn1,
                 notexts, texts, json, json-texts, index, index-v2,
-                standard, core-db, report. json-texts is the json tree
-                with DESCRIPTION and the other texts in it, which costs
-                roughly 70% more on disk and is what makes the tree the
-                complete machine-readable rendering of a module; it is
-                the same artifact as json, so name one or the other.
-                core-db and the two indexes are projections of the
+                standard, closure, core-db, report. json-texts is the
+                json tree with DESCRIPTION and the other texts in it,
+                which costs roughly 70% more on disk and is what makes
+                the tree the complete machine-readable rendering of a
+                module; it is the same artifact as json, so name one or
+                the other. core-db, closure and the two indexes
+                are projections of the
                 jsondoc tree; a build asking for one without asking for
                 json gets a tree staged in a temporary directory and
                 removed afterwards, so the corpus carries only what was
@@ -314,6 +316,7 @@ _ARTIFACTS: Final = {
     "index-v2": ("ranked_index", "index-v2.csv"),
     "standard": ("standard", "standard.txt"),
     "core-db": ("core_db", "core.db"),
+    "closure": ("closure", "closure.json"),
     "report": ("report", "report.json"),
 }
 
