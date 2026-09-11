@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.14"
       # pre-commit/action is archived at v3.0.1 and pins actions/cache@v4
       # inside itself, which runs on the deprecated Node 20 runtime. Its steps
       # are short enough to keep here instead, on a cache action that is not.
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - name: Install UV
         uses: astral-sh/setup-uv@v7
         with:
@@ -154,7 +154,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -170,7 +170,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version: "3.14"
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -192,7 +192,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.10"
+          python-version: "3.14"
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -270,7 +270,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.10"
+          python-version: "3.14"
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
