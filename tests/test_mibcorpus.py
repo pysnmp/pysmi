@@ -111,6 +111,7 @@ class ArgumentTestCase(unittest.TestCase):
         self.assertEqual(os.path.join("out", "index.csv"), outputs.index)
         self.assertEqual(os.path.join("out", "index-v2.csv"), outputs.ranked_index)
         self.assertEqual(os.path.join("out", "standard.txt"), outputs.standard)
+        self.assertEqual(os.path.join("out", "closure.json"), outputs.closure)
 
     def testEmitNarrowsToWhatWasAsked(self):
         outputs = mibcorpus._outputs_for("out", ["json"])
@@ -179,7 +180,13 @@ class RunTestCase(unittest.TestCase):
         for artifact in ("asn1", "notexts", "texts", "json"):
             self.assertTrue(os.path.isdir(os.path.join(self.out, artifact)), artifact)
 
-        for artifact in ("index.csv", "index-v2.csv", "standard.txt", "report.json"):
+        for artifact in (
+            "index.csv",
+            "index-v2.csv",
+            "standard.txt",
+            "closure.json",
+            "report.json",
+        ):
             self.assertTrue(os.path.isfile(os.path.join(self.out, artifact)), artifact)
 
     def testANamespaceOnTheCommandLineIsEnough(self):
@@ -266,6 +273,7 @@ class RunTestCase(unittest.TestCase):
             ("core-db", "core.db"),
             ("index", "index.csv"),
             ("index-v2", "index-v2.csv"),
+            ("closure", "closure.json"),
         ):
             with self.subTest(artifact=artifact):
                 shutil.rmtree(self.out, ignore_errors=True)
