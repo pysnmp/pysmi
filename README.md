@@ -37,7 +37,7 @@ To turn ASN.1 MIB into a JSON document, call *mibdump* tool like this:
 ```
 $ mibdump --generate-mib-texts --destination-format json IF-MIB
 Source MIB repositories: https://pysnmp.github.io:443/mibs/asn1/@mib@
-    Borrow missing/failed MIBs from: https://pysnmp.github.io:443/mibs/fulltexts/@mib@
+    Borrow missing/failed MIBs from: 
     Existing/compiled MIB locations: 
     Compiled MIBs destination directory: /home/you/.pysnmp/mibs
     MIBs excluded from code generation: 
@@ -68,11 +68,11 @@ MIBs found in more than one source:
 Failed MIBs: 
 ```
 
-The `Borrow missing/failed MIBs from:` line is a built-in default that no
-longer resolves -- the compiled-module trees it names were withdrawn, for the
-reason the [MIB distribution](https://pysnmp.github.io/mibs/channels.html)
-gives. Compilation does not depend on it: the borrow feature does nothing
-unless `--mib-borrower` points it somewhere.
+The `Borrow missing/failed MIBs from:` line is empty because there is no
+default borrower. Pass `--mib-borrower` to use the feature; the trees pysmi
+used to default to were compiled pysnmp modules, and those were withdrawn for
+the reason the [MIB distribution](https://pysnmp.github.io/mibs/channels.html)
+gives.
 
 JSON document build from
 [IF-MIB module](https://pysnmp.github.io/mibs/asn1/IF-MIB)
