@@ -1,67 +1,264 @@
-<!DOCTYPE html>
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="search" title="Search" href="../../search.html"><link rel="next" title="OID index ranking" href="index.html"><link rel="prev" title="Source resolution" href="../compiler/mibresolution.html">
+        <link rel="prefetch" href="../../_static/logo.svg" as="image">
+        <link rel="prefetch" href="../../_static/logo.svg" as="image">
 
-<html lang="en" data-content_root="../../">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-
-    <title>Corpus driver &#8212; SNMP SMI compiler 4.0.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
-    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=f6a572b4" />
-    <script src="../../_static/documentation_options.js?v=3304f9e4"></script>
-    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
-    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
-    <link rel="icon" href="../../_static/favicon.ico"/>
-    <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="OID index ranking" href="index.html" />
-    <link rel="prev" title="Source resolution" href="../compiler/mibresolution.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-
-  
-  
-
-  </head><body>
-  <div class="document">
+    <link rel="shortcut icon" href="../../_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Corpus driver - SNMP SMI compiler 4.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
     
-      <div class="sphinxsidebar" role="navigation" aria-label="Main">
-        <div class="sphinxsidebarwrapper">
-<p class="logo">
-  <a href="../../contents.html">
-    <img class="logo" src="../../_static/logo.svg" alt="Logo" />
     
-  </a>
-</p>
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
 
 
-<p class="blurb"><p align=left><i><b>Brewing free software for the greater good</i></b></p></p>
-
-
-
-
-<p>
-<iframe src="https://ghbtns.com/github-btn.html?user=pysnmp&repo=pysmi&type=watch&count=true&size=large&v=2"
-  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
-</p>
-
-
-
-
-
-<h3>Navigation</h3>
-<ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="../../documentation.html">PySMI documentation</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="../../mibdump.html">The <em>mibdump</em> tool</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../mibcopy.html">The <em>mibcopy</em> tool</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../mibcorpus.html">The <em>mibcorpus</em> tool</a></li>
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 4.1.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../../contents.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../../_static/logo.svg" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../../_static/logo.svg" alt="Dark Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">SNMP SMI compiler 4.1.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../../documentation.html">PySMI documentation</a><input aria-label="Toggle navigation of PySMI documentation" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../mibdump.html">The <em>mibdump</em> tool</a><input aria-label="Toggle navigation of The mibdump tool" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../mibcopy.html">The <em>mibcopy</em> tool</a><input aria-label="Toggle navigation of The mibcopy tool" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../mibcorpus.html">The <em>mibcorpus</em> tool</a><input aria-label="Toggle navigation of The mibcorpus tool" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../mibpatch.html">The <em>mibpatch</em> tool</a><input aria-label="Toggle navigation of The mibpatch tool" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../bundled-mibs.html">Bundled base MIBs</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../jsondoc-schema.html">JSON document schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../corpus-schema.html">Corpus database schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../mibs-as-data.html">MIBs as data: layering review</a></li>
-<li class="toctree-l2 current"><a class="reference internal" href="../../library-reference.html">PySMI library</a></li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../compiler/mibcompiler.html">MIB compiler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../compiler/mibstatus.html">Compilation status</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../compiler/mibresolution.html">Source resolution</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Corpus driver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="index.html">OID index ranking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#precedence-vectors">Precedence vectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="db.html">Corpus database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../patches.html">MIB patches</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reader/localfile/filereader.html">Local file reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reader/zipreader/zipreader.html">ZIP archive reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reader/httpclient/httpreader.html">HTTP reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reader/callback/callbackreader.html">Callback reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../reader/package/packagereader.html">Package reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cache/abstractparsecache.html">Parse cache interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cache/inmemoryparsecache.html">In-memory parse cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cache/fileparsecache.html">File parse cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cache/nullparsecache.html">Null parse cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../searcher/pyfile/pyfilesearcher.html">Python files searcher</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../searcher/pypackage/pypackagesearcher.html">Search Python packages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../searcher/stub/stubsearcher.html">Unconditionally ignore MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../parser/smi/parserfactory.html">SMI parser</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../parser/smi/dialect.html">SMI language dialects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../codegen/jsondoc/jsoncodegen.html">JSON document generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../codegen/pysnmp/pysnmpcodegen.html">PySNMP MIB generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../codegen/pysnmp/pysnmpsurface.html">PySNMP emission surface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../codegen/null/nullcodegen.html">Code generation stub</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../codegen/symtable/symtablecodegen.html">Symbol table generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../borrower/anyfile/anyfileborrower.html">Any file borrower</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../borrower/pyfile/pyfileborrower.html">Python file borrower</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../writer/localfile/filewriter.html">File writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../writer/pyfile/pyfilewriter.html">Python file writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../writer/callback/callbackwriter.html">Callback writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending.html">Extension points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mibs.html">Bundled MIB manifest</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../error.html">Exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/download-and-compile-smistar-mibs-into-json.html">Compile MIBs into JSON</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/build-json-index.html">Build a JSON index over compiled MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/download-and-compile-smistar-mibs-into-pysnmp-files.html">Compile MIBs from web</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/compile-smistar-mibs-into-pysnmp-files-if-needed.html">Compile SMIv1/v2 MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/compile-smiv2-mibs-from-text-into-pysnmp-code.html">Compile SMIv2 MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/borrow-precompiled-pysnmp-files-on-failure.html">Borrow pysnmp MIBs on failure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/always-borrow-precompiled-pysnmp-files.html">Always borrow pysnmp MIBs</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -80,46 +277,47 @@
 <li class="toctree-l1"><a class="reference internal" href="../../license.html#third-party-mib-sources">Third-party MIB sources</a></li>
 </ul>
 
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../contents.html">Documentation overview</a><ul>
-  <li><a href="../../documentation.html">PySMI documentation</a><ul>
-  <li><a href="../../library-reference.html">PySMI library</a><ul>
-      <li>Previous: <a href="../compiler/mibresolution.html" title="previous chapter">Source resolution</a></li>
-      <li>Next: <a href="index.html" title="next chapter">OID index ranking</a></li>
-  </ul></li>
-  </ul></li>
-  </ul></li>
-</ul>
 </div>
-<search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
+</div>
 
-
-
-
-
-
-
-
-        </div>
       </div>
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          
-
-          <div class="body" role="main">
-            
-  <section id="corpus-driver">
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/pysnmp/pysmi/blob/main/docs/source/pysmi/corpus/driver.rst?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/pysnmp/pysmi/edit/main/docs/source/pysmi/corpus/driver.rst" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="corpus-driver">
 <span id="id1"></span><h1>Corpus driver<a class="headerlink" href="#corpus-driver" title="Link to this heading">¶</a></h1>
 <p>Builds a whole corpus from a declared set of source namespaces, so that two
 runs over the same inputs produce the same bytes. <a class="reference internal" href="../../mibcorpus.html#mibcorpus"><span class="std std-ref">The mibcorpus tool</span></a> is the
@@ -153,9 +351,68 @@ away from a standard module by omission.</p>
 </dd></dl>
 
 <dl class="py data">
+<dt class="sig sig-object py" id="pysmi.corpus.namespace.EXPECTATIONS">
+<span class="sig-prename descclassname"><span class="pre">pysmi.corpus.namespace.</span></span><span class="sig-name descname"><span class="pre">EXPECTATIONS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'failures':</span> <span class="pre">'bound',</span> <span class="pre">'modules':</span> <span class="pre">'bound',</span> <span class="pre">'namespaces-present':</span> <span class="pre">'names'}</span></span><a class="headerlink" href="#pysmi.corpus.namespace.EXPECTATIONS" title="Link to this definition">¶</a></dt>
+<dd><p>The expectations a manifest may declare, mapped to the shape each takes:
+<code class="docutils literal notranslate"><span class="pre">bound</span></code> is an object of <code class="docutils literal notranslate"><span class="pre">min</span></code> and <code class="docutils literal notranslate"><span class="pre">max</span></code>, <code class="docutils literal notranslate"><span class="pre">names</span></code> a list of strings.
+Declared rather than free-form, so that a misspelled expectation is an
+error at load time. An expectation silently ignored is worse than none:
+the publisher believes it is being checked.</p>
+</dd></dl>
+
+<dl class="py data">
 <dt class="sig sig-object py" id="pysmi.corpus.namespace.MANIFEST_VERSION">
 <span class="sig-prename descclassname"><span class="pre">pysmi.corpus.namespace.</span></span><span class="sig-name descname"><span class="pre">MANIFEST_VERSION</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#pysmi.corpus.namespace.MANIFEST_VERSION" title="Link to this definition">¶</a></dt>
 <dd><p>The manifest format this module reads.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.corpus.namespace.Manifest">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.corpus.namespace.</span></span><span class="sig-name descname"><span class="pre">Manifest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">namespaces:</span> <span class="pre">list[~pysmi.corpus.namespace.Namespace],</span> <span class="pre">emit:</span> <span class="pre">list[str]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">expect:</span> <span class="pre">dict[str,</span> <span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.corpus.namespace.Manifest" title="Link to this definition">¶</a></dt>
+<dd><p>What a corpus manifest declares.</p>
+<p>A manifest used to declare which sources a corpus is built from and
+nothing else, which left the definition of a distribution split between
+a JSON file pysmi reads and a build script pysmi has never seen. The
+emit set and the expectations are the rest of that definition – see
+pysnmp/pysmi#263.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.corpus.namespace.Manifest.namespaces">
+<span class="sig-name descname"><span class="pre">namespaces</span></span><a class="headerlink" href="#pysmi.corpus.namespace.Manifest.namespaces" title="Link to this definition">¶</a></dt>
+<dd><p>the input set, in declaration order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference internal" href="#pysmi.corpus.namespace.Namespace" title="pysmi.corpus.namespace.Namespace">pysmi.corpus.namespace.Namespace</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.corpus.namespace.Manifest.emit">
+<span class="sig-name descname"><span class="pre">emit</span></span><a class="headerlink" href="#pysmi.corpus.namespace.Manifest.emit" title="Link to this definition">¶</a></dt>
+<dd><p>the artifacts this corpus carries, in <code class="docutils literal notranslate"><span class="pre">--emit</span></code> syntax –
+an artifact name, optionally <code class="docutils literal notranslate"><span class="pre">:</span></code> and a path of its own.
+<code class="docutils literal notranslate"><span class="pre">None</span></code> where the manifest does not say, which is the full
+published layout. A command line naming <code class="docutils literal notranslate"><span class="pre">--emit</span></code> overrides
+this, as flags override files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.corpus.namespace.Manifest.expect">
+<span class="sig-name descname"><span class="pre">expect</span></span><a class="headerlink" href="#pysmi.corpus.namespace.Manifest.expect" title="Link to this definition">¶</a></dt>
+<dd><p>what must be true of the build, keyed by
+<a class="reference internal" href="#pysmi.corpus.namespace.EXPECTATIONS" title="pysmi.corpus.namespace.EXPECTATIONS"><code class="xref py py-data docutils literal notranslate"><span class="pre">EXPECTATIONS</span></code></a>. Empty where the manifest declares none.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a>, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -272,6 +529,8 @@ than one of them defines.</p>
 <p>The manifest is JSON:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
   <span class="s2">"version"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="s2">"emit"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"asn1"</span><span class="p">,</span> <span class="s2">"index-v2"</span><span class="p">,</span> <span class="s2">"report"</span><span class="p">],</span>
+  <span class="s2">"expect"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"modules"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"min"</span><span class="p">:</span> <span class="mi">8000</span><span class="p">}},</span>
   <span class="s2">"namespaces"</span><span class="p">:</span> <span class="p">[</span>
     <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"standard"</span><span class="p">,</span> <span class="s2">"source"</span><span class="p">:</span> <span class="s2">"package:pysmi.mibs.asn1"</span><span class="p">,</span>
      <span class="s2">"tier"</span><span class="p">:</span> <span class="s2">"standard"</span><span class="p">},</span>
@@ -285,6 +544,10 @@ source and nothing else – see <a class="reference internal" href="#pysmi.corpu
 <p>Relative paths are resolved against the manifest’s own directory, so a
 manifest committed beside the sources it names works from any working
 directory.</p>
+<p>This is <a class="reference internal" href="#pysmi.corpus.namespace.read_manifest" title="pysmi.corpus.namespace.read_manifest"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_manifest()</span></code></a> with everything but the namespaces
+dropped, which is what a caller supplying its own artifact selection
+wants. <code class="docutils literal notranslate"><span class="pre">emit</span></code> and <code class="docutils literal notranslate"><span class="pre">expect</span></code> are still validated: a manifest this
+refuses is refused whichever way it is read.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>path</strong> – the manifest file</p>
@@ -295,6 +558,25 @@ directory.</p>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="../error.html#pysmi.error.PySmiError" title="pysmi.error.PySmiError"><strong>PySmiError</strong></a> – the manifest could not be read, is of a version this
     release does not know, or declares a namespace twice.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.corpus.namespace.read_manifest">
+<span class="sig-prename descclassname"><span class="pre">pysmi.corpus.namespace.</span></span><span class="sig-name descname"><span class="pre">read_manifest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.corpus.namespace.Manifest" title="pysmi.corpus.namespace.Manifest"><span class="pre">Manifest</span></a></span></span><a class="headerlink" href="#pysmi.corpus.namespace.read_manifest" title="Link to this definition">¶</a></dt>
+<dd><p>Read a corpus manifest whole: its sources, its artifacts, its policy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> – the manifest file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The manifest as declared.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="../error.html#pysmi.error.PySmiError" title="pysmi.error.PySmiError"><strong>PySmiError</strong></a> – the manifest could not be read, is of a version this
+    release does not know, declares a namespace twice, or declares
+    an <code class="docutils literal notranslate"><span class="pre">emit</span></code> or <code class="docutils literal notranslate"><span class="pre">expect</span></code> a build could not act on.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -391,6 +673,12 @@ rule is what picks it.</p>
 <dt class="sig sig-object py" id="pysmi.corpus.driver.CorpusDriver.run">
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.corpus.driver.CorpusReport" title="pysmi.corpus.driver.CorpusReport"><span class="pre">CorpusReport</span></a></span></span><a class="headerlink" href="#pysmi.corpus.driver.CorpusDriver.run" title="Link to this definition">¶</a></dt>
 <dd><p>Build the corpus and report what it did.</p>
+<p>A build asking for the database or an index but not for the jsondoc
+tree gets one staged for the duration and removed afterwards,
+including where the build raises. The dependency is pysmi’s own: a
+publisher asking for <code class="docutils literal notranslate"><span class="pre">core.db</span></code> did not ask for a tree of JSON and
+should not have to know one exists, nor pick a scratch path for it
+and clean up after itself. See pysnmp/pysmi#262.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The report, also written to the <code class="docutils literal notranslate"><span class="pre">report</span></code> path when one was
@@ -401,7 +689,7 @@ asked for.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmi.corpus.driver.CorpusDriver.stage">
-<span class="sig-name descname"><span class="pre">stage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">report</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pysmi.corpus.driver.CorpusReport" title="pysmi.corpus.driver.CorpusReport"><span class="pre">CorpusReport</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.corpus.driver.CorpusDriver.stage" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">stage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">report</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pysmi.corpus.driver.CorpusReport" title="pysmi.corpus.driver.CorpusReport"><span class="pre">CorpusReport</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">compiled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.corpus.driver.CorpusDriver.stage" title="Link to this definition">¶</a></dt>
 <dd><p>Write the published ASN.1 tree, one file per module name.</p>
 <p>Flat and named for the module, because that is what the tree’s
 consumers substitute into: sc4snmp configures
@@ -414,7 +702,16 @@ published <code class="docutils literal notranslate"><span class="pre">.py</span
 rather than whichever copy a parallel job happened to copy last.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>report</strong> – filled in with what was staged and what was shadowed</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>report</strong> – filled in with what was staged and what was shadowed</p></li>
+<li><p><strong>compiled</strong> – the modules this build compiled, which is what the
+corpus publishes. A module that does not compile – and, by
+the same result, everything that imports it – is left out,
+so the tree, the indexes and the database carry one module
+set rather than three. Every module the namespaces hold when
+not given, which is what a caller staging sources without
+compiling them wants. See pysnmp/pysmi#269.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Module name to the source path it was staged from.</p>
@@ -460,14 +757,31 @@ indexing a tree it did not just build wants.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmi.corpus.driver.CorpusDriver.write_standard">
-<span class="sig-name descname"><span class="pre">write_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">staged</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.corpus.driver.CorpusDriver.write_standard" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">write_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">compiled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pysmi.corpus.driver.CorpusDriver.write_standard" title="Link to this definition">¶</a></dt>
 <dd><p>Write the standard module list.</p>
-<p>Every module from a namespace declared <code class="docutils literal notranslate"><span class="pre">standard</span></code>, less the
-prefixes the published file has never carried. See
-<a class="reference internal" href="#pysmi.corpus.driver.STANDARD_TXT_EXCLUDED_PREFIXES" title="pysmi.corpus.driver.STANDARD_TXT_EXCLUDED_PREFIXES"><code class="xref py py-data docutils literal notranslate"><span class="pre">STANDARD_TXT_EXCLUDED_PREFIXES</span></code></a> for why that exclusion is
-reproduced rather than corrected.</p>
+<p>Every module from a namespace declared <code class="docutils literal notranslate"><span class="pre">standard</span></code> that the corpus
+publishes, less the prefixes the published file has never carried.
+See <a class="reference internal" href="#pysmi.corpus.driver.STANDARD_TXT_EXCLUDED_PREFIXES" title="pysmi.corpus.driver.STANDARD_TXT_EXCLUDED_PREFIXES"><code class="xref py py-data docutils literal notranslate"><span class="pre">STANDARD_TXT_EXCLUDED_PREFIXES</span></code></a> for why that exclusion
+is reproduced rather than corrected.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>compiled</strong> – the modules this build compiled, as <a class="reference internal" href="#pysmi.corpus.driver.CorpusDriver.stage" title="pysmi.corpus.driver.CorpusDriver.stage"><code class="xref py py-meth docutils literal notranslate"><span class="pre">stage()</span></code></a>
+takes it. The list is what a consumer preloads, so a module
+that does not compile has no business on it – naming one is
+the same lie as serving it. Every module the standard
+namespaces hold when not given.</p>
+</dd>
+</dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.corpus.driver.PUBLISHED_STATUSES">
+<span class="sig-prename descclassname"><span class="pre">pysmi.corpus.driver.</span></span><span class="sig-name descname"><span class="pre">PUBLISHED_STATUSES</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('compiled',</span> <span class="pre">'untouched',</span> <span class="pre">'borrowed')</span></span><a class="headerlink" href="#pysmi.corpus.driver.PUBLISHED_STATUSES" title="Link to this definition">¶</a></dt>
+<dd><p>Compile outcomes that mean the corpus has the module. Anything else –
+<code class="docutils literal notranslate"><span class="pre">failed</span></code> for a module that does not compile, <code class="docutils literal notranslate"><span class="pre">unprocessed</span></code> for one
+dropped because something it imports did not – is not published.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -501,6 +815,32 @@ ordering dependency, which is the same defect with a stable outcome.</p>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="../error.html#pysmi.error.PySmiError" title="pysmi.error.PySmiError"><strong>PySmiError</strong></a> – an output directory is, contains, or is contained by a
     source directory.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.corpus.driver.check_expectations">
+<span class="sig-prename descclassname"><span class="pre">pysmi.corpus.driver.</span></span><span class="sig-name descname"><span class="pre">check_expectations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expect</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping" title="(in Python v3.14)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">report</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#pysmi.corpus.driver.CorpusReport" title="pysmi.corpus.driver.CorpusReport"><span class="pre">CorpusReport</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.corpus.driver.check_expectations" title="Link to this definition">¶</a></dt>
+<dd><p>What a build failed to be, against what its manifest said it would be.</p>
+<p><code class="docutils literal notranslate"><span class="pre">report.json</span></code> has always carried the counts and nothing checked them,
+so a publisher’s real assertions – this corpus has N modules, these
+namespaces are in it, no more than this many modules fail to compile –
+lived in a downstream test script that every publisher wrote once and
+differently. Declaring them makes them data pysmi enforces. See
+pysnmp/pysmi#263.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>expect</strong> – the manifest’s <code class="docutils literal notranslate"><span class="pre">expect</span></code>, as
+<a class="reference internal" href="#pysmi.corpus.namespace.read_manifest" title="pysmi.corpus.namespace.read_manifest"><code class="xref py py-func docutils literal notranslate"><span class="pre">read_manifest()</span></code></a> validated it</p></li>
+<li><p><strong>report</strong> – what the build did</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One line per expectation missed, naming the field, the bound and
+what the build actually was. Empty when the build is what the
+manifest said it would be.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -579,7 +919,7 @@ serving the consumers that bind to them.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="pysmi.corpus.driver.CorpusReport">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.corpus.driver.</span></span><span class="sig-name descname"><span class="pre">CorpusReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'4.0.0'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespaces</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list[dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">statuses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unprocessed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list[str]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shadowed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">staged</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">float]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.corpus.driver.CorpusReport" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.corpus.driver.</span></span><span class="sig-name descname"><span class="pre">CorpusReport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'4.1.0'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">namespaces</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list[dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">statuses</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unprocessed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list[str]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shadowed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">staged</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">int]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">float]</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.corpus.driver.CorpusReport" title="Link to this definition">¶</a></dt>
 <dd><p>What one corpus build did.</p>
 <p>Written out as JSON, and returned to a caller driving the build in
 process. The failure inventory is the point of it: a corpus built from
@@ -591,20 +931,128 @@ output and no Python (pysnmp/pysmi#182).</p>
 </section>
 </section>
 
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="index.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">OID index ranking</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="../compiler/mibresolution.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Source resolution</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2015-2019, Ilya Etingof &lt;etingof@gmail.com&gt;; 2024-2026, the PySNMP maintainers
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Corpus driver</a><ul>
+<li><a class="reference internal" href="#module-pysmi.corpus.namespace">The input set</a><ul>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.DEFAULT_TIER"><code class="docutils literal notranslate"><span class="pre">DEFAULT_TIER</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.EXPECTATIONS"><code class="docutils literal notranslate"><span class="pre">EXPECTATIONS</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.MANIFEST_VERSION"><code class="docutils literal notranslate"><span class="pre">MANIFEST_VERSION</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Manifest"><code class="docutils literal notranslate"><span class="pre">Manifest</span></code></a><ul>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Manifest.namespaces"><code class="docutils literal notranslate"><span class="pre">Manifest.namespaces</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Manifest.emit"><code class="docutils literal notranslate"><span class="pre">Manifest.emit</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Manifest.expect"><code class="docutils literal notranslate"><span class="pre">Manifest.expect</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Namespace"><code class="docutils literal notranslate"><span class="pre">Namespace</span></code></a><ul>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Namespace.name"><code class="docutils literal notranslate"><span class="pre">Namespace.name</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Namespace.source"><code class="docutils literal notranslate"><span class="pre">Namespace.source</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Namespace.tier"><code class="docutils literal notranslate"><span class="pre">Namespace.tier</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Namespace.publish"><code class="docutils literal notranslate"><span class="pre">Namespace.publish</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Namespace.__post_init__"><code class="docutils literal notranslate"><span class="pre">Namespace.__post_init__()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Namespace.is_package"><code class="docutils literal notranslate"><span class="pre">Namespace.is_package</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Namespace.package"><code class="docutils literal notranslate"><span class="pre">Namespace.package</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.Namespace.tier_rank"><code class="docutils literal notranslate"><span class="pre">Namespace.tier_rank</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.PACKAGE_PREFIX"><code class="docutils literal notranslate"><span class="pre">PACKAGE_PREFIX</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.TIERS"><code class="docutils literal notranslate"><span class="pre">TIERS</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.load_manifest"><code class="docutils literal notranslate"><span class="pre">load_manifest()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.namespace.read_manifest"><code class="docutils literal notranslate"><span class="pre">read_manifest()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-pysmi.corpus.driver">The build</a><ul>
+<li><a class="reference internal" href="#pysmi.corpus.driver.CorpusDriver"><code class="docutils literal notranslate"><span class="pre">CorpusDriver</span></code></a><ul>
+<li><a class="reference internal" href="#pysmi.corpus.driver.CorpusDriver.compile"><code class="docutils literal notranslate"><span class="pre">CorpusDriver.compile()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.CorpusDriver.run"><code class="docutils literal notranslate"><span class="pre">CorpusDriver.run()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.CorpusDriver.stage"><code class="docutils literal notranslate"><span class="pre">CorpusDriver.stage()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.CorpusDriver.write_db"><code class="docutils literal notranslate"><span class="pre">CorpusDriver.write_db()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.CorpusDriver.write_index"><code class="docutils literal notranslate"><span class="pre">CorpusDriver.write_index()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.CorpusDriver.write_standard"><code class="docutils literal notranslate"><span class="pre">CorpusDriver.write_standard()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.PUBLISHED_STATUSES"><code class="docutils literal notranslate"><span class="pre">PUBLISHED_STATUSES</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.STANDARD_TXT_EXCLUDED_PREFIXES"><code class="docutils literal notranslate"><span class="pre">STANDARD_TXT_EXCLUDED_PREFIXES</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.check_disjoint"><code class="docutils literal notranslate"><span class="pre">check_disjoint()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.check_expectations"><code class="docutils literal notranslate"><span class="pre">check_expectations()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.Destination"><code class="docutils literal notranslate"><span class="pre">Destination</span></code></a><ul>
+<li><a class="reference internal" href="#pysmi.corpus.driver.Destination.name"><code class="docutils literal notranslate"><span class="pre">Destination.name</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.Destination.format"><code class="docutils literal notranslate"><span class="pre">Destination.format</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.Destination.directory"><code class="docutils literal notranslate"><span class="pre">Destination.directory</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.Destination.genTexts"><code class="docutils literal notranslate"><span class="pre">Destination.genTexts</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.Destination.keepTextsLayout"><code class="docutils literal notranslate"><span class="pre">Destination.keepTextsLayout</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.CorpusOutputs"><code class="docutils literal notranslate"><span class="pre">CorpusOutputs</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.corpus.driver.CorpusReport"><code class="docutils literal notranslate"><span class="pre">CorpusReport</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
 
           </div>
-          
         </div>
       </div>
-    <div class="clearer"></div>
-  </div>
-    <div class="footer">
-      &#169;2015-2019, Ilya Etingof <etingof@gmail.com>; 2024-2026, the PySNMP maintainers.
       
-    </div>
-
-    
-
-    
-  </body>
+      
+    </aside>
+  </div>
+</div><script src="../../_static/documentation_options.js?v=3c33c51c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
 </html>
