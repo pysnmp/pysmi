@@ -459,11 +459,28 @@ repository commits is called whatever that repository calls it. A repository tha
 
    python -m pysmi.registry enterprise-numbers.txt > pen-snapshot.csv
 
-The reduced form keeps the whole record by default, and ``--fields`` narrows
-it. Which fields leave IANA's copy is the committing repository's decision
-rather than PySMI's, so it is an argument rather than a hard-coded projection.
-Nothing is normalised: the output is a rendering of IANA's record rather than a
-corrected version of it.
+The reduced form keeps the whole registry, whole records, by default.
+``--fields`` narrows the record and ``--only``/``--only-from`` narrow the rows.
+What leaves IANA's copy is the committing repository's decision rather than
+PySMI's, so both are arguments rather than a hard-coded projection. Nothing is
+normalised: the output is a rendering of IANA's record rather than a corrected
+version of it.
+
+The registry is 66,807 registrations and IANA revises it daily, so a repository
+committing all of it commits a large file and re-diffs the whole of it every
+month. The other choice is a snapshot of the registrants this corpus's own arcs
+use -- for pysnmp/mibs, 351 rows rather than 66,807:
+
+.. code-block:: sh
+
+   python -m pysmi.registry --only-from=arcs.txt enterprise-numbers.txt \
+       > pen-snapshot.csv
+
+``--only-from`` reads enterprise numbers one per line, blanks and ``#``
+comments ignored, which is what a corpus can write out of its own index. The
+cost is staleness -- a module arriving later under an arc the snapshot predates
+goes nameless -- and the build says when that has happened rather than leaving
+it to be found on the site.
 
 .. _arc-names:
 
