@@ -44,6 +44,7 @@ chosen and configured to compiler.
    /mibdump
    /mibcopy
    /mibcorpus
+   /mibpatch
    /bundled-mibs
    /jsondoc-schema
    /corpus-schema

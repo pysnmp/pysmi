@@ -66,5 +66,7 @@ Code generator
 Writer
 ------
 
+.. autoexception:: pysmi.error.PySmiPatchError
+
 .. autoexception:: pysmi.error.PySmiWriterError
   :members:

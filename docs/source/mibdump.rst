@@ -44,7 +44,7 @@ into various formats.
          [--no-mib-writes]
          [--generate-mib-texts]
          [--keep-texts-layout]
-         [--repair-imports]
+         [--strict-imports]
          [--strict-sources]
          <MIB-NAME> [MIB-NAME [...]]]
    Where:
@@ -89,12 +89,14 @@ into various formats.
                   modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
                   SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
                   all, so this is what decides them.
-       --repair-imports - supply the import a MIB should have carried for
-                  any SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF symbol it uses
-                  without naming it in IMPORTS, which RFC 2578 Section 3.2
-                  does not allow. Off by default, so a MIB broken this way
-                  fails rather than being silently patched; what was
-                  repaired is listed in the report.
+       --strict-imports - fail a MIB that uses an SNMPv2-SMI, SNMPv2-TC or
+                  SNMPv2-CONF symbol without naming it in IMPORTS, which RFC
+                  2578 Section 3.2 does not allow. Without this the import is
+                  supplied, which is the default because the repair is forced:
+                  the symbol is undefined, unimported, and exactly one base
+                  module exports it. Every repair is listed on the "Repaired
+                  MIBs" line of the report, so a supplied import is never
+                  silent.
        --strict-sources - fail a MIB that more than one source has a
                   different copy of. Without this, the precedence above picks
                   one and the copies passed over are named on the "MIBs found
@@ -489,6 +491,8 @@ Default source of pre-compiled MIBs for pysnmp target is:
 If you wish to modify this default list use one or more
 --mib-borrower options.
 
+.. _repairing-imports:
+
 Repairing missing IMPORTS
 -------------------------
 
@@ -499,17 +503,27 @@ they never imported.
 
 Where the omitted symbol is one that SNMPv2-SMI, SNMPv2-TC or SNMPv2-CONF
 exports, the import that was meant is not in doubt -- there is exactly
-one module it could have come from. The --repair-imports option supplies
-it.
+one module it could have come from. PySMI supplies it.
 
-This is off by default, so that the strict reading of RFC 2578 stays the
-one you get unless you ask otherwise, and a MIB broken this way fails
-rather than being quietly patched. What was repaired, for which module,
-is listed on the "Repaired MIBs" line of the report.
+This is the default, because the repair is forced rather than guessed:
+the symbol is undefined, unimported, and exactly one base module exports
+it. Refusing would buy strictness about RFC 2578 at the price of failing
+on a module whose correct IMPORTS line is not in doubt. What was
+repaired, for which module, is listed on the "Repaired MIBs" line of the
+report, so a supplied import is never silent.
+
+Pass --strict-imports for the strict reading, which is what you want when
+validating a MIB rather than consuming one.
 
 Symbols out of any other module are never repaired: supplying an import
 for, say, *sysUpTime* would add a compilation dependency on SNMPv2-MIB
 that the module never declared.
+
+The repair is made in memory and leaves the source alone, so it happens
+again on every run. :ref:`The mibpatch tool <mibpatch>` writes the same
+corrections out as patches instead, which is what you want for a tree of
+MIBs you own: patch it once, and compile it with --strict-imports from
+then on.
 
 Choosing target transformation
 ------------------------------

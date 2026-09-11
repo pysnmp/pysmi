@@ -37,6 +37,7 @@ dependencies = [
 mibcopy = "pysmi.scripts.mibcopy:start"
 mibcorpus = "pysmi.scripts.mibcorpus:start"
 mibdump = "pysmi.scripts.mibdump:start"
+mibpatch = "pysmi.scripts.mibpatch:start"
 
 [project.urls]
 Homepage = "https://github.com/pysnmp/pysmi"
