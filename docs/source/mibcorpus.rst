@@ -151,7 +151,8 @@ What it produces
    * - ``texts/``
      - pysnmp modules with them, in their original layout.
    * - ``json/``
-     - jsondoc documents.
+     - jsondoc documents. Without DESCRIPTION and the other texts unless
+       the build asks -- see :ref:`json-texts`.
    * - ``index-v2.csv``
      - The ranked OID index: for every OID, the one module that owns it.
    * - ``index.csv``
@@ -199,6 +200,39 @@ goes.
 Every artifact but ``report.json`` is byte-reproducible. The report is the
 build's log and records elapsed time.
 
+
+.. _json-texts:
+
+Prose in the JSON
+-----------------
+
+A published jsondoc carries names, OIDs, syntax, access and status, and no
+prose. `IF-MIB.json <https://pysnmp.github.io/mibs/json/IF-MIB.json>`_ has no
+description on ``ifOperStatus``, though the module's text describes all seven
+of its enumerated states. Measured over a 300-file sample,
+``DESCRIPTION``, ``REFERENCE`` and ``CONTACT-INFO`` are **38% of the text of a
+MIB** -- a large part of the module the JSON rendering omits, and a consumer
+that wants it has to fetch and parse the ASN.1, which means a second SMI parser
+for prose the compiler already read.
+
+``json-texts`` is the same tree with the texts in it:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output --emit=json-texts
+
+It is the ``json`` artifact asked for a different way, not a second tree beside
+it -- carrying the texts twice would be the expensive way to make one artifact
+complete -- so a build names one or the other and naming both is refused.
+
+It costs roughly 70% more on disk: over pysnmp/mibs' corpus ``json/`` goes from
+about 170 MB to about 290 MB. That is a decision for the build that sets it,
+which is the argument for a flag rather than a default. It costs no extra
+compile pass: the texts come from the pass that was already being made.
+
+``keepTextsLayout`` is not turned on with it. The two are separate for the
+pysnmp destinations and stay separate here: a JSON consumer generally wants the
+text normalised rather than the publisher's line breaks preserved.
 
 .. _asn1-naming:
 

@@ -112,6 +112,36 @@ class ArgumentTestCase(unittest.TestCase):
         self.assertEqual(os.path.join("out", "index-v2.csv"), outputs.ranked_index)
         self.assertEqual(os.path.join("out", "standard.txt"), outputs.standard)
 
+    def testJsonTextsIsTheJsonTreeWithProseInIt(self):
+        """One tree asked for two ways, not two trees. pysnmp/pysmi#277."""
+        outputs = mibcorpus._outputs_for("out", ["json-texts"])
+
+        self.assertEqual(os.path.join("out", "json"), outputs.json)
+        self.assertTrue(outputs.json_texts)
+
+    def testJsonTextsTakesAPathOfItsOwn(self):
+        outputs = mibcorpus._outputs_for("out", ["json-texts:/elsewhere/json"])
+
+        self.assertEqual("/elsewhere/json", outputs.json)
+        self.assertTrue(outputs.json_texts)
+
+    def testPlainJsonCarriesNoProse(self):
+        """What the tree has always held, and what it holds unless asked."""
+        outputs = mibcorpus._outputs_for("out", ["json"])
+
+        self.assertFalse(outputs.json_texts)
+
+    def testTheDefaultLayoutCarriesNoProse(self):
+        """Turning it on by default would add roughly 70% to a published tree."""
+        self.assertFalse(mibcorpus._outputs_for("out", None).json_texts)
+
+    def testNamingBothIsRefused(self):
+        """They would write one tree twice, with different content in it."""
+        with self.assertRaises(error.PySmiError) as caught:
+            mibcorpus._outputs_for("out", ["json", "json-texts"])
+
+        self.assertIn("json-texts", str(caught.exception))
+
     def testEmitNarrowsToWhatWasAsked(self):
         outputs = mibcorpus._outputs_for("out", ["json"])
 

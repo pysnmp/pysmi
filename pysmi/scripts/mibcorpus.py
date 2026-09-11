@@ -99,8 +99,13 @@ def start() -> None:
         --emit   - produce one named artifact, repeatable. Naming any
                 turns off the full layout, so a build can ask for just
                 the index or just the JSON. ARTIFACT is one of asn1,
-                notexts, texts, json, index, index-v2, standard, core-db,
-                report. core-db and the two indexes are projections of the
+                notexts, texts, json, json-texts, index, index-v2,
+                standard, core-db, report. json-texts is the json tree
+                with DESCRIPTION and the other texts in it, which costs
+                roughly 70% more on disk and is what makes the tree the
+                complete machine-readable rendering of a module; it is
+                the same artifact as json, so name one or the other.
+                core-db and the two indexes are projections of the
                 jsondoc tree; a build asking for one without asking for
                 json gets a tree staged in a temporary directory and
                 removed afterwards, so the corpus carries only what was
@@ -304,12 +309,22 @@ _ARTIFACTS: Final = {
     "notexts": ("notexts", "notexts"),
     "texts": ("texts", "texts"),
     "json": ("json", "json"),
+    "json-texts": ("json", "json"),
     "index": ("index", "index.csv"),
     "index-v2": ("ranked_index", "index-v2.csv"),
     "standard": ("standard", "standard.txt"),
     "core-db": ("core_db", "core.db"),
     "report": ("report", "report.json"),
 }
+
+#: Artifacts that turn the texts on in the tree they name.
+#:
+#: ``json-texts`` is the ``json`` tree with DESCRIPTION and the other texts in
+#: it, not a second tree beside it: the texts are 38% of a MIB and carrying
+#: them twice would be the expensive way to make one artifact complete. So the
+#: two names are the same artifact asked for two ways, and naming both is
+#: refused rather than silently resolved. See pysnmp/pysmi#277.
+_WITH_TEXTS: Final = frozenset({"json-texts"})
 
 #: Artifacts a build produces only when asked for by name.
 #:
@@ -352,7 +367,16 @@ def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
                 f"{', '.join(sorted(_ARTIFACTS))}"
             ) from None
 
+        if attribute == "json" and outputs.json is not None:
+            raise error.PySmiError(
+                "--emit names both json and json-texts; they are one tree "
+                "asked for two ways, so name the one you want"
+            )
+
         setattr(outputs, attribute, path or os.path.join(directory, default))
+
+        if artifact in _WITH_TEXTS:
+            outputs.json_texts = True
 
     return outputs
 

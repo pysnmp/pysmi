@@ -117,6 +117,20 @@ class CorpusOutputs:
     texts: str | None = None
     #: jsondoc documents.
     json: str | None = None
+    #: Whether those documents carry DESCRIPTION and the other texts.
+    #:
+    #: Off by default, which is what the tree has always held. A published
+    #: jsondoc carries names, OIDs, syntax, access and status and no prose,
+    #: though the texts are 38% of a MIB -- ``ifOperStatus`` describes all
+    #: seven of its enumerated states and the JSON says none of it, so a
+    #: consumer that wants the description has to fetch and parse the ASN.1,
+    #: which means a second SMI parser for prose the compiler already read.
+    #:
+    #: It costs roughly 70% more on disk, which is why it is asked for rather
+    #: than assumed. ``keepTextsLayout`` stays off either way: a JSON consumer
+    #: generally wants the text normalised rather than the publisher's line
+    #: breaks preserved. See pysnmp/pysmi#277.
+    json_texts: bool = False
     #: The legacy OID index, which replays :py:attr:`frozen_index`.
     index: str | None = None
     #: The ranked OID index, where collisions are resolved by rule.
@@ -407,7 +421,14 @@ class CorpusDriver:
             )
 
         if self._outputs.json:
-            wanted.append(Destination("json", "json", self._outputs.json))
+            wanted.append(
+                Destination(
+                    "json",
+                    "json",
+                    self._outputs.json,
+                    genTexts=self._outputs.json_texts,
+                )
+            )
 
         return wanted
 

@@ -162,6 +162,57 @@ class CorpusTestCase(unittest.TestCase):
         return found
 
 
+class JsonTextsTestCase(CorpusTestCase):
+    """Prose in the jsondoc tree, when a build asks for it (pysnmp/pysmi#277).
+
+    A published jsondoc carries names, OIDs, syntax, access and status and no
+    prose, though the texts are 38% of a MIB. A consumer that wants a
+    DESCRIPTION has to fetch and parse the ASN.1, which means a second SMI
+    parser for prose the compiler already read.
+    """
+
+    def rendered(self, where="output"):
+        with open(
+            os.path.join(self.root, where, "json", "ALPHA-MIB.json"), encoding="utf-8"
+        ) as fileObj:
+            return json.load(fileObj)
+
+    def outputs_json(self, where="output", **kwargs):
+        out = os.path.join(self.root, where)
+
+        return CorpusOutputs(json=os.path.join(out, "json"), **kwargs)
+
+    def testTheTreeCarriesNoProseByDefault(self):
+        """What it has always held, and what it holds unless asked."""
+        CorpusDriver(self.namespaces(), self.outputs_json()).run()
+
+        self.assertNotIn("description", self.rendered()["alphamibObject"])
+
+    def testAskingForTextsPutsThemInTheTree(self):
+        CorpusDriver(self.namespaces(), self.outputs_json(json_texts=True)).run()
+
+        self.assertEqual("a module", self.rendered()["alphamibObject"]["description"])
+
+    def testItIsOneCompilePassRatherThanTwo(self):
+        """The point of the flag: prose without a second pass over the corpus.
+
+        One json destination either way, which is what says the texts came
+        from the pass that was already being made.
+        """
+        driver = CorpusDriver(self.namespaces(), self.outputs_json(json_texts=True))
+
+        self.assertEqual(["json"], [x.name for x in driver._destinations()])
+
+    def testTheLayoutIsNotKept(self):
+        """genTexts and keepTextsLayout stay separate: a JSON consumer wants
+        the text normalised rather than the publisher's line breaks."""
+        driver = CorpusDriver(self.namespaces(), self.outputs_json(json_texts=True))
+        destination = driver._destinations()[0]
+
+        self.assertTrue(destination.genTexts)
+        self.assertFalse(destination.keepTextsLayout)
+
+
 class RepeatabilityTestCase(CorpusTestCase):
     """Two runs over identical input produce identical output."""
 
