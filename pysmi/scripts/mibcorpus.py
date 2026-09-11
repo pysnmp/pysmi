@@ -30,6 +30,7 @@ from pysmi.corpus.driver import (
     check_expectations,
 )
 from pysmi.corpus.namespace import Manifest, Namespace, read_manifest
+from pysmi.registry.pen import load_registry
 
 # sysexits.h
 EX_OK: Final = 0
@@ -51,6 +52,7 @@ def start() -> None:
     explicitOutputs = False
     corpusVersion = ""
     corpusId = ""
+    oidRegistryPath = ""
 
     helpMessage = """\
     Usage: {} [--help]
@@ -63,6 +65,7 @@ def start() -> None:
         [--output-directory=<DIRECTORY>]
         [--frozen-index=<FILE>]
         [--emit=<ARTIFACT>[:<PATH>]]
+        [--oid-registry=<FILE>]
         [--no-bundled-mibs]
         [--fail-on-errors]
     Where:
@@ -91,9 +94,10 @@ def start() -> None:
         --output-directory - where the artifacts go, laid out as the
                 published corpus is: asn1/, notexts/, texts/, json/,
                 index.csv, index-v2.csv, standard.txt, closure.json and
-                report.json. core.db is not in the default layout -- ask
-                for it by name, because building it costs a pass nothing
-                else needs.
+                report.json. core.db and entity.json are not in the
+                default layout -- ask for either by name. core.db costs
+                a pass nothing else needs; entity.json is only worth
+                having with --oid-registry to name its arcs.
         --frozen-index - the snapshot index.csv replays, so that consumers
                 keying on the module an OID resolves to keep the answers
                 they already have. Absent, index.csv is the ranked index.
@@ -101,12 +105,14 @@ def start() -> None:
                 turns off the full layout, so a build can ask for just
                 the index or just the JSON. ARTIFACT is one of asn1,
                 notexts, texts, json, json-texts, index, index-v2,
-                standard, closure, core-db, report. json-texts is the
-                json tree with DESCRIPTION and the other texts in it,
-                which costs roughly 70% more on disk and is what makes
-                the tree the complete machine-readable rendering of a
-                module; it is the same artifact as json, so name one or
-                the other. core-db, closure and the two indexes
+                standard, closure, core-db, entity, report. json-texts
+                is a jsondoc tree with DESCRIPTION and the other texts
+                in it, which costs roughly 70% more on disk and is what
+                makes the tree the complete machine-readable rendering
+                of a module; give it a path of its own to keep a lean
+                published tree beside it. json-texts, core-db and
+                entity are not in the default layout -- ask for those
+                by name. core-db, entity, closure and the two indexes
                 are projections of the
                 jsondoc tree; a build asking for one without asking for
                 json gets a tree staged in a temporary directory and
@@ -121,6 +127,17 @@ def start() -> None:
                 written to be reproducible. A publisher passes its release.
         --corpus-id - a stable name for the corpus core.db is a build of,
                 so a consumer holding two can tell whose each one is.
+        --oid-registry - the IANA Private Enterprise Numbers registry, as
+                a file. Names the arcs under 1.3.6.1.4.1 in what the
+                build emits; see --emit=entity. Taken as an input and
+                never fetched, because a corpus is reproducible with the
+                network unplugged and a registry that changes daily would
+                end that. Either the published four-line-record format or
+                the reduced CSV that
+                "python -m pysmi.registry" writes, which carries number
+                and organization and none of the contact details on
+                66,807 records. An arc the registry does not name is
+                reported as unregistered rather than guessed at.
         --fail-on-errors - exit non-zero when any module failed to
                 compile. Off by default: a corpus of MIBs nobody controls
                 always carries some that do not compile, and the report
@@ -144,6 +161,7 @@ def start() -> None:
                 "emit=",
                 "corpus-version=",
                 "corpus-id=",
+                "oid-registry=",
                 "no-bundled-mibs",
                 "fail-on-errors",
             ],
@@ -209,6 +227,9 @@ def start() -> None:
         if opt[0] == "--corpus-id":
             corpusId = opt[1]
 
+        if opt[0] == "--oid-registry":
+            oidRegistryPath = opt[1]
+
         if opt[0] == "--no-bundled-mibs":
             bundledMibsFlag = False
 
@@ -252,12 +273,23 @@ def start() -> None:
     outputs.frozen_index = frozenIndex or None
 
     try:
+        oidRegistry = load_registry(oidRegistryPath) if oidRegistryPath else {}
+
+    except OSError as exc:
+        # A build pointed at a registry that is not there is misconfigured.
+        # Carrying on would emit an entity index naming nobody, which reads
+        # as a corpus registering under 351 unallocated arcs.
+        sys.stderr.write(f"ERROR: cannot read --oid-registry: {exc}\r\n")
+        sys.exit(EX_USAGE)
+
+    try:
         report = CorpusDriver(
             namespaces,
             outputs,
             useBundledMibs=bundledMibsFlag,
             corpusVersion=corpusVersion or None,
             corpusId=corpusId or None,
+            oidRegistry=oidRegistry,
         ).run()
 
     except error.PySmiError as exc:
@@ -316,6 +348,7 @@ _ARTIFACTS: Final = {
     "index-v2": ("ranked_index", "index-v2.csv"),
     "standard": ("standard", "standard.txt"),
     "core-db": ("core_db", "core.db"),
+    "entity": ("entity", "entity.json"),
     "closure": ("closure", "closure.json"),
     "report": ("report", "report.json"),
 }
@@ -329,7 +362,13 @@ _ARTIFACTS: Final = {
 #: ``json-texts`` is not either. The default layout is the lean ``json/`` the
 #: corpus has always published, and a build that wants the texts says so --
 #: they cost roughly 70% more on disk.
-_OPT_IN: Final = frozenset({"core-db", "json-texts"})
+#:
+#: The entity index is opt-in for a third reason. It is cheap, but it is only
+#: worth having with ``--oid-registry`` to name the arcs, and that is an input
+#: the caller supplies; emitting it by default would publish an index naming
+#: nobody, which reads as a corpus registering under arcs that were never
+#: allocated.
+_OPT_IN: Final = frozenset({"core-db", "json-texts", "entity"})
 
 
 def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
@@ -390,6 +429,13 @@ def _summarize(report: "CorpusReport") -> None:
     for destination, statuses in sorted(report.statuses.items()):
         counts = ", ".join(f"{k} {v}" for k, v in sorted(statuses.items()))
         sys.stdout.write(f"{destination}: {counts}\r\n")
+
+    if report.entity:
+        sys.stdout.write(
+            f"enterprise arcs: {report.entity['arcs']}, "
+            f"{report.entity['named']} named, "
+            f"{report.entity['unregistered']} unregistered\r\n"
+        )
 
     for destination, failed in sorted(report.failed.items()):
         if failed:

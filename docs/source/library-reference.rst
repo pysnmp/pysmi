@@ -50,6 +50,8 @@ This example showcases some of its features:
    /pysmi/corpus/index
    /pysmi/corpus/db
    /pysmi/corpus/closure
+   /pysmi/corpus/entity
+   /pysmi/registry
    /pysmi/patches
 
 .. _camel-case-deprecation:

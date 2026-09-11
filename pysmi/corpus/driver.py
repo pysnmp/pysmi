@@ -52,12 +52,14 @@ from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.compiler import MibCompiler, MibResolution, bundled_mib_names
 from pysmi.corpus import closure as corpus_closure
 from pysmi.corpus import db as corpus_db
+from pysmi.corpus import entity as corpus_entity
 from pysmi.corpus import index as corpus_index
 from pysmi.corpus.namespace import DEFAULT_TIER, TIERS, Namespace
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader.base import AbstractReader
 from pysmi.reader.localfile import FileReader
 from pysmi.reader.package import PackageReader
+from pysmi.registry.pen import Registrant
 from pysmi.searcher.anyfile import AnyFileSearcher
 from pysmi.searcher.base import AbstractSearcher
 from pysmi.searcher.stub import StubSearcher
@@ -150,6 +152,10 @@ class CorpusOutputs:
     #: The corpus database: the SMI model laid out for lookup. See
     #: :py:mod:`pysmi.corpus.db`.
     core_db: str | None = None
+    #: The enterprise arc index: which arcs under ``1.3.6.1.4.1`` the corpus
+    #: registers under, who the registry says holds each, and what it holds
+    #: there. See :py:mod:`pysmi.corpus.entity`.
+    entity: str | None = None
     #: The transitive import closure per module: the files a consumer needs
     #: in order to load one. See :py:mod:`pysmi.corpus.closure`.
     closure: str | None = None
@@ -164,6 +170,7 @@ class CorpusOutputs:
             self.ranked_index,
             self.standard,
             self.core_db,
+            self.entity,
             self.closure,
             self.report,
         ]
@@ -229,6 +236,11 @@ class CorpusReport:
     index: dict[str, int] = field(default_factory=dict)
     #: Rows written to the corpus database, by table.
     db: dict[str, int] = field(default_factory=dict)
+    #: Enterprise arcs the corpus registers under, how many the registry
+    #: named, and how many it did not. The last is the one to look at: a
+    #: build where it jumps has lost its registry or grown a module
+    #: registering where nobody allocated.
+    entity: dict[str, int] = field(default_factory=dict)
     #: Import closures written, and how many name a module the corpus does
     #: not hold. The second number is the one to look at: it counts modules
     #: this corpus publishes that nothing here can load.
@@ -252,6 +264,7 @@ class CorpusReport:
             "nodes": self.nodes,
             "index": self.index,
             "db": self.db,
+            "entity": self.entity,
             "closure": self.closure,
             "seconds": {k: round(v, 3) for k, v in self.seconds.items()},
         }
@@ -338,8 +351,15 @@ class CorpusDriver:
         stubs: "Mapping[str, Iterable[str]] | None" = None,
         corpusVersion: str | None = None,
         corpusId: str | None = None,
+        oidRegistry: "dict[int, Registrant] | None" = None,
     ) -> None:
-        """Create a driver over the given input set."""
+        """Create a driver over the given input set.
+
+        *oidRegistry* names the arcs under ``1.3.6.1.4.1``, as
+        :py:func:`pysmi.registry.pen.load_registry` reads it. Taken as an
+        input and never fetched: a registry that changes daily, downloaded at
+        build time, would end the property this module opens on.
+        """
         if not namespaces:
             raise error.PySmiError("a corpus needs at least one source namespace")
 
@@ -362,6 +382,7 @@ class CorpusDriver:
         #: is written to preserve.
         self._corpusVersion = corpusVersion
         self._corpusId = corpusId
+        self._oidRegistry = dict(oidRegistry or {})
         self._parseCache = InMemoryParseCache()
         self._readers: dict[str, AbstractReader] = {
             x.name: self._reader_for(x) for x in self._namespaces
@@ -1070,6 +1091,35 @@ class CorpusDriver:
 
         report.seconds["db"] = time.time() - started
 
+    def write_entities(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> None:
+        """Write the enterprise arc index.
+
+        A projection of the same jsondoc tree the OID indexes are read from,
+        annotated from the registry this build was given. Without one the arcs
+        are still the arcs: the corpus knows what it registers under whether or
+        not anybody told it whose that is, and an unnamed arc is rendered as
+        unregistered rather than guessed at.
+
+        Args:
+            report: filled in with the counts and how long it took
+            compiled: the modules this build wrote JSON for, as
+                :py:meth:`write_index` takes it.
+        """
+        if not self._outputs.entity:
+            return
+
+        started = time.time()
+
+        documents, _ranked = self._read_corpus(compiled)
+        found = corpus_entity.entities(documents, self._oidRegistry)
+
+        _write_text(self._outputs.entity, corpus_entity.render_entities(found))
+
+        report.entity = corpus_entity.counts(found)
+        report.seconds["entity"] = time.time() - started
+
     def write_closure(
         self, report: CorpusReport, compiled: "Iterable[str] | None" = None
     ) -> None:
@@ -1178,6 +1228,7 @@ class CorpusDriver:
         """
         return bool(
             self._outputs.core_db
+            or self._outputs.entity
             or self._outputs.index
             or self._outputs.ranked_index
             or self._outputs.closure
@@ -1248,6 +1299,7 @@ class CorpusDriver:
         self.write_standard(published)
         self.write_index(report, published)
         self.write_db(report, published)
+        self.write_entities(report, published)
         self.write_closure(report, published)
 
         # Whatever answered provenance -- staging, or the database asking for

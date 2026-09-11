@@ -166,6 +166,10 @@ What it produces
      - Per module, the files a consumer needs in order to load it, and
        anything it needs that the corpus does not hold. See
        :ref:`import-closure`.
+   * - ``entity.json``
+     - Which enterprise arcs the corpus registers under, who the registry
+       says holds each, and who to report a problem to. Asked for by name,
+       and wants ``--oid-registry``. See :ref:`entity-index`.
    * - ``report.json``
      - What the build did: the failure inventory, the modules more than one
        namespace holds, the node counts, which JSON implementation wrote the
@@ -344,6 +348,116 @@ the publisher's own statement of where to report a problem, and it is what
 ``keepTextsLayout`` is not turned on with it. The two are separate for the
 pysnmp destinations and stay separate here: a JSON consumer generally wants the
 text normalised rather than the publisher's line breaks preserved.
+
+.. _entity-index:
+
+Who registered an arc
+---------------------
+
+A corpus knows that ``CISCO-ENTITY-ALARM-MIB`` registers under
+``1.3.6.1.4.1.9``. It does not know that ``1.3.6.1.4.1.9`` is Cisco: nothing in
+the MIB text says so in a form anything can rely on, and the directory a file
+sits in is a filing convention rather than a registration. Over pysnmp/mibs the
+two disagree in practice -- the ``aironet`` directory holds Cisco modules, and
+``src/vendor/cisco/ALTIGA-*`` registers under Altiga's arc.
+
+The registration is a published fact. ``--oid-registry`` supplies it and
+``--emit=entity`` writes the projection:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output \
+       --emit=entity --oid-registry=pen-snapshot.csv
+
+.. code-block:: json
+
+   {
+     "meta": {"schema": 1, "arcs": 351, "named": 350, "unregistered": 1},
+     "entity": {
+       "1.3.6.1.4.1.9": {
+         "number": 9,
+         "organization": "Cisco Systems, Inc.",
+         "modules": ["CISCO-AAA-CLIENT-MIB", "..."],
+         "contacts": [
+           {"source": "module", "organization": "Cisco Systems, Inc.",
+            "contact": "Cisco Systems\n Customer Service\n ...",
+            "email": "", "module": "CISCO-ENTITY-ALARM-MIB", "authority": ""},
+           {"source": "registry", "organization": "Cisco Systems, Inc.",
+            "contact": "Dave J", "email": "davej&cisco.com", "module": "",
+            "authority": "https://www.iana.org/assignments/enterprise-numbers#9"}
+         ]
+       }
+     }
+   }
+
+Measured over pysnmp/mibs: 351 distinct enterprise arcs, 350 of them named by
+the registry, against 290 vendor directories. Those two numbers are the
+argument for driving navigation from the registry rather than from the tree.
+
+**An arc the registry does not name is reported as unregistered, never guessed
+at.** pysnmp/mibs has exactly one, ``1.3.6.1.4.1.1004849``, above anything IANA
+has allocated. The build report counts them, as ``entity.unregistered``.
+
+The index groups by **arc**, not by company. The registry maps arcs to
+registrants and a company can hold several: Cisco modules sit under
+``1.3.6.1.4.1.9`` and, from the Altiga acquisition, under
+``1.3.6.1.4.1.3076``, which IANA still lists as "Altiga Networks, Inc.".
+Nothing in the registry models an acquisition and PySMI does not infer one.
+
+``entity.json`` is not in the default layout: it is only worth having with a
+registry to name its arcs, and that is an input the caller supplies.
+
+Owner contact
+~~~~~~~~~~~~~
+
+Each arc carries who to report a problem to, best source first, each naming its
+source so a reader can weigh a vendor's current support address against an
+undated registration:
+
+1. **The module's own ``CONTACT-INFO``** -- a corporate block with a role
+   mailbox, and the publisher's current statement of where to report a
+   problem. It reaches the corpus only when the build carries texts, since
+   ``JsonCodeGen`` gates ``organization`` and ``contactinfo`` behind the same
+   switch as ``description`` -- see pysnmp/pysmi#277. Where an arc has
+   many modules, the one with the newest ``LAST-UPDATED`` speaks for it, with
+   the module name breaking a tie so that two builds agree.
+
+2. **The IANA registration** -- registrant, contact name, contact email.
+   Second because it is undated and often stale, and carrying the authority
+   link, because a correction to a registration belongs at IANA.
+
+Each is rendered as its source publishes it. An email from the registry is
+``davej&cisco.com`` because that is what the registry says; a module's block is
+reproduced whole rather than picked apart for an address, since a block holds a
+company, a postal address, a phone number and a mailbox and choosing between
+them is not the build's decision.
+
+Remediation is precedence rather than a suppression list. A registrant who does
+not want an undated personal registration standing as the contact for their arc
+publishes a module carrying current ``ORGANIZATION`` and ``CONTACT-INFO``, and
+source 1 displaces source 2 on the next build.
+
+The registry file
+~~~~~~~~~~~~~~~~~
+
+**Taken as an input. Never bundled, never fetched.** A corpus build resolves
+nothing over the network -- a build with the network unplugged produces the
+same corpus as one without -- and a registry that changes daily, fetched at
+build time, would end that. 5.1 MB that changes daily is also not a thing to
+vendor into a compiler.
+
+``--oid-registry`` reads either the published four-line-record format or a
+reduced CSV. A repository that keeps a snapshot reduces a download once:
+
+.. code-block:: sh
+
+   python -m pysmi.registry enterprise-numbers.txt > pen-snapshot.csv
+
+The reduced form keeps the whole record by default, and ``--fields`` narrows
+it. Which fields leave IANA's copy is the committing repository's decision
+rather than PySMI's, so it is an argument rather than a hard-coded projection.
+Nothing is normalised: the output is a rendering of IANA's record rather than a
+corrected version of it.
 
 .. _asn1-naming:
 
