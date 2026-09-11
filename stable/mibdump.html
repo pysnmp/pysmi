@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The mibdump tool - SNMP SMI compiler 4.1.0 documentation</title>
+        <title>The mibdump tool - SNMP SMI compiler 4.1.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 4.1.0 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 4.1.1 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 4.1.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 4.1.1 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -418,7 +418,7 @@ Where:
 </div>
 <p>When JSON destination format is requested, for each MIB module <em>mibdump</em>
 will produce a JSON document containing all MIB objects. For example,
-<a class="reference external" href="https://pysnmp.github.io/mibs/asn1IF-MIB">IF-MIB</a> module in JSON form
+<a class="reference external" href="https://pysnmp.github.io/mibs/asn1/IF-MIB">IF-MIB</a> module in JSON form
 would look like:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
    <span class="s2">"ifMIB"</span><span class="p">:</span> <span class="p">{</span>
@@ -466,7 +466,7 @@ would look like:</p>
 </div>
 <p>In general, JSON MIB captures all aspects of original (ASN.1) MIB contents
 and layout. The snippet above is just an example, here is the complete
-<a class="reference external" href="http://pysnmp.github.io/json/fulltext/IF-MIB.json">IF-MIB.json</a>
+<a class="reference external" href="https://pysnmp.github.io/mibs/json/IF-MIB.json">IF-MIB.json</a>
 file.</p>
 <section id="specifying-mib-source">
 <h2>Specifying MIB source<a class="headerlink" href="#specifying-mib-source" title="Link to this heading">¶</a></h2>
@@ -756,23 +756,26 @@ reliably compiled.</p>
 <p>As another workaround PySMI offers the <em>borrow</em> feature. It allows
 PySMI to fetch already transformed MIBs even if corresponding
 ASN.1 MIB can’t be found or parsed.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>The compiled-module trees the built-in defaults name
-(<code class="docutils literal notranslate"><span class="pre">.../mibs/fulltexts/&#64;mib&#64;</span></code> and <code class="docutils literal notranslate"><span class="pre">.../mibs/notexts/&#64;mib&#64;</span></code>) are no longer
-published, and one of the two default URLs names a host that does not
-resolve. Every built-in borrower is a 404 today, so the feature does
-nothing unless you point it somewhere with <code class="docutils literal notranslate"><span class="pre">--mib-borrower</span></code>.</p>
-<p>Those trees were withdrawn deliberately. A compiled pysnmp module is not
-data: it is Python that <code class="docutils literal notranslate"><span class="pre">MibBuilder.loadModule()</span></code> runs through <code class="docutils literal notranslate"><span class="pre">exec()</span></code>.
+<p><strong>There is no default borrower.</strong> Give one or more <code class="docutils literal notranslate"><span class="pre">--mib-borrower</span></code>
+options to use the feature; without them nothing is borrowed, and a MIB that
+cannot be found or parsed fails as it would have anyway.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>pysmi used to default to compiled-module trees under
+<code class="docutils literal notranslate"><span class="pre">.../mibs/notexts/&#64;mib&#64;</span></code> and <code class="docutils literal notranslate"><span class="pre">.../mibs/fulltexts/&#64;mib&#64;</span></code>. Those trees
+are no longer published – and one of the hosts named never resolved at
+all – so the defaults had become six URLs that all answered 404.</p>
+<p>They were withdrawn deliberately. A compiled pysnmp module is not data:
+it is Python that <code class="docutils literal notranslate"><span class="pre">MibBuilder.loadModule()</span></code> runs through <code class="docutils literal notranslate"><span class="pre">exec()</span></code>.
 Fetching one over HTTP is fetching code to execute, authenticated by
-nothing but TLS. The supported shape is to pull the ASN.1 and compile it,
-which is what the <code class="docutils literal notranslate"><span class="pre">--mib-source</span></code> default already does; where a
-pre-rendered form is wanted, the <a class="reference external" href="https://pysnmp.github.io/mibs/">MIB distribution</a> publishes <code class="docutils literal notranslate"><span class="pre">json/</span></code>, which is parsed
-rather than run.</p>
+nothing but TLS, so a default that did it silently is not one to restore.</p>
+<p>The supported shape is to pull the ASN.1 and compile it, which is what the
+<code class="docutils literal notranslate"><span class="pre">--mib-source</span></code> default already does. Where a pre-rendered form is
+wanted, the <a class="reference external" href="https://pysnmp.github.io/mibs/">MIB distribution</a> publishes
+<code class="docutils literal notranslate"><span class="pre">json/</span></code>, which is parsed rather than run.</p>
+<p>If you were relying on a borrower, point <code class="docutils literal notranslate"><span class="pre">--mib-borrower</span></code> at a location
+you control and trust.</p>
 </div>
-<p>If you wish to modify this default list use one or more
-–mib-borrower options.</p>
 </section>
 <section id="repairing-missing-imports">
 <span id="repairing-imports"></span><h2>Repairing missing IMPORTS<a class="headerlink" href="#repairing-missing-imports" title="Link to this heading">¶</a></h2>
@@ -868,9 +871,9 @@ the <em>mibdump</em> tool may create new (or update existing) document containin
 MIB information in a form that is convenient for querying cornerstone
 properties of MIB files.</p>
 <p>For example, building JSON index for
-<a class="reference external" href="http://pysnmp.github.io/json/asn1/IP-MIB">IP-MIB.json</a>,
-<a class="reference external" href="http://pysnmp.github.io/json/asn1/TCP-MIB">TCP-MIB.json</a> and
-<a class="reference external" href="http://pysnmp.github.io/json/asn1/UDP-MIB">UDP-MIB.json</a>
+<a class="reference external" href="https://pysnmp.github.io/mibs/json/IP-MIB.json">IP-MIB.json</a>,
+<a class="reference external" href="https://pysnmp.github.io/mibs/json/TCP-MIB.json">TCP-MIB.json</a> and
+<a class="reference external" href="https://pysnmp.github.io/mibs/json/UDP-MIB.json">UDP-MIB.json</a>
 MIB modules would emit something like this:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
 <span class="w">   </span><span class="nt">"compliance"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -939,9 +942,11 @@ prefix that still answers a lookup unambiguously.</p>
 consumer can tell one shape of index from another.</p>
 <p>The index is incremental: each run merges the modules it compiled into
 whatever index is already in the destination directory, rather than
-replacing it. A collection may therefore be built up over many runs. Full
-index build over thousands of MIBs could be seen
-<a class="reference external" href="http://pysnmp.github.io/json/index.json">here</a>.</p>
+replacing it. A collection may therefore be built up over many runs.</p>
+<p>The published distribution no longer carries a JSON index of its own: what
+it publishes is <a class="reference external" href="https://pysnmp.github.io/mibs/index-v2.csv">index-v2.csv</a>,
+OID to module, and <code class="docutils literal notranslate"><span class="pre">core.db</span></code>, which answers per node rather than per
+module. See the <a class="reference external" href="https://pysnmp.github.io/mibs/channels.html">MIB distribution</a>.</p>
 <p>To build an index from your own code rather than from <em>mibdump</em>, see
 <a class="reference internal" href="examples/build-json-index.html"><span class="doc">Build a JSON index over compiled MIBs</span></a>.</p>
 </section>
@@ -1043,7 +1048,7 @@ or to do that later, use the –no-python-compile option.</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=3c33c51c"></script>
+</div><script src="_static/documentation_options.js?v=58fc1558"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
