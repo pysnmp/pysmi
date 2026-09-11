@@ -337,6 +337,42 @@ class ProvenanceTestCase(CorpusTestCase):
         self.assertEqual(2, report.db["provenance"])
         self.assertEqual(["ALPHA-MIB", "BETA-MIB"], sorted(report.provenance))
 
+    def testAPackageNamespaceIsNamedRatherThanLeftBlank(self):
+        """A namespace over ``pysmi.mibs.asn1`` is served by the compiler's
+        own priority reader, not by the one this driver built for it, so the
+        reader that answers is a different object with the same job.
+        Identifying the namespace by object identity alone reported nothing
+        for all 210 bundled modules -- found building pysnmp/mibs against
+        5.0.0-rc.1, where every standard-tier row carried an empty namespace.
+        """
+        namespaces = [
+            Namespace("standard", "package:pysmi.mibs.asn1", "standard"),
+            *self.namespaces(),
+        ]
+
+        report = CorpusDriver(namespaces, self.outputs()).run()
+
+        self.assertEqual("standard", report.provenance["SNMPv2-SMI"]["namespace"])
+        self.assertEqual("alpha", report.provenance["ALPHA-MIB"]["namespace"])
+
+    def testEveryModuleGetsANamespace(self):
+        """The weaker statement the one above is an instance of: a module in
+        the corpus came from one of its namespaces, and provenance that
+        cannot say which is provenance that answers nothing."""
+        namespaces = [
+            Namespace("standard", "package:pysmi.mibs.asn1", "standard"),
+            *self.namespaces(),
+        ]
+
+        report = CorpusDriver(namespaces, self.outputs()).run()
+        declared = {x.name for x in namespaces}
+
+        self.assertNotEqual({}, report.provenance)
+
+        for name, origin in report.provenance.items():
+            with self.subTest(module=name):
+                self.assertIn(origin["namespace"], declared)
+
     def testABuildThatAsksForNeitherRecordsNothing(self):
         """Provenance costs a resolution pass. A build wanting neither the
         tree nor the database does not pay it to fill in a report field."""
