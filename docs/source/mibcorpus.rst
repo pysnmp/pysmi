@@ -127,16 +127,19 @@ One artifact is **not** in that layout and has to be asked for by name:
 ``--emit`` narrows this to the artifacts named, so a build can ask for just the
 index or just the JSON.
 
-``core.db`` and the two indexes are projections of the jsondoc tree, so a build
-asking for any of them has to emit ``json`` as well. Where the corpus is not
-meant to carry the JSON, send it somewhere outside the corpus and remove it
-afterwards:
+``core.db`` and the two indexes are projections of the jsondoc tree, which is a
+dependency of pysmi's own rather than of the caller's: a build asking for one
+of them without asking for ``json`` gets a tree staged in a temporary directory
+and removed when the build ends, raise or return. The corpus carries what was
+named and nothing else.
 
 .. code-block:: sh
 
    mibcorpus --manifest=corpus.json --output-directory=output \
-       --emit=asn1 --emit=index-v2 --emit=core-db \
-       --emit=json:build/scratch-jsondoc
+       --emit=asn1 --emit=index-v2 --emit=core-db
+
+Emit ``json`` to keep the tree, and give it a path of its own to say where it
+goes.
 
 Every artifact but ``report.json`` is byte-reproducible. The report is the
 build's log and records elapsed time.

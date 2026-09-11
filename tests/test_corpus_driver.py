@@ -773,12 +773,24 @@ class InputSetTestCase(CorpusTestCase):
         self.assertIn("ALPHA-MIB", modules)
         self.assertIn("BETA-MIB", modules)
 
-    def testAnIndexWithoutJsonIsRefused(self):
-        # The index is built from the jsondoc tree, so asking for one without
-        # the other is a build that cannot produce what it was asked for.
+    def testAnIndexWithoutJsonStagesOneForItself(self):
+        # Until pysnmp/pysmi#262 this was refused, and a caller wanting an
+        # index alone had to name a scratch path for a jsondoc tree it did
+        # not want and remove it afterwards. The dependency is pysmi's, so
+        # pysmi carries it.
+        path = os.path.join(self.root, "output", "index.csv")
+
+        CorpusDriver(self.namespaces(), CorpusOutputs(index=path)).run()
+
+        self.assertTrue(os.path.isfile(path))
+        self.assertEqual(["index.csv"], os.listdir(os.path.dirname(path)))
+
+    def testWritingAnIndexDirectlyStillNeedsATreeToProjectFrom(self):
+        # run() is what stages one. The methods under it take the outputs
+        # they are given and cannot invent a tree that is not there.
         driver = CorpusDriver(
             self.namespaces(),
             CorpusOutputs(index=os.path.join(self.root, "output", "index.csv")),
         )
 
-        self.assertRaises(error.PySmiError, driver.run)
+        self.assertRaises(error.PySmiError, driver.write_index, CorpusReport())

@@ -11,6 +11,7 @@ modules" -- so it is a different entry point rather than another destination
 format. See the open question in :ref:`mibs-as-data`.
 """
 
+import contextlib
 import json
 import os
 import shutil
@@ -21,7 +22,28 @@ import unittest
 from unittest import mock
 
 from pysmi import error
+from pysmi.corpus import db as corpus_db
 from pysmi.scripts import mibcorpus
+
+
+@contextlib.contextmanager
+def _own_tempdir():
+    """Point :py:mod:`tempfile` at a directory of our own, and yield it.
+
+    What a build stages for itself goes somewhere ``tempfile`` chooses, so
+    this is how a test sees whether anything was left behind without knowing
+    the name it was staged under.
+    """
+    directory = tempfile.mkdtemp()
+    previous = tempfile.tempdir
+    tempfile.tempdir = directory
+
+    try:
+        yield directory
+
+    finally:
+        tempfile.tempdir = previous
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 def module(name, oid):
@@ -189,15 +211,12 @@ class RunTestCase(unittest.TestCase):
         # write_db has taken these since it was written and until now nothing
         # could pass them, so every core.db mibcorpus produced left both keys
         # unset. This is the end of that path: command line to metadata.
-        scratch = os.path.join(self.root, "scratch")
-
         self.assertEqual(
             mibcorpus.EX_OK,
             self.run_with(
                 f"--namespace=vendor:cisco:{self.src}",
                 f"--output-directory={self.out}",
                 "--emit=core-db",
-                f"--emit=json:{scratch}",
                 "--corpus-version=2.0.2",
                 "--corpus-id=pysnmp/mibs",
             ),
@@ -217,15 +236,12 @@ class RunTestCase(unittest.TestCase):
     def testAnUnstampedBuildCarriesNeitherKey(self):
         # Nothing is invented in their place: a version taken from a clock or
         # a checkout would make two builds of one source tree differ.
-        scratch = os.path.join(self.root, "scratch")
-
         self.assertEqual(
             mibcorpus.EX_OK,
             self.run_with(
                 f"--namespace=vendor:cisco:{self.src}",
                 f"--output-directory={self.out}",
                 "--emit=core-db",
-                f"--emit=json:{scratch}",
             ),
         )
 
@@ -239,6 +255,107 @@ class RunTestCase(unittest.TestCase):
 
         self.assertNotIn("corpus_version", meta)
         self.assertNotIn("corpus_id", meta)
+
+    def testAProjectionCanBeAskedForOnItsOwn(self):
+        # core.db and the indexes are built off the jsondoc tree, which is
+        # pysmi's dependency and not the caller's: asking for one of them
+        # used to mean also naming a scratch path for a tree the corpus was
+        # not meant to carry, and cleaning it up. See pysnmp/pysmi#262.
+        for artifact, produced in (
+            ("core-db", "core.db"),
+            ("index", "index.csv"),
+            ("index-v2", "index-v2.csv"),
+        ):
+            with self.subTest(artifact=artifact):
+                shutil.rmtree(self.out, ignore_errors=True)
+
+                self.assertEqual(
+                    mibcorpus.EX_OK,
+                    self.run_with(
+                        f"--namespace=vendor:cisco:{self.src}",
+                        f"--output-directory={self.out}",
+                        f"--emit={artifact}",
+                    ),
+                )
+
+                self.assertEqual([produced], os.listdir(self.out))
+
+    def testTheStagedTreeIsGoneWhenTheBuildReturns(self):
+        with _own_tempdir() as scratch:
+            self.assertEqual(
+                mibcorpus.EX_OK,
+                self.run_with(
+                    f"--namespace=vendor:cisco:{self.src}",
+                    f"--output-directory={self.out}",
+                    "--emit=core-db",
+                ),
+            )
+
+            self.assertEqual([], os.listdir(scratch))
+
+    def testTheStagedTreeIsGoneWhenTheBuildRaises(self):
+        # Cleaning up only on the way out of a successful build is how a
+        # publisher ends up choosing its own bugs about the error path.
+        with (
+            _own_tempdir() as scratch,
+            mock.patch.object(
+                corpus_db, "write_db", side_effect=error.PySmiError("no database")
+            ),
+        ):
+            self.assertEqual(
+                mibcorpus.EX_SOFTWARE,
+                self.run_with(
+                    f"--namespace=vendor:cisco:{self.src}",
+                    f"--output-directory={self.out}",
+                    "--emit=core-db",
+                ),
+            )
+
+            self.assertEqual([], os.listdir(scratch))
+
+    def testAskingForTheTreeStillPutsItWhereItWasAskedFor(self):
+        tree = os.path.join(self.root, "kept")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=core-db",
+                f"--emit=json:{tree}",
+            ),
+        )
+
+        self.assertIn("A-MIB.json", os.listdir(tree))
+        self.assertEqual(["core.db"], os.listdir(self.out))
+
+    def testTheDatabaseIsTheSameWhicheverWayTheTreeWasGot(self):
+        # The staged tree is the tree, so what is built off it cannot differ
+        # from what a caller staging their own would have got.
+        tree = os.path.join(self.root, "kept")
+        staged = os.path.join(self.root, "staged-out")
+
+        self.run_with(
+            f"--namespace=vendor:cisco:{self.src}",
+            f"--output-directory={self.out}",
+            "--emit=core-db",
+            f"--emit=json:{tree}",
+            "--corpus-version=1.0.0",
+        )
+        self.run_with(
+            f"--namespace=vendor:cisco:{self.src}",
+            f"--output-directory={staged}",
+            "--emit=core-db",
+            "--corpus-version=1.0.0",
+        )
+
+        with open(os.path.join(self.out, "core.db"), "rb") as fileObj:
+            explicit = fileObj.read()
+
+        with open(os.path.join(staged, "core.db"), "rb") as fileObj:
+            internal = fileObj.read()
+
+        self.assertEqual(explicit, internal)
 
     def testResolvingAgainstNothingPublishedIsASoftwareError(self):
         self.assertEqual(
