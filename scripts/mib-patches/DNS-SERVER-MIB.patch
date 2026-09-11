@@ -1,3 +1,7 @@
+Defect: SMI-CLAUSE-OUT-OF-ORDER https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-clause-out-of-order
+Defect: SMI-UNPUBLISHED-MODULE https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-unpublished-module
+Defect: SMI-DISPLAY-HINT-MISMATCH https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-display-hint-mismatch
+
 --- a/DNS-SERVER-MIB
 +++ b/DNS-SERVER-MIB
 @@ -2,7 +2,7 @@

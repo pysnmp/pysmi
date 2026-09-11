@@ -1,3 +1,5 @@
+Defect: SMI-DISPLAY-HINT-MISMATCH https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-display-hint-mismatch
+
 --- a/INTEGRATED-SERVICES-MIB
 +++ b/INTEGRATED-SERVICES-MIB
 @@ -84,7 +84,7 @@

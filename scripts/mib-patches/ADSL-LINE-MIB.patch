@@ -1,3 +1,5 @@
+Defect: SMI-INVALID-ACCESS https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-invalid-access
+
 --- a/ADSL-LINE-MIB
 +++ b/ADSL-LINE-MIB
 @@ -3351,7 +3351,6 @@

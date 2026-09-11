@@ -29,6 +29,13 @@ or a patch left behind by one that was fixed upstream.
 What cannot be derived is reported rather than guessed at. A module that does
 not parse has no symbol table to reason from, so its patch has to be written by
 hand -- the twelve in ``scripts/mib-patches`` mostly are.
+
+Every patch written here opens with the defect it repairs, since a derived
+repair knows exactly what that is: an identifier from :py:mod:`pysmi.defects`
+and the URL documenting it, one line. A header somebody has since edited is
+kept -- regenerating the diff does not spend what a person wrote about the
+defect -- and ``--check`` compares diffs rather than headers for the same
+reason.
 """
 
 import getopt
@@ -39,7 +46,13 @@ from pathlib import Path
 from typing import Final
 
 from pysmi import debug, error
-from pysmi.patches import APPLIED, NOT_APPLICABLE, apply_patch
+from pysmi.patches import (
+    APPLIED,
+    NOT_APPLICABLE,
+    apply_patch,
+    format_header,
+    split_patch,
+)
 from pysmi.patchgen import CLEAN, REPAIRABLE, UNPARSEABLE, Defect, inspect
 
 logger = logging.getLogger(__name__)
@@ -79,9 +92,12 @@ def start() -> None:
                 Every file in it is read as a module, and the name a
                 module gives itself is what its patch is named after,
                 not the name of the file it was found in.
-        --output-directory - where the diffs go, one <MODULE>.patch per
-                repaired module. Read back by --check and --apply, and by
-                pysmi.patches.PatchSet.from_directory. Defaults to
+        --output-directory - where the patches go, one <MODULE>.patch per
+                repaired module, each opening with the defect it repairs
+                and a link to where that defect is documented. Read back
+                by --check and --apply, and by
+                pysmi.patches.PatchSet.from_directory. A header edited by
+                hand is kept when the patch is regenerated. Defaults to
                 "mib-patches" under the working directory.
         --check  - write nothing and exit {} if the patches on disk are
                 not the ones the sources need: a module needing a patch
@@ -248,6 +264,10 @@ def _scan(directories: list[str]) -> dict[Path, Defect]:
 def _check(found: dict[Path, Defect], out: Path) -> list[str]:
     """Compare the patches a tree needs against the ones on disk.
 
+    The comparison is of the diffs. A patch's header is the thing a person
+    wrote about the repair, and a person who improved the wording of a reason
+    has not made the patch stale.
+
     Returns:
         One line per disagreement, ready to print. Empty when the directory
         holds exactly the patches the sources need.
@@ -266,7 +286,7 @@ def _check(found: dict[Path, Defect], out: Path) -> list[str]:
             if patch is None:
                 stale.append(f"{defect.mibname}: needs a patch, and none is written")
 
-            elif patch != defect.patch:
+            elif split_patch(patch)[1] != split_patch(defect.patch)[1]:
                 stale.append(f"{defect.mibname}: its patch is not the repair it needs")
 
             continue
@@ -304,6 +324,37 @@ def _check(found: dict[Path, Defect], out: Path) -> list[str]:
     return stale
 
 
+def _keeping_header(patchFile: Path, patch: str) -> str:
+    """Put a freshly derived diff under the header the file on disk already had.
+
+    The derived header names what the compiler could work out. Somebody who has
+    added the defects it could not classify, or a note on what was reported
+    upstream, has written the better one; regenerating the repair must not
+    spend it.
+
+    Args:
+        patchFile: the ``<MODULE>.patch`` about to be written, which may not
+            exist.
+        patch: the patch just derived, header and all.
+
+    Returns:
+        *patch*, or *patch*'s diff under the header already on disk.
+    """
+    if not patchFile.exists():
+        return patch
+
+    try:
+        header = split_patch(patchFile.read_text(encoding="utf-8"))[0]
+
+    except OSError:
+        return patch
+
+    if not header.defects and not header.body:
+        return patch
+
+    return format_header(header.defects, header.body) + split_patch(patch)[1]
+
+
 def _write(found: dict[Path, Defect], out: Path, *, applyFlag: bool) -> None:
     """Write each derived diff, and optionally the repaired module with it."""
 
@@ -315,7 +366,9 @@ def _write(found: dict[Path, Defect], out: Path, *, applyFlag: bool) -> None:
         out.mkdir(parents=True, exist_ok=True)
 
     for path, defect in repairable.items():
-        (out / f"{defect.mibname}.patch").write_text(defect.patch, encoding="utf-8")
+        patchFile = out / f"{defect.mibname}.patch"
+
+        patchFile.write_text(_keeping_header(patchFile, defect.patch), encoding="utf-8")
 
         if not applyFlag:
             continue
@@ -343,7 +396,7 @@ def _write(found: dict[Path, Defect], out: Path, *, applyFlag: bool) -> None:
 def _summarize(found: dict[Path, Defect], stale: list[str] | None = None) -> None:
     """Report what the scan found, and what --check disagreed with."""
     repaired = sorted(
-        (defect.mibname, defect.imports)
+        (defect.mibname, split_patch(defect.patch)[0].defects, defect.imports)
         for defect in found.values()
         if defect.status == REPAIRABLE
     )
@@ -361,11 +414,15 @@ def _summarize(found: dict[Path, Defect], stale: list[str] | None = None) -> Non
     if repaired:
         sys.stderr.write(f"Repairs derived for {len(repaired)} modules:\n")
 
-        for mibname, imports in repaired:
+        # The identifiers the patch carries, then what this module in
+        # particular was missing. The identifier says which kind of defect it
+        # is and is documented once; the symbols are what nothing else knows.
+        for mibname, references, imports in repaired:
+            named = ", ".join(reference.id for reference in references)
             supplied = ", ".join(
                 f"{symbol} from {module}" for symbol, module in sorted(imports.items())
             )
-            sys.stderr.write(f" {mibname} ({supplied})\n")
+            sys.stderr.write(f" {mibname} ({named}: {supplied})\n")
 
     if byhand:
         sys.stderr.write(

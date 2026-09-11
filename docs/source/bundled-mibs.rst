@@ -408,35 +408,77 @@ pointing ``--mib-source`` at their own copy of one of these compiles the defect
 along with it. Patch your own copies before PySMI sees them, or rebuild PySMI
 from source with your own diffs in that directory -- the distribution is the
 opinion, and a different opinion is a different build. A patch whose context has
-moved makes the refresh fail rather than silently fuzzing. The defect each one
-repairs:
+moved makes the refresh fail rather than silently fuzzing.
+
+Each patch file names the defect it repairs, as a ``Defect:`` line above the
+diff carrying an identifier from :ref:`mib-defects` and a link to it -- so the
+classification travels with the repair rather than living only in the pull
+request that added it. The identifiers below link there; the prose is what this
+module's text in particular says.
 
 ``ADSL-LINE-MIB``
     RFC 2662 carries a truncated ``MIN-ACCESS  read-wr`` line, orphaned in the published text.
 
+    Defects: :ref:`SMI-INVALID-ACCESS <smi-invalid-access>`
+
 ``DNS-SERVER-MIB``
-    RFC 1611 imports from ``RFC-1213``, a module name nothing publishes, and gives INTEGER objects octet-count DISPLAY-HINTs.
+    RFC 1611 invokes ``dns OBJECT-IDENTITY`` above the module's MODULE-IDENTITY, imports from ``RFC-1213``, a module name nothing publishes, and gives INTEGER objects octet-count DISPLAY-HINTs.
+
+    Defects: :ref:`SMI-CLAUSE-OUT-OF-ORDER <smi-clause-out-of-order>`, :ref:`SMI-UNPUBLISHED-MODULE <smi-unpublished-module>`, :ref:`SMI-DISPLAY-HINT-MISMATCH <smi-display-hint-mismatch>`
 
 ``DSA-MIB``
     RFC 1567 uses OBJECT-GROUP and MODULE-COMPLIANCE without importing them, and imports applIndex and DistinguishedName ``FROM APPLICATION-MIB`` -- the name RFC 1565 gave the Network Services Monitoring MIB, which RFC 2788 renamed NETWORK-SERVICES-MIB and which is bundled under that name. The APPLICATION-MIB bundled here is RFC 2564's unrelated Application Management MIB and defines neither symbol.
 
+    Defects: :ref:`SMI-MISSING-IMPORT <smi-missing-import>`, :ref:`SMI-SUPERSEDED-MODULE <smi-superseded-module>`
+
 ``HPR-MIB``
     RFC 2238 gives LAST-UPDATED a 12-digit value that is neither form RFC 2578 allows, and one comment line lost its leading ``--``.
+
+    Defects: :ref:`SMI-INVALID-DATE <smi-invalid-date>`, :ref:`SMI-UNMARKED-COMMENT <smi-unmarked-comment>`
 
 ``INTEGRATED-SERVICES-MIB``
     RFC 2213 puts DISPLAY-HINT "d" on Port, whose SYNTAX is OCTET STRING; RFC 2579 section 3.1 allows that format only for an integer. Its missing TestAndIncr import is supplied by repairImports rather than here.
 
+    Defects: :ref:`SMI-DISPLAY-HINT-MISMATCH <smi-display-hint-mismatch>`
+
 ``MIP-MIB``
     RFC 2006 gives a plain object accessible-for-notify and declares mipSecNotifcationsGroup where its MODULE-COMPLIANCE names mipSecNotificationsGroup. Its missing mib-2, Unsigned32 and NOTIFICATION-GROUP imports are supplied by repairImports rather than here.
+
+    Defects: :ref:`SMI-MISDECLARED-ACCESS <smi-misdeclared-access>`, :ref:`SMI-UNDEFINED-NAME <smi-undefined-name>`
 
 ``RDBMS-MIB``
     RFC 1697 uses OBJECT-GROUP and MODULE-COMPLIANCE without importing them, and imports applIndex and applGroup ``FROM APPLICATION-MIB`` -- the name RFC 1565 gave the Network Services Monitoring MIB. RFC 2788 renamed that module NETWORK-SERVICES-MIB and renamed RFC 1565's applGroup to applRFC1565Group, whose DESCRIPTION names it as that original set; the MODULE clause of rdbmsCompliance is renamed with the IMPORTS.
 
+    Defects: :ref:`SMI-MISSING-IMPORT <smi-missing-import>`, :ref:`SMI-SUPERSEDED-MODULE <smi-superseded-module>`
+
 ``RFC1315-MIB``
     RFC 1315 imports TimeTicks ``FROM RFC-1155``, a module name nothing publishes; the same IMPORTS clause spells RFC1213-MIB correctly.
 
+    Defects: :ref:`SMI-UNPUBLISHED-MODULE <smi-unpublished-module>`
+
 ``UPS-MIB``
     RFC 1628 bounds two objects at 2147483648, one past the top of Integer32; Erratum 3276. Its missing mib-2 and TEXTUAL-CONVENTION imports are supplied by repairImports rather than here.
+
+    Defects: :ref:`SMI-RANGE-OUTSIDE-TYPE <smi-range-outside-type>`
+
+Three more patches in that directory are for modules held in
+``pysmi/mibs/future/`` rather than carried, so a wheel never sees them. They
+are listed here because the diffs are in the repository either way:
+
+``CLNS-MIB``
+    Imports ``PhysAddress FROM RFC-1213``, a module name nothing publishes; the same clause spells ``RFC1155-SMI`` correctly.
+
+    Defects: :ref:`SMI-UNPUBLISHED-MODULE <smi-unpublished-module>`
+
+``Modem-MIB``
+    Registers its MODULE-IDENTITY ``::= { mdmMIB 1 }``, which is the MODULE-IDENTITY's own descriptor; the node it means is ``mdmMib``, declared immediately below and differing only in case.
+
+    Defects: :ref:`SMI-UNDEFINED-NAME <smi-undefined-name>`
+
+``SMUX-MIB``
+    Imports ``OBJECT-TYPE FROM RFC1212``; RFC 1212 defines that macro in prose rather than as an ASN.1 module, and the compat module is maintained here as ``RFC-1212``.
+
+    Defects: :ref:`SMI-UNPUBLISHED-MODULE <smi-unpublished-module>`
 
 .. _bundled-mib-local:
 
@@ -489,6 +531,8 @@ now, rather than only that the module it came from is gone.
 ``DSA-MIB``
     obsoleted by RFC 2605, which publishes ``DIRECTORY-SERVER-MIB``.
 
+    Defects: :ref:`SMI-MISSING-IMPORT <smi-missing-import>`, :ref:`SMI-SUPERSEDED-MODULE <smi-superseded-module>`
+
 ``IGMP-STD-MIB``
     obsoleted by RFC 5519, which publishes ``MGMD-STD-MIB``.
 
@@ -515,6 +559,8 @@ now, rather than only that the module it came from is gone.
 
 ``RFC1315-MIB``
     obsoleted by RFC 2115, which publishes ``FRAME-RELAY-DTE-MIB``.
+
+    Defects: :ref:`SMI-UNPUBLISHED-MODULE <smi-unpublished-module>`
 
 ``RFC1389-MIB``
     obsoleted by RFC 1724, which publishes ``RIPv2-MIB``.
