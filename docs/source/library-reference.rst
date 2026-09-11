@@ -49,6 +49,7 @@ This example showcases some of its features:
    /pysmi/corpus/driver
    /pysmi/corpus/index
    /pysmi/corpus/db
+   /pysmi/corpus/closure
    /pysmi/patches
 
 .. _camel-case-deprecation:

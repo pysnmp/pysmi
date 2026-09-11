@@ -50,6 +50,7 @@ from pysmi.codegen.base import AbstractCodeGen
 from pysmi.codegen.jsondoc import JsonCodeGen
 from pysmi.codegen.pysnmp import PySnmpCodeGen
 from pysmi.compiler import MibCompiler, bundled_mib_names
+from pysmi.corpus import closure as corpus_closure
 from pysmi.corpus import db as corpus_db
 from pysmi.corpus import index as corpus_index
 from pysmi.corpus.namespace import DEFAULT_TIER, TIERS, Namespace
@@ -128,6 +129,9 @@ class CorpusOutputs:
     #: The corpus database: the SMI model laid out for lookup. See
     #: :py:mod:`pysmi.corpus.db`.
     core_db: str | None = None
+    #: The transitive import closure per module: the files a consumer needs
+    #: in order to load one. See :py:mod:`pysmi.corpus.closure`.
+    closure: str | None = None
     #: The build report, as JSON.
     report: str | None = None
 
@@ -139,6 +143,7 @@ class CorpusOutputs:
             self.ranked_index,
             self.standard,
             self.core_db,
+            self.closure,
             self.report,
         ]
 
@@ -191,6 +196,10 @@ class CorpusReport:
     index: dict[str, int] = field(default_factory=dict)
     #: Rows written to the corpus database, by table.
     db: dict[str, int] = field(default_factory=dict)
+    #: Import closures written, and how many name a module the corpus does
+    #: not hold. The second number is the one to look at: it counts modules
+    #: this corpus publishes that nothing here can load.
+    closure: dict[str, int] = field(default_factory=dict)
     #: Seconds the build took, by phase.
     seconds: dict[str, float] = field(default_factory=dict)
 
@@ -208,6 +217,7 @@ class CorpusReport:
             "nodes": self.nodes,
             "index": self.index,
             "db": self.db,
+            "closure": self.closure,
             "seconds": {k: round(v, 3) for k, v in self.seconds.items()},
         }
 
@@ -878,6 +888,32 @@ class CorpusDriver:
 
         report.seconds["db"] = time.time() - started
 
+    def write_closure(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> None:
+        """Write the transitive import closure per module.
+
+        A projection of the same jsondoc tree the indexes and the database are
+        read from, so it costs the read the build has already paid for.
+
+        Args:
+            report: filled in with the counts and how long it took
+            compiled: the modules this build wrote JSON for, as
+                :py:meth:`write_index` takes it.
+        """
+        if not self._outputs.closure:
+            return
+
+        started = time.time()
+
+        documents, _ranked = self._read_corpus(compiled)
+        found = corpus_closure.closures(documents)
+
+        _write_text(self._outputs.closure, corpus_closure.render_closure(found))
+
+        report.closure = corpus_closure.counts(found)
+        report.seconds["closure"] = time.time() - started
+
     def write_index(
         self, report: CorpusReport, compiled: "Iterable[str] | None" = None
     ) -> None:
@@ -951,6 +987,7 @@ class CorpusDriver:
             self._outputs.core_db
             or self._outputs.index
             or self._outputs.ranked_index
+            or self._outputs.closure
             or self._outputs.asn1
             or self._outputs.standard
         )
@@ -1018,6 +1055,7 @@ class CorpusDriver:
         self.write_standard(published)
         self.write_index(report, published)
         self.write_db(report, published)
+        self.write_closure(report, published)
 
         report.seconds["total"] = time.time() - started
 
