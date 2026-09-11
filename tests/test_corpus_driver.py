@@ -65,6 +65,45 @@ def module(name, oid, *, revision="202401010000Z", description="a module"):
     )
 
 
+def grouped():
+    """A module that declares an OBJECT-IDENTITY group under its own anchor.
+
+    The ordinary shape of a vendor MIB, and what makes the OID index far
+    larger than the registration tree: over pysnmp/mibs, 5,438 modules
+    contribute 98,867 indexed arcs between them, nearly all of them group
+    nodes like this one.
+    """
+    return textwrap.dedent(
+        """\
+        GROUPED-MIB DEFINITIONS ::= BEGIN
+        IMPORTS
+            MODULE-IDENTITY, OBJECT-IDENTITY, OBJECT-TYPE, Integer32,
+            enterprises
+                FROM SNMPv2-SMI;
+
+        groupedMI MODULE-IDENTITY
+            LAST-UPDATED "202401010000Z"
+            ORGANIZATION "test"
+            CONTACT-INFO "test"
+            DESCRIPTION  "a module with a group node"
+            ::= { enterprises 77 }
+
+        groupedObjects OBJECT-IDENTITY
+            STATUS      current
+            DESCRIPTION "the group everything hangs off"
+            ::= { groupedMI 1 }
+
+        groupedThing OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION "a thing"
+            ::= { groupedObjects 1 }
+        END
+        """
+    )
+
+
 def squatter():
     """A vendor module registering itself on SNMPv2-MIB's own arc."""
     return textwrap.dedent(
@@ -467,6 +506,33 @@ class ArcNamesTestCase(CorpusTestCase):
             os.path.join(self.root, "output", "arcs.json"), encoding="utf-8"
         ) as fileObj:
             return json.load(fileObj)["arc"]
+
+    def testAnArcInsideAModuleIsNotANodeOfTheTree(self):
+        """pysnmp/pysmi#301: the driver handed the whole OID index here, and
+        a module's OBJECT-IDENTITY group nodes are in it -- so the arc index
+        carried every group every module declares. Over pysnmp/mibs that was
+        98,903 arcs and an 11 MB artifact against 14,752 and about 1.6 MB.
+
+        A group node under a module's own registration is a thing inside that
+        module, which the module page renders in context.
+        """
+        self.write("alpha", "GROUPED-MIB", grouped())
+
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        written = self.written()
+
+        self.assertIn("1.3.6.1.4.1.77", written)
+        self.assertNotIn("1.3.6.1.4.1.77.1", written)
+
+    def testEveryArcIsARegistrationOrAboveOne(self):
+        self.write("alpha", "GROUPED-MIB", grouped())
+
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        for arc in self.written():
+            with self.subTest(arc=arc):
+                self.assertNotRegex(arc, r"^1\.3\.6\.1\.4\.1\.\d+\.\d")
 
     def testThePathToAModuleIsNamed(self):
         CorpusDriver(

@@ -594,7 +594,7 @@ What is in the inventory
 
 The arc set comes from the OID index and every prefix of it -- the
 registration tree -- rather than from every OID a module defines. Over
-pysnmp/mibs that is about 6,700 arcs instead of 95,000; the difference is
+pysnmp/mibs that is 14,752 arcs instead of 98,903; the difference is
 objects, and an object's arc is a thing inside a module rather than a node
 anybody navigates to.
 
@@ -607,7 +607,7 @@ widely polled MIBs there is. Arc depth runs from 2 to 20.
 That inventory counts an arc whether or not anything would render a page for
 it. Which of them a *site* gives a page to is a narrower question, and
 :py:mod:`pysmi.corpus.pages` answers it: the arcs above the modules, which
-over pysnmp/mibs is 1,347 of the 6,694 rather than the 95,603 a page per
+over pysnmp/mibs is 1,493 of the 14,752 rather than the 98,903 a page per
 defined OID would be. An arc at a module's anchor is the module, and an arc
 below one is an object the module page already renders.
 

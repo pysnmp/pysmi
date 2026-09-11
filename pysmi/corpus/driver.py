@@ -1152,11 +1152,16 @@ class CorpusDriver:
     ) -> None:
         """Write the arc name index.
 
-        Every arc the corpus reaches, named from the registries this build was
-        given and from the cited table where no registry publishes the arc,
-        each carrying which of those named it. An arc nothing names is written
-        with an empty name rather than left out: a tree still renders a path
-        through it.
+        Every arc the corpus *registers at* and every arc above one, named from
+        the registries this build was given and from the cited table where no
+        registry publishes the arc, each carrying which of those named it. An
+        arc nothing names is written with an empty name rather than left out:
+        a tree still renders a path through it.
+
+        The arcs *below* a registration are objects, and are left out --
+        :py:func:`~pysmi.corpus.index.anchor_index` is what draws the line.
+        Including them made this 98,903 arcs and an 11 MB artifact over
+        pysnmp/mibs, against 14,752 and about 1.6 MB. See pysnmp/pysmi#301.
 
         Args:
             report: filled in with the counts and how long it took
@@ -1170,7 +1175,10 @@ class CorpusDriver:
 
         documents, ranked = self._read_corpus(compiled)
         found = corpus_arcs.arcs(
-            documents, ranked, self._smiRegistry, self._oidRegistry
+            documents,
+            corpus_index.anchor_index(ranked),
+            self._smiRegistry,
+            self._oidRegistry,
         )
 
         _write_text(self._outputs.arcs, corpus_arcs.render_arcs(found))
