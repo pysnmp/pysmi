@@ -113,35 +113,48 @@ class ArgumentTestCase(unittest.TestCase):
         self.assertEqual(os.path.join("out", "standard.txt"), outputs.standard)
         self.assertEqual(os.path.join("out", "closure.json"), outputs.closure)
 
-    def testJsonTextsIsTheJsonTreeWithProseInIt(self):
-        """One tree asked for two ways, not two trees. pysnmp/pysmi#277."""
+    def testJsonTextsAloneIsTheJsonTreeWithProseInIt(self):
+        """The common case: one tree, and it carries the texts.
+
+        pysnmp/pysmi#277.
+        """
         outputs = mibcorpus._outputs_for("out", ["json-texts"])
 
-        self.assertEqual(os.path.join("out", "json"), outputs.json)
-        self.assertTrue(outputs.json_texts)
+        self.assertIsNone(outputs.json)
+        self.assertEqual(os.path.join("out", "json"), outputs.json_texts)
 
     def testJsonTextsTakesAPathOfItsOwn(self):
         outputs = mibcorpus._outputs_for("out", ["json-texts:/elsewhere/json"])
 
-        self.assertEqual("/elsewhere/json", outputs.json)
-        self.assertTrue(outputs.json_texts)
+        self.assertEqual("/elsewhere/json", outputs.json_texts)
+
+    def testBothMayBeNamedAtDifferentPaths(self):
+        """A build publishing a lean tree and rendering from a complete one.
+
+        The issue asks for both options, so neither may exclude the other.
+        """
+        outputs = mibcorpus._outputs_for("out", ["json", "json-texts:/elsewhere/full"])
+
+        self.assertEqual(os.path.join("out", "json"), outputs.json)
+        self.assertEqual("/elsewhere/full", outputs.json_texts)
 
     def testPlainJsonCarriesNoProse(self):
         """What the tree has always held, and what it holds unless asked."""
         outputs = mibcorpus._outputs_for("out", ["json"])
 
-        self.assertFalse(outputs.json_texts)
+        self.assertIsNone(outputs.json_texts)
 
     def testTheDefaultLayoutCarriesNoProse(self):
         """Turning it on by default would add roughly 70% to a published tree."""
-        self.assertFalse(mibcorpus._outputs_for("out", None).json_texts)
+        self.assertIsNone(mibcorpus._outputs_for("out", None).json_texts)
 
-    def testNamingBothIsRefused(self):
-        """They would write one tree twice, with different content in it."""
+    def testNamingBothAtOnePathIsRefused(self):
+        """The second pass would overwrite the first, and which survived would
+        depend on the order the emit list happened to be read in."""
         with self.assertRaises(error.PySmiError) as caught:
             mibcorpus._outputs_for("out", ["json", "json-texts"])
 
-        self.assertIn("json-texts", str(caught.exception))
+        self.assertIn("path of its own", str(caught.exception))
 
     def testEmitNarrowsToWhatWasAsked(self):
         outputs = mibcorpus._outputs_for("out", ["json"])

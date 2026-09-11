@@ -303,20 +303,43 @@ MIB** -- a large part of the module the JSON rendering omits, and a consumer
 that wants it has to fetch and parse the ASN.1, which means a second SMI parser
 for prose the compiler already read.
 
-``json-texts`` is the same tree with the texts in it:
+``json-texts`` is a jsondoc tree with the texts in it:
 
 .. code-block:: sh
 
    mibcorpus --manifest=corpus.json --output-directory=output --emit=json-texts
 
-It is the ``json`` artifact asked for a different way, not a second tree beside
-it -- carrying the texts twice would be the expensive way to make one artifact
-complete -- so a build names one or the other and naming both is refused.
+That writes ``json/`` -- one tree, carrying the prose, at one compile pass.
 
-It costs roughly 70% more on disk: over pysnmp/mibs' corpus ``json/`` goes from
-about 170 MB to about 290 MB. That is a decision for the build that sets it,
-which is the argument for a flag rather than a default. It costs no extra
-compile pass: the texts come from the pass that was already being made.
+It is a destination of its own rather than a flag on ``json``, so a build may
+also have both:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output \
+       --emit=json --emit=json-texts:build/full
+
+which publishes the lean tree and keeps a complete one for something that needs
+the prose -- a site generator rendering descriptions into its pages, say --
+without the published artifact growing. That is two passes, because it is two
+trees. Naming both at one path is refused: the second pass would overwrite the
+first, and which of them survived would depend on the order the emit list was
+read in.
+
+The texts cost roughly 70% more on disk: over pysnmp/mibs' corpus ``json/``
+goes from about 170 MB to about 290 MB. That is a decision for the build, which
+is the argument for asking rather than assuming, and ``json-texts`` is not in
+the default layout.
+
+What ``genTexts`` gates is more than descriptions:
+``JsonCodeGen.gen_module_identity`` puts ``organization`` and ``contactinfo``
+behind the same switch. ``CISCO-ENTITY-ALARM-MIB`` carries a full
+``CONTACT-INFO`` block in its ASN.1 -- Cisco Systems, Customer Service, a
+postal address, a phone number and ``cs-snmp@cisco.com`` -- and none of it
+reaches the published JSON. Over a 500-module sample, 90% of modules carry
+``ORGANIZATION`` and ``CONTACT-INFO``, and 66% of those carry an email. That is
+the publisher's own statement of where to report a problem, and it is what
+:doc:`/mibcorpus` cannot show a reader until this is turned on.
 
 ``keepTextsLayout`` is not turned on with it. The two are separate for the
 pysnmp destinations and stay separate here: a JSON consumer generally wants the

@@ -311,7 +311,7 @@ _ARTIFACTS: Final = {
     "notexts": ("notexts", "notexts"),
     "texts": ("texts", "texts"),
     "json": ("json", "json"),
-    "json-texts": ("json", "json"),
+    "json-texts": ("json_texts", "json"),
     "index": ("index", "index.csv"),
     "index-v2": ("ranked_index", "index-v2.csv"),
     "standard": ("standard", "standard.txt"),
@@ -320,21 +320,16 @@ _ARTIFACTS: Final = {
     "report": ("report", "report.json"),
 }
 
-#: Artifacts that turn the texts on in the tree they name.
-#:
-#: ``json-texts`` is the ``json`` tree with DESCRIPTION and the other texts in
-#: it, not a second tree beside it: the texts are 38% of a MIB and carrying
-#: them twice would be the expensive way to make one artifact complete. So the
-#: two names are the same artifact asked for two ways, and naming both is
-#: refused rather than silently resolved. See pysnmp/pysmi#277.
-_WITH_TEXTS: Final = frozenset({"json-texts"})
-
 #: Artifacts a build produces only when asked for by name.
 #:
 #: The default layout is what pysnmp/mibs publishes, and the corpus database is
 #: not part of it: building one costs a pass over the whole jsondoc tree that
 #: nothing else needs, so a plain ``mibcorpus`` run must not pay for it.
-_OPT_IN: Final = frozenset({"core-db"})
+#:
+#: ``json-texts`` is not either. The default layout is the lean ``json/`` the
+#: corpus has always published, and a build that wants the texts says so --
+#: they cost roughly 70% more on disk.
+_OPT_IN: Final = frozenset({"core-db", "json-texts"})
 
 
 def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
@@ -370,16 +365,18 @@ def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
                 f"{', '.join(sorted(_ARTIFACTS))}"
             ) from None
 
-        if attribute == "json" and outputs.json is not None:
-            raise error.PySmiError(
-                "--emit names both json and json-texts; they are one tree "
-                "asked for two ways, so name the one you want"
-            )
-
         setattr(outputs, attribute, path or os.path.join(directory, default))
 
-        if artifact in _WITH_TEXTS:
-            outputs.json_texts = True
+    # Both may be named -- a build publishing a lean tree and rendering from a
+    # complete one wants exactly that -- but not into one directory, where the
+    # second pass would overwrite the first and which of them survived would
+    # depend on the order this loop happened to run in.
+    if outputs.json and outputs.json == outputs.json_texts:
+        raise error.PySmiError(
+            "--emit names json and json-texts at the same path; give one of "
+            "them a path of its own, or name only json-texts to have that "
+            "tree carry the texts"
+        )
 
     return outputs
 

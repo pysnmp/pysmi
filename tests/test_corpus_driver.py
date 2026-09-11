@@ -180,8 +180,10 @@ class JsonTextsTestCase(CorpusTestCase):
 
     def outputs_json(self, where="output", **kwargs):
         out = os.path.join(self.root, where)
+        layout = {"json": os.path.join(out, "json")}
+        layout.update(kwargs)
 
-        return CorpusOutputs(json=os.path.join(out, "json"), **kwargs)
+        return CorpusOutputs(**layout)
 
     def testTheTreeCarriesNoProseByDefault(self):
         """What it has always held, and what it holds unless asked."""
@@ -190,24 +192,59 @@ class JsonTextsTestCase(CorpusTestCase):
         self.assertNotIn("description", self.rendered()["alphamibObject"])
 
     def testAskingForTextsPutsThemInTheTree(self):
-        CorpusDriver(self.namespaces(), self.outputs_json(json_texts=True)).run()
+        out = os.path.join(self.root, "output")
+
+        CorpusDriver(
+            self.namespaces(),
+            CorpusOutputs(json_texts=os.path.join(out, "json")),
+        ).run()
 
         self.assertEqual("a module", self.rendered()["alphamibObject"]["description"])
 
-    def testItIsOneCompilePassRatherThanTwo(self):
-        """The point of the flag: prose without a second pass over the corpus.
+    def testAskingForTextsAloneIsOneCompilePass(self):
+        """Prose without a second pass over the corpus, which is the point."""
+        driver = CorpusDriver(
+            self.namespaces(),
+            CorpusOutputs(json_texts=os.path.join(self.root, "output", "json")),
+        )
 
-        One json destination either way, which is what says the texts came
-        from the pass that was already being made.
+        self.assertEqual(["json-texts"], [x.name for x in driver._destinations()])
+
+    def testBothTreesCanBeBuiltAtOnce(self):
+        """A build publishing a lean tree and rendering from a complete one.
+
+        The issue asks for both options, so neither may exclude the other.
         """
-        driver = CorpusDriver(self.namespaces(), self.outputs_json(json_texts=True))
+        driver = CorpusDriver(
+            self.namespaces(),
+            self.outputs_json(json_texts=os.path.join(self.root, "output", "full")),
+        )
 
-        self.assertEqual(["json"], [x.name for x in driver._destinations()])
+        self.assertEqual(
+            ["json", "json-texts"], [x.name for x in driver._destinations()]
+        )
+
+    def testTheProjectionsReadTheTreeTheBuildHas(self):
+        """A build that asked only for the tree with texts in it still gets an
+        index, from that tree rather than from a second pass."""
+        out = os.path.join(self.root, "output")
+        outputs = CorpusOutputs(
+            json_texts=os.path.join(out, "json"),
+            ranked_index=os.path.join(out, "index-v2.csv"),
+        )
+
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        with open(outputs.ranked_index, encoding="utf-8") as fileObj:
+            self.assertIn("ALPHA-MIB", fileObj.read())
 
     def testTheLayoutIsNotKept(self):
         """genTexts and keepTextsLayout stay separate: a JSON consumer wants
         the text normalised rather than the publisher's line breaks."""
-        driver = CorpusDriver(self.namespaces(), self.outputs_json(json_texts=True))
+        driver = CorpusDriver(
+            self.namespaces(),
+            CorpusOutputs(json_texts=os.path.join(self.root, "output", "json")),
+        )
         destination = driver._destinations()[0]
 
         self.assertTrue(destination.genTexts)
