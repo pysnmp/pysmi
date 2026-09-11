@@ -1,0 +1,923 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="search" title="Search" href="../search.html"><link rel="next" title="MIB patches" href="patches.html"><link rel="prev" title="Arc names and where they come from" href="corpus/arcs.html">
+        <link rel="prefetch" href="../_static/logo.svg" as="image">
+        <link rel="prefetch" href="../_static/logo.svg" as="image">
+
+    <link rel="shortcut icon" href="../_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Published registries - SNMP SMI compiler 5.0.0rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../contents.html"><div class="brand">SNMP SMI compiler 5.0.0rc1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../contents.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="../_static/logo.svg" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="../_static/logo.svg" alt="Dark Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.0.0rc1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../documentation.html">PySMI documentation</a><input aria-label="Toggle navigation of PySMI documentation" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../mibdump.html">The <em>mibdump</em> tool</a><input aria-label="Toggle navigation of The mibdump tool" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../mibcopy.html">The <em>mibcopy</em> tool</a><input aria-label="Toggle navigation of The mibcopy tool" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../mibcorpus.html">The <em>mibcorpus</em> tool</a><input aria-label="Toggle navigation of The mibcorpus tool" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../mibpatch.html">The <em>mibpatch</em> tool</a><input aria-label="Toggle navigation of The mibpatch tool" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../mib-defects.html">Defects a patch repairs</a><input aria-label="Toggle navigation of Defects a patch repairs" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../corpus-schema.html">Corpus database schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mibs-as-data.html">MIBs as data: layering review</a></li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" checked="" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="compiler/mibcompiler.html">MIB compiler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="compiler/mibstatus.html">Compilation status</a></li>
+<li class="toctree-l3"><a class="reference internal" href="compiler/mibresolution.html">Source resolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="corpus/driver.html">Corpus driver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="corpus/index.html">OID index ranking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="corpus/index.html#precedence-vectors">Precedence vectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="corpus/db.html">Corpus database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="corpus/closure.html">Import closures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="corpus/entity.html">Enterprise arcs and their registrants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="corpus/arcs.html">Arc names and where they come from</a></li>
+<li class="toctree-l3 current has-children current-page"><a class="current reference internal" href="#">Published registries</a><input aria-label="Toggle navigation of Published registries" checked="" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="patches.html">MIB patches</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reader/localfile/filereader.html">Local file reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reader/zipreader/zipreader.html">ZIP archive reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reader/httpclient/httpreader.html">HTTP reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reader/callback/callbackreader.html">Callback reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reader/package/packagereader.html">Package reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cache/abstractparsecache.html">Parse cache interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cache/inmemoryparsecache.html">In-memory parse cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cache/fileparsecache.html">File parse cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cache/nullparsecache.html">Null parse cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="searcher/pyfile/pyfilesearcher.html">Python files searcher</a></li>
+<li class="toctree-l3"><a class="reference internal" href="searcher/pypackage/pypackagesearcher.html">Search Python packages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="searcher/stub/stubsearcher.html">Unconditionally ignore MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="parser/smi/parserfactory.html">SMI parser</a></li>
+<li class="toctree-l3"><a class="reference internal" href="parser/smi/dialect.html">SMI language dialects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codegen/jsondoc/jsoncodegen.html">JSON document generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codegen/pysnmp/pysnmpcodegen.html">PySNMP MIB generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codegen/pysnmp/pysnmpsurface.html">PySNMP emission surface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codegen/null/nullcodegen.html">Code generation stub</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codegen/symtable/symtablecodegen.html">Symbol table generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="borrower/anyfile/anyfileborrower.html">Any file borrower</a></li>
+<li class="toctree-l3"><a class="reference internal" href="borrower/pyfile/pyfileborrower.html">Python file borrower</a></li>
+<li class="toctree-l3"><a class="reference internal" href="writer/localfile/filewriter.html">File writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="writer/pyfile/pyfilewriter.html">Python file writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="writer/callback/callbackwriter.html">Callback writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="extending.html">Extension points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mibs.html">Bundled MIB manifest</a></li>
+<li class="toctree-l3"><a class="reference internal" href="error.html">Exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/download-and-compile-smistar-mibs-into-json.html">Compile MIBs into JSON</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/build-json-index.html">Build a JSON index over compiled MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/download-and-compile-smistar-mibs-into-pysnmp-files.html">Compile MIBs from web</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/compile-smistar-mibs-into-pysnmp-files-if-needed.html">Compile SMIv1/v2 MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/compile-smiv2-mibs-from-text-into-pysnmp-code.html">Compile SMIv2 MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/borrow-precompiled-pysnmp-files-on-failure.html">Borrow pysnmp MIBs on failure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/always-borrow-precompiled-pysnmp-files.html">Always borrow pysnmp MIBs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/pysnmp/pysmi/blob/main/docs/source/pysmi/registry.rst?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/pysnmp/pysmi/edit/main/docs/source/pysmi/registry.rst" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="published-registries">
+<span id="registry"></span><h1>Published registries<a class="headerlink" href="#published-registries" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p id="module-pysmi.registry">Published registries a corpus can be annotated from.</p>
+<p>Each one is <strong>taken as an input and never fetched</strong>. A corpus build opens on
+the property that it resolves nothing over the network – a build with the
+network unplugged produces the same corpus as one without – and a registry
+that changes daily, fetched at build time, would end that.</p>
+<p>Nothing here is bundled either. These are other people’s data, they are large,
+and they move on their own schedule; what pysmi provides is the parsing, which
+every downstream distribution otherwise writes for itself.</p>
+<p><a class="reference internal" href="#module-pysmi.registry.tree" title="pysmi.registry.tree"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.registry.tree</span></code></a> is the exception that proves it: a small table of
+arcs no registry publishes, cited to the standard that defines them, and
+labelled as a citation rather than as a registration so that nothing mistakes
+one for the other.</p>
+<section id="module-pysmi.registry.pen">
+<span id="private-enterprise-numbers"></span><span id="registry-pen"></span><h2>Private Enterprise Numbers<a class="headerlink" href="#module-pysmi.registry.pen" title="Link to this heading">¶</a></h2>
+<p>The IANA Private Enterprise Numbers registry, read and reduced.</p>
+<p>A corpus knows that <code class="docutils literal notranslate"><span class="pre">CISCO-ENTITY-ALARM-MIB</span></code> registers under
+<code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code>. It does not know that <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code> is Cisco: nothing in
+the MIB text says so in a form anything can rely on, and the directory a file
+sits in is a filing convention rather than a registration.</p>
+<p>The registration is a published fact. Measured against pysnmp/mibs’
+<code class="docutils literal notranslate"><span class="pre">index-frozen.csv</span></code> (5,347 modules, 95,462 rows) and a registry snapshot of
+2026-09-10 (66,807 entries):</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>measured over pysnmp/mibs</p></th>
+<th class="head"><p>count</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>modules registering under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1</span></code></p></td>
+<td><p>5,015</p></td>
+</tr>
+<tr class="row-odd"><td><p>distinct enterprise arcs</p></td>
+<td><p>351</p></td>
+</tr>
+<tr class="row-even"><td><p>arcs the registry names</p></td>
+<td><p><strong>350</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>of those, carrying a contact email</p></td>
+<td><p><strong>345</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>One arc does not resolve – <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.1004849</span></code>, above anything IANA has
+allocated – and is reported as unregistered rather than guessed at.</p>
+<section id="taken-as-an-input-never-bundled-never-fetched">
+<h3>Taken as an input. Never bundled, never fetched<a class="headerlink" href="#taken-as-an-input-never-bundled-never-fetched" title="Link to this heading">¶</a></h3>
+<p><strong>Reproducibility.</strong> <a class="reference internal" href="corpus/driver.html#module-pysmi.corpus.driver" title="pysmi.corpus.driver"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.driver</span></code></a> opens on the property that
+the build fetches nothing: a build with the network unplugged produces the same
+corpus as one without. A registry that changes daily, fetched at build time,
+would end that.</p>
+<p><strong>Size.</strong> 5.1 MB that changes daily is not a thing to vendor into a compiler.</p>
+</section>
+<section id="what-the-reducer-keeps-is-the-caller-s-decision">
+<h3>What the reducer keeps is the caller’s decision<a class="headerlink" href="#what-the-reducer-keeps-is-the-caller-s-decision" title="Link to this heading">¶</a></h3>
+<p>A downstream repository commits the reduced snapshot, so
+<a class="reference internal" href="#pysmi.registry.pen.reduce_registry" title="pysmi.registry.pen.reduce_registry"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_registry()</span></code></a> controls which fields leave IANA’s copy. Different
+corpora will want different field sets, so it is an argument rather than a
+hard-coded projection: <a class="reference internal" href="#pysmi.registry.pen.FIELDS" title="pysmi.registry.pen.FIELDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">FIELDS</span></code></a> is the whole record, and a corpus
+wanting less names less.</p>
+<p>The contact fields are kept by default, and rendered. The registry is public,
+already well indexed, and reproducible from the published file with minimal
+effort, and every identifiable person in it submitted their own details as the
+registrant of record for an arc they asked IANA to assign.</p>
+<p>Two things follow from a corpus site not being a system of record, and none
+existing for MIB ownership:</p>
+<ul class="simple">
+<li><p><strong>Each source is rendered as that source publishes it.</strong> IANA writes
+<code class="docutils literal notranslate"><span class="pre">davej&amp;cisco.com</span></code> rather than the <code class="docutils literal notranslate"><span class="pre">&#64;</span></code> form. That is reproduced.
+<a class="reference internal" href="#pysmi.registry.pen.reduce_registry" title="pysmi.registry.pen.reduce_registry"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_registry()</span></code></a> does not normalise it, because its output is a
+rendering of IANA’s record rather than a corrected version of it.</p></li>
+<li><p><strong>The authority link travels with the record.</strong> A correction to a
+registration belongs at IANA, and <a class="reference internal" href="#pysmi.registry.pen.authority_url" title="pysmi.registry.pen.authority_url"><code class="xref py py-func docutils literal notranslate"><span class="pre">authority_url()</span></code></a> says where.</p></li>
+</ul>
+<p>Remediation is precedence rather than a suppression list. A registrant who does
+not want an undated personal registration standing as the contact for their arc
+publishes a module carrying current <code class="docutils literal notranslate"><span class="pre">ORGANIZATION</span></code> and <code class="docutils literal notranslate"><span class="pre">CONTACT-INFO</span></code>, and
+that source displaces this one on the next build – see
+<a class="reference internal" href="corpus/entity.html#module-pysmi.corpus.entity" title="pysmi.corpus.entity"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.entity</span></code></a>. That needs no per-record exclusion mechanism
+here, and it improves the corpus.</p>
+</section>
+<section id="why-the-parser-is-here">
+<h3>Why the parser is here<a class="headerlink" href="#why-the-parser-is-here" title="Link to this heading">¶</a></h3>
+<p>There is no maintained Python distribution of this registry – <code class="docutils literal notranslate"><span class="pre">pen-registry</span></code>,
+<code class="docutils literal notranslate"><span class="pre">iana-enterprise-numbers</span></code> and <code class="docutils literal notranslate"><span class="pre">snmp-enterprise-numbers</span></code> are all unclaimed on
+PyPI. So every downstream distribution that wants this writes the same thirty
+lines against the same slightly awkward four-line-record text format. It is
+generic over corpora, which is the test for living in pysmi.</p>
+<p>Reducing a download, once:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pysmi.registry<span class="w"> </span>enterprise-numbers.txt<span class="w"> </span>&gt;<span class="w"> </span>pen-snapshot.csv
+</pre></div>
+</div>
+<p>and the snapshot is what a build is pointed at. <code class="docutils literal notranslate"><span class="pre">--fields</span></code> narrows what it
+keeps.</p>
+</section>
+<section id="what-it-does-not-model">
+<h3>What it does not model<a class="headerlink" href="#what-it-does-not-model" title="Link to this heading">¶</a></h3>
+<p>The registry maps <em>arcs</em> to <em>registrants</em>, and a company can hold several:
+pysnmp/mibs carries Cisco modules under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code> and, from the Altiga
+acquisition, under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.3076</span></code>, which IANA still lists as “Altiga
+Networks, Inc.”. Nothing in the registry models an acquisition and pysmi does
+not infer one. This groups by arc; a consumer saying otherwise is saying it on
+its own account.</p>
+</section>
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.registry.pen.AUTHORITY">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.pen.</span></span><span class="sig-name descname"><span class="pre">AUTHORITY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'https://www.iana.org/assignments/enterprise-numbers'</span></span><a class="headerlink" href="#pysmi.registry.pen.AUTHORITY" title="Link to this definition">¶</a></dt>
+<dd><p>Where the registry itself is published, which is where a correction to a
+registration belongs.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.registry.pen.ENTERPRISES">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.pen.</span></span><span class="sig-name descname"><span class="pre">ENTERPRISES</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'1.3.6.1.4.1'</span></span><a class="headerlink" href="#pysmi.registry.pen.ENTERPRISES" title="Link to this definition">¶</a></dt>
+<dd><p>The arc every private enterprise registration sits under, as
+<span class="target" id="index-0"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2578.html"><strong>RFC 2578</strong></a> section 8.4 assigns it.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.registry.pen.FIELDS">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.pen.</span></span><span class="sig-name descname"><span class="pre">FIELDS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">('number',</span> <span class="pre">'organization',</span> <span class="pre">'contact',</span> <span class="pre">'email')</span></span><a class="headerlink" href="#pysmi.registry.pen.FIELDS" title="Link to this definition">¶</a></dt>
+<dd><p>Every field a record carries, in the order the registry writes them. The
+default field set for <a class="reference internal" href="#pysmi.registry.pen.reduce_registry" title="pysmi.registry.pen.reduce_registry"><code class="xref py py-func docutils literal notranslate"><span class="pre">reduce_registry()</span></code></a>, and the widest one: a
+reduced snapshot is a projection of this and never more than it.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.registry.pen.Registrant">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.registry.pen.</span></span><span class="sig-name descname"><span class="pre">Registrant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">organization</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">contact</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.registry.pen.Registrant" title="Link to this definition">¶</a></dt>
+<dd><p>One enterprise number and who holds it, as IANA records it.</p>
+<p>Every field is as the registry writes it, unnormalised. An email is
+<code class="docutils literal notranslate"><span class="pre">davej&amp;cisco.com</span></code> here because that is what the file says, and this is a
+rendering of IANA’s record rather than a corrected version of it.</p>
+<p>Create new instance of Registrant(number, organization, contact, email)</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="pysmi.registry.pen.Registrant.arc">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">arc</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.pen.Registrant.arc" title="Link to this definition">¶</a></dt>
+<dd><p>The OID this registration names, in full.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="pysmi.registry.pen.Registrant.authority">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">authority</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.pen.Registrant.authority" title="Link to this definition">¶</a></dt>
+<dd><p>Where this registration is published, and where a correction goes.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.pen.Registrant.contact">
+<span class="sig-name descname"><span class="pre">contact</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.pen.Registrant.contact" title="Link to this definition">¶</a></dt>
+<dd><p>The contact IANA records for the arc. <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> where there is none.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.pen.Registrant.email">
+<span class="sig-name descname"><span class="pre">email</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.pen.Registrant.email" title="Link to this definition">¶</a></dt>
+<dd><p>That contact’s email, in the registry’s own obfuscated form. <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>
+where there is none: 345 of the 350 arcs pysnmp/mibs uses carry one.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.pen.Registrant.number">
+<span class="sig-name descname"><span class="pre">number</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span><a class="headerlink" href="#pysmi.registry.pen.Registrant.number" title="Link to this definition">¶</a></dt>
+<dd><p>The number, as the arc under <a class="reference internal" href="#pysmi.registry.pen.ENTERPRISES" title="pysmi.registry.pen.ENTERPRISES"><code class="xref py py-data docutils literal notranslate"><span class="pre">ENTERPRISES</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.pen.Registrant.organization">
+<span class="sig-name descname"><span class="pre">organization</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.pen.Registrant.organization" title="Link to this definition">¶</a></dt>
+<dd><p>The organization IANA records. <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> where the registry has none,
+which it writes as <code class="docutils literal notranslate"><span class="pre">---none---</span></code>. For 11% of records this is a named
+individual rather than a company.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.registry.pen.authority_url">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.pen.</span></span><span class="sig-name descname"><span class="pre">authority_url</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.registry.pen.authority_url" title="Link to this definition">¶</a></dt>
+<dd><p>Where an enterprise registration is published.</p>
+<p>A corpus site is not a system of record for MIB ownership and none exists,
+so what it can do is say who published the fact and where to have it
+changed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>number</strong> – the enterprise number.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The registry’s own URL, anchored at the registration.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.registry.pen.is_pen_registry">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.pen.</span></span><span class="sig-name descname"><span class="pre">is_pen_registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#pysmi.registry.pen.is_pen_registry" title="Link to this definition">¶</a></dt>
+<dd><p>Whether <em>text</em> is this registry rather than another.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--oid-registry</span></code> takes more than one kind of file, so something has to
+decide which reader a given one wants. Sniffed from the content rather
+than from the file name, because a snapshot a repository commits is named
+whatever that repository calls it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>text</strong> – the file’s contents, or enough of the front of it.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Whether it is the published registry or a reduced snapshot of one.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.registry.pen.load_registry">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.pen.</span></span><span class="sig-name descname"><span class="pre">load_registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#pysmi.registry.pen.Registrant" title="pysmi.registry.pen.Registrant"><span class="pre">Registrant</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.registry.pen.load_registry" title="Link to this definition">¶</a></dt>
+<dd><p>Read a registry from a file, reduced or as published.</p>
+<p>Both forms are accepted, because a caller holding a fresh download should
+not have to reduce it before a build will read it – and a caller holding a
+reduced snapshot, which is what a repository should commit, should not have
+to keep the original around.</p>
+<p>A reduced snapshot may carry fewer fields than the published file. What it
+does not carry comes back as <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, which is the same answer as a
+registration that has no contact on record: either way there is nothing to
+render, and a corpus site is not the place to explain which kind of nothing
+it is.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> – the file. Its first line decides which form it is in.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The registration per enterprise number.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#OSError" title="(in Python v3.14)"><strong>OSError</strong></a> – the file cannot be read. A build pointed at a registry that is
+    not there is a build misconfigured, not one to carry on with
+    quietly.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.registry.pen.parse_registry">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.pen.</span></span><span class="sig-name descname"><span class="pre">parse_registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator" title="(in Python v3.14)"><span class="pre">Iterator</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#pysmi.registry.pen.Registrant" title="pysmi.registry.pen.Registrant"><span class="pre">Registrant</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.registry.pen.parse_registry" title="Link to this definition">¶</a></dt>
+<dd><p>Read the registry as IANA publishes it.</p>
+<p>The format is four lines per record – number, organization, contact name,
+contact email – with the number alone at the start of its line and the
+other three indented. The two contact lines are read and dropped: see the
+privacy note in this module’s own documentation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>text</strong> – the registry file’s contents.</p>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p>One <a class="reference internal" href="#pysmi.registry.pen.Registrant" title="pysmi.registry.pen.Registrant"><code class="xref py py-class docutils literal notranslate"><span class="pre">Registrant</span></code></a> per record, in file order. The prose
+preamble yields nothing: a record is a bare number followed by an
+indented line, and nothing in the preamble is shaped that way.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.registry.pen.reduce_registry">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.pen.</span></span><span class="sig-name descname"><span class="pre">reduce_registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable" title="(in Python v3.14)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></span><a class="headerlink" href="#pysmi.registry.pen.reduce_registry" title="Link to this definition">¶</a></dt>
+<dd><p>Reduce the published registry to the fields a corpus wants.</p>
+<p>A downstream repository commits the result, so which fields leave IANA’s
+copy is that repository’s decision rather than this function’s. The default
+is the whole record; a corpus wanting less names less.</p>
+<p>Nothing is normalised. An email comes out as <code class="docutils literal notranslate"><span class="pre">davej&amp;cisco.com</span></code> because
+that is what the registry says, and the output is a rendering of IANA’s
+record rather than a corrected version of it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> – the registry file’s contents, as IANA publishes it.</p></li>
+<li><p><strong>fields</strong> – which of <a class="reference internal" href="#pysmi.registry.pen.FIELDS" title="pysmi.registry.pen.FIELDS"><code class="xref py py-data docutils literal notranslate"><span class="pre">FIELDS</span></code></a> to keep, in the order they should be
+written. Defaults to all of them. <code class="docutils literal notranslate"><span class="pre">number</span></code> is kept whether or not
+it is named – a row that does not say which arc it is about is not
+a registration.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>The reduced form</em> – a header naming the fields kept, then one row per
+registration in numeric order. Deterministic, so a refresh that changes
+nothing produces no diff.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><strong>ValueError</strong></a> – a field was named that no record has.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-pysmi.registry.smi">
+<span id="smi-numbers"></span><span id="registry-smi"></span><h2>SMI numbers<a class="headerlink" href="#module-pysmi.registry.smi" title="Link to this heading">¶</a></h2>
+<p>IANA’s <code class="docutils literal notranslate"><span class="pre">smi-numbers</span></code> registry: what the arcs under <code class="docutils literal notranslate"><span class="pre">1.3.6.1</span></code> are called.</p>
+<p><a class="reference internal" href="corpus/index.html#module-pysmi.corpus.index" title="pysmi.corpus.index"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.index</span></code></a> ranks modules to decide which one owns an arc.
+The rule is total and works for arcs a module actually registers. For the arcs
+<em>above</em> those it has nothing good to choose from, so it picks whichever module
+happened to mention the arc on its way to somewhere else. Measured against
+pysnmp/mibs’ index, <code class="docutils literal notranslate"><span class="pre">1.3.6.1.6.3</span></code> – <code class="docutils literal notranslate"><span class="pre">snmpModules</span></code> – is attributed to
+<code class="docutils literal notranslate"><span class="pre">RAPID-CITY</span></code>, a Nortel enterprise MIB, and <code class="docutils literal notranslate"><span class="pre">1.3</span></code> and <code class="docutils literal notranslate"><span class="pre">1.3.6</span></code> to
+<code class="docutils literal notranslate"><span class="pre">OCCAM-ETHERLIKE-MIB</span></code>. No ranking over MIB text can fix that, because the
+fact is not in the MIB text.</p>
+<p>It is published, though. This reads it, and
+<a class="reference internal" href="corpus/arcs.html#module-pysmi.corpus.arcs" title="pysmi.corpus.arcs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.arcs</span></code></a> projects a corpus onto it.</p>
+<p>Taken as an input, never fetched, never bundled, for the same reasons as
+<a class="reference internal" href="#module-pysmi.registry.pen" title="pysmi.registry.pen"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.registry.pen</span></code></a>.</p>
+<section id="how-an-arc-gets-its-name">
+<h3>How an arc gets its name<a class="headerlink" href="#how-an-arc-gets-its-name" title="Link to this heading">¶</a></h3>
+<p>The file nests registries, and names arcs in three different places. They
+disagree, so the order matters:</p>
+<ol class="arabic simple">
+<li><p><strong>A registry’s own name for its own arc</strong> – the last component of the
+dotted name in its <code class="docutils literal notranslate"><span class="pre">description</span></code>, as in
+<code class="docutils literal notranslate"><span class="pre">iso.org.dod.internet.snmpv2.snmpModules</span> <span class="pre">(1.3.6.1.6.3)</span></code>. IANA naming that
+node directly, so it wins.</p></li>
+<li><p><strong>A ``record`` in the parent registry</strong> – <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;2&lt;/value&gt;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&lt;name&gt;interfaces&lt;/name&gt;</span></code>. What names an arc that has no registry of its
+own.</p></li>
+<li><p><strong>A path component of some deeper registry’s description.</strong> What names
+<code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">iso</span></code>, <code class="docutils literal notranslate"><span class="pre">1.3</span> <span class="pre">org</span></code>, <code class="docutils literal notranslate"><span class="pre">1.3.6</span> <span class="pre">dod</span></code> and <code class="docutils literal notranslate"><span class="pre">1.3.6.1</span> <span class="pre">internet</span></code>, which
+nothing else in the file names at all.</p></li>
+</ol>
+<p>The order is not academic. <code class="docutils literal notranslate"><span class="pre">1.3.6.1.6.3</span></code> has a record calling it
+<code class="docutils literal notranslate"><span class="pre">smnpModules</span></code>, which is a typo in IANA’s own data; rule 1 gives
+<code class="docutils literal notranslate"><span class="pre">snmpModules</span></code> from the registry that arc actually is. And <code class="docutils literal notranslate"><span class="pre">1.3.6.1.2.1.2</span></code>
+has no registry of its own, so rule 2 gives <code class="docutils literal notranslate"><span class="pre">interfaces</span></code> rather than the
+<code class="docutils literal notranslate"><span class="pre">interface</span></code> a deeper description spells on its way past.</p>
+</section>
+<section id="what-it-does-not-cover">
+<h3>What it does not cover<a class="headerlink" href="#what-it-does-not-cover" title="Link to this heading">¶</a></h3>
+<p>The arcs outside <code class="docutils literal notranslate"><span class="pre">1.3.6.1</span></code>: <code class="docutils literal notranslate"><span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">1.0</span></code>, <code class="docutils literal notranslate"><span class="pre">1.2</span></code>, <code class="docutils literal notranslate"><span class="pre">1.2.840</span></code>,
+<code class="docutils literal notranslate"><span class="pre">1.3.111</span></code>, <code class="docutils literal notranslate"><span class="pre">1.0.8802</span></code> and what hangs under them. There is no feed for
+those – ITU-T’s OID registry does not answer, and IEEE publishes landing
+pages rather than data – so <a class="reference internal" href="#module-pysmi.registry.tree" title="pysmi.registry.tree"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.registry.tree</span></code></a> carries them as a
+cited table instead, visibly distinct from anything sourced from a registry.</p>
+</section>
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.registry.smi.AUTHORITY">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.smi.</span></span><span class="sig-name descname"><span class="pre">AUTHORITY</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'https://www.iana.org/assignments/smi-numbers'</span></span><a class="headerlink" href="#pysmi.registry.smi.AUTHORITY" title="Link to this definition">¶</a></dt>
+<dd><p>Where the registry is published, and where a correction belongs.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.registry.smi.ArcName">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.registry.smi.</span></span><span class="sig-name descname"><span class="pre">ArcName</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">authority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'https://www.iana.org/assignments/smi-numbers'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.registry.smi.ArcName" title="Link to this definition">¶</a></dt>
+<dd><p>What an arc is called, and who says so.</p>
+<p>Create new instance of ArcName(arc, name, authority)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.smi.ArcName.arc">
+<span class="sig-name descname"><span class="pre">arc</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.smi.ArcName.arc" title="Link to this definition">¶</a></dt>
+<dd><p>The arc, dotted decimal.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.smi.ArcName.authority">
+<span class="sig-name descname"><span class="pre">authority</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.smi.ArcName.authority" title="Link to this definition">¶</a></dt>
+<dd><p>The authority that says so, as a URL. A reader weighing one name
+against another needs to know which of them came from a registry.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.smi.ArcName.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.smi.ArcName.name" title="Link to this definition">¶</a></dt>
+<dd><p>What it is called.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.registry.smi.NAMESPACE">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.smi.</span></span><span class="sig-name descname"><span class="pre">NAMESPACE</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'{http://www.iana.org/assignments}'</span></span><a class="headerlink" href="#pysmi.registry.smi.NAMESPACE" title="Link to this definition">¶</a></dt>
+<dd><p>The XML namespace IANA publishes its assignments in.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pysmi.registry.smi.parse_smi_numbers">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.smi.</span></span><span class="sig-name descname"><span class="pre">parse_smi_numbers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#pysmi.registry.smi.ArcName" title="pysmi.registry.smi.ArcName"><span class="pre">ArcName</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.registry.smi.parse_smi_numbers" title="Link to this definition">¶</a></dt>
+<dd><p>Read IANA’s <code class="docutils literal notranslate"><span class="pre">smi-numbers</span></code> registry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>text</strong> – the XML file’s contents, as IANA publishes it.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The name per arc, for every arc the file names.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="error.html#pysmi.error.PySmiError" title="pysmi.error.PySmiError"><strong>PySmiError</strong></a> – the file is not the XML this reads.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-pysmi.registry.tree">
+<span id="the-top-of-the-tree-cited"></span><span id="registry-tree"></span><h2>The top of the tree, cited<a class="headerlink" href="#module-pysmi.registry.tree" title="Link to this heading">¶</a></h2>
+<p>The top of the registration tree, cited rather than fetched.</p>
+<p><a class="reference internal" href="#module-pysmi.registry.smi" title="pysmi.registry.smi"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.registry.smi</span></code></a> names the arcs under <code class="docutils literal notranslate"><span class="pre">1.3.6.1</span></code> and
+<a class="reference internal" href="#module-pysmi.registry.pen" title="pysmi.registry.pen"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.registry.pen</span></code></a> names the enterprise arcs. Between them they
+leave about seventeen arcs unnamed in a corpus the size of pysnmp/mibs – the
+top arcs <code class="docutils literal notranslate"><span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">1.0</span></code> and <code class="docutils literal notranslate"><span class="pre">1.2</span></code>, and the <code class="docutils literal notranslate"><span class="pre">1.3.111</span></code>,
+<code class="docutils literal notranslate"><span class="pre">1.0.8802</span></code> and <code class="docutils literal notranslate"><span class="pre">1.2.840.10006</span></code> chains that IEEE publishes its 802 MIBs
+under. <code class="docutils literal notranslate"><span class="pre">LLDP-MIB</span></code> registers at <code class="docutils literal notranslate"><span class="pre">1.0.8802.1.1.2</span></code> and is among the most
+widely polled MIBs there is, so a tree that cannot name the path to it is
+missing the part a reader walks.</p>
+<p><strong>There is no feed to render them from.</strong> Probed 2026-09-11: ITU-T’s OID
+registry at <code class="docutils literal notranslate"><span class="pre">oid.itu.int</span></code> does not answer over http or https,
+<code class="docutils literal notranslate"><span class="pre">itu.int/en/ITU-T/oid/</span></code> is a 404, and IEEE’s registration authority
+publishes HTML landing pages and PDFs. So a small table with a standard
+reference per entry is the honest implementation, and pretending it is a data
+source would not be.</p>
+<p>These are defined in ITU-T X.660 / ISO-IEC 9834-1 and have not changed in
+decades, which is what makes a table tolerable here where it would not be for
+anything that moves.</p>
+<p><strong>A name from this table is not a registration</strong>, and a consumer must be able
+to tell them apart. <a class="reference internal" href="#pysmi.registry.tree.SOURCE" title="pysmi.registry.tree.SOURCE"><code class="xref py py-data docutils literal notranslate"><span class="pre">SOURCE</span></code></a> is what says so, and
+<a class="reference internal" href="corpus/arcs.html#module-pysmi.corpus.arcs" title="pysmi.corpus.arcs"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.arcs</span></code></a> carries it through to the artifact, so a page can
+render a cited standard differently from an IANA registration and differently
+again from a name read off whichever MIB mentioned an arc.</p>
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.registry.tree.CITED">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.tree.</span></span><span class="sig-name descname"><span class="pre">CITED</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#pysmi.registry.tree.CitedArc" title="pysmi.registry.tree.CitedArc"><span class="pre">CitedArc</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'0':</span> <span class="pre">('0',</span> <span class="pre">'itu-t',</span> <span class="pre">'ITU-T</span> <span class="pre">X.660</span> <span class="pre">/</span> <span class="pre">ISO-IEC</span> <span class="pre">9834-1'),</span> <span class="pre">'0.0':</span> <span class="pre">('0.0',</span> <span class="pre">'recommendation',</span> <span class="pre">'ITU-T</span> <span class="pre">X.660</span> <span class="pre">/</span> <span class="pre">ISO-IEC</span> <span class="pre">9834-1'),</span> <span class="pre">'1':</span> <span class="pre">('1',</span> <span class="pre">'iso',</span> <span class="pre">'ITU-T</span> <span class="pre">X.660</span> <span class="pre">/</span> <span class="pre">ISO-IEC</span> <span class="pre">9834-1'),</span> <span class="pre">'1.0':</span> <span class="pre">('1.0',</span> <span class="pre">'standard',</span> <span class="pre">'ITU-T</span> <span class="pre">X.660</span> <span class="pre">/</span> <span class="pre">ISO-IEC</span> <span class="pre">9834-1'),</span> <span class="pre">'1.0.8802':</span> <span class="pre">('1.0.8802',</span> <span class="pre">'iso8802',</span> <span class="pre">'ISO-IEC</span> <span class="pre">8802'),</span> <span class="pre">'1.0.8802.1':</span> <span class="pre">('1.0.8802.1',</span> <span class="pre">'ieee802dot1',</span> <span class="pre">'IEEE</span> <span class="pre">802.1'),</span> <span class="pre">'1.0.8802.1.1':</span> <span class="pre">('1.0.8802.1.1',</span> <span class="pre">'ieee802dot1mibs',</span> <span class="pre">'IEEE</span> <span class="pre">802.1'),</span> <span class="pre">'1.0.8802.17':</span> <span class="pre">('1.0.8802.17',</span> <span class="pre">'ieee802dot17',</span> <span class="pre">'IEEE</span> <span class="pre">802.17'),</span> <span class="pre">'1.0.8802.17.1':</span> <span class="pre">('1.0.8802.17.1',</span> <span class="pre">'ieee802dot17mibs',</span> <span class="pre">'IEEE</span> <span class="pre">802.17'),</span> <span class="pre">'1.1':</span> <span class="pre">('1.1',</span> <span class="pre">'registration-authority',</span> <span class="pre">'ITU-T</span> <span class="pre">X.660</span> <span class="pre">/</span> <span class="pre">ISO-IEC</span> <span class="pre">9834-1'),</span> <span class="pre">'1.2':</span> <span class="pre">('1.2',</span> <span class="pre">'member-body',</span> <span class="pre">'ITU-T</span> <span class="pre">X.660</span> <span class="pre">/</span> <span class="pre">ISO-IEC</span> <span class="pre">9834-1'),</span> <span class="pre">'1.2.840':</span> <span class="pre">('1.2.840',</span> <span class="pre">'us',</span> <span class="pre">'ISO</span> <span class="pre">3166-1</span> <span class="pre">country</span> <span class="pre">code,</span> <span class="pre">under</span> <span class="pre">ITU-T</span> <span class="pre">X.660'),</span> <span class="pre">'1.2.840.10006':</span> <span class="pre">('1.2.840.10006',</span> <span class="pre">'ieee802dot3',</span> <span class="pre">'IEEE</span> <span class="pre">802.3'),</span> <span class="pre">'1.3':</span> <span class="pre">('1.3',</span> <span class="pre">'identified-organization',</span> <span class="pre">'ITU-T</span> <span class="pre">X.660</span> <span class="pre">/</span> <span class="pre">ISO-IEC</span> <span class="pre">9834-1'),</span> <span class="pre">'1.3.111':</span> <span class="pre">('1.3.111',</span> <span class="pre">'ieee',</span> <span class="pre">'IEEE</span> <span class="pre">registration</span> <span class="pre">authority,</span> <span class="pre">under</span> <span class="pre">ITU-T</span> <span class="pre">X.660'),</span> <span class="pre">'1.3.111.2':</span> <span class="pre">('1.3.111.2',</span> <span class="pre">'standards-association-numbered-series-standards',</span> <span class="pre">'IEEE'),</span> <span class="pre">'1.3.111.2.802':</span> <span class="pre">('1.3.111.2.802',</span> <span class="pre">'lan-man-stds',</span> <span class="pre">'IEEE</span> <span class="pre">802'),</span> <span class="pre">'1.3.111.2.802.1':</span> <span class="pre">('1.3.111.2.802.1',</span> <span class="pre">'ieee802dot1',</span> <span class="pre">'IEEE</span> <span class="pre">802.1'),</span> <span class="pre">'1.3.111.2.802.3':</span> <span class="pre">('1.3.111.2.802.3',</span> <span class="pre">'ieee802dot3',</span> <span class="pre">'IEEE</span> <span class="pre">802.3'),</span> <span class="pre">'2':</span> <span class="pre">('2',</span> <span class="pre">'joint-iso-itu-t',</span> <span class="pre">'ITU-T</span> <span class="pre">X.660</span> <span class="pre">/</span> <span class="pre">ISO-IEC</span> <span class="pre">9834-1')}</span></span><a class="headerlink" href="#pysmi.registry.tree.CITED" title="Link to this definition">¶</a></dt>
+<dd><p>Every arc pysmi names from a standard. Small on purpose, since an arc a
+registry names belongs in the registry and this exists only for the ones no
+registry publishes.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pysmi.registry.tree.CitedArc">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.registry.tree.</span></span><span class="sig-name descname"><span class="pre">CitedArc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.registry.tree.CitedArc" title="Link to this definition">¶</a></dt>
+<dd><p>An arc named from a standard rather than from a registry.</p>
+<p>Create new instance of CitedArc(arc, name, reference)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.tree.CitedArc.arc">
+<span class="sig-name descname"><span class="pre">arc</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.tree.CitedArc.arc" title="Link to this definition">¶</a></dt>
+<dd><p>The arc, dotted decimal.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.tree.CitedArc.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.tree.CitedArc.name" title="Link to this definition">¶</a></dt>
+<dd><p>What it is called, as the standard names it.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.registry.tree.CitedArc.reference">
+<span class="sig-name descname"><span class="pre">reference</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.tree.CitedArc.reference" title="Link to this definition">¶</a></dt>
+<dd><p>The standard that names it. Rendered, because a cited name and a
+registered one are different kinds of fact.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.registry.tree.SOURCE">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.tree.</span></span><span class="sig-name descname"><span class="pre">SOURCE</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'standard'</span></span><a class="headerlink" href="#pysmi.registry.tree.SOURCE" title="Link to this definition">¶</a></dt>
+<dd><p>What names an arc here – a standard, cited. Not a registry, and not
+something any build fetched.</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pysmi.registry.tree.X660">
+<span class="sig-prename descclassname"><span class="pre">pysmi.registry.tree.</span></span><span class="sig-name descname"><span class="pre">X660</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ITU-T</span> <span class="pre">X.660</span> <span class="pre">/</span> <span class="pre">ISO-IEC</span> <span class="pre">9834-1'</span></span><a class="headerlink" href="#pysmi.registry.tree.X660" title="Link to this definition">¶</a></dt>
+<dd><p>The standard that defines the top of the tree, for the arcs that have no
+more specific citation.</p>
+</dd></dl>
+
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="patches.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">MIB patches</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="corpus/arcs.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Arc names and where they come from</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2015-2019, Ilya Etingof &lt;etingof@gmail.com&gt;; 2024-2026, the PySNMP maintainers
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Published registries</a><ul>
+<li><a class="reference internal" href="#module-pysmi.registry.pen">Private Enterprise Numbers</a><ul>
+<li><a class="reference internal" href="#taken-as-an-input-never-bundled-never-fetched">Taken as an input. Never bundled, never fetched</a></li>
+<li><a class="reference internal" href="#what-the-reducer-keeps-is-the-caller-s-decision">What the reducer keeps is the caller’s decision</a></li>
+<li><a class="reference internal" href="#why-the-parser-is-here">Why the parser is here</a></li>
+<li><a class="reference internal" href="#what-it-does-not-model">What it does not model</a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.AUTHORITY"><code class="docutils literal notranslate"><span class="pre">AUTHORITY</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.ENTERPRISES"><code class="docutils literal notranslate"><span class="pre">ENTERPRISES</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.FIELDS"><code class="docutils literal notranslate"><span class="pre">FIELDS</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.Registrant"><code class="docutils literal notranslate"><span class="pre">Registrant</span></code></a><ul>
+<li><a class="reference internal" href="#pysmi.registry.pen.Registrant.arc"><code class="docutils literal notranslate"><span class="pre">Registrant.arc</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.Registrant.authority"><code class="docutils literal notranslate"><span class="pre">Registrant.authority</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.Registrant.contact"><code class="docutils literal notranslate"><span class="pre">Registrant.contact</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.Registrant.email"><code class="docutils literal notranslate"><span class="pre">Registrant.email</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.Registrant.number"><code class="docutils literal notranslate"><span class="pre">Registrant.number</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.Registrant.organization"><code class="docutils literal notranslate"><span class="pre">Registrant.organization</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pysmi.registry.pen.authority_url"><code class="docutils literal notranslate"><span class="pre">authority_url()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.is_pen_registry"><code class="docutils literal notranslate"><span class="pre">is_pen_registry()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.load_registry"><code class="docutils literal notranslate"><span class="pre">load_registry()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.parse_registry"><code class="docutils literal notranslate"><span class="pre">parse_registry()</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.pen.reduce_registry"><code class="docutils literal notranslate"><span class="pre">reduce_registry()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-pysmi.registry.smi">SMI numbers</a><ul>
+<li><a class="reference internal" href="#how-an-arc-gets-its-name">How an arc gets its name</a></li>
+<li><a class="reference internal" href="#what-it-does-not-cover">What it does not cover</a></li>
+<li><a class="reference internal" href="#pysmi.registry.smi.AUTHORITY"><code class="docutils literal notranslate"><span class="pre">AUTHORITY</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.smi.ArcName"><code class="docutils literal notranslate"><span class="pre">ArcName</span></code></a><ul>
+<li><a class="reference internal" href="#pysmi.registry.smi.ArcName.arc"><code class="docutils literal notranslate"><span class="pre">ArcName.arc</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.smi.ArcName.authority"><code class="docutils literal notranslate"><span class="pre">ArcName.authority</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.smi.ArcName.name"><code class="docutils literal notranslate"><span class="pre">ArcName.name</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pysmi.registry.smi.NAMESPACE"><code class="docutils literal notranslate"><span class="pre">NAMESPACE</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.smi.parse_smi_numbers"><code class="docutils literal notranslate"><span class="pre">parse_smi_numbers()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-pysmi.registry.tree">The top of the tree, cited</a><ul>
+<li><a class="reference internal" href="#pysmi.registry.tree.CITED"><code class="docutils literal notranslate"><span class="pre">CITED</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.tree.CitedArc"><code class="docutils literal notranslate"><span class="pre">CitedArc</span></code></a><ul>
+<li><a class="reference internal" href="#pysmi.registry.tree.CitedArc.arc"><code class="docutils literal notranslate"><span class="pre">CitedArc.arc</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.tree.CitedArc.name"><code class="docutils literal notranslate"><span class="pre">CitedArc.name</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.tree.CitedArc.reference"><code class="docutils literal notranslate"><span class="pre">CitedArc.reference</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pysmi.registry.tree.SOURCE"><code class="docutils literal notranslate"><span class="pre">SOURCE</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.registry.tree.X660"><code class="docutils literal notranslate"><span class="pre">X660</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=e34e7905"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>

@@ -1,0 +1,585 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="search" title="Search" href="search.html"><link rel="next" title="JSON document schema" href="jsondoc-schema.html"><link rel="prev" title="Bundled base MIBs" href="bundled-mibs.html">
+        <link rel="prefetch" href="_static/logo.svg" as="image">
+        <link rel="prefetch" href="_static/logo.svg" as="image">
+
+    <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Defects a patch repairs - SNMP SMI compiler 5.0.0rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #eeffcc;
+  --color-code-foreground: black;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.0.0rc1 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="contents.html">
+  <div class="sidebar-logo-container">
+    <img class="sidebar-logo only-light" src="_static/logo.svg" alt="Light Logo"/>
+    <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
+  </div>
+  
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.0.0rc1 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="documentation.html">PySMI documentation</a><input aria-label="Toggle navigation of PySMI documentation" checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="mibdump.html">The <em>mibdump</em> tool</a><input aria-label="Toggle navigation of The mibdump tool" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="mibcopy.html">The <em>mibcopy</em> tool</a><input aria-label="Toggle navigation of The mibcopy tool" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="mibcorpus.html">The <em>mibcorpus</em> tool</a><input aria-label="Toggle navigation of The mibcorpus tool" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="mibpatch.html">The <em>mibpatch</em> tool</a><input aria-label="Toggle navigation of The mibpatch tool" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">Defects a patch repairs</a><input aria-label="Toggle navigation of Defects a patch repairs" checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="corpus-schema.html">Corpus database schema</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibcompiler.html">MIB compiler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibstatus.html">Compilation status</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibresolution.html">Source resolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/driver.html">Corpus driver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html">OID index ranking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html#precedence-vectors">Precedence vectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/db.html">Corpus database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/closure.html">Import closures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/entity.html">Enterprise arcs and their registrants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/arcs.html">Arc names and where they come from</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="pysmi/registry.html">Published registries</a><input aria-label="Toggle navigation of Published registries" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/patches.html">MIB patches</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/reader/localfile/filereader.html">Local file reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/reader/zipreader/zipreader.html">ZIP archive reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/reader/httpclient/httpreader.html">HTTP reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/reader/callback/callbackreader.html">Callback reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/reader/package/packagereader.html">Package reader</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/cache/abstractparsecache.html">Parse cache interface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/cache/inmemoryparsecache.html">In-memory parse cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/cache/fileparsecache.html">File parse cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/cache/nullparsecache.html">Null parse cache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/searcher/pyfile/pyfilesearcher.html">Python files searcher</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/searcher/pypackage/pypackagesearcher.html">Search Python packages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/searcher/stub/stubsearcher.html">Unconditionally ignore MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/parser/smi/parserfactory.html">SMI parser</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/parser/smi/dialect.html">SMI language dialects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/codegen/jsondoc/jsoncodegen.html">JSON document generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/codegen/pysnmp/pysnmpcodegen.html">PySNMP MIB generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/codegen/pysnmp/pysnmpsurface.html">PySNMP emission surface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/codegen/null/nullcodegen.html">Code generation stub</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/codegen/symtable/symtablecodegen.html">Symbol table generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/borrower/anyfile/anyfileborrower.html">Any file borrower</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/borrower/pyfile/pyfileborrower.html">Python file borrower</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/writer/localfile/filewriter.html">File writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/writer/pyfile/pyfilewriter.html">Python file writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/writer/callback/callbackwriter.html">Callback writer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/extending.html">Extension points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/mibs.html">Bundled MIB manifest</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/error.html">Exceptions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/download-and-compile-smistar-mibs-into-json.html">Compile MIBs into JSON</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/build-json-index.html">Build a JSON index over compiled MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/download-and-compile-smistar-mibs-into-pysnmp-files.html">Compile MIBs from web</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/compile-smistar-mibs-into-pysnmp-files-if-needed.html">Compile SMIv1/v2 MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/compile-smiv2-mibs-from-text-into-pysnmp-code.html">Compile SMIv2 MIBs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/borrow-precompiled-pysnmp-files-on-failure.html">Borrow pysnmp MIBs on failure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/always-borrow-precompiled-pysnmp-files.html">Always borrow pysnmp MIBs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="download.html">Download &amp; Install</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ci-and-releases.html">Continuous integration and releases</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog-history.html">Historical changelog</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html#third-party-mib-sources">Third-party MIB sources</a></li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="https://github.com/pysnmp/pysmi/blob/main/docs/source/mib-defects.rst?plain=true" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div><div class="edit-this-page">
+  <a class="muted-link" href="https://github.com/pysnmp/pysmi/edit/main/docs/source/mib-defects.rst" rel="edit" title="Edit this page">
+    <svg><use href="#svg-pencil"></use></svg>
+    <span class="visually-hidden">Edit this page</span>
+  </a>
+</div><div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="defects-a-patch-repairs">
+<span id="mib-defects"></span><h1>Defects a patch repairs<a class="headerlink" href="#defects-a-patch-repairs" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>A published MIB that does not compile is repaired by a diff against its text.
+The diff carries the correction; it does not name the defect, and the defect is
+what decides whether the repair should still exist – a repair to text the
+publisher has since fixed should go, and a local preference dressed as a repair
+should never have been written.</p>
+<p>So every patch names the defect it repairs, by an identifier from this page:</p>
+<div class="highlight-diff notranslate"><div class="highlight"><pre><span></span>Defect: SMI-UNPUBLISHED-MODULE https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-unpublished-module
+
+<span class="gd">--- a/SMUX-MIB</span>
+<span class="gi">+++ b/SMUX-MIB</span>
+<span class="gu">@@ -4,7 +4,7 @@</span>
+</pre></div>
+</div>
+<p>One <code class="docutils literal notranslate"><span class="pre">Defect:</span></code> line per defect, and a patch may repair more than one.
+<a class="reference internal" href="mibpatch.html#mibpatch"><span class="std std-ref">The mibpatch tool</span></a> describes the format and how <code class="docutils literal notranslate"><span class="pre">mibpatch</span></code> writes it;
+<a class="reference internal" href="bundled-mibs.html#bundled-mib-patches"><span class="std std-ref">Patched modules</span></a> lists PySMI’s own twelve repairs and what each
+module’s text actually says.</p>
+<p>These identifiers name defects against the SMI itself – <span class="target" id="index-0"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2578.html"><strong>RFC 2578</strong></a>,
+<span class="target" id="index-1"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2579.html"><strong>RFC 2579</strong></a> and <span class="target" id="index-2"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2580.html"><strong>RFC 2580</strong></a> – rather than against any particular collection of
+MIBs, so they are as useful over a vendor tree as over this one. A downstream
+corpus with repairs of its own defines its own identifiers and its own page;
+<a class="reference internal" href="pysmi/patches.html#pysmi.patches.split_patch" title="pysmi.patches.split_patch"><code class="xref py py-func docutils literal notranslate"><span class="pre">pysmi.patches.split_patch()</span></code></a> reads those exactly the same way.</p>
+<p>Reading them back from Python:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.patches</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchSet</span>
+
+<span class="n">patches</span> <span class="o">=</span> <span class="n">PatchSet</span><span class="o">.</span><span class="n">from_directory</span><span class="p">(</span><span class="s2">"./mib-patches"</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">defect</span> <span class="ow">in</span> <span class="n">patches</span><span class="o">.</span><span class="n">defects_for</span><span class="p">(</span><span class="s2">"SMUX-MIB"</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">defect</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">defect</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="the-catalogue">
+<h2>The catalogue<a class="headerlink" href="#the-catalogue" title="Link to this heading">¶</a></h2>
+<section id="smi-missing-import">
+<span id="id1"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-MISSING-IMPORT</span></code><a class="headerlink" href="#smi-missing-import" title="Link to this heading">¶</a></h3>
+<p><em>uses a symbol without naming it in IMPORTS</em> – RFC 2578 section 3.2.</p>
+<p>Every symbol a module uses that it did not define itself has to be named in its
+<code class="docutils literal notranslate"><span class="pre">IMPORTS</span></code> clause. A module that uses <code class="docutils literal notranslate"><span class="pre">TruthValue</span></code> or <code class="docutils literal notranslate"><span class="pre">Unsigned32</span></code> without
+importing it does not compile under a compiler that will not supply the import
+for it – PySMI’s own <code class="docutils literal notranslate"><span class="pre">mibdump</span> <span class="pre">--strict-imports</span></code>, and other SMI tools by
+default.</p>
+<p>This is the one defect a repair can be <em>derived</em> for, and <code class="docutils literal notranslate"><span class="pre">mibpatch</span></code> does:
+where the omitted symbol is undefined, unimported, and exported by exactly one
+base module, the import that was meant is not in doubt. See <a class="reference internal" href="mibpatch.html#mibpatch"><span class="std std-ref">The mibpatch tool</span></a>.</p>
+<p>The repair adds the symbol to the existing <code class="docutils literal notranslate"><span class="pre">FROM</span></code> group for the module that
+exports it, or opens a new group at the end of the clause.</p>
+</section>
+<section id="smi-unpublished-module">
+<span id="id2"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-UNPUBLISHED-MODULE</span></code><a class="headerlink" href="#smi-unpublished-module" title="Link to this heading">¶</a></h3>
+<p><em>imports FROM a module name no publisher ships</em> – RFC 2578 section 3.2.</p>
+<p>An <code class="docutils literal notranslate"><span class="pre">IMPORTS</span></code> clause names the module a symbol comes from, and the name has to
+be one something publishes. Several RFC-published MIBs name modules that nobody
+ever shipped: <code class="docutils literal notranslate"><span class="pre">RFC-1213</span></code> for what is published as <code class="docutils literal notranslate"><span class="pre">RFC1213-MIB</span></code>,
+<code class="docutils literal notranslate"><span class="pre">RFC-1155</span></code> for <code class="docutils literal notranslate"><span class="pre">RFC1155-SMI</span></code>, <code class="docutils literal notranslate"><span class="pre">RFC1212</span></code> for the macro module PySMI
+maintains as <code class="docutils literal notranslate"><span class="pre">RFC-1212</span></code>. Usually the same clause spells its other imports
+correctly, which is what makes these typographical rather than a naming
+convention that moved.</p>
+<p>The repair is the published spelling. It cannot be left to a search path: a
+compiler looking for <code class="docutils literal notranslate"><span class="pre">RFC-1213</span></code> has nothing to find.</p>
+</section>
+<section id="smi-superseded-module">
+<span id="id3"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-SUPERSEDED-MODULE</span></code><a class="headerlink" href="#smi-superseded-module" title="Link to this heading">¶</a></h3>
+<p><em>imports FROM a module that was renamed, under a name that now belongs to a different module</em> – RFC 2578 section 3.2.</p>
+<p>A module imports a symbol <code class="docutils literal notranslate"><span class="pre">FROM</span></code> a module that has since been renamed, and
+the old name now belongs to a <em>different</em> module. This is worse than a name
+that resolves to nothing, because it resolves – to a module that does not
+define the symbol.</p>
+<p><span class="target" id="index-3"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc1565.html"><strong>RFC 1565</strong></a> named the Network Services Monitoring MIB <code class="docutils literal notranslate"><span class="pre">APPLICATION-MIB</span></code>.
+<span class="target" id="index-4"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2788.html"><strong>RFC 2788</strong></a> renamed it <code class="docutils literal notranslate"><span class="pre">NETWORK-SERVICES-MIB</span></code>, and <span class="target" id="index-5"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2564.html"><strong>RFC 2564</strong></a> then published
+an unrelated Application Management MIB under the freed name. A module written
+against <span class="target" id="index-6"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc1565.html"><strong>RFC 1565</strong></a> and read today finds the wrong one.</p>
+<p>The repair is the module’s current name, and any symbol renamed with it –
+<span class="target" id="index-7"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2788.html"><strong>RFC 2788</strong></a> also renamed <code class="docutils literal notranslate"><span class="pre">applGroup</span></code> to <code class="docutils literal notranslate"><span class="pre">applRFC1565Group</span></code>. A
+<code class="docutils literal notranslate"><span class="pre">MODULE-COMPLIANCE</span></code> naming the same group is renamed alongside the
+<code class="docutils literal notranslate"><span class="pre">IMPORTS</span></code>.</p>
+</section>
+<section id="smi-undefined-name">
+<span id="id4"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-UNDEFINED-NAME</span></code><a class="headerlink" href="#smi-undefined-name" title="Link to this heading">¶</a></h3>
+<p><em>references a descriptor the module does not define</em> – RFC 2578 section 3.1.</p>
+<p>A descriptor is referenced that the module does not define and does not import.
+In practice this is a misspelling: a <code class="docutils literal notranslate"><span class="pre">NOTIFICATION-GROUP</span></code> declared as
+<code class="docutils literal notranslate"><span class="pre">mipSecNotifcationsGroup</span></code> where the <code class="docutils literal notranslate"><span class="pre">MODULE-COMPLIANCE</span></code> that names it spells
+it <code class="docutils literal notranslate"><span class="pre">mipSecNotificationsGroup</span></code>, or a <code class="docutils literal notranslate"><span class="pre">MODULE-IDENTITY</span></code> registered
+<code class="docutils literal notranslate"><span class="pre">::=</span> <span class="pre">{</span> <span class="pre">mdmMIB</span> <span class="pre">1</span> <span class="pre">}</span></code> in a module whose node is <code class="docutils literal notranslate"><span class="pre">mdmMib</span></code>. SMI descriptors are
+case-sensitive, so the second of those registers a node under itself.</p>
+<p>The repair is the spelling the rest of the module uses. Where the two spellings
+disagree and only one is defined, the defined one wins.</p>
+</section>
+<section id="smi-clause-out-of-order">
+<span id="id5"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-CLAUSE-OUT-OF-ORDER</span></code><a class="headerlink" href="#smi-clause-out-of-order" title="Link to this heading">¶</a></h3>
+<p><em>defines something before the module’s MODULE-IDENTITY</em> – RFC 2578 section 3.</p>
+<p>A module’s <code class="docutils literal notranslate"><span class="pre">MODULE-IDENTITY</span></code> invocation comes before anything else it
+defines. A module that registers an <code class="docutils literal notranslate"><span class="pre">OBJECT-IDENTITY</span></code> above its
+<code class="docutils literal notranslate"><span class="pre">MODULE-IDENTITY</span></code> is not in the order the SMI gives.</p>
+<p>The repair moves the misplaced definition below the <code class="docutils literal notranslate"><span class="pre">MODULE-IDENTITY</span></code>. A
+forward reference is not the problem – the SMI allows one – the order of the
+invocation is.</p>
+</section>
+<section id="smi-invalid-date">
+<span id="id6"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-INVALID-DATE</span></code><a class="headerlink" href="#smi-invalid-date" title="Link to this heading">¶</a></h3>
+<p><em>gives a date in neither of the two forms the SMI allows</em> – RFC 2578 section 2.</p>
+<p><code class="docutils literal notranslate"><span class="pre">LAST-UPDATED</span></code> and <code class="docutils literal notranslate"><span class="pre">REVISION</span></code> take a UTC time in one of two forms:
+<code class="docutils literal notranslate"><span class="pre">YYMMDDHHMMZ</span></code>, eleven characters, or <code class="docutils literal notranslate"><span class="pre">YYYYMMDDHHMMZ</span></code>, thirteen. A value of
+twelve digits and a <code class="docutils literal notranslate"><span class="pre">Z</span></code> is thirteen characters and so reads as the wide form,
+which is how <span class="target" id="index-8"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2238.html"><strong>RFC 2238</strong></a>’s <code class="docutils literal notranslate"><span class="pre">&quot;970514000000Z&quot;</span></code> becomes year 9705, month 14.</p>
+<p>The repair writes the same date in the form the module plainly meant. It never
+invents one: a date that cannot be read as either form and cannot be read as a
+mistyping of one is a defect to report rather than to repair.</p>
+</section>
+<section id="smi-invalid-access">
+<span id="id7"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-INVALID-ACCESS</span></code><a class="headerlink" href="#smi-invalid-access" title="Link to this heading">¶</a></h3>
+<p><em>gives an access value the SMI does not define</em> – RFC 2578 section 7.3, RFC 2580 section 4.1.</p>
+<p><code class="docutils literal notranslate"><span class="pre">MAX-ACCESS</span></code> and a conformance <code class="docutils literal notranslate"><span class="pre">MIN-ACCESS</span></code> take one of a fixed set of
+values. Text that carries something else – a truncated <code class="docutils literal notranslate"><span class="pre">read-wr</span></code> where
+<code class="docutils literal notranslate"><span class="pre">read-write</span></code> was meant – names no access at all.</p>
+<p>Where the intended value is unambiguous, as it is when the correct line is
+published immediately below the truncated one, the repair drops the defective
+line. Where it is not, the module needs a human.</p>
+</section>
+<section id="smi-misdeclared-access">
+<span id="id8"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-MISDECLARED-ACCESS</span></code><a class="headerlink" href="#smi-misdeclared-access" title="Link to this heading">¶</a></h3>
+<p><em>gives an access the object’s own use contradicts</em> – RFC 2578 section 7.3.</p>
+<p>The access is one the SMI defines, and it contradicts what the object is for.
+<code class="docutils literal notranslate"><span class="pre">accessible-for-notify</span></code> is for an object that is only ever sent in a
+notification; giving it to an ordinary column that a manager reads makes the
+object unreadable.</p>
+<p>This is the one defect class here that is a judgement rather than a rule
+violation, so it wants more care than the others: the repair is only right
+where the module’s own text says what the object is read for. Where it does
+not, leave it alone – a module doing something unusual is not the same as a
+module doing something wrong.</p>
+</section>
+<section id="smi-range-outside-type">
+<span id="id9"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-RANGE-OUTSIDE-TYPE</span></code><a class="headerlink" href="#smi-range-outside-type" title="Link to this heading">¶</a></h3>
+<p><em>bounds a value outside the type it is declared as</em> – RFC 2578 section 7.1.1.</p>
+<p>A range constrains the values a type may take, and cannot widen it.
+<code class="docutils literal notranslate"><span class="pre">Integer32</span></code> is <code class="docutils literal notranslate"><span class="pre">-2147483648</span></code> to <code class="docutils literal notranslate"><span class="pre">2147483647</span></code>, so
+<code class="docutils literal notranslate"><span class="pre">INTEGER</span> <span class="pre">(-1..2147483648)</span></code> bounds a value one past the top of the type it is
+declared as. <span class="target" id="index-9"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc1628.html"><strong>RFC 1628</strong></a> does this twice; RFC Errata 3276 records it.</p>
+<p>The repair is the top of the type. An erratum saying so is what makes it a
+repair rather than a reading.</p>
+</section>
+<section id="smi-display-hint-mismatch">
+<span id="id10"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-DISPLAY-HINT-MISMATCH</span></code><a class="headerlink" href="#smi-display-hint-mismatch" title="Link to this heading">¶</a></h3>
+<p><em>gives a DISPLAY-HINT format the SYNTAX does not allow</em> – RFC 2579 section 3.1.</p>
+<p>A <code class="docutils literal notranslate"><span class="pre">DISPLAY-HINT</span></code> format has to match the <code class="docutils literal notranslate"><span class="pre">SYNTAX</span></code> it is given for. An
+integer takes <code class="docutils literal notranslate"><span class="pre">d</span></code> with an optional decimal point, <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">o</span></code> or <code class="docutils literal notranslate"><span class="pre">b</span></code>; an
+octet string takes an octet count and a format character, as in <code class="docutils literal notranslate"><span class="pre">2d</span></code> or
+<code class="docutils literal notranslate"><span class="pre">1x:</span></code>. An <code class="docutils literal notranslate"><span class="pre">INTEGER</span></code> with <code class="docutils literal notranslate"><span class="pre">DISPLAY-HINT</span> <span class="pre">&quot;2d&quot;</span></code> on it is asking for the
+octet-string form, and an <code class="docutils literal notranslate"><span class="pre">OCTET</span> <span class="pre">STRING</span></code> with <code class="docutils literal notranslate"><span class="pre">&quot;d&quot;</span></code> on it for the integer
+form.</p>
+<p>The repair is the form the <code class="docutils literal notranslate"><span class="pre">SYNTAX</span></code> allows, or – where the hint says nothing
+the syntax can carry – commenting the line out, which leaves the published text
+visible in the module.</p>
+</section>
+<section id="smi-unmarked-comment">
+<span id="id11"></span><h3><code class="docutils literal notranslate"><span class="pre">SMI-UNMARKED-COMMENT</span></code><a class="headerlink" href="#smi-unmarked-comment" title="Link to this heading">¶</a></h3>
+<p><em>continues a comment onto a line that does not start one</em> – RFC 2578 section 3.1.</p>
+<p>A comment runs from <code class="docutils literal notranslate"><span class="pre">--</span></code> to the end of the line, and a comment that wraps
+needs <code class="docutils literal notranslate"><span class="pre">--</span></code> on the next line too. A continuation published without it is read
+as ASN.1, and a stray word in the middle of a <code class="docutils literal notranslate"><span class="pre">SEQUENCE</span></code> is a syntax error
+some distance from anything that looks wrong.</p>
+<p>The repair marks the continuation.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="jsondoc-schema.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">JSON document schema</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="bundled-mibs.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Bundled base MIBs</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2015-2019, Ilya Etingof &lt;etingof@gmail.com&gt;; 2024-2026, the PySNMP maintainers
+            </div>
+            Made with 
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Defects a patch repairs</a><ul>
+<li><a class="reference internal" href="#the-catalogue">The catalogue</a><ul>
+<li><a class="reference internal" href="#smi-missing-import"><code class="docutils literal notranslate"><span class="pre">SMI-MISSING-IMPORT</span></code></a></li>
+<li><a class="reference internal" href="#smi-unpublished-module"><code class="docutils literal notranslate"><span class="pre">SMI-UNPUBLISHED-MODULE</span></code></a></li>
+<li><a class="reference internal" href="#smi-superseded-module"><code class="docutils literal notranslate"><span class="pre">SMI-SUPERSEDED-MODULE</span></code></a></li>
+<li><a class="reference internal" href="#smi-undefined-name"><code class="docutils literal notranslate"><span class="pre">SMI-UNDEFINED-NAME</span></code></a></li>
+<li><a class="reference internal" href="#smi-clause-out-of-order"><code class="docutils literal notranslate"><span class="pre">SMI-CLAUSE-OUT-OF-ORDER</span></code></a></li>
+<li><a class="reference internal" href="#smi-invalid-date"><code class="docutils literal notranslate"><span class="pre">SMI-INVALID-DATE</span></code></a></li>
+<li><a class="reference internal" href="#smi-invalid-access"><code class="docutils literal notranslate"><span class="pre">SMI-INVALID-ACCESS</span></code></a></li>
+<li><a class="reference internal" href="#smi-misdeclared-access"><code class="docutils literal notranslate"><span class="pre">SMI-MISDECLARED-ACCESS</span></code></a></li>
+<li><a class="reference internal" href="#smi-range-outside-type"><code class="docutils literal notranslate"><span class="pre">SMI-RANGE-OUTSIDE-TYPE</span></code></a></li>
+<li><a class="reference internal" href="#smi-display-hint-mismatch"><code class="docutils literal notranslate"><span class="pre">SMI-DISPLAY-HINT-MISMATCH</span></code></a></li>
+<li><a class="reference internal" href="#smi-unmarked-comment"><code class="docutils literal notranslate"><span class="pre">SMI-UNMARKED-COMMENT</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=e34e7905"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    </body>
+</html>
