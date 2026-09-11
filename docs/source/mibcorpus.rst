@@ -611,6 +611,85 @@ over pysnmp/mibs is 1,347 of the 6,694 rather than the 95,603 a page per
 defined OID would be. An arc at a module's anchor is the module, and an arc
 below one is an object the module page already renders.
 
+.. _list-buckets:
+
+Splitting a long list page
+--------------------------
+
+A site rendering a corpus has lists too long for one page: every module it
+holds, every module one registrant published, the children of a wide OID node.
+:py:mod:`pysmi.corpus.buckets` decides what the pieces are called.
+
+**Not first letters.** A to Z is the obvious index and it fails on MIB names,
+which are dominated by vendor prefixes rather than spread across the alphabet:
+
+======================================  =======  ==================
+list                                    buckets  largest
+======================================  =======  ==================
+all 5,510 modules, by first letter      25       ``C`` at 1,708
+Cisco's 1,353 modules, by first letter  7        ``C`` at 1,280
+Cisco's, by first seven characters      38       ``CISCO-I`` at 166
+======================================  =======  ==================
+
+1,224 of Cisco's 1,353 modules begin ``CISCO-``. No fixed prefix length gives
+even buckets, and the length that would work differs between the global list
+and one registrant.
+
+**Not page numbers.** ``page/4/`` is stable only while the list is. Adding one
+module shifts the contents of every later page, so every already-crawled URL
+past the insertion point serves different content and reports a fresh
+``lastmod``. A range key disturbs only the bucket the new entry lands in.
+
+**A range key, derived.** The sorted list is partitioned into equal-count runs
+of the page size, and each run is labelled with the shortest prefix
+distinguishing its ends from its neighbours' -- so the label length falls out
+of the local density:
+
+.. code-block:: text
+
+   AT..CISCO-DIAMETER-SG-C            200
+   CISCO-DIAMETER-SG-M..CISCO-HC      200
+   CISCO-HE..CISCO-LICENSE-MG         200
+   CISCO-LICENSE-MI..CISCO-PRI        200
+   CISCO-PRO..CISCO-TM                200
+   CISCO-TN..CISCO-WDS-IDS-C          200
+   CISCO-WDS-IDS-M..RP                153
+
+The separator is ``..`` rather than an en dash: an en dash percent-encodes to
+``%E2%80%93``, which works and is a needless hazard in a string that crawlers,
+server logs, shell history, spreadsheets and copy-paste all handle. A plain
+``-`` is ambiguous in names full of hyphens. ``..`` occurs in neither a module
+name nor an arc number.
+
+The sort is case-sensitive byte order, which is what the labels imply; a
+display sort that differed would put entries in buckets whose range excludes
+them. A wide OID node's children sort numerically instead, and take their
+numbers whole as labels -- the shortest distinguishing prefix of a decimal
+number is not a number.
+
+Four things the generator needs beyond the split:
+
+``locate``
+    Which bucket a name belongs to, including a name the list did not have
+    when the buckets were built. This is what the browser-side navigation
+    resolves against.
+
+``successors``
+    A bucket that outgrows the page size splits, which renames a key -- the
+    one case where a range URL moves. Static hosting serves no redirects, so
+    the retired key is emitted as a small page carrying a canonical link and a
+    meta refresh to whatever now covers it. ``retired`` names those keys.
+
+``abbreviate``
+    Every bucket is listed on every bucket page, so any bucket is one hop from
+    any other and crawl depth does not grow with the corpus. That works only
+    if the strip fits, and a label runs to 27 characters. The URL keeps the
+    whole label; the rendering is clipped.
+
+A single bucket
+    A list no longer than the page size comes back as one bucket with **no
+    key**: it keeps its unbucketed URL and renders no key strip.
+
 .. _asn1-naming:
 
 How the ASN.1 tree is named

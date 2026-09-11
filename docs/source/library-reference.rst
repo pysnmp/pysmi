@@ -53,6 +53,7 @@ This example showcases some of its features:
    /pysmi/corpus/entity
    /pysmi/corpus/arcs
    /pysmi/corpus/pages
+   /pysmi/corpus/buckets
    /pysmi/registry
    /pysmi/patches
 
