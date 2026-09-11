@@ -166,6 +166,94 @@ class CorpusTestCase(unittest.TestCase):
         return found
 
 
+class JsonTextsTestCase(CorpusTestCase):
+    """Prose in the jsondoc tree, when a build asks for it (pysnmp/pysmi#277).
+
+    A published jsondoc carries names, OIDs, syntax, access and status and no
+    prose, though the texts are 38% of a MIB. A consumer that wants a
+    DESCRIPTION has to fetch and parse the ASN.1, which means a second SMI
+    parser for prose the compiler already read.
+    """
+
+    def rendered(self, where="output"):
+        with open(
+            os.path.join(self.root, where, "json", "ALPHA-MIB.json"), encoding="utf-8"
+        ) as fileObj:
+            return json.load(fileObj)
+
+    def outputs_json(self, where="output", **kwargs):
+        out = os.path.join(self.root, where)
+        layout = {"json": os.path.join(out, "json")}
+        layout.update(kwargs)
+
+        return CorpusOutputs(**layout)
+
+    def testTheTreeCarriesNoProseByDefault(self):
+        """What it has always held, and what it holds unless asked."""
+        CorpusDriver(self.namespaces(), self.outputs_json()).run()
+
+        self.assertNotIn("description", self.rendered()["alphamibObject"])
+
+    def testAskingForTextsPutsThemInTheTree(self):
+        out = os.path.join(self.root, "output")
+
+        CorpusDriver(
+            self.namespaces(),
+            CorpusOutputs(json_texts=os.path.join(out, "json")),
+        ).run()
+
+        self.assertEqual("a module", self.rendered()["alphamibObject"]["description"])
+
+    def testAskingForTextsAloneIsOneCompilePass(self):
+        """Prose without a second pass over the corpus, which is the point."""
+        driver = CorpusDriver(
+            self.namespaces(),
+            CorpusOutputs(json_texts=os.path.join(self.root, "output", "json")),
+        )
+
+        self.assertEqual(["json-texts"], [x.name for x in driver._destinations()])
+
+    def testBothTreesCanBeBuiltAtOnce(self):
+        """A build publishing a lean tree and rendering from a complete one.
+
+        The issue asks for both options, so neither may exclude the other.
+        """
+        driver = CorpusDriver(
+            self.namespaces(),
+            self.outputs_json(json_texts=os.path.join(self.root, "output", "full")),
+        )
+
+        self.assertEqual(
+            ["json", "json-texts"], [x.name for x in driver._destinations()]
+        )
+
+    def testTheProjectionsReadTheTreeTheBuildHas(self):
+        """A build that asked only for the tree with texts in it still gets an
+        index, from that tree rather than from a second pass."""
+        out = os.path.join(self.root, "output")
+        outputs = CorpusOutputs(
+            json_texts=os.path.join(out, "json"),
+            ranked_index=os.path.join(out, "index-v2.csv"),
+        )
+
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        with open(outputs.ranked_index, encoding="utf-8") as fileObj:
+            self.assertIn("ALPHA-MIB", fileObj.read())
+
+    def testTheLayoutIsNotKept(self):
+        """genTexts and keepTextsLayout stay separate: a JSON consumer wants
+        the text normalised rather than the publisher's line breaks."""
+        driver = CorpusDriver(
+            self.namespaces(),
+            CorpusOutputs(json_texts=os.path.join(self.root, "output", "json")),
+        )
+        destination = driver._destinations()[0]
+
+        self.assertTrue(destination.genTexts)
+        self.assertFalse(destination.keepTextsLayout)
+
+
 class ProvenanceTestCase(CorpusTestCase):
     """Where each published module came from (pysnmp/pysmi#278).
 

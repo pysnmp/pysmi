@@ -105,11 +105,16 @@ def start() -> None:
         --emit   - produce one named artifact, repeatable. Naming any
                 turns off the full layout, so a build can ask for just
                 the index or just the JSON. ARTIFACT is one of asn1,
-                notexts, texts, json, index, index-v2, standard,
-                closure, core-db, entity, arcs, report. core-db, entity
-                and arcs are not in the default layout -- ask for those
-                by name. core-db, entity, arcs, closure and the two
-                indexes are projections of the
+                notexts, texts, json, json-texts, index, index-v2,
+                standard, closure, core-db, entity, arcs, report.
+                json-texts is a jsondoc tree with DESCRIPTION and the
+                other texts in it, which costs roughly 70% more on disk
+                and is what makes the tree the complete machine-readable
+                rendering of a module; give it a path of its own to keep
+                a lean published tree beside it. json-texts, core-db,
+                entity and arcs are not in the default layout -- ask for
+                those by name. core-db, entity, arcs, closure and the
+                two indexes are projections of the
                 jsondoc tree; a build asking for one without asking for
                 json gets a tree staged in a temporary directory and
                 removed afterwards, so the corpus carries only what was
@@ -343,6 +348,7 @@ _ARTIFACTS: Final = {
     "notexts": ("notexts", "notexts"),
     "texts": ("texts", "texts"),
     "json": ("json", "json"),
+    "json-texts": ("json_texts", "json"),
     "index": ("index", "index.csv"),
     "index-v2": ("ranked_index", "index-v2.csv"),
     "standard": ("standard", "standard.txt"),
@@ -359,12 +365,20 @@ _ARTIFACTS: Final = {
 #: not part of it: building one costs a pass over the whole jsondoc tree that
 #: nothing else needs, so a plain ``mibcorpus`` run must not pay for it.
 #:
-#: The entity index is opt-in for a different reason. It is cheap, but it is
-#: only worth having with ``--oid-registry`` to name the arcs, and that is an
-#: input the caller supplies; emitting it by default would publish an index
-#: naming nobody, which reads as a corpus registering under arcs that were
-#: never allocated.
-_OPT_IN: Final = frozenset({"core-db", "entity", "arcs"})
+#: ``json-texts`` is not either. The default layout is the lean ``json/`` the
+#: corpus has always published, and a build that wants the texts says so --
+#: they cost roughly 70% more on disk.
+#:
+#: The entity index is opt-in for a third reason. It is cheap, but it is only
+#: worth having with ``--oid-registry`` to name the arcs, and that is an input
+#: the caller supplies; emitting it by default would publish an index naming
+#: nobody, which reads as a corpus registering under arcs that were never
+#: allocated.
+#:
+#: The arc name index is opt-in for the same reason as the entity index,
+#: and for one more: it is the registration tree, which a corpus that only
+#: wants its modules has no use for.
+_OPT_IN: Final = frozenset({"core-db", "json-texts", "entity", "arcs"})
 
 
 def _registries(
@@ -444,6 +458,17 @@ def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
             ) from None
 
         setattr(outputs, attribute, path or os.path.join(directory, default))
+
+    # Both may be named -- a build publishing a lean tree and rendering from a
+    # complete one wants exactly that -- but not into one directory, where the
+    # second pass would overwrite the first and which of them survived would
+    # depend on the order this loop happened to run in.
+    if outputs.json and outputs.json == outputs.json_texts:
+        raise error.PySmiError(
+            "--emit names json and json-texts at the same path; give one of "
+            "them a path of its own, or name only json-texts to have that "
+            "tree carry the texts"
+        )
 
     return outputs
 
