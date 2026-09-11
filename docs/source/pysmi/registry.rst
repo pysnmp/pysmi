@@ -15,3 +15,19 @@ Private Enterprise Numbers
 
 .. automodule:: pysmi.registry.pen
   :members:
+
+.. _registry.smi:
+
+SMI numbers
+-----------
+
+.. automodule:: pysmi.registry.smi
+  :members:
+
+.. _registry.tree:
+
+The top of the tree, cited
+--------------------------
+
+.. automodule:: pysmi.registry.tree
+  :members:
