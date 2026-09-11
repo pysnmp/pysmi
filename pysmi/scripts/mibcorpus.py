@@ -100,8 +100,13 @@ def start() -> None:
         --emit   - produce one named artifact, repeatable. Naming any
                 turns off the full layout, so a build can ask for just
                 the index or just the JSON. ARTIFACT is one of asn1,
-                notexts, texts, json, index, index-v2, standard, closure,
-                core-db, report. core-db, closure and the two indexes
+                notexts, texts, json, json-texts, index, index-v2,
+                standard, closure, core-db, report. json-texts is the
+                json tree with DESCRIPTION and the other texts in it,
+                which costs roughly 70% more on disk and is what makes
+                the tree the complete machine-readable rendering of a
+                module; it is the same artifact as json, so name one or
+                the other. core-db, closure and the two indexes
                 are projections of the
                 jsondoc tree; a build asking for one without asking for
                 json gets a tree staged in a temporary directory and
@@ -306,6 +311,7 @@ _ARTIFACTS: Final = {
     "notexts": ("notexts", "notexts"),
     "texts": ("texts", "texts"),
     "json": ("json", "json"),
+    "json-texts": ("json_texts", "json"),
     "index": ("index", "index.csv"),
     "index-v2": ("ranked_index", "index-v2.csv"),
     "standard": ("standard", "standard.txt"),
@@ -319,7 +325,11 @@ _ARTIFACTS: Final = {
 #: The default layout is what pysnmp/mibs publishes, and the corpus database is
 #: not part of it: building one costs a pass over the whole jsondoc tree that
 #: nothing else needs, so a plain ``mibcorpus`` run must not pay for it.
-_OPT_IN: Final = frozenset({"core-db"})
+#:
+#: ``json-texts`` is not either. The default layout is the lean ``json/`` the
+#: corpus has always published, and a build that wants the texts says so --
+#: they cost roughly 70% more on disk.
+_OPT_IN: Final = frozenset({"core-db", "json-texts"})
 
 
 def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
@@ -356,6 +366,17 @@ def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
             ) from None
 
         setattr(outputs, attribute, path or os.path.join(directory, default))
+
+    # Both may be named -- a build publishing a lean tree and rendering from a
+    # complete one wants exactly that -- but not into one directory, where the
+    # second pass would overwrite the first and which of them survived would
+    # depend on the order this loop happened to run in.
+    if outputs.json and outputs.json == outputs.json_texts:
+        raise error.PySmiError(
+            "--emit names json and json-texts at the same path; give one of "
+            "them a path of its own, or name only json-texts to have that "
+            "tree carry the texts"
+        )
 
     return outputs
 

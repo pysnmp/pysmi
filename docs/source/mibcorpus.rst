@@ -151,7 +151,8 @@ What it produces
    * - ``texts/``
      - pysnmp modules with them, in their original layout.
    * - ``json/``
-     - jsondoc documents.
+     - jsondoc documents. Without DESCRIPTION and the other texts unless
+       the build asks -- see :ref:`json-texts`.
    * - ``index-v2.csv``
      - The ranked OID index: for every OID, the one module that owns it.
    * - ``index.csv``
@@ -287,6 +288,62 @@ Two things the artifact settles rather than leaving to the caller:
 The names are module names, which are the names of the files in ``asn1/`` --
 see :ref:`asn1-naming` -- so a caller holding a closure holds the file list
 and can build the URLs itself.
+
+.. _json-texts:
+
+Prose in the JSON
+-----------------
+
+A published jsondoc carries names, OIDs, syntax, access and status, and no
+prose. `IF-MIB.json <https://pysnmp.github.io/mibs/json/IF-MIB.json>`_ has no
+description on ``ifOperStatus``, though the module's text describes all seven
+of its enumerated states. Measured over a 300-file sample,
+``DESCRIPTION``, ``REFERENCE`` and ``CONTACT-INFO`` are **38% of the text of a
+MIB** -- a large part of the module the JSON rendering omits, and a consumer
+that wants it has to fetch and parse the ASN.1, which means a second SMI parser
+for prose the compiler already read.
+
+``json-texts`` is a jsondoc tree with the texts in it:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output --emit=json-texts
+
+That writes ``json/`` -- one tree, carrying the prose, at one compile pass.
+
+It is a destination of its own rather than a flag on ``json``, so a build may
+also have both:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output \
+       --emit=json --emit=json-texts:build/full
+
+which publishes the lean tree and keeps a complete one for something that needs
+the prose -- a site generator rendering descriptions into its pages, say --
+without the published artifact growing. That is two passes, because it is two
+trees. Naming both at one path is refused: the second pass would overwrite the
+first, and which of them survived would depend on the order the emit list was
+read in.
+
+The texts cost roughly 70% more on disk: over pysnmp/mibs' corpus ``json/``
+goes from about 170 MB to about 290 MB. That is a decision for the build, which
+is the argument for asking rather than assuming, and ``json-texts`` is not in
+the default layout.
+
+What ``genTexts`` gates is more than descriptions:
+``JsonCodeGen.gen_module_identity`` puts ``organization`` and ``contactinfo``
+behind the same switch. ``CISCO-ENTITY-ALARM-MIB`` carries a full
+``CONTACT-INFO`` block in its ASN.1 -- Cisco Systems, Customer Service, a
+postal address, a phone number and ``cs-snmp@cisco.com`` -- and none of it
+reaches the published JSON. Over a 500-module sample, 90% of modules carry
+``ORGANIZATION`` and ``CONTACT-INFO``, and 66% of those carry an email. That is
+the publisher's own statement of where to report a problem, and it is what
+:doc:`/mibcorpus` cannot show a reader until this is turned on.
+
+``keepTextsLayout`` is not turned on with it. The two are separate for the
+pysnmp destinations and stay separate here: a JSON consumer generally wants the
+text normalised rather than the publisher's line breaks preserved.
 
 .. _asn1-naming:
 
