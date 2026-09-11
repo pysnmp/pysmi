@@ -97,6 +97,11 @@ MODULE: Final = "module"
 
 _PREFIX: Final = f"{ENTERPRISES}."
 
+#: How many unregistered enterprise numbers the warning names before it stops
+#: and gives a count. A build against no registry at all has hundreds of them,
+#: and a log line is not the artifact -- ``arcs.json`` carries every one.
+_SHOWN: Final = 10
+
 
 class Arc(NamedTuple):
     """One arc of the registration tree, and what names it."""
@@ -249,6 +254,39 @@ def _enterprise(arc: str) -> int | None:
     return int(rest) if rest.isdigit() else None
 
 
+def unregistered(found: dict[str, Arc]) -> tuple[int, ...]:
+    """The enterprise numbers no registrant in the PEN registry named.
+
+    A corpus that commits a *reduced* PEN snapshot -- the registrants its own
+    arcs use, rather than all 66,807 -- names every enterprise arc it has
+    until it gains a module under an arc the snapshot predates. Then one
+    registrant page goes nameless, and nothing about the build says so: the
+    arc is still in the index, still reachable, still rendered, just blank.
+
+    This is the build saying so. It is not a failure -- an arc can be
+    registered to nobody, and IANA's registry has gaps of its own -- it is a
+    prompt to refresh the snapshot.
+
+    Args:
+        found: the arcs, as :py:func:`arcs` returns them.
+
+    Returns:
+        The enterprise numbers, ascending, whose arc the registry did not
+        name. An arc a module named is still counted: the module's own
+        descriptor says what the vendor calls its subtree, not who registered
+        it, and it is the registrant a refresh would supply.
+    """
+    missing = []
+
+    for arc in found.values():
+        number = _enterprise(arc.arc)
+
+        if number is not None and arc.source != REGISTRY:
+            missing.append(number)
+
+    return tuple(sorted(missing))
+
+
 def as_document(found: dict[str, Arc]) -> dict[str, Any]:
     """The artifact, as plain data."""
     counted: dict[str, int] = {}
@@ -286,7 +324,8 @@ def counts(found: dict[str, Arc]) -> dict[str, int]:
     failure -- a corpus can perfectly well reach an arc registered to nobody.
     """
     counted = as_document(found)["meta"]["by-source"]
-    tally = {"arcs": len(found), **counted}
+    missing = unregistered(found)
+    tally = {"arcs": len(found), **counted, "unregistered-enterprises": len(missing)}
 
     logger.info(
         "arc names: %d arcs, %s",
@@ -294,5 +333,17 @@ def counts(found: dict[str, Arc]) -> dict[str, int]:
         ", ".join(f"{v} from {k}" for k, v in sorted(counted.items())),
         extra={"arcs": len(found), "sources": counted},
     )
+
+    if missing:
+        shown = ", ".join(str(x) for x in missing[:_SHOWN])
+        more = f" and {len(missing) - _SHOWN} more" if len(missing) > _SHOWN else ""
+
+        logger.warning(
+            "%d enterprise arc(s) no PEN registrant names: %s%s",
+            len(missing),
+            shown,
+            more,
+            extra={"unregistered": list(missing)},
+        )
 
     return tally
