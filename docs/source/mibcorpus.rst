@@ -163,7 +163,8 @@ What it produces
        ``SNMPv2*`` prefixes the published file has never carried.
    * - ``report.json``
      - What the build did: the failure inventory, the modules more than one
-       namespace holds, the node counts, and how long each phase took.
+       namespace holds, the node counts, which JSON implementation wrote the
+       artifacts, and how long each phase took.
 
 One artifact is **not** in that layout and has to be asked for by name:
 
@@ -198,6 +199,41 @@ goes.
 
 Every artifact but ``report.json`` is byte-reproducible. The report is the
 build's log and records elapsed time.
+
+.. _corpus-json-encoding:
+
+How the JSON is written
+-----------------------
+
+``json/`` and the JSON index are written compactly -- one line per document,
+no space after a separator, UTF-8 written as itself rather than escaped. They
+are generated trees that nobody reads by eye, and indenting them costs about
+30% of the tree on disk: roughly 50 MB over a corpus the size of the one
+pysnmp/mibs publishes. Gzipped the difference is about 8%, because gzip
+already eats indentation, so this is a saving on a checkout, an image and a
+Pages site rather than on bandwidth.
+
+``report.json`` is not written that way and stays indented. It is the build's
+log, read by a person looking at a failed build.
+
+A faster JSON implementation is used when one is installed:
+
+.. code-block:: sh
+
+   pip install 'pysnmp-pysmi[fast]'
+
+That pulls in orjson; msgspec is taken instead if a caller already has it.
+Either is worth about 4% of a build, because SMI parsing dominates everything
+else, which is why it is an extra rather than a dependency -- 4% does not buy
+a wheel with a compiled extension in it for everyone.
+
+**What is installed does not change a published byte.** The standard library
+is the reference, the faster encoders are used only where they agree with it,
+and ``tests/test_jsonio.py`` asserts that agreement over every document the
+bundled corpus produces rather than trusting that it holds. A build with the
+extra and one without are the same corpus. ``report.json`` records which
+implementation ran, as ``json``, so two builds being compared can each say
+what they resolved.
 
 
 .. _asn1-naming:
