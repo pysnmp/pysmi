@@ -48,12 +48,12 @@ from a directory layout, and that revisions go through
 
 import csv
 import io
-import json
 import logging
 import os
 from collections.abc import Iterable, Iterator
 from typing import Any, Final
 
+from pysmi import jsonio
 from pysmi.mibinfo import normalise_revision
 
 logger = logging.getLogger(__name__)
@@ -417,7 +417,7 @@ def read_documents(
 
         with open(os.path.join(directory, filename), encoding="utf-8") as fileObj:
             try:
-                document = json.load(fileObj)
+                document = jsonio.loads(fileObj.read())
 
             except ValueError as exc:
                 # A document that will not parse is skipped rather than

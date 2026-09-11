@@ -158,6 +158,14 @@ and layout. The snippet above is just an example, here is the complete
 `IF-MIB.json <https://pysnmp.github.io/mibs/json/IF-MIB.json>`_
 file.
 
+.. note::
+
+   The document is written on one line, with no space after a separator --
+   it is a generated artifact, and indenting a corpus of them costs about 30%
+   of the tree on disk. The snippets on this page are re-indented so they can
+   be read. Pipe a document through ``python -m json.tool`` to do the same.
+   See :ref:`corpus-json-encoding`.
+
 Specifying MIB source
 ---------------------
 

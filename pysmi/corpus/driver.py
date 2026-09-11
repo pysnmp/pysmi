@@ -44,7 +44,7 @@ from dataclasses import dataclass, field
 from typing import Any, Final
 
 from pysmi import __version__ as packageVersion
-from pysmi import error
+from pysmi import error, jsonio
 from pysmi.cache.memory import InMemoryParseCache
 from pysmi.codegen.base import AbstractCodeGen
 from pysmi.codegen.jsondoc import JsonCodeGen
@@ -160,6 +160,12 @@ class CorpusReport:
 
     #: pysmi version that produced this.
     version: str = packageVersion
+    #: Which JSON implementation wrote the corpus artifacts. What it wrote
+    #: does not depend on this -- ``tests/test_jsonio.py`` holds the
+    #: implementations to identical bytes -- but a build being compared
+    #: against another is easier to reason about when each says what it
+    #: resolved. See :py:mod:`pysmi.jsonio`.
+    json: str = jsonio.IMPLEMENTATION
     #: Namespaces built, in declaration order, with their tier and how many
     #: modules each supplied.
     namespaces: list[dict[str, Any]] = field(default_factory=list)
@@ -198,6 +204,7 @@ class CorpusReport:
         """This report as plain data, for JSON."""
         return {
             "version": self.version,
+            "json": self.json,
             "namespaces": self.namespaces,
             "statuses": self.statuses,
             "failed": self.failed,
