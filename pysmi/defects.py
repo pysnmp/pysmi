@@ -102,6 +102,11 @@ CATALOGUE: dict[str, DefectClass] = _catalogue(
         "RFC 2578 section 3.2",
     ),
     DefectClass(
+        "SMI-UNEXPORTED-IMPORT",
+        "imports a symbol the named module does not export",
+        "RFC 2578 section 3.2",
+    ),
+    DefectClass(
         "SMI-SUPERSEDED-MODULE",
         "imports FROM a module that was renamed, under a name that now belongs "
         "to a different module",

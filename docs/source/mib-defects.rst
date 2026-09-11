@@ -85,6 +85,29 @@ convention that moved.
 The repair is the published spelling. It cannot be left to a search path: a
 compiler looking for ``RFC-1213`` has nothing to find.
 
+.. _smi-unexported-import:
+
+``SMI-UNEXPORTED-IMPORT``
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*imports a symbol the named module does not export* -- RFC 2578 section 3.2.
+
+The ``IMPORTS`` clause names a module that exists and a symbol that exists, and
+the named module does not define the symbol. Unlike
+:ref:`smi-unpublished-module` the module name resolves, so a search path finds
+something; what it finds does not answer for the symbol.
+
+The usual cause is an export withdrawn under a module that was not withdrawn
+with it. ``CISCO-TC`` defined an ``Unsigned32`` textual convention in 1996 and
+removed it in 2004 -- correctly, since :rfc:`2578` had made ``Unsigned32`` a
+base type of ``SNMPv2-SMI`` in the meantime -- and its own revision history
+says both. A module importing it ``FROM CISCO-TC`` and never revised since
+names an export that was real when it was written.
+
+The repair is the module that does export the symbol today. Where that is a
+base module the clause already imports from, the symbol joins the existing
+``FROM`` group and the stale one is dropped.
+
 .. _smi-superseded-module:
 
 ``SMI-SUPERSEDED-MODULE``
