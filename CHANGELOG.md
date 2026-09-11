@@ -3,6 +3,34 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.1](https://github.com/pysnmp/pysmi/compare/v4.1.1...v5.0.0-rc.1) (2026-09-11)
+
+### ⚠ BREAKING CHANGES
+
+* **corpus:** core.db schema version 2. open_db refuses a version it
+does not write, so a reader and a corpus move together. Conformance
+vectors for the new table are in pysmi.corpus.conformance, as the
+schema-bump gate requires, and a consumer runs them against its own
+reader.
+
+Closes #278.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01UfaAJMxsnQZoKJVkc4rg1K
+
+### Features
+
+* **corpus:** let the JSON destination carry DESCRIPTION and the other texts ([65c290d](https://github.com/pysnmp/pysmi/commit/65c290d9aec3a0d65c37c90baec0314c6e2a7fef))
+* **corpus:** name OID arcs from the numbering authorities ([8c498ba](https://github.com/pysnmp/pysmi/commit/8c498ba647c57f852ac6ab2216fd59759557fb11))
+* **corpus:** publish the transitive import closure per module ([eb3c03f](https://github.com/pysnmp/pysmi/commit/eb3c03f495b21167ab1696963ad5ee831ea0ffe8))
+* **corpus:** record where each published module came from ([3fb8ab3](https://github.com/pysnmp/pysmi/commit/3fb8ab35f99cc3c87321e53d12a1096a7381246b))
+* **patches:** name the defect a patch repairs, from a documented catalogue ([9c87158](https://github.com/pysnmp/pysmi/commit/9c8715885df84a2331b68f621ae904848a4c86da))
+* **registry:** annotate enterprise arcs and their owner contact from IANA ([79b703d](https://github.com/pysnmp/pysmi/commit/79b703d33f79cbd09208b47c0a4c3711e605dc8a)), closes [#277](https://github.com/pysnmp/pysmi/issues/277)
+
+### Performance Improvements
+
+* **jsondoc:** write the corpus JSON compactly, and allow a faster encoder ([b7bf6f4](https://github.com/pysnmp/pysmi/commit/b7bf6f487b7d13497566facc542bf152cfb3e276))
+
 ## [4.1.1](https://github.com/pysnmp/pysmi/compare/v4.1.0...v4.1.1) (2026-09-11)
 
 ### Bug Fixes
