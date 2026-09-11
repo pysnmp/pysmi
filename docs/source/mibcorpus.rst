@@ -226,12 +226,13 @@ So:
   under both names, since either one may be what a consumer asks for.
 * **A module the corpus only resolves against is not there at all.** A
   namespace declared ``"publish": false`` reaches no output tree.
-
-A module that fails to compile is still staged: the tree is what the corpus
-publishes its sources as, and a consumer asking for it should get the text
-rather than a 404. It is absent from the indexes and from ``core.db``, which
-are projections of what compiled. For a corpus that compiles clean the module
-sets of all three agree.
+* **Only what compiled is there.** A module the build could not compile is
+  left out, and so is anything that imports it. Serving its ASN.1 buys a
+  consumer nothing -- it fetches the text, compiles it with the same pysmi
+  and fails where this build failed, one round trip later. ``asn1/``,
+  ``standard.txt``, both indexes and ``core.db`` therefore carry one module
+  set rather than several. What was dropped is named in ``report.json``,
+  with the error that dropped it.
 
 ``tests/test_corpus_asn1_contract.py`` pins this, and the consumer layer
 compiles a module out of an emitted tree over the ``@mib@`` template itself.

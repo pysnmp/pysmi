@@ -20,6 +20,7 @@ the consumer layer, which is the only file allowed to reach the runtime.
 """
 
 import csv
+import json
 import os
 import shutil
 import sqlite3
@@ -126,6 +127,26 @@ BROKEN-MIB DEFINITIONS ::= BEGIN
 END
 """
 
+#: A module that is itself well formed and imports one that is not. The
+#: compiler reports it as failed or unprocessed depending on how far it got;
+#: either way the corpus does not have it.
+BROKEN_DEPENDENT_MIB = """\
+NEEDS-BROKEN-MIB DEFINITIONS ::= BEGIN
+IMPORTS
+    MODULE-IDENTITY, enterprises
+        FROM SNMPv2-SMI
+    brokenThing
+        FROM BROKEN-MIB;
+
+needsBrokenMib MODULE-IDENTITY
+    LAST-UPDATED "202401010000Z"
+    ORGANIZATION "test"
+    CONTACT-INFO "test"
+    DESCRIPTION  "imports a module that does not compile"
+    ::= { enterprises 40005 }
+END
+"""
+
 #: Every module the fixture publishes, as the tree must name them: the SMI
 #: name, upper case, no extension, whatever the file holding it was called.
 PUBLISHED = (
@@ -159,9 +180,9 @@ def sources(root):
 class Asn1TreeTestCase(unittest.TestCase):
     """What a build writes into ``asn1/``.
 
-    The corpus here compiles clean, which is what lets the trees be compared
-    for equality. A corpus carrying a module that does not compile is the
-    other case, and :py:class:`DefectiveModuleTestCase` states it.
+    The corpus here compiles clean. :py:class:`DefectiveModuleTestCase`
+    builds the same sources with a module that does not, and asserts the
+    same equality -- what the corpus publishes is what compiled.
     """
 
     @classmethod
@@ -242,13 +263,19 @@ class Asn1TreeTestCase(unittest.TestCase):
 
 
 class DefectiveModuleTestCase(unittest.TestCase):
-    """A module the corpus holds but cannot compile.
+    """A module the corpus holds but cannot compile reaches no output tree.
 
-    It is staged, because the tree is what the corpus publishes its sources
-    as and a consumer asking for it should get the text rather than a 404.
-    It is not indexed, because the index is a projection of what compiled.
-    The trees therefore agree for a clean corpus and the ASN.1 tree is the
-    larger of the two for one carrying a defective module.
+    Nor does anything that imports it. Serving the ASN.1 for a module the
+    corpus could not compile buys a consumer nothing: it fetches the text,
+    compiles it with the same pysmi, and fails where this build failed. A
+    404 says so one round trip earlier and says it truthfully.
+
+    The compiler already reports a dependent as failed or unprocessed, so
+    the exclusion follows from the compile result rather than from a
+    dependency walk of pysmi's own. ``report.json`` keeps the inventory:
+    what was dropped is named there with the error that dropped it.
+
+    See pysnmp/pysmi#269.
     """
 
     @classmethod
@@ -256,23 +283,63 @@ class DefectiveModuleTestCase(unittest.TestCase):
         cls.root = tempfile.mkdtemp()
         base, vendor = sources(cls.root)
         _write(os.path.join(vendor, "BROKEN-MIB"), BROKEN_MIB)
+        _write(os.path.join(vendor, "NEEDS-BROKEN-MIB"), BROKEN_DEPENDENT_MIB)
         cls.out = _build(cls.root, base, vendor)
 
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.root, ignore_errors=True)
 
-    def testItIsPublishedAsAsn1(self):
-        self.assertIn("BROKEN-MIB", os.listdir(os.path.join(self.out, "asn1")))
+    def testItIsInNoTreeAtAll(self):
+        for module in ("BROKEN-MIB", "NEEDS-BROKEN-MIB"):
+            with self.subTest(module=module):
+                self.assertNotIn(module, os.listdir(os.path.join(self.out, "asn1")))
+                self.assertNotIn(module, self.indexed())
+                self.assertNotIn(module, self.inDatabase())
 
-    def testItIsTheOnlyThingTheIndexDoesNotName(self):
-        with open(os.path.join(self.out, "index-v2.csv"), encoding="utf-8") as fileObj:
-            indexed = {module for module, _oid in csv.reader(fileObj)}
-
+    def testEveryTreeCarriesTheSameModuleSet(self):
+        # The point of deciding this once, off the compile: a corpus with a
+        # defective module in it has no artifact that disagrees with another
+        # about what the corpus holds.
         staged = set(os.listdir(os.path.join(self.out, "asn1")))
 
-        self.assertEqual({"BROKEN-MIB"}, staged - indexed)
-        self.assertEqual(set(), indexed - staged)
+        self.assertEqual(set(PUBLISHED), staged)
+        self.assertEqual(staged, self.indexed())
+        self.assertEqual(staged, self.inDatabase())
+
+    def testTheReportStillNamesWhatWasDropped(self):
+        # Dropping it from the tree must not drop it from the inventory --
+        # a corpus silently missing a module is what pysnmp/pysmi#182 was.
+        with open(os.path.join(self.out, "report.json"), encoding="utf-8") as fileObj:
+            report = json.load(fileObj)
+
+        dropped = set(report["failed"]["json"]) | set(report["unprocessed"]["json"])
+
+        self.assertEqual({"BROKEN-MIB", "NEEDS-BROKEN-MIB"}, dropped)
+        self.assertTrue(report["failed"]["json"]["BROKEN-MIB"])
+
+    def testTheReportedModuleCountIsWhatTheCorpusCarries(self):
+        # A manifest bounds this, so it has to mean what the corpus serves
+        # rather than what its sources hold. See pysnmp/pysmi#263.
+        with open(os.path.join(self.out, "report.json"), encoding="utf-8") as fileObj:
+            report = json.load(fileObj)
+
+        self.assertEqual(len(PUBLISHED), report["modules"])
+
+    def indexed(self):
+        """The modules the ranked index names."""
+        with open(os.path.join(self.out, "index-v2.csv"), encoding="utf-8") as fileObj:
+            return {module for module, _oid in csv.reader(fileObj)}
+
+    def inDatabase(self):
+        """The modules core.db holds."""
+        connection = sqlite3.connect(os.path.join(self.out, "core.db"))
+
+        try:
+            return {x[0] for x in connection.execute("SELECT name FROM module")}
+
+        finally:
+            connection.close()
 
 
 def _write(path, text):

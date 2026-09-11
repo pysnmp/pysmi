@@ -174,7 +174,9 @@ class CorpusReport:
     #: was used, which were passed over, and which rule decided.
     shadowed: dict[str, dict[str, Any]] = field(default_factory=dict)
     #: Modules the corpus publishes, counted once however many namespaces
-    #: hold one. Independent of the emit set, which is what lets a manifest
+    #: hold one: what compiled, which is what every artifact carries. A
+    #: module that failed, and anything that imports it, is not in this
+    #: number. Independent of the emit set, which is what lets a manifest
     #: bound it whatever artifacts the build was asked for -- unlike
     #: :py:attr:`staged`, which is zero for a build not writing ASN.1.
     modules: int = 0
@@ -529,6 +531,31 @@ class CorpusDriver:
 
         return self._modulesOfNamespace
 
+    def _published_modules(
+        self, results: dict[str, dict[str, Any]]
+    ) -> "list[str] | None":
+        """What the corpus carries, read off the jsondoc compile.
+
+        The jsondoc is the SMI model every other artifact is a projection
+        of, so it is the one that decides. A module that did not compile is
+        not in it, and neither is anything that imports one -- the compiler
+        reports those as ``failed`` or ``unprocessed`` already, so the
+        closure costs no dependency walk here.
+
+        ``None`` where the build compiled no JSON at all, which means
+        "everything the namespaces hold" to each writer.
+        """
+        written = results.get("json")
+
+        if written is None:
+            return None
+
+        return sorted(
+            name
+            for name, status in written.items()
+            if str(status) in PUBLISHED_STATUSES
+        )
+
     def compile(self, report: CorpusReport) -> dict[str, dict[str, Any]]:
         """Compile every namespace into every destination.
 
@@ -609,7 +636,9 @@ class CorpusDriver:
 
         return results
 
-    def stage(self, report: CorpusReport) -> dict[str, str]:
+    def stage(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> dict[str, str]:
         """Write the published ASN.1 tree, one file per module name.
 
         Flat and named for the module, because that is what the tree's
@@ -625,6 +654,13 @@ class CorpusDriver:
 
         Args:
             report: filled in with what was staged and what was shadowed
+            compiled: the modules this build compiled, which is what the
+                corpus publishes. A module that does not compile -- and, by
+                the same result, everything that imports it -- is left out,
+                so the tree, the indexes and the database carry one module
+                set rather than three. Every module the namespaces hold when
+                not given, which is what a caller staging sources without
+                compiling them wants. See pysnmp/pysmi#269.
 
         Returns:
             Module name to the source path it was staged from.
@@ -650,10 +686,14 @@ class CorpusDriver:
         resolver.add_sources(*[self._readers[x.name] for x in self._namespaces])
 
         staged: dict[str, str] = {}
+        publishable = None if compiled is None else set(compiled)
 
         for namespace in self._published:
             for module in self._module_sets()[namespace.name]:
                 if module in staged:
+                    continue
+
+                if publishable is not None and module not in publishable:
                     continue
 
                 resolution = resolver.resolve(module)
@@ -693,13 +733,20 @@ class CorpusDriver:
 
         return staged
 
-    def write_standard(self, staged: dict[str, str]) -> None:
+    def write_standard(self, compiled: "Iterable[str] | None" = None) -> None:
         """Write the standard module list.
 
-        Every module from a namespace declared ``standard``, less the
-        prefixes the published file has never carried. See
-        :py:data:`STANDARD_TXT_EXCLUDED_PREFIXES` for why that exclusion is
-        reproduced rather than corrected.
+        Every module from a namespace declared ``standard`` that the corpus
+        publishes, less the prefixes the published file has never carried.
+        See :py:data:`STANDARD_TXT_EXCLUDED_PREFIXES` for why that exclusion
+        is reproduced rather than corrected.
+
+        Args:
+            compiled: the modules this build compiled, as :py:meth:`stage`
+                takes it. The list is what a consumer preloads, so a module
+                that does not compile has no business on it -- naming one is
+                the same lie as serving it. Every module the standard
+                namespaces hold when not given.
         """
         path = self._outputs.standard
 
@@ -713,6 +760,9 @@ class CorpusDriver:
                 continue
 
             standard.update(self._module_sets()[namespace.name])
+
+        if compiled is not None:
+            standard &= set(compiled)
 
         names = sorted(
             x for x in standard if not x.startswith(STANDARD_TXT_EXCLUDED_PREFIXES)
@@ -892,9 +942,17 @@ class CorpusDriver:
         report.seconds["index"] = time.time() - started
 
     def _needs_jsondoc(self) -> bool:
-        """Whether an artifact asked for is a projection of the jsondoc tree."""
+        """Whether an artifact asked for is a projection of the jsondoc tree.
+
+        The ASN.1 tree and the standard list are projections too: both carry
+        what the corpus publishes, and what it publishes is what compiled.
+        """
         return bool(
-            self._outputs.core_db or self._outputs.index or self._outputs.ranked_index
+            self._outputs.core_db
+            or self._outputs.index
+            or self._outputs.ranked_index
+            or self._outputs.asn1
+            or self._outputs.standard
         )
 
     def run(self) -> CorpusReport:
@@ -941,26 +999,25 @@ class CorpusDriver:
             for x in self._namespaces
         ]
 
-        report.modules = len({x for ns in self._published for x in moduleSets[ns.name]})
-
-        staged = self.stage(report)
+        # The compile decides what the corpus publishes, so it runs first
+        # and every artifact is derived from the one answer it gives. A
+        # module that does not compile reaches no output tree, and neither
+        # does anything that imports it -- the compiler already reports
+        # those as failed or unprocessed, so no dependency walk is needed
+        # here. See pysnmp/pysmi#269.
         results = self.compile(report)
-        self.write_standard(staged)
+        published = self._published_modules(results)
 
-        written = results.get("json")
+        # What the corpus holds, that compiled. A resolve-only module is
+        # stubbed and comes back "untouched", so the compile result alone
+        # would count modules the corpus does not carry.
+        held = {x for ns in self._published for x in moduleSets[ns.name]}
+        report.modules = len(held if published is None else held & set(published))
 
-        indexed = (
-            None
-            if written is None
-            else [
-                name
-                for name, status in written.items()
-                if status in ("compiled", "untouched", "borrowed")
-            ]
-        )
-
-        self.write_index(report, indexed)
-        self.write_db(report, indexed)
+        self.stage(report, published)
+        self.write_standard(published)
+        self.write_index(report, published)
+        self.write_db(report, published)
 
         report.seconds["total"] = time.time() - started
 
@@ -1023,6 +1080,12 @@ def check_expectations(expect: "Mapping[str, Any]", report: CorpusReport) -> lis
             missed.append(f"{key}: expected at most {bounds['max']}, got {value}")
 
     return missed
+
+
+#: Compile outcomes that mean the corpus has the module. Anything else --
+#: ``failed`` for a module that does not compile, ``unprocessed`` for one
+#: dropped because something it imports did not -- is not published.
+PUBLISHED_STATUSES: Final[tuple[str, ...]] = ("compiled", "untouched", "borrowed")
 
 
 def _tally(processed: dict[str, Any]) -> dict[str, int]:
