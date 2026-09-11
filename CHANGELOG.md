@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [4.1.0-rc.1](https://github.com/pysnmp/pysmi/compare/v4.0.0...v4.1.0-rc.1) (2026-09-11)
+
+### Features
+
+* **patches:** generate a MIB's repair as a patch instead of making it at runtime ([ee01ccc](https://github.com/pysnmp/pysmi/commit/ee01ccc77f53ce9683ccda4ef7236c83fa1a9def))
+
 ## [4.0.0](https://github.com/pysnmp/pysmi/compare/v3.1.0...v4.0.0) (2026-09-10)
 
 ### ⚠ BREAKING CHANGES
