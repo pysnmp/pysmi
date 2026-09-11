@@ -37,6 +37,7 @@ See pysnmp/pysmi#182.
 
 import logging
 import os
+import tempfile
 import time
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
@@ -884,13 +885,41 @@ class CorpusDriver:
 
         report.seconds["index"] = time.time() - started
 
+    def _needs_jsondoc(self) -> bool:
+        """Whether an artifact asked for is a projection of the jsondoc tree."""
+        return bool(
+            self._outputs.core_db or self._outputs.index or self._outputs.ranked_index
+        )
+
     def run(self) -> CorpusReport:
         """Build the corpus and report what it did.
+
+        A build asking for the database or an index but not for the jsondoc
+        tree gets one staged for the duration and removed afterwards,
+        including where the build raises. The dependency is pysmi's own: a
+        publisher asking for ``core.db`` did not ask for a tree of JSON and
+        should not have to know one exists, nor pick a scratch path for it
+        and clean up after itself. See pysnmp/pysmi#262.
 
         Returns:
             The report, also written to the ``report`` path when one was
             asked for.
         """
+        if self._outputs.json or not self._needs_jsondoc():
+            return self._build()
+
+        with tempfile.TemporaryDirectory(prefix="pysmi-corpus-") as scratch:
+            self._outputs.json = os.path.join(scratch, "json")
+
+            try:
+                return self._build()
+
+            finally:
+                # The caller handed us these outputs; they leave as they came.
+                self._outputs.json = None
+
+    def _build(self) -> CorpusReport:
+        """One build, with every output path already decided."""
         started = time.time()
         report = CorpusReport()
 

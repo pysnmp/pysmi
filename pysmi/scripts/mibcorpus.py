@@ -90,9 +90,11 @@ def start() -> None:
                 the index or just the JSON. ARTIFACT is one of asn1,
                 notexts, texts, json, index, index-v2, standard, core-db,
                 report. core-db and the two indexes are projections of the
-                jsondoc tree, so a build asking for one has to emit json
-                too -- to a scratch path outside the corpus, where the
-                corpus is not meant to carry it.
+                jsondoc tree; a build asking for one without asking for
+                json gets a tree staged in a temporary directory and
+                removed afterwards, so the corpus carries only what was
+                named. Emit json to keep it, with a path of its own to say
+                where.
         --corpus-version - what to stamp core.db as, recorded verbatim in
                 its metadata. Nothing is invented when this is absent: a
                 version taken from a clock or from a checkout would make
