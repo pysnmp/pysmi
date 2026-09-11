@@ -113,6 +113,16 @@ class ArgumentTestCase(unittest.TestCase):
         self.assertEqual(os.path.join("out", "standard.txt"), outputs.standard)
         self.assertEqual(os.path.join("out", "closure.json"), outputs.closure)
 
+    def testArcsIsNotInTheDefaultLayout(self):
+        """It is only worth having with a registry to name its arcs, and that
+        is an input the caller supplies. pysnmp/pysmi#288."""
+        self.assertIsNone(mibcorpus._outputs_for("out", None).arcs)
+
+        self.assertEqual(
+            os.path.join("out", "arcs.json"),
+            mibcorpus._outputs_for("out", ["arcs"]).arcs,
+        )
+
     def testEmitNarrowsToWhatWasAsked(self):
         outputs = mibcorpus._outputs_for("out", ["json"])
 
@@ -127,6 +137,69 @@ class ArgumentTestCase(unittest.TestCase):
 
     def testAnUnknownArtifactIsRefused(self):
         self.assertRaises(error.PySmiError, mibcorpus._outputs_for, "out", ["sqlite"])
+
+
+class RegistryTestCase(unittest.TestCase):
+    """Which registry a --oid-registry file is, read from the file.
+
+    A snapshot a repository commits is named whatever that repository calls
+    it, so asking the caller to say which is which is asking them to repeat
+    something the file already states. pysnmp/pysmi#288.
+    """
+
+    PEN = "PRIVATE ENTERPRISE NUMBERS\n\n9\n  Cisco Systems, Inc.\n    A\n      a&b\n"
+
+    SMI = (
+        '<?xml version="1.0"?>\n'
+        '<registry xmlns="http://www.iana.org/assignments" id="smi-numbers">'
+        "<description>iso (1)</description></registry>"
+    )
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def write(self, name, text):
+        path = os.path.join(self.tmp, name)
+
+        with open(path, "w", encoding="utf-8") as fileObj:
+            fileObj.write(text)
+
+        return path
+
+    def testThePublishedEnterpriseRegistryIsRecognised(self):
+        enterprises, smi = mibcorpus._registries([self.write("anything.txt", self.PEN)])
+
+        self.assertEqual("Cisco Systems, Inc.", enterprises[9].organization)
+        self.assertEqual({}, smi)
+
+    def testAReducedSnapshotIsRecognised(self):
+        enterprises, _smi = mibcorpus._registries(
+            [self.write("pen.csv", "number,organization\n9,Cisco\n")]
+        )
+
+        self.assertEqual("Cisco", enterprises[9].organization)
+
+    def testSmiNumbersIsRecognised(self):
+        _enterprises, smi = mibcorpus._registries([self.write("x.xml", self.SMI)])
+
+        self.assertEqual("iso", smi["1"].name)
+
+    def testBothMayBeGiven(self):
+        """--oid-registry is repeatable, and the two name different arcs."""
+        enterprises, smi = mibcorpus._registries(
+            [self.write("pen.txt", self.PEN), self.write("smi.xml", self.SMI)]
+        )
+
+        self.assertEqual("Cisco Systems, Inc.", enterprises[9].organization)
+        self.assertEqual("iso", smi["1"].name)
+
+    def testSomethingThatIsNeitherIsRefused(self):
+        """A build pointed at the wrong file should say so rather than emit an
+        index naming nobody, which reads as a corpus registering under arcs
+        nobody allocated."""
+        with self.assertRaises(error.PySmiError):
+            mibcorpus._registries([self.write("notes.txt", "just some text\n")])
 
 
 class RunTestCase(unittest.TestCase):

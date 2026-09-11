@@ -30,7 +30,8 @@ from pysmi.corpus.driver import (
     check_expectations,
 )
 from pysmi.corpus.namespace import Manifest, Namespace, read_manifest
-from pysmi.registry.pen import load_registry
+from pysmi.registry.pen import Registrant, is_pen_registry, load_registry
+from pysmi.registry.smi import ArcName, parse_smi_numbers
 
 # sysexits.h
 EX_OK: Final = 0
@@ -52,7 +53,7 @@ def start() -> None:
     explicitOutputs = False
     corpusVersion = ""
     corpusId = ""
-    oidRegistryPath = ""
+    oidRegistryPaths: list[str] = []
 
     helpMessage = """\
     Usage: {} [--help]
@@ -105,10 +106,10 @@ def start() -> None:
                 turns off the full layout, so a build can ask for just
                 the index or just the JSON. ARTIFACT is one of asn1,
                 notexts, texts, json, index, index-v2, standard,
-                closure, core-db, entity, report. core-db and entity are
-                not in the default layout -- ask for either by name.
-                core-db, entity, closure and the two indexes are
-                projections of the
+                closure, core-db, entity, arcs, report. core-db, entity
+                and arcs are not in the default layout -- ask for those
+                by name. core-db, entity, arcs, closure and the two
+                indexes are projections of the
                 jsondoc tree; a build asking for one without asking for
                 json gets a tree staged in a temporary directory and
                 removed afterwards, so the corpus carries only what was
@@ -122,17 +123,19 @@ def start() -> None:
                 written to be reproducible. A publisher passes its release.
         --corpus-id - a stable name for the corpus core.db is a build of,
                 so a consumer holding two can tell whose each one is.
-        --oid-registry - the IANA Private Enterprise Numbers registry, as
-                a file. Names the arcs under 1.3.6.1.4.1 in what the
-                build emits; see --emit=entity. Taken as an input and
-                never fetched, because a corpus is reproducible with the
-                network unplugged and a registry that changes daily would
-                end that. Either the published four-line-record format or
-                the reduced CSV that
-                "python -m pysmi.registry" writes, which carries number
-                and organization and none of the contact details on
-                66,807 records. An arc the registry does not name is
-                reported as unregistered rather than guessed at.
+        --oid-registry - a published registry naming OID arcs, as a file,
+                repeatable. Which registry it is is read from the file
+                rather than from its name. Two are understood: the IANA
+                Private Enterprise Numbers registry, which names the arcs
+                under 1.3.6.1.4.1 (see --emit=entity), and IANA's
+                smi-numbers XML, which names the 1.3.6.1 subtree. Both
+                feed --emit=arcs. Taken as an input and never fetched,
+                because a corpus is reproducible with the network
+                unplugged and a registry that changes daily would end
+                that. The enterprise registry is read in its published
+                four-line-record form or as the reduced CSV that
+                "python -m pysmi.registry" writes. An arc no registry
+                names is reported as unnamed rather than guessed at.
         --fail-on-errors - exit non-zero when any module failed to
                 compile. Off by default: a corpus of MIBs nobody controls
                 always carries some that do not compile, and the report
@@ -223,7 +226,7 @@ def start() -> None:
             corpusId = opt[1]
 
         if opt[0] == "--oid-registry":
-            oidRegistryPath = opt[1]
+            oidRegistryPaths.append(opt[1])
 
         if opt[0] == "--no-bundled-mibs":
             bundledMibsFlag = False
@@ -268,12 +271,13 @@ def start() -> None:
     outputs.frozen_index = frozenIndex or None
 
     try:
-        oidRegistry = load_registry(oidRegistryPath) if oidRegistryPath else {}
+        oidRegistry, smiRegistry = _registries(oidRegistryPaths)
 
-    except OSError as exc:
-        # A build pointed at a registry that is not there is misconfigured.
-        # Carrying on would emit an entity index naming nobody, which reads
-        # as a corpus registering under 351 unallocated arcs.
+    except (OSError, error.PySmiError) as exc:
+        # A build pointed at a registry that is not there, or at a file that
+        # is not one, is misconfigured. Carrying on would emit an index naming
+        # nobody, which reads as a corpus registering under arcs nobody
+        # allocated.
         sys.stderr.write(f"ERROR: cannot read --oid-registry: {exc}\r\n")
         sys.exit(EX_USAGE)
 
@@ -285,6 +289,7 @@ def start() -> None:
             corpusVersion=corpusVersion or None,
             corpusId=corpusId or None,
             oidRegistry=oidRegistry,
+            smiRegistry=smiRegistry,
         ).run()
 
     except error.PySmiError as exc:
@@ -343,6 +348,7 @@ _ARTIFACTS: Final = {
     "standard": ("standard", "standard.txt"),
     "core-db": ("core_db", "core.db"),
     "entity": ("entity", "entity.json"),
+    "arcs": ("arcs", "arcs.json"),
     "closure": ("closure", "closure.json"),
     "report": ("report", "report.json"),
 }
@@ -358,7 +364,50 @@ _ARTIFACTS: Final = {
 #: input the caller supplies; emitting it by default would publish an index
 #: naming nobody, which reads as a corpus registering under arcs that were
 #: never allocated.
-_OPT_IN: Final = frozenset({"core-db", "entity"})
+_OPT_IN: Final = frozenset({"core-db", "entity", "arcs"})
+
+
+def _registries(
+    paths: list[str],
+) -> "tuple[dict[int, Registrant], dict[str, ArcName]]":
+    """Read every ``--oid-registry`` file, each as whatever it turns out to be.
+
+    Which registry a file is comes from its content rather than from its name:
+    a snapshot a repository commits is called whatever that repository calls
+    it, and asking the caller to say which is which is asking them to repeat
+    something the file already states.
+
+    Args:
+        paths: the files named on the command line, in order.
+
+    Returns:
+        ``(enterprises, smi)`` -- the enterprise registrations and the arc
+        names, either of which may be empty.
+
+    Raises:
+        OSError: a file cannot be read.
+        PySmiError: a file is not a registry this knows.
+    """
+    enterprises: dict[int, Registrant] = {}
+    smi: dict[str, ArcName] = {}
+
+    for path in paths:
+        with open(path, encoding="utf-8", errors="replace", newline="") as fileObj:
+            text = fileObj.read()
+
+        if is_pen_registry(text):
+            enterprises.update(load_registry(path))
+
+        elif "<registry" in text[:4096]:
+            smi.update(parse_smi_numbers(text))
+
+        else:
+            raise error.PySmiError(
+                f"{path} is not a registry this release reads; expected the "
+                f"IANA Private Enterprise Numbers registry or smi-numbers XML"
+            )
+
+    return enterprises, smi
 
 
 def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:

@@ -169,6 +169,9 @@ What it produces
      - Which enterprise arcs the corpus registers under, who the registry
        says holds each, and who to report a problem to. Asked for by name,
        and wants ``--oid-registry``. See :ref:`entity-index`.
+   * - ``arcs.json``
+     - What every arc the corpus reaches is called, and which authority says
+       so. Asked for by name. See :ref:`arc-names`.
    * - ``report.json``
      - What the build did: the failure inventory, the modules more than one
        namespace holds, the node counts, which JSON implementation wrote the
@@ -389,8 +392,11 @@ same corpus as one without -- and a registry that changes daily, fetched at
 build time, would end that. 5.1 MB that changes daily is also not a thing to
 vendor into a compiler.
 
-``--oid-registry`` reads either the published four-line-record format or a
-reduced CSV. A repository that keeps a snapshot reduces a download once:
+``--oid-registry`` is repeatable and reads two registries: the Private
+Enterprise Numbers registry, in either the published four-line-record format or
+a reduced CSV, and IANA's ``smi-numbers`` XML (see :ref:`arc-names`). Which one
+a file is comes from its content rather than from its name, since a snapshot a
+repository commits is called whatever that repository calls it. A repository that keeps a snapshot reduces a download once:
 
 .. code-block:: sh
 
@@ -401,6 +407,99 @@ it. Which fields leave IANA's copy is the committing repository's decision
 rather than PySMI's, so it is an argument rather than a hard-coded projection.
 Nothing is normalised: the output is a rendering of IANA's record rather than a
 corrected version of it.
+
+.. _arc-names:
+
+What an arc is called
+---------------------
+
+The OID index ranks modules to decide which one owns an arc. The rule is total
+and works for arcs a module actually registers; for the arcs *above* those it
+has nothing good to choose from, so it picks whichever module happened to
+mention the arc on its way somewhere else. Measured against pysnmp/mibs:
+
+===================  ===========================  =========================
+arc                  is                           attributed to
+===================  ===========================  =========================
+``1.3``              ``identified-organization``  ``OCCAM-ETHERLIKE-MIB``
+``1.3.6``            ``dod``                      ``OCCAM-ETHERLIKE-MIB``
+``1.3.6.1.6``        ``snmpv2``                   ``RAPID-CITY``
+``1.3.6.1.6.3``      ``snmpModules``              ``RAPID-CITY``
+``1.2``              ISO member-body              ``IEEE802dot11-MIB``
+``0.0``              ITU-T recommendation         ``DLSW-MIB``
+===================  ===========================  =========================
+
+A tree that says ``snmpModules`` belongs to a Nortel enterprise MIB is wrong in
+a way that matters, and no ranking over MIB text can fix it, because the fact
+is not in the MIB text. Twenty-five arcs are claimed by nothing at all, and a
+tree still has to render a path through them -- ``1.3.6.1.4.1.9`` among them,
+since no module registers Cisco's bare arc, only what hangs beneath it.
+
+``--emit=arcs`` writes the answer, from the registries the build was given:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output --emit=arcs \
+       --oid-registry=smi-numbers.xml --oid-registry=pen-snapshot.csv
+
+.. code-block:: json
+
+   {
+     "meta": {"schema": 1, "arcs": 6694,
+              "by-source": {"module": 5900, "registry": 700,
+                            "standard": 15, "unnamed": 79}},
+     "arc": {
+       "1.3.6.1.6.3": {"name": "snmpModules", "source": "registry",
+                       "reference": "https://www.iana.org/assignments/smi-numbers"},
+       "1.0.8802": {"name": "iso8802", "source": "standard",
+                    "reference": "ISO-IEC 8802"}
+     }
+   }
+
+Every name says which kind of fact it is
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``source`` is rendered, because an IANA registration, a cited standard and a
+name read off whichever MIB mentioned an arc are three different things and a
+reader has to be able to tell them apart. Strongest first:
+
+``registry``
+    IANA. ``smi-numbers`` names the ``1.3.6.1`` subtree -- and, through the
+    dotted names in its own registry descriptions, ``1 iso`` down to
+    ``1.3.6.1 internet``, which nothing else in the file names. The Private
+    Enterprise Numbers registry names a bare enterprise arc.
+
+``standard``
+    A standard, cited. ITU-T's OID registry does not answer, and IEEE
+    publishes landing pages and PDFs, so there is no feed for ``0``, ``1.0``,
+    ``1.2``, ``1.3.111`` or ``1.0.8802`` -- the chains IEEE registers its 802
+    MIBs under, and ``LLDP-MIB`` sits at ``1.0.8802.1.1.2``. Those are defined
+    in ITU-T X.660 and ISO/IEC 9834-1 and have not changed in decades, so
+    PySMI carries a small table with a reference per entry. A cited name is
+    not a registration and is labelled as what it is.
+
+``module``
+    A module's own descriptor, which is what the index has always used. Still
+    here, still useful, and now labelled rather than presented as though it
+    were an authority's answer.
+
+**An arc nothing names says so**, with an empty name rather than a borrowed
+one. The build report counts them.
+
+What is in the inventory
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The arc set comes from the OID index and every prefix of it -- the
+registration tree -- rather than from every OID a module defines. Over
+pysnmp/mibs that is about 6,700 arcs instead of 95,000; the difference is
+objects, and an object's arc is a thing inside a module rather than a node
+anybody navigates to.
+
+It is not filtered to one subtree. 97.0% of pysnmp/mibs' index rows sit under
+``1.3.6.1.4.1`` and 2.3% under ``1.3.6.1.2.1``, but IEEE publishes its 802.1
+MIBs under ``1.3.111.2.802.1`` and ``LLDP-MIB`` registers under
+``1.0.8802.1.1.2``. A ``1.3.6.1`` filter drops both, and LLDP is among the most
+widely polled MIBs there is. Arc depth runs from 2 to 20.
 
 .. _asn1-naming:
 

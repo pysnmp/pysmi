@@ -32,6 +32,8 @@ from pysmi import error
 from pysmi.corpus import CorpusDriver, CorpusOutputs, Namespace, check_disjoint
 from pysmi.corpus.driver import STANDARD_TXT_EXCLUDED_PREFIXES, CorpusReport
 from pysmi.mibinfo import source_digest
+from pysmi.registry.pen import Registrant
+from pysmi.registry.smi import ArcName
 
 
 def module(name, oid, *, revision="202401010000Z", description="a module"):
@@ -316,6 +318,113 @@ class ImportClosureTestCase(CorpusTestCase):
         self.assertFalse(
             os.path.exists(os.path.join(self.root, "output", "closure.json"))
         )
+
+
+class ArcNamesTestCase(CorpusTestCase):
+    """What every arc the corpus reaches is called (pysnmp/pysmi#288).
+
+    These modules register under ``enterprises`` -- 1.3.6.1.4.1 -- so the path
+    to them runs through arcs no module registers and the OID index attributes
+    to whichever module mentioned them.
+    """
+
+    def outputs_arcs(self, **kwargs):
+        out = os.path.join(self.root, "output")
+        layout = {
+            "json": os.path.join(out, "json"),
+            "arcs": os.path.join(out, "arcs.json"),
+        }
+        layout.update(kwargs)
+
+        return CorpusOutputs(**layout)
+
+    def written(self):
+        with open(
+            os.path.join(self.root, "output", "arcs.json"), encoding="utf-8"
+        ) as fileObj:
+            return json.load(fileObj)["arc"]
+
+    def testThePathToAModuleIsNamed(self):
+        CorpusDriver(
+            self.namespaces(),
+            self.outputs_arcs(),
+            smiRegistry={"1.3": ArcName("1.3", "org", "https://iana/smi")},
+        ).run()
+
+        found = self.written()
+
+        self.assertEqual("org", found["1.3"]["name"])
+        self.assertEqual("registry", found["1.3"]["source"])
+
+    def testAnArcAStandardNamesIsCitedRatherThanRegistered(self):
+        """A cited name and a registered one are different kinds of fact, and
+        a page has to be able to render them differently."""
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        self.assertEqual("standard", self.written()["1.3"]["source"])
+
+    def testAModuleDescriptorIsLabelledAsOne(self):
+        """SNMPv2-SMI defines "private" at 1.3.6.1.4 and the corpus compiles
+        it, so a descriptor names the arc. That is a weaker fact than a
+        registration and the artifact says which it is -- which is the whole
+        point: the index used to present the two identically."""
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        found = self.written()["1.3.6.1.4"]
+
+        self.assertEqual("private", found["name"])
+        self.assertEqual("module", found["source"])
+
+    def testTheRegistryDisplacesTheDescriptor(self):
+        """The defect this exists to fix: a name read off whichever module
+        mentioned an arc, standing where the authority's name should."""
+        CorpusDriver(
+            self.namespaces(),
+            self.outputs_arcs(),
+            smiRegistry={
+                "1.3.6.1.4": ArcName("1.3.6.1.4", "private", "https://iana/smi")
+            },
+        ).run()
+
+        self.assertEqual("registry", self.written()["1.3.6.1.4"]["source"])
+
+    def testAModuleDescriptorNamesAnArcNothingElseDoes(self):
+        """The weakest source, and now labelled as what it is rather than
+        standing in the index as though it were a registration."""
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        found = self.written()["1.3.6.1.4.1.41"]
+
+        self.assertEqual("alphamibMI", found["name"])
+        self.assertEqual("module", found["source"])
+        self.assertEqual("ALPHA-MIB", found["reference"])
+
+    def testTheEnterpriseRegistryNamesTheBareArc(self):
+        """No module registers a vendor's bare arc, only what hangs beneath."""
+        CorpusDriver(
+            self.namespaces(),
+            self.outputs_arcs(),
+            oidRegistry={41: Registrant(41, "Acme Networks")},
+        ).run()
+
+        found = self.written()
+
+        self.assertEqual("Acme Networks", found["1.3.6.1.4.1.41"]["name"])
+        self.assertEqual("registry", found["1.3.6.1.4.1.41"]["source"])
+
+    def testTheReportCountsBySource(self):
+        report = CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        self.assertEqual(report.arcs["arcs"], len(self.written()))
+        self.assertIn("standard", report.arcs)
+
+    def testItIsNotWrittenUnlessAskedFor(self):
+        outputs = self.outputs_arcs()
+        outputs.arcs = None
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual({}, report.arcs)
 
 
 class RepeatabilityTestCase(CorpusTestCase):

@@ -277,6 +277,28 @@ def reduce_registry(text: str, fields: "Iterable[str] | None" = None) -> str:
     return out.getvalue()
 
 
+def is_pen_registry(text: str) -> bool:
+    """Whether *text* is this registry rather than another.
+
+    ``--oid-registry`` takes more than one kind of file, so something has to
+    decide which reader a given one wants. Sniffed from the content rather
+    than from the file name, because a snapshot a repository commits is named
+    whatever that repository calls it.
+
+    Args:
+        text: the file's contents, or enough of the front of it.
+
+    Returns:
+        Whether it is the published registry or a reduced snapshot of one.
+    """
+    head = text.lstrip()
+
+    if head.lower().startswith("number,"):
+        return True
+
+    return "PRIVATE ENTERPRISE NUMBERS" in text[:4096]
+
+
 def load_registry(path: str) -> dict[int, Registrant]:
     """Read a registry from a file, reduced or as published.
 
