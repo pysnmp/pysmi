@@ -173,6 +173,11 @@ class CorpusReport:
     #: Modules more than one namespace holds a differing copy of: which file
     #: was used, which were passed over, and which rule decided.
     shadowed: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: Modules the corpus publishes, counted once however many namespaces
+    #: hold one. Independent of the emit set, which is what lets a manifest
+    #: bound it whatever artifacts the build was asked for -- unlike
+    #: :py:attr:`staged`, which is zero for a build not writing ASN.1.
+    modules: int = 0
     #: Modules staged into the published ASN.1 tree.
     staged: int = 0
     #: Nodes the corpus defines, before and after resolving the OIDs more
@@ -196,6 +201,7 @@ class CorpusReport:
             "failed": self.failed,
             "unprocessed": self.unprocessed,
             "shadowed": self.shadowed,
+            "modules": self.modules,
             "staged": self.staged,
             "nodes": self.nodes,
             "index": self.index,
@@ -935,6 +941,8 @@ class CorpusDriver:
             for x in self._namespaces
         ]
 
+        report.modules = len({x for ns in self._published for x in moduleSets[ns.name]})
+
         staged = self.stage(report)
         results = self.compile(report)
         self.write_standard(staged)
@@ -965,6 +973,56 @@ class CorpusDriver:
             )
 
         return report
+
+
+def check_expectations(expect: "Mapping[str, Any]", report: CorpusReport) -> list[str]:
+    """What a build failed to be, against what its manifest said it would be.
+
+    ``report.json`` has always carried the counts and nothing checked them,
+    so a publisher's real assertions -- this corpus has N modules, these
+    namespaces are in it, no more than this many modules fail to compile --
+    lived in a downstream test script that every publisher wrote once and
+    differently. Declaring them makes them data pysmi enforces. See
+    pysnmp/pysmi#263.
+
+    Args:
+        expect: the manifest's ``expect``, as
+            :py:func:`~pysmi.corpus.namespace.read_manifest` validated it
+        report: what the build did
+
+    Returns:
+        One line per expectation missed, naming the field, the bound and
+        what the build actually was. Empty when the build is what the
+        manifest said it would be.
+    """
+    #: Modules that failed in any destination, counted once. A module
+    #: failing in all three is one module the corpus does not carry.
+    failures = len({x for failed in report.failed.values() for x in failed})
+
+    actual = {"modules": report.modules, "failures": failures}
+    missed: list[str] = []
+
+    for key, bounds in expect.items():
+        if key == "namespaces-present":
+            present = {x["name"] for x in report.namespaces if x["publish"]}
+
+            missed.extend(
+                f"namespaces-present: {x} is not a namespace this corpus publishes"
+                for x in bounds
+                if x not in present
+            )
+
+            continue
+
+        value = actual[key]
+
+        if "min" in bounds and value < bounds["min"]:
+            missed.append(f"{key}: expected at least {bounds['min']}, got {value}")
+
+        if "max" in bounds and value > bounds["max"]:
+            missed.append(f"{key}: expected at most {bounds['max']}, got {value}")
+
+    return missed
 
 
 def _tally(processed: dict[str, Any]) -> dict[str, int]:

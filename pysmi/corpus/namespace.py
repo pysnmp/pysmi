@@ -22,7 +22,7 @@ discovered its inputs by walking a directory tree would have that decided by
 import fnmatch
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Final
 
 from pysmi import error
@@ -44,6 +44,17 @@ PACKAGE_PREFIX: Final[str] = "package:"
 
 #: The manifest format this module reads.
 MANIFEST_VERSION: Final[int] = 1
+
+#: The expectations a manifest may declare, mapped to the shape each takes:
+#: ``bound`` is an object of ``min`` and ``max``, ``names`` a list of strings.
+#: Declared rather than free-form, so that a misspelled expectation is an
+#: error at load time. An expectation silently ignored is worse than none:
+#: the publisher believes it is being checked.
+EXPECTATIONS: Final[dict[str, str]] = {
+    "modules": "bound",
+    "failures": "bound",
+    "namespaces-present": "names",
+}
 
 
 @dataclass(frozen=True)
@@ -183,6 +194,98 @@ def _expand(entry: dict[str, Any], root: str) -> list[Namespace]:
     return [Namespace(name=name, source=source, tier=tier, publish=publish)]
 
 
+@dataclass(frozen=True)
+class Manifest:
+    """What a corpus manifest declares.
+
+    A manifest used to declare which sources a corpus is built from and
+    nothing else, which left the definition of a distribution split between
+    a JSON file pysmi reads and a build script pysmi has never seen. The
+    emit set and the expectations are the rest of that definition -- see
+    pysnmp/pysmi#263.
+
+    Attributes:
+        namespaces: the input set, in declaration order.
+        emit: the artifacts this corpus carries, in ``--emit`` syntax --
+            an artifact name, optionally ``:`` and a path of its own.
+            ``None`` where the manifest does not say, which is the full
+            published layout. A command line naming ``--emit`` overrides
+            this, as flags override files.
+        expect: what must be true of the build, keyed by
+            :py:data:`EXPECTATIONS`. Empty where the manifest declares none.
+    """
+
+    namespaces: list[Namespace]
+    emit: list[str] | None = None
+    expect: dict[str, Any] = field(default_factory=dict)
+
+
+def _read_emit(manifest: dict[str, Any], path: str) -> list[str] | None:
+    """The ``emit`` key, checked."""
+    if "emit" not in manifest:
+        return None
+
+    emitted = manifest["emit"]
+
+    if not isinstance(emitted, list) or not all(isinstance(x, str) for x in emitted):
+        raise error.PySmiError(
+            f"corpus manifest {path} declares emit as something other than "
+            f"a list of artifact names"
+        )
+
+    if not emitted:
+        raise error.PySmiError(
+            f"corpus manifest {path} declares an empty emit set; a corpus "
+            f"carrying no artifact is not a corpus"
+        )
+
+    return emitted
+
+
+def _read_expect(manifest: dict[str, Any], path: str) -> dict[str, Any]:
+    """The ``expect`` key, checked against :py:data:`EXPECTATIONS`."""
+    if "expect" not in manifest:
+        return {}
+
+    expect = manifest["expect"]
+
+    if not isinstance(expect, dict):
+        raise error.PySmiError(f"corpus manifest {path} declares expect as non-object")
+
+    for key, value in expect.items():
+        try:
+            shape = EXPECTATIONS[key]
+
+        except KeyError:
+            raise error.PySmiError(
+                f"corpus manifest {path} expects {key!r}, which is not "
+                f"something a build reports; expected one of "
+                f"{', '.join(sorted(EXPECTATIONS))}"
+            ) from None
+
+        if shape == "bound":
+            if not isinstance(value, dict) or not value:
+                raise error.PySmiError(
+                    f"corpus manifest {path} expects {key} as something "
+                    f"other than an object of min and max"
+                )
+
+            for bound, limit in value.items():
+                if bound not in ("min", "max") or not isinstance(limit, int):
+                    raise error.PySmiError(
+                        f"corpus manifest {path} bounds {key} by "
+                        f"{bound!r}; expected min or max, as an integer"
+                    )
+
+        elif not isinstance(value, list) or not all(isinstance(x, str) for x in value):
+            raise error.PySmiError(
+                f"corpus manifest {path} expects {key} as something other "
+                f"than a list of names"
+            )
+
+    return expect
+
+
 def load_manifest(path: str) -> list[Namespace]:
     """Read a corpus manifest and return the namespaces it declares, in order.
 
@@ -190,6 +293,8 @@ def load_manifest(path: str) -> list[Namespace]:
 
         {
           "version": 1,
+          "emit": ["asn1", "index-v2", "report"],
+          "expect": {"modules": {"min": 8000}},
           "namespaces": [
             {"name": "standard", "source": "package:pysmi.mibs.asn1",
              "tier": "standard"},
@@ -204,6 +309,11 @@ def load_manifest(path: str) -> list[Namespace]:
     manifest committed beside the sources it names works from any working
     directory.
 
+    This is :py:func:`read_manifest` with everything but the namespaces
+    dropped, which is what a caller supplying its own artifact selection
+    wants. ``emit`` and ``expect`` are still validated: a manifest this
+    refuses is refused whichever way it is read.
+
     Args:
         path: the manifest file
 
@@ -214,24 +324,11 @@ def load_manifest(path: str) -> list[Namespace]:
         PySmiError: the manifest could not be read, is of a version this
             release does not know, or declares a namespace twice.
     """
-    try:
-        with open(path, encoding="utf-8") as fileObj:
-            manifest = json.load(fileObj)
+    return read_manifest(path).namespaces
 
-    except (OSError, ValueError) as exc:
-        raise error.PySmiError(f"cannot read corpus manifest {path}: {exc}") from exc
 
-    if not isinstance(manifest, dict):
-        raise error.PySmiError(f"corpus manifest {path} is not an object")
-
-    version = manifest.get("version", MANIFEST_VERSION)
-
-    if version != MANIFEST_VERSION:
-        raise error.PySmiError(
-            f"corpus manifest {path} is version {version}; "
-            f"this release reads version {MANIFEST_VERSION}"
-        )
-
+def _read_namespaces(manifest: dict[str, Any], path: str) -> list[Namespace]:
+    """The ``namespaces`` key, expanded and checked."""
     entries = manifest.get("namespaces")
 
     if not isinstance(entries, list) or not entries:
@@ -258,3 +355,42 @@ def load_manifest(path: str) -> list[Namespace]:
         seen[namespace.name] = namespace
 
     return namespaces
+
+
+def read_manifest(path: str) -> Manifest:
+    """Read a corpus manifest whole: its sources, its artifacts, its policy.
+
+    Args:
+        path: the manifest file
+
+    Returns:
+        The manifest as declared.
+
+    Raises:
+        PySmiError: the manifest could not be read, is of a version this
+            release does not know, declares a namespace twice, or declares
+            an ``emit`` or ``expect`` a build could not act on.
+    """
+    try:
+        with open(path, encoding="utf-8") as fileObj:
+            manifest = json.load(fileObj)
+
+    except (OSError, ValueError) as exc:
+        raise error.PySmiError(f"cannot read corpus manifest {path}: {exc}") from exc
+
+    if not isinstance(manifest, dict):
+        raise error.PySmiError(f"corpus manifest {path} is not an object")
+
+    version = manifest.get("version", MANIFEST_VERSION)
+
+    if version != MANIFEST_VERSION:
+        raise error.PySmiError(
+            f"corpus manifest {path} is version {version}; "
+            f"this release reads version {MANIFEST_VERSION}"
+        )
+
+    return Manifest(
+        namespaces=_read_namespaces(manifest, path),
+        emit=_read_emit(manifest, path),
+        expect=_read_expect(manifest, path),
+    )
