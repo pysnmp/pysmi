@@ -89,7 +89,8 @@ What it produces
    * - ``asn1/``
      - One file per module name, flat, named for the module. Staged from
        what the compile resolved, so the ASN.1 beside a compiled module is
-       the text it was compiled from.
+       the text it was compiled from. Its naming is a contract -- see
+       :ref:`asn1-naming`.
    * - ``notexts/``
      - pysnmp modules without DESCRIPTION and the other texts.
    * - ``texts/``
@@ -139,6 +140,43 @@ afterwards:
 
 Every artifact but ``report.json`` is byte-reproducible. The report is the
 build's log and records elapsed time.
+
+
+.. _asn1-naming:
+
+How the ASN.1 tree is named
+---------------------------
+
+The names in ``asn1/`` are a contract rather than an implementation detail.
+pysnmp resolves a dependency by substituting a module name into a source
+template, and splunk-connect-for-snmp runs that path in production:
+``addMibCompiler()`` against ``https://.../asn1/@mib@``, compiling ASN.1 per
+MIB on demand. There is no directory listing and no second guess -- the name
+is the whole of the request.
+
+So:
+
+* **A file is named for the module it defines**, taken from the
+  ``DEFINITIONS ::= BEGIN`` header, not from the file it was read from. A
+  vendor shipping ``TEST-TC-MIB`` in ``tc.mib`` publishes it as
+  ``asn1/TEST-TC-MIB``.
+* **The name is the module's own spelling**, not a case variant of it or of
+  the source file's.
+* **There is no extension.** ``@mib@`` is replaced with a bare module name,
+  so anything appended makes the file unreachable.
+* **One name per module.** A source file defining two modules is published
+  under both names, since either one may be what a consumer asks for.
+* **A module the corpus only resolves against is not there at all.** A
+  namespace declared ``"publish": false`` reaches no output tree.
+
+A module that fails to compile is still staged: the tree is what the corpus
+publishes its sources as, and a consumer asking for it should get the text
+rather than a 404. It is absent from the indexes and from ``core.db``, which
+are projections of what compiled. For a corpus that compiles clean the module
+sets of all three agree.
+
+``tests/test_corpus_asn1_contract.py`` pins this, and the consumer layer
+compiles a module out of an emitted tree over the ``@mib@`` template itself.
 
 
 Why it is deterministic

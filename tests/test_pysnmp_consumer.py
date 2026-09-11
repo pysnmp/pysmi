@@ -18,9 +18,14 @@ accessor, this file goes red and pysmi is not at fault, which is why it is
 marked ``pysnmp_consumer`` and does not gate CI. See pysnmp/pysmi#127.
 """
 
+import contextlib
+import functools
+import http.server
 import pathlib
 import shutil
 import sys
+import tempfile
+import threading
 import unittest
 
 import pytest
@@ -563,6 +568,85 @@ class DeclaredSurfaceTestCase(unittest.TestCase):
                         hasattr(self.resolve(receiver), method),
                         f"{receiver}.{method}() is gone; pysmi emits it",
                     )
+
+
+class EmittedAsn1TreeTestCase(unittest.TestCase):
+    """The tree ``--emit=asn1`` writes is compilable by the runtime it is for.
+
+    splunk-connect-for-snmp points ``addMibCompiler()`` at
+    ``https://.../asn1/@mib@`` and compiles ASN.1 per MIB on demand, so the
+    names in that tree are a live contract. ``tests/test_corpus_asn1_contract``
+    pins their shape without pysnmp; this runs the substitution, offline,
+    against a tree pysmi just emitted.
+
+    A file named for its source rather than its module, or one carrying an
+    extension, fails here as a module that cannot be found -- which is what
+    the production path sees as a 404.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        from tests.test_corpus_asn1_contract import _build, sources
+
+        cls.root = pathlib.Path(tempfile.mkdtemp())
+        base, vendor = sources(str(cls.root))
+        cls.tree = pathlib.Path(_build(str(cls.root), base, vendor)) / "asn1"
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.root, ignore_errors=True)
+
+    def testAModuleCompilesWithTheTreeAsItsOnlySource(self):
+        from pysnmp.smi.builder import MibBuilder
+        from pysnmp.smi.compiler import addMibCompiler
+
+        mibBuilder = MibBuilder()
+        destination = self.root / "pysnmp-mibs"
+
+        # Served rather than read off disk, because that is what makes the
+        # names the contract: a file source retries a module name against
+        # every extension and case pysmi knows, so it would resolve a tree
+        # that is misnamed. One URL per module, substituted, does not.
+        with _serving(self.tree) as base:
+            addMibCompiler(
+                mibBuilder,
+                sources=[f"{base}/@mib@"],
+                destination=str(destination),
+            )
+
+            # VENDOR-A-MIB takes its syntax from TEST-TC-MIB, which is in the
+            # tree under its SMI name and not under the name of the file it
+            # was read from. Loading it resolves that import through the
+            # template and nowhere else.
+            mibBuilder.loadModules("VENDOR-A-MIB")
+
+        (node,) = mibBuilder.importSymbols("VENDOR-A-MIB", "vendorAName")
+
+        self.assertEqual((1, 3, 6, 1, 4, 1, 40001, 1), tuple(node.getName()))
+        self.assertEqual("255a", node.getSyntax().getDisplayHint())
+
+
+@contextlib.contextmanager
+def _serving(directory):
+    """Serve *directory* on loopback, yielding its base URL.
+
+    The production path is an HTTP source with ``@mib@`` in it. Nothing
+    leaves the machine: the server binds 127.0.0.1 on a port the OS picks.
+    """
+    handler = functools.partial(
+        http.server.SimpleHTTPRequestHandler, directory=str(directory)
+    )
+    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        yield f"http://127.0.0.1:{httpd.server_address[1]}"
+
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+        thread.join(timeout=5)
 
 
 suite = unittest.TestLoader().loadTestsFromModule(sys.modules[__name__])
