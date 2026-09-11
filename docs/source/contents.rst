@@ -7,8 +7,19 @@ SNMP SMI compiler
 
 The PySMI library and tools are designed to parse, verify and transform
 `SNMP SMI <https://en.wikipedia.org/wiki/Management_information_base>`_ MIB
-modules from their original ASN.1 form into JSON or `pysnmp <https://github.com/pysnmp/pysnmp>`_
-representation.
+modules from their original ASN.1 form into JSON or `pysnmp
+<https://pysnmp.github.io/pysnmp/>`_ representation.
+
+pysnmp drives it for you: ask an engine to resolve a name in a module it does
+not have and pysmi is what compiles that module. You reach for it directly to
+compile MIBs outside an engine, with :doc:`mibdump </mibdump>`, or to build a
+whole corpus from a manifest, with :doc:`mibcorpus </mibcorpus>` -- which is
+what builds the `MIB distribution <https://pysnmp.github.io/mibs/>`_ this
+organization publishes.
+
+It installs as ``pysnmp-pysmi``, and pysnmp's ``compile`` extra pulls it in.
+The `organization site <https://pysnmp.github.io/>`_ describes how the four
+projects fit together.
 
 Documentation
 -------------

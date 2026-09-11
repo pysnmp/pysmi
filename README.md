@@ -10,7 +10,7 @@ SNMP MIB parser
 PySMI is a pure-Python implementation of
 [SNMP SMI](https://en.wikipedia.org/wiki/Management_information_base) MIB parser.
 This tool is designed to turn ASN.1 MIBs into various formats. As of this moment,
-JSON and [pysnmp](https://github.com/pysnmp/pysnmp) modules can be generated
+JSON and [pysnmp](https://pysnmp.github.io/pysnmp/) modules can be generated
 from ASN.1 MIBs.
 
 Features
@@ -35,35 +35,47 @@ still can do that manually by invoking *mibdump* tool).
 To turn ASN.1 MIB into a JSON document, call *mibdump* tool like this:
 
 ```
-$ mibdump --generate-mib-texts  --destination-format json IF-MIB
-Source MIB repositories: file:///usr/share/snmp/mibs, https://pysnmp.github.io/mibs/asn1/@mib@
-Borrow missing/failed MIBs from: http://pysnmp.github.io/json/fulltexts/@mib@
-Existing/compiled MIB locations: 
-Compiled MIBs destination directory: .
-MIBs excluded from code generation: RFC-1212, RFC-1215, RFC1065-SMI, RFC1155-SMI,
-RFC1158-MIB, RFC1213-MIB, SNMPv2-CONF, SNMPv2-SMI, SNMPv2-TC, SNMPv2-TM
-MIBs to compile: IF-MIB
-Destination format: json
-Parser grammar cache directory: not used
-Also compile all relevant MIBs: yes
-Rebuild MIBs regardless of age: yes
-Do not create/update MIBs: no
-Byte-compile Python modules: no (optimization level no)
-Ignore compilation errors: no
-Generate OID->MIB index: no
-Generate texts in MIBs: yes
-Keep original texts layout: no
-Try various filenames while searching for MIB module: yes
-Created/updated MIBs: IANAifType-MIB, IF-MIB, SNMPv2-MIB
+$ mibdump --generate-mib-texts --destination-format json IF-MIB
+Source MIB repositories: https://pysnmp.github.io:443/mibs/asn1/@mib@
+    Borrow missing/failed MIBs from: https://pysnmp.github.io:443/mibs/fulltexts/@mib@
+    Existing/compiled MIB locations: 
+    Compiled MIBs destination directory: /home/you/.pysnmp/mibs
+    MIBs excluded from code generation: 
+    MIBs to compile: IF-MIB
+    Destination format: json
+    Parser grammar cache directory: not used
+    Also compile all relevant MIBs: yes
+    Search pysmi's bundled base MIBs, newest revision winning: yes
+    Prefer --mib-source where no revision decides: no
+    Base MIBs eligible to be written out from the bundle: RFC-1212, RFC-1215, RFC1065-SMI, RFC1155-SMI, RFC1158-MIB, RFC1213-MIB, SNMPv2-CONF, SNMPv2-SMI, SNMPv2-TC, SNMPv2-TM
+    Rebuild MIBs regardless of age: no
+    Prune stored MIBs with no remaining source: no
+    Dry run mode: no
+    Create/update MIBs: yes
+    Byte-compile Python modules: no (optimization level no)
+    Report a failed MIB as an error: yes
+    Generate OID->MIB index: no
+    Generate texts in MIBs: yes
+    Keep original texts layout: no
+    Try various file names while searching for MIB module: yes
+    Created/updated MIBs: IANAifType-MIB, IF-MIB, SNMPv2-CONF, SNMPv2-MIB, SNMPv2-SMI, SNMPv2-TC
 Pre-compiled MIBs borrowed: 
-Up to date MIBs: SNMPv2-CONF, SNMPv2-SMI, SNMPv2-TC
+Up to date MIBs: 
 Missing source MIBs: 
-Ignored MIBs: 
+Omitted MIBs (they import a failed MIB): 
+Repaired MIBs: 
+MIBs found in more than one source: 
 Failed MIBs: 
 ```
 
+The `Borrow missing/failed MIBs from:` line is a built-in default that no
+longer resolves -- the compiled-module trees it names were withdrawn, for the
+reason the [MIB distribution](https://pysnmp.github.io/mibs/channels.html)
+gives. Compilation does not depend on it: the borrow feature does nothing
+unless `--mib-borrower` points it somewhere.
+
 JSON document build from
-[IF-MIB module](https://pysnmp.github.io/mibs/asn1IF-MIB)
+[IF-MIB module](https://pysnmp.github.io/mibs/asn1/IF-MIB)
 would hold information such as:
 
 ```
@@ -115,15 +127,15 @@ would hold information such as:
 
 In general, converted MIBs capture all aspects of original (ASN.1) MIB contents
 and layout. The snippet above is just a partial example, but here is the
-complete [IF-MIB.json](http://pysnmp.github.io/json/fulltexts/IF-MIB.json)
+complete [IF-MIB.json](https://pysnmp.github.io/mibs/json/IF-MIB.json)
 file.
 
 Besides one-to-one MIB conversion, PySMI library can produce JSON index to
 facilitate fast MIB information lookup across large collection of MIB files.
 For example, JSON index for
-[IP-MIB.json](http://pysnmp.github.io/json/asn1/IP-MIB),
-[TCP-MIB.json](http://pysnmp.github.io/json/asn1/TCP-MIB) and
-[UDP-MIB.json](http://pysnmp.github.io/json/asn1/UDP-MIB)
+[IP-MIB.json](https://pysnmp.github.io/mibs/json/IP-MIB.json),
+[TCP-MIB.json](https://pysnmp.github.io/mibs/json/TCP-MIB.json) and
+[UDP-MIB.json](https://pysnmp.github.io/mibs/json/UDP-MIB.json)
 modules would keep information like this:
 
 ```
