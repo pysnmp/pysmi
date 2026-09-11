@@ -7,7 +7,7 @@ them.
 
 The index answers the question the documents cannot: given an OID, which
 module defines it? It is what *mibdump --build-index* writes, and what
-`index.json <https://pysnmp.github.io/mibs/json/index.json>`_ is.
+the published `index-v2.csv <https://pysnmp.github.io/mibs/index-v2.csv>`_ is.
 
 The index is incremental. Each run merges its modules into whatever index
 is already in the destination directory, so a collection can be built up

@@ -2,7 +2,7 @@
 # This file is part of pysmi software.
 #
 # Copyright (c) 2015-2020, Ilya Etingof <etingof@gmail.com>
-# License: https://www.pysnmp.com/pysmi/license.html
+# License: https://github.com/pysnmp/pysmi/blob/main/LICENSE.rst
 #
 """A compiled module is stale once a different pysmi produced it, even if
 its mtime says otherwise -- compile only ever consults the source's mtime,

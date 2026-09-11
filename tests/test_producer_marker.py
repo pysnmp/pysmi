@@ -2,7 +2,7 @@
 # This file is part of pysmi software.
 #
 # Copyright (c) 2015-2020, Ilya Etingof <etingof@gmail.com>
-# License: https://www.pysnmp.com/pysmi/license.html
+# License: https://github.com/pysnmp/pysmi/blob/main/LICENSE.rst
 #
 """producer_of reads back the "Produced by <package>-<version>" marker
 compiler writes into every module it stores -- the one signal both a
@@ -38,7 +38,7 @@ class ProducerOfTestCase(unittest.TestCase):
     def testMarkerAmongOtherCommentLines(self):
         text = (
             "#\n"
-            "# PySNMP MIB module IF-MIB (http://snmplabs.com/pysmi)\n"
+            "# PySNMP MIB module IF-MIB (https://pysnmp.github.io/pysmi/)\n"
             "# ASN.1 source IF-MIB\n"
             "# Source digest sha256:abc123\n"
             "# Produced by pysmi-2.0.0-rc.11\n"

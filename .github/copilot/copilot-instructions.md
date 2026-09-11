@@ -130,7 +130,7 @@ When adding a new reader/searcher/writer/codegen/borrower, subclass the correspo
   # This file is part of pysmi software.
   #
   # Copyright (c) 2015-2019, Ilya Etingof <etingof@gmail.com>
-  # License: http://snmplabs.com/pysmi/license.html
+  # License: https://github.com/pysnmp/pysmi/blob/main/LICENSE.rst
   #
   ```
   New files must include this header verbatim.

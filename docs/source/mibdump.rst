@@ -105,7 +105,7 @@ into various formats.
 
 When JSON destination format is requested, for each MIB module *mibdump*
 will produce a JSON document containing all MIB objects. For example,
-`IF-MIB <https://pysnmp.github.io/mibs/asn1IF-MIB>`_ module in JSON form
+`IF-MIB <https://pysnmp.github.io/mibs/asn1/IF-MIB>`_ module in JSON form
 would look like:
 
 .. code-block:: python
@@ -155,7 +155,7 @@ would look like:
 
 In general, JSON MIB captures all aspects of original (ASN.1) MIB contents
 and layout. The snippet above is just an example, here is the complete
-`IF-MIB.json <http://pysnmp.github.io/json/fulltext/IF-MIB.json>`_
+`IF-MIB.json <https://pysnmp.github.io/mibs/json/IF-MIB.json>`_
 file.
 
 Specifying MIB source
@@ -620,9 +620,9 @@ MIB information in a form that is convenient for querying cornerstone
 properties of MIB files.
 
 For example, building JSON index for
-`IP-MIB.json <http://pysnmp.github.io/json/asn1/IP-MIB>`_,
-`TCP-MIB.json <http://pysnmp.github.io/json/asn1/TCP-MIB>`_ and
-`UDP-MIB.json <http://pysnmp.github.io/json/asn1/UDP-MIB>`_
+`IP-MIB.json <https://pysnmp.github.io/mibs/json/IP-MIB.json>`_,
+`TCP-MIB.json <https://pysnmp.github.io/mibs/json/TCP-MIB.json>`_ and
+`UDP-MIB.json <https://pysnmp.github.io/mibs/json/UDP-MIB.json>`_
 MIB modules would emit something like this:
 
 .. code-block:: json
@@ -698,9 +698,12 @@ consumer can tell one shape of index from another.
 
 The index is incremental: each run merges the modules it compiled into
 whatever index is already in the destination directory, rather than
-replacing it. A collection may therefore be built up over many runs. Full
-index build over thousands of MIBs could be seen
-`here <http://pysnmp.github.io/json/index.json>`_.
+replacing it. A collection may therefore be built up over many runs.
+
+The published distribution no longer carries a JSON index of its own: what
+it publishes is `index-v2.csv <https://pysnmp.github.io/mibs/index-v2.csv>`_,
+OID to module, and ``core.db``, which answers per node rather than per
+module. See the `MIB distribution <https://pysnmp.github.io/mibs/channels.html>`_.
 
 To build an index from your own code rather than from *mibdump*, see
 :doc:`/examples/build-json-index`.

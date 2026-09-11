@@ -187,13 +187,16 @@ modules would keep information like this:
 
 With this example, *compliance* and *identity* keys point to
 *MODULE-COMPLIANCE* and *MODULE-IDENTITY* MIB objects, *oids*
-list top-level OIDs branches defined in MIB modules. Full index
-build over thousands of MIBs could be seen
-[here](http://pysnmp.github.io/json/index.json).
+list top-level OIDs branches defined in MIB modules.
+
+The published distribution no longer carries a JSON index of its own. What it
+publishes is [`index-v2.csv`](https://pysnmp.github.io/mibs/index-v2.csv), OID
+to module, and `core.db`, which answers per node rather than per module — see
+[the MIB distribution](https://pysnmp.github.io/mibs/channels.html).
 
 The PySMI library can automatically fetch required MIBs from HTTP, FTP sites
 or local directories. You could configure any MIB source available to you (including
-[https://pysnmp.github.io/mibs/asn1](https://pysnmp.github.io/mibs/asn1)) for that purpose.
+[the MIB distribution](https://pysnmp.github.io/mibs/)) for that purpose.
 
 How to get PySMI
 ----------------

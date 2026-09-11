@@ -2,7 +2,7 @@
 # This file is part of pysmi software.
 #
 # Copyright (c) 2015-2020, Ilya Etingof <etingof@gmail.com>
-# License: https://www.pysnmp.com/pysmi/license.html
+# License: https://github.com/pysnmp/pysmi/blob/main/LICENSE.rst
 #
 """scripts/update_bundled_mibs.py stages every fetch and the compile-verify
 of the refreshed set before touching pysmi/mibs/asn1/ -- a network failure
