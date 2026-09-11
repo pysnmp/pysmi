@@ -176,12 +176,6 @@ def _compile_to(
                 x for x in PySnmpCodeGen.baseMibs if x not in PySnmpCodeGen.fakeMibs
             ]
 
-        if not mibBorrowers:
-            mibBorrowers = [
-                ("https://pysnmp.github.com:443/mibs/notexts/@mib@", False),
-                ("https://pysnmp.github.com:443/mibs/fulltexts/@mib@", True),
-            ]
-
         if not dstDirectory:
             dstDirectory = os.path.expanduser("~")
             if sys.platform[:3] == "win":
@@ -229,12 +223,6 @@ def _compile_to(
                 eligibleBaseMibs = [x for x in mibStubs if x in bundled]
                 mibStubs = [x for x in mibStubs if x not in bundled]
 
-        if not mibBorrowers:
-            mibBorrowers = [
-                ("https://pysnmp.github.io:443/mibs/json/notexts/@mib@", False),
-                ("https://pysnmp.github.io:443/mibs/fulltexts/@mib@", True),
-            ]
-
         if not dstDirectory:
             dstDirectory = os.path.join(".")
 
@@ -261,12 +249,6 @@ def _compile_to(
     elif dstFormat == "null":
         if not mibStubs:
             mibStubs = list(NullCodeGen.baseMibs)
-
-        if not mibBorrowers:
-            mibBorrowers = [
-                ("https://pysnmp.github.io:443/mibs/null/notexts/@mib@", False),
-                ("https://pysnmp.github.io:443/mibs/null/fulltexts/@mib@", True),
-            ]
 
         if not dstDirectory:
             dstDirectory = ""
