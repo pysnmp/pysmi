@@ -77,6 +77,61 @@ wins and source order breaks the tie, which is the rule
 :py:meth:`~pysmi.compiler.MibCompiler.compile` documents and applies.
 
 
+What the corpus is
+------------------
+
+A manifest also says **which artifacts** the corpus carries and **what must be
+true** of the result. Without those two keys the definition of a distribution
+is split between a JSON file pysmi reads and a build script pysmi has never
+seen, and a second publisher reproducing the corpus starts by copying the
+build script -- which means copying decisions that were never theirs.
+
+.. code-block:: json
+
+   {
+     "version": 1,
+     "emit": ["asn1", "index-v2", "report"],
+     "expect": {
+       "modules": {"min": 8000},
+       "failures": {"max": 12},
+       "namespaces-present": ["iana", "ietf"]
+     },
+     "namespaces": [
+       {"include": "src/vendor/*", "tier": "vendor"}
+     ]
+   }
+
+``emit`` takes the same artifact names ``--emit`` does, a path of its own
+included -- ``"json:build/jsondoc"``. ``--emit`` on the command line overrides
+it, as a flag overrides a file. With it declared,
+``mibcorpus --manifest=M --output-directory=D`` is the whole build, and the
+reason a corpus carries what it carries sits next to the set itself.
+
+``expect`` is checked after the build, against the same numbers
+``report.json`` records:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 75
+
+   * - Expectation
+     - What it bounds
+   * - ``modules``
+     - How many modules the corpus publishes, counted once however many
+       namespaces hold one. Independent of the emit set.
+   * - ``failures``
+     - How many of those failed to compile, counted once however many
+       output formats they failed in.
+   * - ``namespaces-present``
+     - Namespaces that must be in the build and published.
+
+``modules`` and ``failures`` take ``min``, ``max`` or both.
+An expectation missed prints the field, the bound and the actual value, and
+exits 65. An expectation the build does not report -- a misspelling among them
+-- is refused when the manifest is read, since one silently ignored leaves the
+publisher believing a check is being made that never is.
+
+
 What it produces
 ----------------
 

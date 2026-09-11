@@ -12,6 +12,7 @@ format. See the open question in :ref:`mibs-as-data`.
 """
 
 import contextlib
+import io
 import json
 import os
 import shutil
@@ -356,6 +357,150 @@ class RunTestCase(unittest.TestCase):
             internal = fileObj.read()
 
         self.assertEqual(explicit, internal)
+
+    def manifest(self, **keys):
+        """A manifest over the fixture sources, plus whatever it declares."""
+        path = os.path.join(self.root, "corpus.json")
+
+        with open(path, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    **keys,
+                },
+                fileObj,
+            )
+
+        return path
+
+    def testTheManifestCanSayWhichArtifactsTheCorpusCarries(self):
+        # What distinguishes one product from another used to be the emit set
+        # in the caller's build script, so the definition of a distribution
+        # was split between a file pysmi reads and one it has never seen.
+        manifest = self.manifest(emit=["asn1", "index-v2"])
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+        self.assertEqual(["asn1", "index-v2.csv"], sorted(os.listdir(self.out)))
+
+    def testTheManifestCanSendAnArtifactSomewhereOfItsOwn(self):
+        elsewhere = os.path.join(self.root, "elsewhere")
+        manifest = self.manifest(emit=[f"json:{elsewhere}"])
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+        self.assertIn("A-MIB.json", os.listdir(elsewhere))
+
+    def testTheCommandLineWinsOverTheManifest(self):
+        manifest = self.manifest(emit=["asn1", "index-v2"])
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+            ),
+        )
+
+        self.assertEqual(["json"], os.listdir(self.out))
+
+    def testAnEmptyEmitSetIsAUsageError(self):
+        manifest = self.manifest(emit=[])
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+    def testAMetExpectationIsSilent(self):
+        manifest = self.manifest(
+            emit=["json"],
+            expect={
+                "modules": {"min": 1, "max": 1},
+                "failures": {"max": 0},
+                "namespaces-present": ["cisco"],
+            },
+        )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+    def testAMissedBoundIsNamedAndFatal(self):
+        manifest = self.manifest(emit=["json"], expect={"modules": {"min": 8000}})
+        stderr = io.StringIO()
+
+        with mock.patch.object(mibcorpus.sys, "stderr", stderr):
+            code = self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            )
+
+        self.assertEqual(mibcorpus.EX_DATAERR, code)
+        self.assertIn("modules: expected at least 8000, got 1", stderr.getvalue())
+
+    def testAMissingNamespaceIsNamedAndFatal(self):
+        manifest = self.manifest(
+            emit=["json"], expect={"namespaces-present": ["juniper"]}
+        )
+        stderr = io.StringIO()
+
+        with mock.patch.object(mibcorpus.sys, "stderr", stderr):
+            code = self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            )
+
+        self.assertEqual(mibcorpus.EX_DATAERR, code)
+        self.assertIn("juniper", stderr.getvalue())
+
+    def testAFailingModuleCountsAgainstTheFailureBound(self):
+        with open(os.path.join(self.src, "BROKEN-MIB"), "w") as fileObj:
+            fileObj.write("BROKEN-MIB DEFINITIONS ::= BEGIN not SMI\n")
+
+        manifest = self.manifest(emit=["json"], expect={"failures": {"max": 0}})
+
+        self.assertEqual(
+            mibcorpus.EX_DATAERR,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+    def testAnExpectationNothingReportsIsAUsageError(self):
+        # A misspelled expectation that was quietly ignored would leave the
+        # publisher believing it was being checked.
+        manifest = self.manifest(expect={"moduls": {"min": 1}})
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
 
     def testResolvingAgainstNothingPublishedIsASoftwareError(self):
         self.assertEqual(

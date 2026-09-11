@@ -20,22 +20,30 @@ from pysmi.corpus.driver import (
     CorpusReport,
     Destination,
     check_disjoint,
+    check_expectations,
 )
 from pysmi.corpus.namespace import (
     DEFAULT_TIER,
+    EXPECTATIONS,
     TIERS,
+    Manifest,
     Namespace,
     load_manifest,
+    read_manifest,
 )
 
 __all__ = [
     "DEFAULT_TIER",
+    "EXPECTATIONS",
     "TIERS",
     "CorpusDriver",
     "CorpusOutputs",
     "CorpusReport",
     "Destination",
+    "Manifest",
     "Namespace",
     "check_disjoint",
+    "check_expectations",
     "load_manifest",
+    "read_manifest",
 ]
