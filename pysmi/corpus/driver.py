@@ -121,6 +121,26 @@ class CorpusOutputs:
     texts: str | None = None
     #: jsondoc documents.
     json: str | None = None
+    #: jsondoc documents carrying DESCRIPTION and the other texts.
+    #:
+    #: A tree of its own, so a build may have both: the lean one it publishes,
+    #: and a complete one for something that needs the prose. Pointed at the
+    #: same directory as :py:attr:`json` it is that tree with the texts in it,
+    #: which is the other thing a build may want.
+    #:
+    #: What ``genTexts`` gates is more than descriptions.
+    #: ``JsonCodeGen.gen_module_identity`` puts ``organization`` and
+    #: ``contactinfo`` behind the same switch, so a published MODULE-IDENTITY
+    #: is ``name``, ``oid``, ``class`` and ``lastupdated`` and nothing else --
+    #: ``CISCO-ENTITY-ALARM-MIB`` carries a full CONTACT-INFO block in its
+    #: ASN.1 and no trace of it reaches the JSON. Over a 500-module sample,
+    #: 90% of modules carry ORGANIZATION and CONTACT-INFO.
+    #:
+    #: It costs roughly 70% more on disk, which is why it is asked for rather
+    #: than assumed. ``keepTextsLayout`` stays off: a JSON consumer generally
+    #: wants the text normalised rather than the publisher's line breaks
+    #: preserved. See pysnmp/pysmi#277.
+    json_texts: str | None = None
     #: The legacy OID index, which replays :py:attr:`frozen_index`.
     index: str | None = None
     #: The ranked OID index, where collisions are resolved by rule.
@@ -144,7 +164,7 @@ class CorpusOutputs:
 
     def directories(self) -> list[str]:
         """Every directory this build writes into."""
-        dirs = [self.asn1, self.notexts, self.texts, self.json]
+        dirs = [self.asn1, self.notexts, self.texts, self.json, self.json_texts]
         files = [
             self.index,
             self.ranked_index,
@@ -465,6 +485,17 @@ class CorpusDriver:
 
         if self._outputs.json:
             wanted.append(Destination("json", "json", self._outputs.json))
+
+        # Its own destination rather than a flag on the one above, so that a
+        # build may have both: the lean tree it publishes, and a complete one
+        # for something that needs the prose. A build wanting only the second
+        # names only the second, and pays one pass for it.
+        if self._outputs.json_texts:
+            wanted.append(
+                Destination(
+                    "json-texts", "json", self._outputs.json_texts, genTexts=True
+                )
+            )
 
         return wanted
 
@@ -985,7 +1016,9 @@ class CorpusDriver:
         if selector in self._corpus:
             return self._corpus[selector]
 
-        if not self._outputs.json:
+        tree = self._jsondoc_tree
+
+        if not tree:
             raise error.PySmiError(
                 "the OID indexes and the corpus database are projections of "
                 "the jsondoc tree; emit json to build either"
@@ -1004,9 +1037,7 @@ class CorpusDriver:
             rfcs = {}
 
         documents = list(
-            corpus_index.read_documents(
-                self._outputs.json, self._tierOfModule, rfcs, selector
-            )
+            corpus_index.read_documents(tree, self._tierOfModule, rfcs, selector)
         )
 
         self._corpus[selector] = (documents, corpus_index.rank_index(documents))
@@ -1178,6 +1209,17 @@ class CorpusDriver:
 
         report.seconds["index"] = time.time() - started
 
+    @property
+    def _jsondoc_tree(self) -> str | None:
+        """The jsondoc tree the projections read.
+
+        The lean one where a build has it, since that is what the indexes and
+        the database have always been built from and the texts change nothing
+        they carry. A build that asked only for the tree with texts in it gets
+        its projections from that one rather than from a second pass.
+        """
+        return self._outputs.json or self._outputs.json_texts
+
     def _needs_jsondoc(self) -> bool:
         """Whether an artifact asked for is a projection of the jsondoc tree.
 
@@ -1208,7 +1250,7 @@ class CorpusDriver:
             The report, also written to the ``report`` path when one was
             asked for.
         """
-        if self._outputs.json or not self._needs_jsondoc():
+        if self._jsondoc_tree or not self._needs_jsondoc():
             return self._build()
 
         with tempfile.TemporaryDirectory(prefix="pysmi-corpus-") as scratch:
