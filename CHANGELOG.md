@@ -3,6 +3,19 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.2](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.1...v5.0.0-rc.2) (2026-09-11)
+
+### Features
+
+* **corpus:** bound the OID tree's page inventory at module anchors ([ff2b6ef](https://github.com/pysnmp/pysmi/commit/ff2b6ef9dfc929c2ee072f9b7df4c51cd3f5423f)), closes [#276](https://github.com/pysnmp/pysmi/issues/276)
+* **corpus:** report the enterprise arcs no PEN registrant names ([c9a1a57](https://github.com/pysnmp/pysmi/commit/c9a1a5736145d0dc02f506f7cf00fd5603d7aba4)), closes [pysnmp/mibs#407](https://github.com/pysnmp/mibs/issues/407)
+* **defects:** catalogue a symbol imported from a module that does not export it ([0fd6201](https://github.com/pysnmp/pysmi/commit/0fd620124484392002530bad3387fd5b843b482e))
+* **registry:** let a corpus reduce the PEN snapshot to the arcs it uses ([eac5cc5](https://github.com/pysnmp/pysmi/commit/eac5cc5ad825bfcbed2c52d3f1ea8832e48e9da1))
+
+### Bug Fixes
+
+* **corpus:** name the namespace behind a package-sourced module ([0a52303](https://github.com/pysnmp/pysmi/commit/0a5230382b372921d9e35abc08e655f47994943b))
+
 ## [5.0.0-rc.1](https://github.com/pysnmp/pysmi/compare/v4.1.1...v5.0.0-rc.1) (2026-09-11)
 
 ### ⚠ BREAKING CHANGES
