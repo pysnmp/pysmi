@@ -558,6 +558,13 @@ MIBs under ``1.3.111.2.802.1`` and ``LLDP-MIB`` registers under
 ``1.0.8802.1.1.2``. A ``1.3.6.1`` filter drops both, and LLDP is among the most
 widely polled MIBs there is. Arc depth runs from 2 to 20.
 
+That inventory counts an arc whether or not anything would render a page for
+it. Which of them a *site* gives a page to is a narrower question, and
+:py:mod:`pysmi.corpus.pages` answers it: the arcs above the modules, which
+over pysnmp/mibs is 1,347 of the 6,694 rather than the 95,603 a page per
+defined OID would be. An arc at a module's anchor is the module, and an arc
+below one is an object the module page already renders.
+
 .. _asn1-naming:
 
 How the ASN.1 tree is named

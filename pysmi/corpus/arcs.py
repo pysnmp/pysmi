@@ -128,7 +128,7 @@ def prefixes(oid: str) -> list[str]:
     return [".".join(parts[: depth + 1]) for depth in range(len(parts))]
 
 
-def _descriptors(
+def descriptors(
     documents: "Iterable[tuple[str, dict[str, Any], Any, Any]]",
 ) -> dict[str, tuple[str, str]]:
     """The descriptor each module gives each OID it defines.
@@ -193,7 +193,7 @@ def arcs(
         it. An arc nothing names is present with an empty name rather than
         absent: the tree still renders a path through it.
     """
-    descriptors = _descriptors(documents)
+    descriptorOf = descriptors(documents)
     registry = smi or {}
     holders = enterprises or {}
 
@@ -228,7 +228,7 @@ def arcs(
             found[arc] = Arc(arc, cited.name, STANDARD, cited.reference)
             continue
 
-        descriptor = descriptors.get(arc)
+        descriptor = descriptorOf.get(arc)
 
         if descriptor is not None:
             found[arc] = Arc(arc, descriptor[0], MODULE, descriptor[1])
