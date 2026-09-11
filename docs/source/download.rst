@@ -18,8 +18,12 @@ Or with ``pip``:
    $ source venv/bin/activate
    $ pip install pysnmp-pysmi
 
-Either way you also get the ``mibdump`` and ``mibcopy`` command-line tools. To
-run them without installing anything permanently:
+Either way you also get the command-line tools: :doc:`mibdump </mibdump>` to
+compile a module, :doc:`mibcopy </mibcopy>` to normalize a source tree,
+:doc:`mibpatch </mibpatch>` to apply a recorded repair, and
+:doc:`mibcorpus </mibcorpus>` to build a whole corpus from a manifest -- which
+is what produces the `MIB distribution <https://pysnmp.github.io/mibs/>`_. To
+run one without installing anything permanently:
 
 .. code-block:: bash
 

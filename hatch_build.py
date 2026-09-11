@@ -120,9 +120,9 @@ def patch_asn1(root: Path) -> Path:
     """
     sys.path.insert(0, str(root))
 
-    from scripts.patches import APPLIED, PatchSet
+    from scripts.patches import APPLIED, bundled_patches
 
-    patches = PatchSet.bundled()
+    patches = bundled_patches()
     out = Path(tempfile.mkdtemp(prefix="pysmi-patched-asn1-"))
 
     # Files only. The bundle is a flat directory of modules, and anything else

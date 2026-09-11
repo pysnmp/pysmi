@@ -18,7 +18,7 @@ import tempfile
 import unittest
 
 from pysmi import error
-from pysmi.corpus.namespace import Namespace, load_manifest
+from pysmi.corpus.namespace import Namespace, load_manifest, read_manifest
 
 
 class NamespaceTestCase(unittest.TestCase):
@@ -188,3 +188,97 @@ class ManifestTestCase(unittest.TestCase):
         )
 
         self.assertRaises(error.PySmiError, load_manifest, path)
+
+
+class ManifestDeclarationTestCase(unittest.TestCase):
+    """A manifest declares what the corpus is, not only where it comes from.
+
+    Until pysnmp/pysmi#263 it declared sources alone, so which artifacts a
+    corpus carried and what had to be true of it lived in the publisher's
+    build script.
+    """
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.root, "src", "cisco"))
+
+    def tearDown(self):
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def manifest(self, **body):
+        """A manifest with one namespace, plus whatever it declares."""
+        path = os.path.join(self.root, "corpus.json")
+
+        with open(path, "w") as fileObj:
+            json.dump(
+                {"namespaces": [{"source": "src/cisco"}], **body},
+                fileObj,
+            )
+
+        return path
+
+    def testAManifestNeedDeclareNeither(self):
+        manifest = read_manifest(self.manifest())
+
+        self.assertIsNone(manifest.emit)
+        self.assertEqual({}, manifest.expect)
+
+    def testTheEmitSetIsReadAsDeclared(self):
+        manifest = read_manifest(self.manifest(emit=["asn1", "json:/elsewhere"]))
+
+        self.assertEqual(["asn1", "json:/elsewhere"], manifest.emit)
+
+    def testTheExpectationsAreReadAsDeclared(self):
+        expect = {"modules": {"min": 8000}, "namespaces-present": ["ietf"]}
+
+        self.assertEqual(expect, read_manifest(self.manifest(expect=expect)).expect)
+
+    def testAnEmptyEmitSetIsRefused(self):
+        self.assertRaises(error.PySmiError, read_manifest, self.manifest(emit=[]))
+
+    def testAnEmitSetThatIsNotNamesIsRefused(self):
+        self.assertRaises(error.PySmiError, read_manifest, self.manifest(emit="asn1"))
+        self.assertRaises(error.PySmiError, read_manifest, self.manifest(emit=[1]))
+
+    def testAnExpectationNothingReportsIsRefused(self):
+        # Silently ignoring it would leave the publisher believing a check
+        # was being made that never was.
+        self.assertRaises(
+            error.PySmiError,
+            read_manifest,
+            self.manifest(expect={"moduls": {"min": 1}}),
+        )
+
+    def testABoundThatIsNotMinOrMaxIsRefused(self):
+        self.assertRaises(
+            error.PySmiError,
+            read_manifest,
+            self.manifest(expect={"modules": {"about": 10}}),
+        )
+
+    def testABoundThatIsNotAnIntegerIsRefused(self):
+        self.assertRaises(
+            error.PySmiError,
+            read_manifest,
+            self.manifest(expect={"failures": {"max": "none"}}),
+        )
+
+    def testAnExpectationOfTheWrongShapeIsRefused(self):
+        self.assertRaises(
+            error.PySmiError,
+            read_manifest,
+            self.manifest(expect={"namespaces-present": "ietf"}),
+        )
+        self.assertRaises(
+            error.PySmiError, read_manifest, self.manifest(expect={"modules": 8000})
+        )
+
+    def testExpectIsRefusedWhenItIsNotAnObject(self):
+        self.assertRaises(
+            error.PySmiError, read_manifest, self.manifest(expect=["modules"])
+        )
+
+    def testLoadManifestStillRefusesWhatReadManifestRefuses(self):
+        # The namespaces-only view validates the whole file: a manifest one
+        # entry point accepts and the other does not would be a trap.
+        self.assertRaises(error.PySmiError, load_manifest, self.manifest(emit=[]))

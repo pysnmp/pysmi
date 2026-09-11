@@ -187,6 +187,16 @@ class PySmiSemanticError(PySmiCodegenError):
     """
 
 
+class PySmiPatchError(PySmiError):
+    """A MIB patch is not a well-formed unified diff.
+
+    Raised for an unreadable line or hunks that run backwards. A patch whose
+    *context* does not match the text it is offered is not this: that is the
+    ordinary case of text the patch was not cut against, and it is reported as
+    :py:data:`~pysmi.patches.NOT_APPLICABLE` rather than raised.
+    """
+
+
 class PySmiWriterError(PySmiError):
     """Generated output could not be stored.
 

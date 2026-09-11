@@ -23,12 +23,18 @@ import sys
 from typing import Final
 
 from pysmi import debug, error
-from pysmi.corpus.driver import CorpusDriver, CorpusOutputs, CorpusReport
-from pysmi.corpus.namespace import Namespace, load_manifest
+from pysmi.corpus.driver import (
+    CorpusDriver,
+    CorpusOutputs,
+    CorpusReport,
+    check_expectations,
+)
+from pysmi.corpus.namespace import Manifest, Namespace, read_manifest
 
 # sysexits.h
 EX_OK: Final = 0
 EX_USAGE: Final = 64
+EX_DATAERR: Final = 65
 EX_SOFTWARE: Final = 70
 EX_MIB_FAILED: Final = 79
 
@@ -60,10 +66,15 @@ def start() -> None:
         [--no-bundled-mibs]
         [--fail-on-errors]
     Where:
-        --manifest - the JSON file declaring the source namespaces this
-                corpus is built from, in the order that breaks ties
-                between two namespaces holding a module of one name.
-                Paths in it are relative to the manifest's directory.
+        --manifest - the JSON file declaring what this corpus is: the
+                source namespaces it is built from, in the order that
+                breaks ties between two namespaces holding a module of one
+                name; optionally an "emit" list naming the artifacts it
+                carries; optionally an "expect" object of what must be
+                true of the result -- modules, failures and
+                namespaces-present -- which is checked after the build and
+                exits non-zero naming whatever missed. Paths in it are
+                relative to the manifest's directory.
         --namespace - declare one namespace on the command line instead
                 of, or in addition to, a manifest. SOURCE is a directory,
                 or "package:" and a dotted package name for the modules
@@ -90,9 +101,12 @@ def start() -> None:
                 the index or just the JSON. ARTIFACT is one of asn1,
                 notexts, texts, json, index, index-v2, standard, core-db,
                 report. core-db and the two indexes are projections of the
-                jsondoc tree, so a build asking for one has to emit json
-                too -- to a scratch path outside the corpus, where the
-                corpus is not meant to carry it.
+                jsondoc tree; a build asking for one without asking for
+                json gets a tree staged in a temporary directory and
+                removed afterwards, so the corpus carries only what was
+                named. Emit json to keep it, with a path of its own to say
+                where. Overrides the manifest's own emit set, as a flag
+                overrides a file.
         --corpus-version - what to stamp core.db as, recorded verbatim in
                 its metadata. Nothing is invented when this is absent: a
                 version taken from a clock or from a checkout would make
@@ -198,10 +212,12 @@ def start() -> None:
         logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 
     namespaces: list[Namespace] = []
+    manifest = Manifest(namespaces=[])
 
     try:
         if manifestPath:
-            namespaces.extend(load_manifest(manifestPath))
+            manifest = read_manifest(manifestPath)
+            namespaces.extend(manifest.namespaces)
 
         for spec, publish in namespaceArgs:
             namespaces.append(_parse_namespace(spec, publish=publish))
@@ -216,8 +232,11 @@ def start() -> None:
         )
         sys.exit(EX_USAGE)
 
+    # A flag overrides a file. Absent both, the full published layout.
+    selected = emitted if explicitOutputs else manifest.emit
+
     try:
-        outputs = _outputs_for(outputDirectory, emitted if explicitOutputs else None)
+        outputs = _outputs_for(outputDirectory, selected)
 
     except error.PySmiError as exc:
         sys.stderr.write(f"ERROR: {exc}\r\n{helpMessage}\r\n")
@@ -240,6 +259,15 @@ def start() -> None:
 
     if verboseFlag:
         _summarize(report)
+
+    missed = check_expectations(manifest.expect, report)
+
+    if missed:
+        sys.stderr.write(
+            "ERROR: the build is not what the manifest says this corpus is:\r\n"
+        )
+        sys.stderr.writelines(f"    {x}\r\n" for x in missed)
+        sys.exit(EX_DATAERR)
 
     failures = sum(len(x) for x in report.failed.values())
 

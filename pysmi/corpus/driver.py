@@ -37,6 +37,7 @@ See pysnmp/pysmi#182.
 
 import logging
 import os
+import tempfile
 import time
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
@@ -172,6 +173,13 @@ class CorpusReport:
     #: Modules more than one namespace holds a differing copy of: which file
     #: was used, which were passed over, and which rule decided.
     shadowed: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: Modules the corpus publishes, counted once however many namespaces
+    #: hold one: what compiled, which is what every artifact carries. A
+    #: module that failed, and anything that imports it, is not in this
+    #: number. Independent of the emit set, which is what lets a manifest
+    #: bound it whatever artifacts the build was asked for -- unlike
+    #: :py:attr:`staged`, which is zero for a build not writing ASN.1.
+    modules: int = 0
     #: Modules staged into the published ASN.1 tree.
     staged: int = 0
     #: Nodes the corpus defines, before and after resolving the OIDs more
@@ -195,6 +203,7 @@ class CorpusReport:
             "failed": self.failed,
             "unprocessed": self.unprocessed,
             "shadowed": self.shadowed,
+            "modules": self.modules,
             "staged": self.staged,
             "nodes": self.nodes,
             "index": self.index,
@@ -522,6 +531,31 @@ class CorpusDriver:
 
         return self._modulesOfNamespace
 
+    def _published_modules(
+        self, results: dict[str, dict[str, Any]]
+    ) -> "list[str] | None":
+        """What the corpus carries, read off the jsondoc compile.
+
+        The jsondoc is the SMI model every other artifact is a projection
+        of, so it is the one that decides. A module that did not compile is
+        not in it, and neither is anything that imports one -- the compiler
+        reports those as ``failed`` or ``unprocessed`` already, so the
+        closure costs no dependency walk here.
+
+        ``None`` where the build compiled no JSON at all, which means
+        "everything the namespaces hold" to each writer.
+        """
+        written = results.get("json")
+
+        if written is None:
+            return None
+
+        return sorted(
+            name
+            for name, status in written.items()
+            if str(status) in PUBLISHED_STATUSES
+        )
+
     def compile(self, report: CorpusReport) -> dict[str, dict[str, Any]]:
         """Compile every namespace into every destination.
 
@@ -602,7 +636,9 @@ class CorpusDriver:
 
         return results
 
-    def stage(self, report: CorpusReport) -> dict[str, str]:
+    def stage(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> dict[str, str]:
         """Write the published ASN.1 tree, one file per module name.
 
         Flat and named for the module, because that is what the tree's
@@ -618,6 +654,13 @@ class CorpusDriver:
 
         Args:
             report: filled in with what was staged and what was shadowed
+            compiled: the modules this build compiled, which is what the
+                corpus publishes. A module that does not compile -- and, by
+                the same result, everything that imports it -- is left out,
+                so the tree, the indexes and the database carry one module
+                set rather than three. Every module the namespaces hold when
+                not given, which is what a caller staging sources without
+                compiling them wants. See pysnmp/pysmi#269.
 
         Returns:
             Module name to the source path it was staged from.
@@ -643,10 +686,14 @@ class CorpusDriver:
         resolver.add_sources(*[self._readers[x.name] for x in self._namespaces])
 
         staged: dict[str, str] = {}
+        publishable = None if compiled is None else set(compiled)
 
         for namespace in self._published:
             for module in self._module_sets()[namespace.name]:
                 if module in staged:
+                    continue
+
+                if publishable is not None and module not in publishable:
                     continue
 
                 resolution = resolver.resolve(module)
@@ -686,13 +733,20 @@ class CorpusDriver:
 
         return staged
 
-    def write_standard(self, staged: dict[str, str]) -> None:
+    def write_standard(self, compiled: "Iterable[str] | None" = None) -> None:
         """Write the standard module list.
 
-        Every module from a namespace declared ``standard``, less the
-        prefixes the published file has never carried. See
-        :py:data:`STANDARD_TXT_EXCLUDED_PREFIXES` for why that exclusion is
-        reproduced rather than corrected.
+        Every module from a namespace declared ``standard`` that the corpus
+        publishes, less the prefixes the published file has never carried.
+        See :py:data:`STANDARD_TXT_EXCLUDED_PREFIXES` for why that exclusion
+        is reproduced rather than corrected.
+
+        Args:
+            compiled: the modules this build compiled, as :py:meth:`stage`
+                takes it. The list is what a consumer preloads, so a module
+                that does not compile has no business on it -- naming one is
+                the same lie as serving it. Every module the standard
+                namespaces hold when not given.
         """
         path = self._outputs.standard
 
@@ -706,6 +760,9 @@ class CorpusDriver:
                 continue
 
             standard.update(self._module_sets()[namespace.name])
+
+        if compiled is not None:
+            standard &= set(compiled)
 
         names = sorted(
             x for x in standard if not x.startswith(STANDARD_TXT_EXCLUDED_PREFIXES)
@@ -884,13 +941,49 @@ class CorpusDriver:
 
         report.seconds["index"] = time.time() - started
 
+    def _needs_jsondoc(self) -> bool:
+        """Whether an artifact asked for is a projection of the jsondoc tree.
+
+        The ASN.1 tree and the standard list are projections too: both carry
+        what the corpus publishes, and what it publishes is what compiled.
+        """
+        return bool(
+            self._outputs.core_db
+            or self._outputs.index
+            or self._outputs.ranked_index
+            or self._outputs.asn1
+            or self._outputs.standard
+        )
+
     def run(self) -> CorpusReport:
         """Build the corpus and report what it did.
+
+        A build asking for the database or an index but not for the jsondoc
+        tree gets one staged for the duration and removed afterwards,
+        including where the build raises. The dependency is pysmi's own: a
+        publisher asking for ``core.db`` did not ask for a tree of JSON and
+        should not have to know one exists, nor pick a scratch path for it
+        and clean up after itself. See pysnmp/pysmi#262.
 
         Returns:
             The report, also written to the ``report`` path when one was
             asked for.
         """
+        if self._outputs.json or not self._needs_jsondoc():
+            return self._build()
+
+        with tempfile.TemporaryDirectory(prefix="pysmi-corpus-") as scratch:
+            self._outputs.json = os.path.join(scratch, "json")
+
+            try:
+                return self._build()
+
+            finally:
+                # The caller handed us these outputs; they leave as they came.
+                self._outputs.json = None
+
+    def _build(self) -> CorpusReport:
+        """One build, with every output path already decided."""
         started = time.time()
         report = CorpusReport()
 
@@ -906,24 +999,25 @@ class CorpusDriver:
             for x in self._namespaces
         ]
 
-        staged = self.stage(report)
+        # The compile decides what the corpus publishes, so it runs first
+        # and every artifact is derived from the one answer it gives. A
+        # module that does not compile reaches no output tree, and neither
+        # does anything that imports it -- the compiler already reports
+        # those as failed or unprocessed, so no dependency walk is needed
+        # here. See pysnmp/pysmi#269.
         results = self.compile(report)
-        self.write_standard(staged)
+        published = self._published_modules(results)
 
-        written = results.get("json")
+        # What the corpus holds, that compiled. A resolve-only module is
+        # stubbed and comes back "untouched", so the compile result alone
+        # would count modules the corpus does not carry.
+        held = {x for ns in self._published for x in moduleSets[ns.name]}
+        report.modules = len(held if published is None else held & set(published))
 
-        indexed = (
-            None
-            if written is None
-            else [
-                name
-                for name, status in written.items()
-                if status in ("compiled", "untouched", "borrowed")
-            ]
-        )
-
-        self.write_index(report, indexed)
-        self.write_db(report, indexed)
+        self.stage(report, published)
+        self.write_standard(published)
+        self.write_index(report, published)
+        self.write_db(report, published)
 
         report.seconds["total"] = time.time() - started
 
@@ -936,6 +1030,62 @@ class CorpusDriver:
             )
 
         return report
+
+
+def check_expectations(expect: "Mapping[str, Any]", report: CorpusReport) -> list[str]:
+    """What a build failed to be, against what its manifest said it would be.
+
+    ``report.json`` has always carried the counts and nothing checked them,
+    so a publisher's real assertions -- this corpus has N modules, these
+    namespaces are in it, no more than this many modules fail to compile --
+    lived in a downstream test script that every publisher wrote once and
+    differently. Declaring them makes them data pysmi enforces. See
+    pysnmp/pysmi#263.
+
+    Args:
+        expect: the manifest's ``expect``, as
+            :py:func:`~pysmi.corpus.namespace.read_manifest` validated it
+        report: what the build did
+
+    Returns:
+        One line per expectation missed, naming the field, the bound and
+        what the build actually was. Empty when the build is what the
+        manifest said it would be.
+    """
+    #: Modules that failed in any destination, counted once. A module
+    #: failing in all three is one module the corpus does not carry.
+    failures = len({x for failed in report.failed.values() for x in failed})
+
+    actual = {"modules": report.modules, "failures": failures}
+    missed: list[str] = []
+
+    for key, bounds in expect.items():
+        if key == "namespaces-present":
+            present = {x["name"] for x in report.namespaces if x["publish"]}
+
+            missed.extend(
+                f"namespaces-present: {x} is not a namespace this corpus publishes"
+                for x in bounds
+                if x not in present
+            )
+
+            continue
+
+        value = actual[key]
+
+        if "min" in bounds and value < bounds["min"]:
+            missed.append(f"{key}: expected at least {bounds['min']}, got {value}")
+
+        if "max" in bounds and value > bounds["max"]:
+            missed.append(f"{key}: expected at most {bounds['max']}, got {value}")
+
+    return missed
+
+
+#: Compile outcomes that mean the corpus has the module. Anything else --
+#: ``failed`` for a module that does not compile, ``unprocessed`` for one
+#: dropped because something it imports did not -- is not published.
+PUBLISHED_STATUSES: Final[tuple[str, ...]] = ("compiled", "untouched", "borrowed")
 
 
 def _tally(processed: dict[str, Any]) -> dict[str, int]:

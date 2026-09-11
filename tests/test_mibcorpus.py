@@ -11,6 +11,8 @@ modules" -- so it is a different entry point rather than another destination
 format. See the open question in :ref:`mibs-as-data`.
 """
 
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -21,7 +23,28 @@ import unittest
 from unittest import mock
 
 from pysmi import error
+from pysmi.corpus import db as corpus_db
 from pysmi.scripts import mibcorpus
+
+
+@contextlib.contextmanager
+def _own_tempdir():
+    """Point :py:mod:`tempfile` at a directory of our own, and yield it.
+
+    What a build stages for itself goes somewhere ``tempfile`` chooses, so
+    this is how a test sees whether anything was left behind without knowing
+    the name it was staged under.
+    """
+    directory = tempfile.mkdtemp()
+    previous = tempfile.tempdir
+    tempfile.tempdir = directory
+
+    try:
+        yield directory
+
+    finally:
+        tempfile.tempdir = previous
+        shutil.rmtree(directory, ignore_errors=True)
 
 
 def module(name, oid):
@@ -189,15 +212,12 @@ class RunTestCase(unittest.TestCase):
         # write_db has taken these since it was written and until now nothing
         # could pass them, so every core.db mibcorpus produced left both keys
         # unset. This is the end of that path: command line to metadata.
-        scratch = os.path.join(self.root, "scratch")
-
         self.assertEqual(
             mibcorpus.EX_OK,
             self.run_with(
                 f"--namespace=vendor:cisco:{self.src}",
                 f"--output-directory={self.out}",
                 "--emit=core-db",
-                f"--emit=json:{scratch}",
                 "--corpus-version=2.0.2",
                 "--corpus-id=pysnmp/mibs",
             ),
@@ -217,15 +237,12 @@ class RunTestCase(unittest.TestCase):
     def testAnUnstampedBuildCarriesNeitherKey(self):
         # Nothing is invented in their place: a version taken from a clock or
         # a checkout would make two builds of one source tree differ.
-        scratch = os.path.join(self.root, "scratch")
-
         self.assertEqual(
             mibcorpus.EX_OK,
             self.run_with(
                 f"--namespace=vendor:cisco:{self.src}",
                 f"--output-directory={self.out}",
                 "--emit=core-db",
-                f"--emit=json:{scratch}",
             ),
         )
 
@@ -239,6 +256,251 @@ class RunTestCase(unittest.TestCase):
 
         self.assertNotIn("corpus_version", meta)
         self.assertNotIn("corpus_id", meta)
+
+    def testAProjectionCanBeAskedForOnItsOwn(self):
+        # core.db and the indexes are built off the jsondoc tree, which is
+        # pysmi's dependency and not the caller's: asking for one of them
+        # used to mean also naming a scratch path for a tree the corpus was
+        # not meant to carry, and cleaning it up. See pysnmp/pysmi#262.
+        for artifact, produced in (
+            ("core-db", "core.db"),
+            ("index", "index.csv"),
+            ("index-v2", "index-v2.csv"),
+        ):
+            with self.subTest(artifact=artifact):
+                shutil.rmtree(self.out, ignore_errors=True)
+
+                self.assertEqual(
+                    mibcorpus.EX_OK,
+                    self.run_with(
+                        f"--namespace=vendor:cisco:{self.src}",
+                        f"--output-directory={self.out}",
+                        f"--emit={artifact}",
+                    ),
+                )
+
+                self.assertEqual([produced], os.listdir(self.out))
+
+    def testTheStagedTreeIsGoneWhenTheBuildReturns(self):
+        with _own_tempdir() as scratch:
+            self.assertEqual(
+                mibcorpus.EX_OK,
+                self.run_with(
+                    f"--namespace=vendor:cisco:{self.src}",
+                    f"--output-directory={self.out}",
+                    "--emit=core-db",
+                ),
+            )
+
+            self.assertEqual([], os.listdir(scratch))
+
+    def testTheStagedTreeIsGoneWhenTheBuildRaises(self):
+        # Cleaning up only on the way out of a successful build is how a
+        # publisher ends up choosing its own bugs about the error path.
+        with (
+            _own_tempdir() as scratch,
+            mock.patch.object(
+                corpus_db, "write_db", side_effect=error.PySmiError("no database")
+            ),
+        ):
+            self.assertEqual(
+                mibcorpus.EX_SOFTWARE,
+                self.run_with(
+                    f"--namespace=vendor:cisco:{self.src}",
+                    f"--output-directory={self.out}",
+                    "--emit=core-db",
+                ),
+            )
+
+            self.assertEqual([], os.listdir(scratch))
+
+    def testAskingForTheTreeStillPutsItWhereItWasAskedFor(self):
+        tree = os.path.join(self.root, "kept")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=core-db",
+                f"--emit=json:{tree}",
+            ),
+        )
+
+        self.assertIn("A-MIB.json", os.listdir(tree))
+        self.assertEqual(["core.db"], os.listdir(self.out))
+
+    def testTheDatabaseIsTheSameWhicheverWayTheTreeWasGot(self):
+        # The staged tree is the tree, so what is built off it cannot differ
+        # from what a caller staging their own would have got.
+        tree = os.path.join(self.root, "kept")
+        staged = os.path.join(self.root, "staged-out")
+
+        self.run_with(
+            f"--namespace=vendor:cisco:{self.src}",
+            f"--output-directory={self.out}",
+            "--emit=core-db",
+            f"--emit=json:{tree}",
+            "--corpus-version=1.0.0",
+        )
+        self.run_with(
+            f"--namespace=vendor:cisco:{self.src}",
+            f"--output-directory={staged}",
+            "--emit=core-db",
+            "--corpus-version=1.0.0",
+        )
+
+        with open(os.path.join(self.out, "core.db"), "rb") as fileObj:
+            explicit = fileObj.read()
+
+        with open(os.path.join(staged, "core.db"), "rb") as fileObj:
+            internal = fileObj.read()
+
+        self.assertEqual(explicit, internal)
+
+    def manifest(self, **keys):
+        """A manifest over the fixture sources, plus whatever it declares."""
+        path = os.path.join(self.root, "corpus.json")
+
+        with open(path, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    **keys,
+                },
+                fileObj,
+            )
+
+        return path
+
+    def testTheManifestCanSayWhichArtifactsTheCorpusCarries(self):
+        # What distinguishes one product from another used to be the emit set
+        # in the caller's build script, so the definition of a distribution
+        # was split between a file pysmi reads and one it has never seen.
+        manifest = self.manifest(emit=["asn1", "index-v2"])
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+        self.assertEqual(["asn1", "index-v2.csv"], sorted(os.listdir(self.out)))
+
+    def testTheManifestCanSendAnArtifactSomewhereOfItsOwn(self):
+        elsewhere = os.path.join(self.root, "elsewhere")
+        manifest = self.manifest(emit=[f"json:{elsewhere}"])
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+        self.assertIn("A-MIB.json", os.listdir(elsewhere))
+
+    def testTheCommandLineWinsOverTheManifest(self):
+        manifest = self.manifest(emit=["asn1", "index-v2"])
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+            ),
+        )
+
+        self.assertEqual(["json"], os.listdir(self.out))
+
+    def testAnEmptyEmitSetIsAUsageError(self):
+        manifest = self.manifest(emit=[])
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+    def testAMetExpectationIsSilent(self):
+        manifest = self.manifest(
+            emit=["json"],
+            expect={
+                "modules": {"min": 1, "max": 1},
+                "failures": {"max": 0},
+                "namespaces-present": ["cisco"],
+            },
+        )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+    def testAMissedBoundIsNamedAndFatal(self):
+        manifest = self.manifest(emit=["json"], expect={"modules": {"min": 8000}})
+        stderr = io.StringIO()
+
+        with mock.patch.object(mibcorpus.sys, "stderr", stderr):
+            code = self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            )
+
+        self.assertEqual(mibcorpus.EX_DATAERR, code)
+        self.assertIn("modules: expected at least 8000, got 1", stderr.getvalue())
+
+    def testAMissingNamespaceIsNamedAndFatal(self):
+        manifest = self.manifest(
+            emit=["json"], expect={"namespaces-present": ["juniper"]}
+        )
+        stderr = io.StringIO()
+
+        with mock.patch.object(mibcorpus.sys, "stderr", stderr):
+            code = self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            )
+
+        self.assertEqual(mibcorpus.EX_DATAERR, code)
+        self.assertIn("juniper", stderr.getvalue())
+
+    def testAFailingModuleCountsAgainstTheFailureBound(self):
+        with open(os.path.join(self.src, "BROKEN-MIB"), "w") as fileObj:
+            fileObj.write("BROKEN-MIB DEFINITIONS ::= BEGIN not SMI\n")
+
+        manifest = self.manifest(emit=["json"], expect={"failures": {"max": 0}})
+
+        self.assertEqual(
+            mibcorpus.EX_DATAERR,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
+
+    def testAnExpectationNothingReportsIsAUsageError(self):
+        # A misspelled expectation that was quietly ignored would leave the
+        # publisher believing it was being checked.
+        manifest = self.manifest(expect={"moduls": {"min": 1}})
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+            ),
+        )
 
     def testResolvingAgainstNothingPublishedIsASoftwareError(self):
         self.assertEqual(
