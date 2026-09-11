@@ -134,6 +134,7 @@ class CorpusTestCase(unittest.TestCase):
             "index": os.path.join(out, "index.csv"),
             "ranked_index": os.path.join(out, "index-v2.csv"),
             "standard": os.path.join(out, "standard.txt"),
+            "closure": os.path.join(out, "closure.json"),
             "report": os.path.join(out, "report.json"),
         }
         layout.update(kwargs)
@@ -257,6 +258,64 @@ class ProvenanceTestCase(CorpusTestCase):
         report = CorpusDriver(self.namespaces(), outputs).run()
 
         self.assertEqual({}, report.provenance)
+
+
+class ImportClosureTestCase(CorpusTestCase):
+    """The files a consumer needs in order to load a module (pysnmp/pysmi#280).
+
+    The build resolves every import edge in order to compile, so it is the
+    build that writes the closure down rather than every reader re-walking a
+    table for it.
+    """
+
+    def closure(self, where="output"):
+        """The artifact this build wrote."""
+        with open(
+            os.path.join(self.root, where, "closure.json"), encoding="utf-8"
+        ) as fileObj:
+            return json.load(fileObj)["closure"]
+
+    def testItIsPartOfThePublishedLayout(self):
+        """No --emit needed: it is a projection of a tree the build reads anyway."""
+        CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertIn("ALPHA-MIB", self.closure())
+
+    def testAModuleIsInItsOwnClosure(self):
+        """Which makes the artifact directly usable as a file list."""
+        CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertIn("ALPHA-MIB", self.closure()["ALPHA-MIB"]["files"])
+
+    def testTheClosureIsEveryFileTheModuleNeeds(self):
+        """These modules import SNMPv2-SMI, which imports two more.
+
+        The closure is the file list, so it carries what the edges reach and
+        not only the edges themselves.
+        """
+        CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual(
+            ["ALPHA-MIB", "SNMPv2-CONF", "SNMPv2-SMI", "SNMPv2-TC"],
+            self.closure()["ALPHA-MIB"]["files"],
+        )
+
+    def testACompleteCorpusReportsNothingMissing(self):
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual(0, report.closure["incomplete"])
+        self.assertEqual([], self.closure()["ALPHA-MIB"]["missing"])
+
+    def testItIsNotWrittenUnlessAskedFor(self):
+        outputs = self.outputs()
+        outputs.closure = None
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual({}, report.closure)
+        self.assertFalse(
+            os.path.exists(os.path.join(self.root, "output", "closure.json"))
+        )
 
 
 class RepeatabilityTestCase(CorpusTestCase):

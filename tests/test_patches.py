@@ -26,16 +26,22 @@ import textwrap
 import unittest
 from pathlib import Path
 
+from pysmi.defects import CATALOGUE, ref, url
 from scripts.patches import (
     ALREADY_APPLIED,
     APPLIED,
     NOT_APPLICABLE,
     UNPATCHED,
+    DefectRef,
+    PatchHeader,
     PatchSet,
     PySmiPatchError,
     apply_patch,
     bundled_patches,
+    format_header,
+    make_patch,
     parse_patch,
+    split_patch,
 )
 
 BUNDLED_ASN1 = Path(__file__).resolve().parent.parent / "pysmi" / "mibs" / "asn1"
@@ -511,6 +517,149 @@ class PysmisOwnRepairsAreNotShippedTestCase(unittest.TestCase):
         self.assertNotEqual(_repaired("HPR-MIB"), data)
 
 
+class PatchHeaderTestCase(unittest.TestCase):
+    """A patch names the defect it repairs, above the diff (pysnmp/pysmi#279)."""
+
+    def testAPatchWithoutAHeaderIsUnchangedByReadingIt(self):
+        """Every patch written before the convention is still a patch.
+
+        The whole case for a header block is that it costs nothing: a patch
+        that has none has to come back out exactly as it went in.
+        """
+        header, diff = split_patch(SAMPLE_PATCH)
+
+        self.assertEqual(PatchHeader((), ""), header)
+        self.assertEqual(SAMPLE_PATCH, diff)
+
+    def testAHeaderRoundTrips(self):
+        """What format_header writes, split_patch reads back."""
+        written = format_header([ref("SMI-INVALID-DATE")], "A note.")
+
+        header, diff = split_patch(written + SAMPLE_PATCH)
+
+        self.assertEqual((ref("SMI-INVALID-DATE"),), header.defects)
+        self.assertEqual("A note.", header.body)
+        self.assertEqual(SAMPLE_PATCH, diff)
+
+    def testAPatchMayNameSeveralDefects(self):
+        """DNS-SERVER-MIB repairs three, so one line each rather than one line."""
+        written = format_header([ref("SMI-INVALID-DATE"), ref("SMI-UNMARKED-COMMENT")])
+
+        self.assertEqual(
+            (ref("SMI-INVALID-DATE"), ref("SMI-UNMARKED-COMMENT")),
+            split_patch(written + SAMPLE_PATCH)[0].defects,
+        )
+
+    def testADefectNeedsNoBody(self):
+        """The prose is the optional half, and normally there is none of it.
+
+        What a defect is belongs in the catalogue the identifier points at,
+        not repeated in every patch that repairs one.
+        """
+        header, _ = split_patch(format_header([ref("SMI-INVALID-DATE")]) + SAMPLE_PATCH)
+
+        self.assertEqual((ref("SMI-INVALID-DATE"),), header.defects)
+        self.assertEqual("", header.body)
+
+    def testAnIdentifierPysmiDoesNotKnowIsStillAnIdentifier(self):
+        """A downstream corpus names its own defects and points at its own page.
+
+        Reading one must not require pysmi to have heard of it, or the format
+        would only work for pysmi's own tree.
+        """
+        header, _ = split_patch(
+            "Defect: ACME-0001 https://acme.example/defects.html#acme-0001\n\n"
+            + SAMPLE_PATCH
+        )
+
+        self.assertEqual(
+            (DefectRef("ACME-0001", "https://acme.example/defects.html#acme-0001"),),
+            header.defects,
+        )
+
+    def testAnIdentifierWithoutAUrlIsRead(self):
+        """The link is a convenience. The identifier is the reference."""
+        header, _ = split_patch("Defect: ACME-0001\n\n" + SAMPLE_PATCH)
+
+        self.assertEqual((DefectRef("ACME-0001", ""),), header.defects)
+
+    def testAHeaderedPatchStillApplies(self):
+        """parse_patch skips everything above the first @@, and so does GNU patch.
+
+        This is the property the convention rests on: a reader that knows
+        nothing about headers reads a headered patch as the diff it is.
+        """
+        patch = format_header([ref("SMI-UNDEFINED-NAME")], "Because.") + SAMPLE_PATCH
+
+        self.assertEqual(
+            apply_patch(SAMPLE, SAMPLE_PATCH, "TEST-MIB"),
+            apply_patch(SAMPLE, patch, "TEST-MIB"),
+        )
+
+    def testMakePatchWritesTheHeaderItIsGiven(self):
+        """A repair regenerated from a patch that had a header keeps it."""
+        patch = make_patch(
+            "TEST-MIB",
+            SAMPLE,
+            SAMPLE.replace("A test.", "A patched test."),
+            defects=[ref("SMI-UNDEFINED-NAME")],
+            body="Said so upstream.",
+        )
+
+        self.assertEqual(
+            PatchHeader((ref("SMI-UNDEFINED-NAME"),), "Said so upstream."),
+            split_patch(patch)[0],
+        )
+        self.assertEqual(APPLIED, apply_patch(SAMPLE, patch, "TEST-MIB")[1])
+
+    def testMakePatchWithoutADefectWritesWhatItAlwaysDid(self):
+        """A caller that names no defect gets the patch it used to get."""
+        after = SAMPLE.replace("A test.", "A patched test.")
+
+        self.assertEqual(
+            make_patch("TEST-MIB", SAMPLE, after),
+            split_patch(
+                make_patch(
+                    "TEST-MIB", SAMPLE, after, defects=[ref("SMI-UNDEFINED-NAME")]
+                )
+            )[1],
+        )
+
+    def testMakePatchWritesNoHeaderForNoRepair(self):
+        """A defect named for a repair that is not needed is not a patch."""
+        self.assertEqual(
+            "",
+            make_patch("TEST-MIB", SAMPLE, SAMPLE, defects=[ref("SMI-UNDEFINED-NAME")]),
+        )
+
+    def testProseIsNotMistakenForADefectLine(self):
+        """A Defect: line is one identifier and one URL; anything else is prose."""
+        header, _ = split_patch(
+            "Defect: SMI-INVALID-DATE\n\nDefect: not like this, there are spaces\n\n"
+            + SAMPLE_PATCH
+        )
+
+        self.assertEqual((DefectRef("SMI-INVALID-DATE", ""),), header.defects)
+        self.assertEqual("Defect: not like this, there are spaces", header.body)
+
+    def testAPatchSetExposesTheDefects(self):
+        """A consumer rendering a repair asks the set, not the file."""
+        patches = PatchSet(
+            {
+                "TEST-MIB": format_header([ref("SMI-INVALID-DATE")]) + SAMPLE_PATCH,
+                "PLAIN-MIB": SAMPLE_PATCH,
+            }
+        )
+
+        self.assertEqual((ref("SMI-INVALID-DATE"),), patches.defects_for("TEST-MIB"))
+        self.assertEqual((), patches.defects_for("PLAIN-MIB"))
+
+        # No patch and a patch that names no defect are different things, and
+        # header_for is where the difference shows.
+        self.assertEqual(PatchHeader((), ""), patches.header_for("PLAIN-MIB"))
+        self.assertIsNone(patches.header_for("ABSENT-MIB"))
+
+
 class PatchDocumentationTestCase(unittest.TestCase):
     """The patches are data about MIBs, so they say what they repair."""
 
@@ -520,9 +669,45 @@ class PatchDocumentationTestCase(unittest.TestCase):
 
         for mibname in patches.modules():
             with self.subTest(mib=mibname):
-                header = textwrap.dedent(patches.patch_for(mibname)).split("\n")[0]
+                diff = split_patch(patches.patch_for(mibname))[1]
+                header = textwrap.dedent(diff).split("\n")[0]
 
                 self.assertEqual(f"--- a/{mibname}", header)
+
+    def testEveryPatchNamesTheDefectItRepairs(self):
+        """A diff carries the correction; only the identifier names the defect.
+
+        Which is what decides whether a patch should still be here: text the
+        publisher has since repaired needs no patch, and a local preference
+        was never a repair. pysnmp/pysmi#279.
+        """
+        patches = bundled_patches()
+
+        for mibname in patches.modules():
+            with self.subTest(mib=mibname):
+                self.assertTrue(patches.defects_for(mibname))
+
+    def testEveryDefectNamedIsOneThatIsDocumented(self):
+        """An identifier nothing documents is worse than naming none."""
+        patches = bundled_patches()
+
+        for mibname in patches.modules():
+            for defect in patches.defects_for(mibname):
+                with self.subTest(mib=mibname, defect=defect.id):
+                    self.assertIn(defect.id, CATALOGUE)
+                    self.assertEqual(url(defect.id), defect.url)
+
+    def testNoPatchCarriesProse(self):
+        """The explanation lives in the catalogue, once, not in every patch.
+
+        A patch that needs prose of its own is repairing something the
+        catalogue does not name, and the catalogue is what should grow.
+        """
+        patches = bundled_patches()
+
+        for mibname in patches.modules():
+            with self.subTest(mib=mibname):
+                self.assertEqual("", patches.header_for(mibname).body)
 
 
 if __name__ == "__main__":

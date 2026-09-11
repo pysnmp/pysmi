@@ -20,13 +20,21 @@ read -- minimal, in the module's own layout, and the same bytes on a second run.
 import unittest
 
 from pysmi import error
-from pysmi.patches import ALREADY_APPLIED, APPLIED, NOT_APPLICABLE, apply_patch
+from pysmi.defects import ref
+from pysmi.patches import (
+    ALREADY_APPLIED,
+    APPLIED,
+    NOT_APPLICABLE,
+    apply_patch,
+    split_patch,
+)
 from pysmi.patchgen import (
     CLEAN,
     REPAIRABLE,
     UNPARSEABLE,
     inspect,
     missing_imports,
+    repair_defects,
     repair_imports,
 )
 from tests import mibs
@@ -104,8 +112,31 @@ class DerivedDiffTestCase(unittest.TestCase):
         """A patch is keyed by module name, so its headers carry that name."""
         defect = inspect(BROKEN["Opaque"], mibname="whatever-the-file-was-called")
 
-        self.assertTrue(defect.patch.startswith("--- a/REPAIR-SMI-TYPE-MIB\n"))
+        diff = split_patch(defect.patch)[1]
+
+        self.assertTrue(diff.startswith("--- a/REPAIR-SMI-TYPE-MIB\n"))
         self.assertIn("+++ b/REPAIR-SMI-TYPE-MIB\n", defect.patch)
+
+    def testTheDiffNamesTheDefectItRepairs(self):
+        """A derived repair knows its own defect exactly, so it writes it down.
+
+        pysnmp/pysmi#279: the diff carries the correction and the identifier
+        names what was wrong, which is what decides whether the patch should
+        still be there once a publisher has had a chance to fix it.
+        """
+        defect = inspect(BROKEN["Opaque"])
+
+        self.assertEqual(
+            (ref("SMI-MISSING-IMPORT"),), split_patch(defect.patch)[0].defects
+        )
+
+    def testTheDerivedPatchCarriesNoProse(self):
+        """What SMI-MISSING-IMPORT is belongs on the page, written once."""
+        self.assertEqual("", split_patch(inspect(BROKEN["Opaque"]).patch)[0].body)
+
+    def testACleanModuleNamesNoDefect(self):
+        """There is no patch for it, so there is no defect for it to name."""
+        self.assertEqual((), repair_defects({}))
 
     def testTheSameModuleDerivesTheSameBytesTwice(self):
         """A regenerated patch that differs would churn every review."""

@@ -1,3 +1,6 @@
+Defect: SMI-INVALID-DATE https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-invalid-date
+Defect: SMI-UNMARKED-COMMENT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-unmarked-comment
+
 --- a/HPR-MIB
 +++ b/HPR-MIB
 @@ -18,7 +18,7 @@

@@ -161,9 +161,14 @@ What it produces
    * - ``standard.txt``
      - The modules from every ``standard`` namespace, less the ``RFC*`` and
        ``SNMPv2*`` prefixes the published file has never carried.
+   * - ``closure.json``
+     - Per module, the files a consumer needs in order to load it, and
+       anything it needs that the corpus does not hold. See
+       :ref:`import-closure`.
    * - ``report.json``
      - What the build did: the failure inventory, the modules more than one
-       namespace holds, the node counts, and how long each phase took.
+       namespace holds, the node counts, which JSON implementation wrote the
+       artifacts, and how long each phase took.
 
 One artifact is **not** in that layout and has to be asked for by name:
 
@@ -199,6 +204,89 @@ goes.
 Every artifact but ``report.json`` is byte-reproducible. The report is the
 build's log and records elapsed time.
 
+.. _corpus-json-encoding:
+
+How the JSON is written
+-----------------------
+
+``json/`` and the JSON index are written compactly -- one line per document,
+no space after a separator, UTF-8 written as itself rather than escaped. They
+are generated trees that nobody reads by eye, and indenting them costs about
+30% of the tree on disk: roughly 50 MB over a corpus the size of the one
+pysnmp/mibs publishes. Gzipped the difference is about 8%, because gzip
+already eats indentation, so this is a saving on a checkout, an image and a
+Pages site rather than on bandwidth.
+
+``report.json`` is not written that way and stays indented. It is the build's
+log, read by a person looking at a failed build.
+
+A faster JSON implementation is used when one is installed:
+
+.. code-block:: sh
+
+   pip install 'pysnmp-pysmi[fast]'
+
+That pulls in orjson; msgspec is taken instead if a caller already has it.
+Either is worth about 4% of a build, because SMI parsing dominates everything
+else, which is why it is an extra rather than a dependency -- 4% does not buy
+a wheel with a compiled extension in it for everyone.
+
+**What is installed does not change a published byte.** The standard library
+is the reference, the faster encoders are used only where they agree with it,
+and ``tests/test_jsonio.py`` asserts that agreement over every document the
+bundled corpus produces rather than trusting that it holds. A build with the
+extra and one without are the same corpus. ``report.json`` records which
+implementation ran, as ``json``, so two builds being compared can each say
+what they resolved.
+
+
+.. _import-closure:
+
+The files a module needs
+------------------------
+
+``core.db``'s ``import`` table holds the direct edges -- this module imports
+that symbol from that module. The question consumers actually arrive with is
+the closure: *which files do I need in order to load this module?*
+``closure.json`` answers it per module:
+
+.. code-block:: json
+
+   {
+     "meta": {"schema": 1, "modules": 5347, "incomplete": 0},
+     "closure": {
+       "IF-MIB": {
+         "files": ["IANAifType-MIB", "IF-MIB", "SNMPv2-CONF",
+                   "SNMPv2-MIB", "SNMPv2-SMI", "SNMPv2-TC"],
+         "missing": []
+       }
+     }
+   }
+
+(Re-indented to be read; the file is written on one line.)
+
+The build resolves every one of those edges in order to compile, so having
+each consumer re-walk a table to recover a fact the compiler established is
+the pattern this exists to avoid. Three arrive with the question: a page
+answering "the files you need", anyone packaging a subset -- an air-gapped
+install, an image carrying only what one product needs -- and pysnmp,
+deciding what to preload.
+
+Two things the artifact settles rather than leaving to the caller:
+
+* **A module is in its own closure.** ``IF-MIB`` needs six files and one of
+  them is ``IF-MIB``. That makes the list directly usable as a file list,
+  which is what most callers want.
+* **A dependency the corpus does not hold is recorded, not dropped.** It goes
+  in ``missing`` rather than quietly out of ``files``, so a caller can tell
+  "this module needs nothing else" from "something it needs is not here". A
+  module is listed however deep it was reached from: a hole anywhere below a
+  module is a hole for that module, which still cannot be loaded. The build
+  report counts them, as ``closure.incomplete``.
+
+The names are module names, which are the names of the files in ``asn1/`` --
+see :ref:`asn1-naming` -- so a caller holding a closure holds the file list
+and can build the URLs itself.
 
 .. _asn1-naming:
 
