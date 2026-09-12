@@ -173,8 +173,10 @@ ul.keys .here { font-weight: 600; }
 section > :last-child { margin-bottom: 0; }
 .note { color: var(--dim); font-size: 0.9375rem; }
 
+.defs td { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
 .defs td:first-child { white-space: nowrap; }
-.defs .desc { color: var(--dim); font-size: 0.875rem; }
+.defs td:last-child, .defs.typed td:nth-child(4) { font-family: inherit; font-size: inherit; }
+.defs .desc { font-family: inherit; color: var(--dim); font-size: 0.875rem; overflow-wrap: normal; }
 
 :target { background: var(--raised); }
 

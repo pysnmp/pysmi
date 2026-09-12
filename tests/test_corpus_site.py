@@ -214,6 +214,42 @@ class RenderTestCase(unittest.TestCase):
         self.assertIn("read-only", written)
         self.assertIn("1.3.6.1.4.1.41.1", written)
 
+    def testEveryDefinitionIsADeepLink(self):
+        # The row carries the descriptor as its id, so mib/ALPHA-MIB/#alphaThing
+        # lands on the definition. Nothing asserted this before the markup was
+        # trimmed, which is how the anchor could have been dropped silently.
+        written = self.rendered()
+
+        self.assertIn('<tr id="alphaThing">', written)
+
+    def testDefinitionCellsCarryNoWrappers(self):
+        # The stylesheet reaches these cells by position. A wrapper per cell
+        # cost 61 bytes a row, which over pysnmp/mibs' 764,000 definitions was
+        # 47 MB of module pages -- so a regression that reintroduces one is a
+        # size regression, and this is what notices.
+        written = self.rendered()
+        table = written[written.index('class="defs') :]
+
+        for wrapper in ("<code", '<span class="oid"'):
+            with self.subTest(wrapper=wrapper):
+                self.assertNotIn(wrapper, table)
+
+        # Still there, still legible, just unwrapped.
+        self.assertIn("<td>1.3.6.1.4.1.41.1</td>", written)
+
+    def testTheTableSaysWhichShapeItIs(self):
+        # .defs.typed is the five-column shape and .defs the three-column one.
+        # The positional rules in the stylesheet depend on telling them apart,
+        # so a theme replacing it needs this to be stable.
+        written = self.rendered()
+
+        self.assertIn('class="defs typed"', written)
+
+    def testCellsAreNotSeparatedByNewlines(self):
+        written = self.rendered()
+
+        self.assertNotIn("</td>\n<td>", written)
+
     def testTheProseIsThere(self):
         written = self.rendered()
 

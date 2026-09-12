@@ -119,16 +119,40 @@ def paragraphs(prose: str) -> str:
 
 
 def table(
-    headings: "Iterable[object]", rows: "Iterable[Iterable[str]]", /, **pairs: object
+    headings: "Iterable[object]",
+    rows: "Iterable[Iterable[str]]",
+    /,
+    *,
+    anchors: "Iterable[object]" = (),
+    **pairs: object,
 ) -> str:
     """A table whose cells are already markup.
 
     Headings are text; cells are not, because a cell routinely holds a link or
     a code span. The caller escapes what it puts in one, which the builders
     above do.
+
+    *anchors* gives each row an ``id``, in row order, so a row is something a
+    URL can point at. Shorter than anchoring an element inside the row, and
+    one anchor per row is what a deep link wants: a definition, not a cell.
+    Rows past the end of it get none.
+
+    Cells are joined with nothing between them. Every other builder here
+    writes one fragment per line, because a person reads the source; a
+    definition table is 764,000 rows over a corpus and a newline per cell is
+    4 MB of them. The rows stay one per line, which is the granularity anyone
+    reading the source is looking at anyway.
     """
-    head = tag("tr", join(element("th", x, scope="col") for x in headings))
-    body = join(tag("tr", join(tag("td", cell) for cell in row)) for row in rows)
+    head = tag("tr", "".join(element("th", x, scope="col") for x in headings))
+    keys = list(anchors)
+    body = join(
+        tag(
+            "tr",
+            "".join(tag("td", cell) for cell in row),
+            id=keys[index] if index < len(keys) else None,
+        )
+        for index, row in enumerate(rows)
+    )
 
     if not body:
         return ""
