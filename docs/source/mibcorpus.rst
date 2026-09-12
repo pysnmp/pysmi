@@ -807,6 +807,33 @@ itself rather than raising in the middle of a 5,500-page build -- a page with
 A named file that cannot be read is refused rather than ignored: falling back
 would publish a whole site in the wrong skin and say nothing.
 
+What a replacement stylesheet reaches
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The definition tables carry **no element inside a cell**. At 764,000
+definitions over pysnmp/mibs a wrapper per cell was 61 bytes a row -- 47 MB of
+module pages -- so the cells hold their text and the stylesheet reaches them by
+position:
+
+====================  ================================================
+selector              the column
+====================  ================================================
+``.defs``             a definition table.
+``.defs.typed``       the five-column shape: Name, OID, Syntax, Access,
+                      Status. Without ``typed`` it is the three-column
+                      one: Name, OID, Status.
+``td:first-child``    the descriptor.
+``td:nth-child(2)``   the OID.
+``td:last-child``     STATUS, in either shape.
+``.desc``             the macro a definition came from, and its
+                      DESCRIPTION where the build carries texts. The one
+                      element still written inside a cell, because it is
+                      a block under the name rather than a column.
+====================  ================================================
+
+Each row carries the descriptor as its ``id``, so ``mib/IF-MIB/#ifTable`` is a
+link to one definition. Style ``:target`` to show which one was asked for.
+
 .. _list-buckets:
 
 Splitting a long list page
