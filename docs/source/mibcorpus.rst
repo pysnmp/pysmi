@@ -693,7 +693,11 @@ Three rules keep it that way, and each is its own module:
   is an object the module page already renders in context.
 - long lists split by range key rather than page number
   (:ref:`list-buckets`), so adding one module does not renumber every page
-  after it.
+  after it. ``page-size`` sets how long a list gets first, as one number for
+  every list or as an object naming them -- ``{"browse": 500, "entity": 200}``.
+  The module list is the site's front door and wants few pages; a registrant's
+  list is reached by somebody already narrowed to one vendor, and Cisco's
+  1,341 modules at the same size would be three pages of 500 links each.
 - the list of modules importing a given one is capped. It is the one list on a
   module page with no natural bound: 1,461 modules in pysnmp/mibs import
   ``IF-MIB``. The count is the fact worth stating.

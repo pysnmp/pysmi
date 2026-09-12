@@ -238,7 +238,7 @@ SITE_SETTINGS: Final[dict[str, type | tuple[type, ...]]] = {
     "name": str,
     "template": str,
     "stylesheet": str,
-    "page-size": int,
+    "page-size": (int, dict),
     "crawl": dict,
 }
 
@@ -270,10 +270,16 @@ def _read_site(manifest: dict[str, Any], path: str) -> dict[str, Any]:
 
     for name, value in declared.items():
         if not isinstance(value, SITE_SETTINGS[name]) or isinstance(value, bool):
+            expected = SITE_SETTINGS[name]
+            spelled = (
+                " or ".join(x.__name__ for x in expected)
+                if isinstance(expected, tuple)
+                else expected.__name__
+            )
+
             raise error.PySmiError(
                 f"corpus manifest {path}: site {name} is "
-                f"{type(value).__name__}, expected "
-                f"{SITE_SETTINGS[name].__name__}"  # type: ignore[union-attr]
+                f"{type(value).__name__}, expected {spelled}"
             )
 
     # A relative path in a manifest is relative to the manifest, like every
