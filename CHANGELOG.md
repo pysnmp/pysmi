@@ -3,6 +3,14 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.4](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.3...v5.0.0-rc.4) (2026-09-12)
+
+### Features
+
+* **corpus:** generate the site's crawl surface ([cb22315](https://github.com/pysnmp/pysmi/commit/cb22315ea14fbc1846d8d031286d14f93f4e73e1))
+* **corpus:** render the corpus as a browsable site (--emit site) ([f163e8f](https://github.com/pysnmp/pysmi/commit/f163e8f72da4590885c85812e6fc6efa9ff18c87)), closes [#284](https://github.com/pysnmp/pysmi/issues/284) [#292](https://github.com/pysnmp/pysmi/issues/292) [#287](https://github.com/pysnmp/pysmi/issues/287)
+* **corpus:** size each list, and emit the site beside the corpus ([cad38fa](https://github.com/pysnmp/pysmi/commit/cad38fa89709b09cbfa0501e9b7e713f26309c9c)), closes [pysnmp/mibs#406](https://github.com/pysnmp/mibs/issues/406) [#305](https://github.com/pysnmp/pysmi/issues/305) [pysnmp/mibs#409](https://github.com/pysnmp/mibs/issues/409)
+
 ## [5.0.0-rc.3](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.2...v5.0.0-rc.3) (2026-09-12)
 
 ### Features
