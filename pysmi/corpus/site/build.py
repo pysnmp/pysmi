@@ -20,7 +20,13 @@ path -- ``asn1/``, ``json/`` and the indexes are published beside these:
 pysnmp/mibs; :py:mod:`pysmi.corpus.pages` cuts the OID tree to the arcs above
 the modules, and :py:mod:`pysmi.corpus.buckets` splits the long lists by range
 key rather than by page number, so an added module does not renumber every
-page after it. What is left is about 7,200 pages, which a crawler can finish.
+page after it. What is left is about 7,300 pages, which a crawler can finish.
+
+**And so is what a page holds.** A module page says what is *about* the module
+and counts what it defines; the definitions themselves stay in ``json/``,
+which the page links to. Rendering them was 750,139 rows and 210 MB of HTML
+against a 300 MB source -- a third serialisation of a corpus that already has
+two. See :py:func:`pysmi.corpus.site.render.module_html`.
 
 See pysnmp/pysmi#276.
 """
@@ -194,6 +200,7 @@ def build_site(
     patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
     size: "int | Mapping[str, int] | PageSizes | None" = None,
     crawl: "site_crawl.Crawl | None" = None,
+    data: str = "",
 ) -> SiteReport:
     """Render the corpus as a browsable site.
 
@@ -226,6 +233,11 @@ def build_site(
             pages are written without it, which is what a build producing a
             subtree somebody else will assemble wants. See
             pysnmp/pysmi#284.
+        data: where the jsondoc tree is published, relative to the site root,
+            so a module page can point a reader at its own document instead of
+            rendering every definition it holds. Defaults to nothing, since
+            this function does not write that tree and a default would be a
+            link to a file nobody promised.
 
     Returns:
         What was written.
@@ -291,7 +303,8 @@ def build_site(
                 theme,
                 held=held,
                 anchors=registered,
-                head=_module_head(crawl, theme, page, path, revised),
+                data=data,
+                head=_module_head(crawl, theme, page, path, revised, data),
             ),
             revised,
         )
@@ -338,6 +351,7 @@ def _module_head(
     page: model.ModulePage,
     path: str,
     revised: str,
+    data: str = "",
 ) -> str:
     """A module page's head metadata, or nothing for a non-distribution build.
 
@@ -366,11 +380,8 @@ def _module_head(
             organization=page.organization,
             revised=revised,
             description=site_crawl.clip(page.description, 1000),
-            terms=[
-                (x.name, x.oid)
-                for x in (*page.objects, *page.notifications, *page.types)
-            ],
             corpus=theme.corpus,
+            distribution=crawl.url(f"{data}/{page.module}.json") if data else "",
         ),
     )
 

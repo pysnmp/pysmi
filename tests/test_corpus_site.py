@@ -200,19 +200,57 @@ class ModulePageTestCase(unittest.TestCase):
 class RenderTestCase(unittest.TestCase):
     """What reaches the page."""
 
-    def rendered(self, **kwargs):
-        return module_html(module_page("ALPHA-MIB", ALPHA, **kwargs), Theme())
+    def rendered(self, data="", **kwargs):
+        return module_html(
+            module_page("ALPHA-MIB", ALPHA, **kwargs), Theme(), data=data
+        )
 
     def testEveryFactIsInTheBytes(self):
-        """pysnmp/pysmi#284: AI crawlers do not run JavaScript, so a
-        client-rendered object table is a page about a MIB module that does
-        not say what the module defines."""
+        """Whatever the page states, it states in the markup -- pysnmp/pysmi#284
+        is right that AI crawlers do not run JavaScript, so a fact fetched by
+        script is a fact the page does not carry."""
         written = self.rendered()
 
-        self.assertIn("alphaThing", written)
-        self.assertIn("INTEGER {up(1), down(2)}", written)
-        self.assertIn("read-only", written)
-        self.assertIn("1.3.6.1.4.1.41.1", written)
+        self.assertIn("Acme &lt;Networks&gt; &amp; Co", written)
+        self.assertIn("First paragraph.", written)
+        self.assertIn("AlphaTC", written)
+        self.assertIn("OCTET STRING (SIZE(0..8))", written)
+        self.assertNotIn("<script", written)
+
+    def testTheObjectsAreCountedRatherThanTabulated(self):
+        """Over pysnmp/mibs the module pages held 750,139 definitions between
+        them at 268 bytes each: 210 MB of HTML against a 300 MB source, saying
+        a third time what asn1/ and json/ already say. LCOS-MIB alone came to
+        4.3 MB, which is no use to a person and worse than the JSON to a
+        machine. pysnmp/pysmi#292 settled that an object is a thing inside a
+        module; this follows it through."""
+        written = self.rendered()
+
+        self.assertIn("What this module defines", written)
+        self.assertIn("Objects", written)
+        self.assertNotIn("read-only", written)
+        self.assertNotIn("INTEGER {up(1), down(2)}", written)
+
+    def testTextualConventionsAndConformanceStay(self):
+        """Few -- three and seventeen in IF-MIB -- and reference material a
+        reader actually reads rather than an inventory."""
+        written = self.rendered()
+
+        self.assertIn("Textual conventions", written)
+        self.assertIn("AlphaTC", written)
+
+    def testItPointsAtTheModulesOwnData(self):
+        written = self.rendered(data="json")
+
+        self.assertIn('href="../../json/ALPHA-MIB.json"', written)
+
+    def testWithNoPublishedDataItGivesCountsAndNoLink(self):
+        """The site builder does not write that tree. A default link would be
+        a promise nobody made."""
+        written = self.rendered()
+
+        self.assertIn("What this module defines", written)
+        self.assertNotIn(".json", written)
 
     def testTheProseIsThere(self):
         written = self.rendered()
@@ -232,11 +270,19 @@ class RenderTestCase(unittest.TestCase):
                 self.assertFalse(href.startswith("https://"), href)
 
     def testVendorTextCannotInjectMarkup(self):
-        written = self.rendered()
+        """Every MIB in a corpus is third-party text, and vendors have typed
+        "<" into a DESCRIPTION and into an ORGANIZATION."""
+        document = dict(ALPHA)
+        document["alphaMI"] = dict(
+            ALPHA["alphaMI"], description="a <angle> bracket & an ampersand"
+        )
+
+        written = module_html(module_page("ALPHA-MIB", document), Theme())
 
         self.assertNotIn("<angle>", written)
         self.assertIn("&lt;angle&gt;", written)
         self.assertNotIn("Acme <Networks>", written)
+        self.assertIn("Acme &lt;Networks&gt; &amp; Co", written)
 
     def testASectionWithNothingToSayIsNotWritten(self):
         """A heading over an empty table reads as a fact being withheld."""
@@ -819,8 +865,25 @@ class CrawlTestCase(unittest.TestCase):
         written = self.read("mib/ALPHA-MIB/index.html")
 
         self.assertIn('"identifier":"urn:oid:1.3.6.1.4.1.41"', written)
-        self.assertIn('"identifier":"urn:oid:1.3.6.1.4.1.41.1"', written)
-        self.assertIn('"@type":["DefinedTermSet","Dataset"]', written)
+        self.assertIn('"@type":"Dataset"', written)
+
+    def testTheJsonLdPointsAtTheDataRatherThanRestatingIt(self):
+        """Listing every definition here was the same duplication the page
+        stopped making: 750,139 nodes and 90 MB of JSON-LD over pysnmp/mibs,
+        restating what json/ already holds in a form built for it."""
+        self.build(data="json")
+        written = self.read("mib/ALPHA-MIB/index.html")
+
+        self.assertNotIn("hasDefinedTerm", written)
+        self.assertIn('"@type":"DataDownload"', written)
+        self.assertIn(
+            '"contentUrl":"https://mibs.example/json/ALPHA-MIB.json"', written
+        )
+
+    def testWithoutPublishedDataThereIsNoDistribution(self):
+        self.build()
+
+        self.assertNotIn("DataDownload", self.read("mib/ALPHA-MIB/index.html"))
 
     def testTheJsonLdCarriesTheRevisionDate(self):
         self.build()

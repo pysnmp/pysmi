@@ -210,17 +210,24 @@ def module_jsonld(
     description: str = "",
     terms: "Iterable[tuple[str, str]] | None" = None,
     corpus: str = "",
+    distribution: str = "",
 ) -> dict[str, Any]:
     """A MIB module as structured data.
 
     A module is a published artifact with an identifier, a publisher and a
-    revision date, which defines a vocabulary of named terms. That is
-    ``DefinedTermSet`` crossed with ``Dataset``, and schema.org allows both
-    types on one node.
+    revision date -- a ``Dataset`` -- and where terms are given it is also the
+    ``DefinedTermSet`` they belong to.
 
     **The identifiers are the OIDs**, which is the whole point: an OID is a
     globally unique identifier that already exists, and a consumer holding one
     should be able to match it without reading prose.
+
+    *terms* is normally empty and *distribution* is what replaces it. Listing
+    every definition here was the same duplication the page itself stopped
+    making: over pysnmp/mibs it was 750,139 nodes and 90 MB of JSON-LD
+    restating what ``json/`` already holds in a form built for the purpose.
+    ``distribution`` points a consumer at that document instead, which is what
+    ``Dataset`` is for.
 
     Args:
         module: the module name, which is its ``name``.
@@ -229,13 +236,12 @@ def module_jsonld(
         organization: the ORGANIZATION clause, as the publisher.
         revised: the newest revision, as ``YYYY-MM-DD``.
         description: the module's DESCRIPTION.
-        terms: ``(name, oid)`` per thing the module defines. Names and
-            identifiers only, and no ``inDefinedTermSet`` back-reference --
-            nesting under ``hasDefinedTerm`` already says a term belongs to
-            this set, and the descriptions are in the HTML this sits in. Both
-            were in the first cut and between them they were 148 bytes per
-            term, which over a corpus of 98,000 definitions is 132 MB of
-            duplication.
+        terms: ``(name, oid)`` per thing the module defines, for a caller that
+            wants them. Names and identifiers only, and no
+            ``inDefinedTermSet`` back-reference -- nesting under
+            ``hasDefinedTerm`` already says a term belongs to this set.
+        distribution: the URL of the module's own machine-readable document,
+            which is where a consumer should go for the definitions.
         corpus: what the corpus is called, as the containing collection.
 
     Returns:
@@ -243,7 +249,7 @@ def module_jsonld(
     """
     node: dict[str, Any] = {
         "@context": "https://schema.org",
-        "@type": ["DefinedTermSet", "Dataset"],
+        "@type": ["DefinedTermSet", "Dataset"] if terms else "Dataset",
         "name": module,
         "url": url,
     }
@@ -274,6 +280,13 @@ def module_jsonld(
 
     if defined:
         node["hasDefinedTerm"] = defined
+
+    if distribution:
+        node["distribution"] = {
+            "@type": "DataDownload",
+            "encodingFormat": "application/json",
+            "contentUrl": distribution,
+        }
 
     return node
 

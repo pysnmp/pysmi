@@ -1234,6 +1234,35 @@ class CorpusDriver:
         report.closure = corpus_closure.counts(found)
         report.seconds["closure"] = time.time() - started
 
+    @property
+    def _jsondoc_url(self) -> str:
+        """Where a module page points a reader for the module's own data.
+
+        The published jsondoc tree, relative to the site root, which is what
+        the module page links to instead of rendering every definition the
+        module holds -- 750,139 of them over pysnmp/mibs, and 210 MB of HTML
+        to say a third time what this tree already says. See
+        pysnmp/pysmi#276.
+
+        ``""`` where this build publishes no tree a reader could fetch, either
+        because it asked for none or because the one it has is somewhere the
+        site cannot reach with a relative link. The page then gives counts
+        without a link, which is honest: the data is not there to point at.
+        """
+        tree = self._outputs.json_texts or self._outputs.json
+
+        if not tree or not self._outputs.site:
+            return ""
+
+        relative = os.path.relpath(
+            os.path.abspath(tree), os.path.abspath(self._outputs.site)
+        )
+
+        if relative.startswith(os.pardir):
+            return ""
+
+        return relative.replace(os.sep, "/")
+
     def write_site(
         self, report: CorpusReport, compiled: "Iterable[str] | None" = None
     ) -> None:
@@ -1286,6 +1315,7 @@ class CorpusDriver:
             patches=self._patches,
             size=self._pageSize,
             crawl=self._crawl,
+            data=self._jsondoc_url,
         )
 
         report.site = result.counts()

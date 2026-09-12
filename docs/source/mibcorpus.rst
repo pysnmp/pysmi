@@ -646,7 +646,7 @@ named so that nothing collides with a corpus path:
        --oid-registry=smi-numbers.xml --oid-registry=pen-snapshot.csv \
        --site-name="pysnmp/mibs"
 
-Over pysnmp/mibs' 5,510 modules that is **7,346 pages and 220 MB in 18
+Over pysnmp/mibs' 5,510 modules that is **7,348 pages and 37 MB in 8
 seconds**, on top of the build that produced the corpus.
 
 Why the generator is here
@@ -669,14 +669,35 @@ gets no pages; and a namespace declared for resolution only -- ``publish``
 false, which is how a compact corpus resolves against the standard modules
 without carrying them -- contributes none either.
 
-Everything is in the bytes
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Everything the page says, it says in the bytes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-No page fetches anything: not the object table, not the description, not the
-navigation. #284 measured the alternative and it costs the same on disk, while
-being unreadable to the AI crawlers that do not run JavaScript -- to those, a
-client-rendered object table is a page about a MIB module that does not say
-what the module defines.
+No page fetches anything, because AI crawlers do not run JavaScript and a fact
+fetched by script is a fact the page does not carry.
+
+What the page *says* is the narrower question, and the answer is not
+"everything the module holds". A corpus already publishes every definition
+twice -- as ASN.1 and as jsondoc -- and rendering them a third time cost 268
+bytes each: over pysnmp/mibs, 750,139 definitions and **210 MB of HTML against
+a 300 MB source**, in a form worse than the JSON for a machine and unusable for
+a person. ``LCOS-MIB`` alone came to 4.3 MB.
+
+So the module page states what is *about* the module -- its identity,
+provenance, repairs, imports, importers, load order, the arcs below it, its
+textual conventions and conformance statements -- counts what it defines, and
+links to ``json/<MODULE>.json`` for the definitions themselves. That is 37 MB
+rather than 210, and the browser-side query in pysnmp/pysmi#293 answers over
+the whole corpus rather than dumping one module's share into every page.
+
+Textual conventions and conformance statements stay rendered: 39,694 rows
+across the corpus against 750,139 definitions, and they are reference material
+a reader reads rather than an inventory.
+
+This reverses what #284 assumed. That issue compared server-rendered HTML
+against "28 MB of HTML plus 290 MB of texts-carrying ``json/``" and concluded
+rendering was free. A corpus that already publishes ``json/`` -- which
+pysnmp/mibs does, at 226 MB -- pays that cost once either way, so the
+comparison was against a tree it does not need.
 
 Links are relative to the site root, so a site published under a path on a
 project host works without being told where it lives, and so does one opened
@@ -780,12 +801,16 @@ crossed with ``Dataset``. **The identifiers are the OIDs**, which is the
 point: an OID is a globally unique identifier that already exists, and a
 consumer holding one should be able to match it without reading prose.
 
-It is not free. Enumerating 98,000 definitions adds 40% to the site: 220 MB
-becomes 309 MB. A first cut also carried each term's description and an
-``inDefinedTermSet`` back-reference, which took it to 360 MB; both are gone,
-the descriptions because they are already in the HTML the JSON-LD sits in, and
-the back-reference because nesting under ``hasDefinedTerm`` already says a term
-belongs to the set.
+It does not enumerate the definitions, for the reason the page does not:
+listing 750,139 of them was 90 MB of JSON-LD restating what ``json/`` already
+holds in a form built for it. A ``distribution`` points at that document
+instead, which is what ``Dataset`` is for and what a consumer should follow.
+
+An earlier cut listed every term with its description and an
+``inDefinedTermSet`` back-reference and took the site from 220 MB to 360 MB.
+Both went first -- the descriptions because they were already in the HTML the
+JSON-LD sits in, the back-reference because nesting under ``hasDefinedTerm``
+already says a term belongs to the set -- and then the list itself.
 
 Theming
 ~~~~~~~

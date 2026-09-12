@@ -209,6 +209,7 @@ def module_html(
     *,
     held: "Iterable[str]" = (),
     anchors: "Mapping[str, str] | None" = None,
+    data: str = "",
     head: str = "",
 ) -> str:
     """One module's page.
@@ -221,6 +222,11 @@ def module_html(
             the link would resolve.
         anchors: arc to module, so an arc below this one that is itself a
             module links to that module's page.
+        data: where the jsondoc tree is published, relative to the site root,
+            so the page can point at the module's own document. Defaults to
+            nothing: the site builder does not write that tree, so a default
+            would be a link to a file nobody promised. The driver passes the
+            path its own build published.
         head: extra ``<head>`` markup, which pysnmp/pysmi#284 fills in.
     """
     root = root_for(2)
@@ -259,9 +265,12 @@ def module_html(
             note="Where the registration tree carries on below this module.",
         ),
         _section("Textual conventions", _defs(page.types)),
-        _section("Objects", _defs(page.objects)),
-        _section("Notifications", _defs(page.notifications, syntax=False)),
         _section("Conformance", _defs(page.conformance, syntax=False)),
+        _section(
+            "What this module defines",
+            _defined(root, page, data),
+            note="Counted here and published as data, not rendered as a table:",
+        ),
     ]
 
     return theme.render(
@@ -305,6 +314,51 @@ def _under(
         )
 
     return table(["Arc", "Name", "Module"], rows)
+
+
+def _defined(root: str, page: ModulePage, data: str) -> str:
+    """What the module defines, counted, with a link to the data.
+
+    **Not a table.** Over pysnmp/mibs the 5,485 module pages hold 750,139
+    definitions between them, and rendering them costs 268 bytes each -- 210 MB
+    of HTML against a 300 MB source, to say a third time what ``asn1/`` and
+    ``json/`` already say, in a form that is worse for a machine and unusable
+    for a person: ``LCOS-MIB`` alone came to 4.3 MB.
+
+    pysnmp/pysmi#292 settled that an object gets no page of its own -- it is a
+    thing inside a module. This follows that through: the module page says what
+    is in the module and where to get it, and the browser-side query in
+    pysnmp/pysmi#293 answers over the whole corpus rather than dumping one
+    module's share of it into every page.
+
+    Textual conventions and conformance statements stay rendered. They are few
+    -- three and seventeen in ``IF-MIB`` -- and they are reference material a
+    reader actually reads, rather than an inventory.
+    """
+    counted = (
+        ("Objects", len(page.objects)),
+        ("Notifications", len(page.notifications)),
+    )
+    rows = [[text(label), text(number)] for label, number in counted if number]
+
+    if not rows:
+        return ""
+
+    written = [table(["Definitions", "Count"], rows)]
+
+    if data:
+        written.append(
+            tag(
+                "p",
+                "Every one of them, with its OID, syntax, access, status and "
+                "description: "
+                + link(f"{root}{data}/{page.module}.json", f"{page.module}.json")
+                + ".",
+                class_="note",
+            )
+        )
+
+    return join(written)
 
 
 def _reverse(root: str, modules: "Sequence[str]") -> str:
