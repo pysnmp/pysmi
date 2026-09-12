@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.7](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.6...v5.0.0-rc.7) (2026-09-12)
+
+### Bug Fixes
+
+* **corpus:** give the projections that render prose a tree that has it ([dfd5d8b](https://github.com/pysnmp/pysmi/commit/dfd5d8b394163653bbf42bcca5cd99a66b6fc9ef)), closes [pysnmp/mibs#405](https://github.com/pysnmp/mibs/issues/405) [pysnmp/pysmi#262](https://github.com/pysnmp/pysmi/issues/262) [pysnmp/mibs#405](https://github.com/pysnmp/mibs/issues/405)
+
 ## [5.0.0-rc.6](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.5...v5.0.0-rc.6) (2026-09-12)
 
 ### Features
