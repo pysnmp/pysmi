@@ -54,6 +54,7 @@ This example showcases some of its features:
    /pysmi/corpus/arcs
    /pysmi/corpus/pages
    /pysmi/corpus/buckets
+   /pysmi/corpus/site
    /pysmi/registry
    /pysmi/patches
 
