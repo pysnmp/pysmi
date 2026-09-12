@@ -16,7 +16,9 @@ that keeps the legacy index answering what it has always answered.
 
 import unittest
 
+from pysmi.corpus.arcs import prefixes
 from pysmi.corpus.index import (
+    anchor_index,
     arcs,
     merge_frozen,
     newest_revision,
@@ -260,6 +262,91 @@ class AnchorTestCase(unittest.TestCase):
                 ]
             )[oid],
         )
+
+
+class AnchorIndexTestCase(unittest.TestCase):
+    """The arcs modules register at, which is the OID index less its objects.
+
+    rank_index answers for every OID any module defines. Handing that to the
+    arc index made it the object tree: 98,903 arcs and an 11 MB artifact over
+    pysnmp/mibs, 98% of it objects. See pysnmp/pysmi#301.
+    """
+
+    RANKED = {
+        "1.3.6.1.2.1.2": "IF-MIB",
+        "1.3.6.1.2.1.2.1": "IF-MIB",
+        "1.3.6.1.2.1.2.2.1.8": "IF-MIB",
+        "1.3.6.1.2.1.31": "IF-MIB",
+        "1.3.6.1.2.1.31.1.1.1.1": "IF-MIB",
+        "1.3.6.1.2.1.1": "SNMPv2-MIB",
+        "1.3.6.1.2.1.1.1": "SNMPv2-MIB",
+    }
+
+    def testAnArcUnderTheSameModuleIsNotAnAnchor(self):
+        found = anchor_index(self.RANKED)
+
+        self.assertNotIn("1.3.6.1.2.1.2.1", found)
+        self.assertNotIn("1.3.6.1.2.1.2.2.1.8", found)
+
+    def testWhereAModulesSubtreeBeginsIsAnAnchor(self):
+        found = anchor_index(self.RANKED)
+
+        self.assertEqual("IF-MIB", found["1.3.6.1.2.1.2"])
+        self.assertEqual("SNMPv2-MIB", found["1.3.6.1.2.1.1"])
+
+    def testAModuleHasAsManyAnchorsAsDisjointRegistrations(self):
+        """Taking one arc per module instead would be a smaller set and a
+        broken one: IF-MIB's MODULE-IDENTITY is at 1.3.6.1.2.1.31 and its
+        objects hang off 1.3.6.1.2.1.2."""
+        found = anchor_index(self.RANKED)
+
+        self.assertEqual(
+            ["1.3.6.1.2.1.2", "1.3.6.1.2.1.31"],
+            sorted(x for x, module in found.items() if module == "IF-MIB"),
+        )
+
+    def testAnArcUnderAnotherModuleIsStillAnAnchor(self):
+        """mib-2 belongs to SNMPv2-SMI and everything hangs off it. An arc is
+        a registration against its own module, not against the tree."""
+        ranked = {**self.RANKED, "1.3.6.1.2.1": "SNMPv2-SMI"}
+
+        found = anchor_index(ranked)
+
+        self.assertIn("1.3.6.1.2.1.2", found)
+        self.assertIn("1.3.6.1.2.1", found)
+
+    def testTheValuesAreUnchanged(self):
+        found = anchor_index(self.RANKED)
+
+        for oid, module in found.items():
+            with self.subTest(oid=oid):
+                self.assertEqual(self.RANKED[oid], module)
+
+    def testItIsASubsetOfWhatItWasGiven(self):
+        found = anchor_index(self.RANKED)
+
+        self.assertLessEqual(set(found), set(self.RANKED))
+        self.assertLess(len(found), len(self.RANKED))
+
+    def testEveryIndexedOidIsUnderSomeAnchor(self):
+        """Which is what makes a longest-prefix walk over the anchors answer
+        for any OID the corpus indexes -- the lookup pages.resolve does."""
+        found = anchor_index(self.RANKED)
+
+        for oid in self.RANKED:
+            with self.subTest(oid=oid):
+                self.assertTrue(
+                    any(x in found for x in prefixes(oid)),
+                    f"{oid} is under no anchor",
+                )
+
+    def testAnEmptyIndexHasNoAnchors(self):
+        self.assertEqual({}, anchor_index({}))
+
+    def testItIsIdempotent(self):
+        found = anchor_index(self.RANKED)
+
+        self.assertEqual(found, anchor_index(found))
 
 
 class RenderTestCase(unittest.TestCase):

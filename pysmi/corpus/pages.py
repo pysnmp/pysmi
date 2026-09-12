@@ -7,12 +7,12 @@
 """Which arcs of the registration tree get a page, and where the rest resolve.
 
 A site rendering ``oid/<arc>/`` as a page per node, taken literally, is a page
-per OID any module defines. Over pysnmp/mibs' corpus that is **95,603 pages**
+per OID any module defines. Over pysnmp/mibs' corpus that is **98,903 pages**
 and roughly 654 MB, against a GitHub Pages limit of 1 GB -- the OID tree alone
 seventeen times the module pages it exists to lead to.
 
 Crawl budget is the worse half of it. A hundred thousand URLs on a static site
-means the pages that matter compete with 75,889 leaf-arc pages that each state
+means the pages that matter compete with 85,644 leaf-arc pages that each state
 one object's syntax, which the module page already states in context.
 
 The rule
@@ -28,9 +28,9 @@ the module: ``oid/1.3.6.1.4.1.9.9.138/`` resolves to
 ``mib/CISCO-ENTITY-ALARM-MIB/``.
 
 **What remains is the structural tree** -- the arcs from the root down to each
-module's anchor, exclusive. Over pysnmp/mibs that is 6,694 arcs counted with
-the anchors and **1,347 without**, which is the set that actually gets pages,
-and the whole site becomes about 7,000 pages rather than 100,000. A crawler
+module's anchor, exclusive. Over pysnmp/mibs that is 14,752 arcs counted with
+the anchors and **1,493 without**, which is the set that actually gets pages,
+and the whole site becomes about 7,200 pages rather than 100,000. A crawler
 can finish that.
 
 Why this is the right cut rather than the cheap one
@@ -47,7 +47,7 @@ Resolving an arc that has no page
 
 The tree still has to answer for any OID a reader pastes from a trap, which is
 the main way in. :py:func:`resolve` is that answer, as a longest-prefix lookup
-rather than a table: emitting a stub page per unpaged arc would cost 75,889
+rather than a table: emitting a stub page per unpaged arc would cost 85,644
 files and put every one of them back in the crawlable surface, which is the
 thing this exists to avoid. A site renders the lookup in the browser from the
 published index and leaves the unpaged arcs out of ``sitemap.xml``.
@@ -91,10 +91,11 @@ def structural_arcs(ranked: dict[str, str]) -> tuple[str, ...]:
     """The arcs that get a page of their own.
 
     Args:
-        ranked: the OID index, as
-            :py:func:`pysmi.corpus.index.rank_index` returns it. Its keys are
-            the corpus's anchors -- what a module registers with, rather than
-            every OID it defines.
+        ranked: the arcs modules register at, as
+            :py:func:`pysmi.corpus.index.anchor_index` returns them -- what a
+            module registers with, rather than every OID it defines. The whole
+            OID index is accepted and gives the object tree, which is not what
+            a page inventory is.
 
     Returns:
         The arcs from the root down to each anchor, exclusive of the anchors
@@ -125,7 +126,7 @@ def resolve(
 
     A longest-prefix lookup, which is the same shape a trap receiver already
     runs against the published index -- so a site can do it in the browser
-    from ``index-v2.csv`` rather than being handed a table of 75,889 entries.
+    from ``index-v2.csv`` rather than being handed a table of 85,644 entries.
 
     Args:
         oid: the arc asked for, dotted decimal.

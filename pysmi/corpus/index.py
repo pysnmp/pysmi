@@ -291,6 +291,63 @@ def rank_index(
     return winner
 
 
+def anchor_index(ranked: dict[str, str]) -> dict[str, str]:
+    """The arcs modules *register at*, which is the OID index less its objects.
+
+    :py:func:`rank_index` answers for every arc any module *anchors* at -- its
+    MODULE-IDENTITY and every OBJECT-IDENTITY -- which over pysnmp/mibs is
+    98,867 arcs from 5,438 modules, some eighteen apiece. Nearly all of them
+    are group nodes declared *under* the module's own registration, and a
+    group node is a thing inside a module rather than a node of the tree
+    anybody navigates.
+
+    An arc is a registration when the module that owns it owns no arc above
+    it: that is where the module's subtree begins, and everything below is
+    that module's to render.
+
+    Over pysnmp/mibs this is 13,259 arcs rather than 98,867, and with their
+    prefixes it comes to 14,752 rather than 98,903 -- which is what makes an
+    arc inventory something a browser can hold and a crawler can finish. See
+    pysnmp/pysmi#301.
+
+    A module keeps as many anchors as it has *disjoint* registrations, which is
+    routinely more than one. Taking a single arc per module instead would be a
+    smaller set and a broken one: ``IF-MIB``'s MODULE-IDENTITY is at
+    ``1.3.6.1.2.1.31`` while its objects hang off ``1.3.6.1.2.1.2``, so an
+    ``ifOperStatus`` OID would resolve to nothing. Measured against
+    pysnmp/mibs, one-anchor-per-module answers two of four sample OIDs and
+    this answers all four.
+
+    Args:
+        ranked: OID to module, as :py:func:`rank_index` returns it.
+
+    Returns:
+        The subset of *ranked* whose arcs are registrations, unchanged in
+        value. A longest-prefix walk over this answers for any OID beneath a
+        registration, which is what :py:func:`pysmi.corpus.pages.resolve`
+        does.
+    """
+    found = {}
+
+    for oid, module in ranked.items():
+        parts = oid.split(".")
+
+        if not any(
+            ranked.get(".".join(parts[:depth])) == module
+            for depth in range(1, len(parts))
+        ):
+            found[oid] = module
+
+    logger.info(
+        "arc anchors: %d registrations out of %d indexed OIDs",
+        len(found),
+        len(ranked),
+        extra={"anchors": len(found), "indexed": len(ranked)},
+    )
+
+    return found
+
+
 def render_index(index: dict[str, str]) -> str:
     """Render an OID-to-module mapping as the published CSV.
 

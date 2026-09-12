@@ -63,12 +63,17 @@ filter. Of pysnmp/mibs' 95,462 index rows, 97.0% sit under ``1.3.6.1.4.1`` and
 there is.
 
 The set is the **registration tree** rather than every OID a module defines:
-the index's own arcs and every prefix of them. Over pysnmp/mibs that is about
-6,700 arcs instead of 95,000, and the difference is objects -- an object's arc
-is a thing inside a module, which the module already renders in context, not a
-node anybody navigates to. Every prefix is named too, since a tree renders the
-path down to a node and not only the node. Arc depth in that corpus runs from
-2 to 20, so nothing here assumes a fixed one.
+the arcs modules register at, as
+:py:func:`pysmi.corpus.index.anchor_index` picks them out, and every prefix of
+those. Over pysnmp/mibs that is 14,752 arcs instead of 98,903, and the
+difference is objects -- an object's arc is a thing inside a module, which the
+module already renders in context, not a node anybody navigates to. Every
+prefix is named too, since a tree renders the path down to a node and not only
+the node. Arc depth in that corpus runs from 2 to 20, so nothing here assumes
+a fixed one.
+
+Passing the whole OID index here instead is what pysnmp/pysmi#301 was: 98,903
+arcs and an 11 MB artifact, the bulk of it group nodes inside modules.
 """
 
 import json
@@ -179,13 +184,14 @@ def arcs(
         documents: ``(module, jsondoc, tier, rfc)`` per module, as
             :py:func:`pysmi.corpus.index.read_documents` yields them. Read for
             the descriptors modules give their own arcs.
-        ranked: the OID index, as
-            :py:func:`pysmi.corpus.index.rank_index` returns it. The arc set
-            comes from here and from every prefix of it, which is the
+        ranked: the arcs modules register at, as
+            :py:func:`pysmi.corpus.index.anchor_index` returns them. The arc
+            set comes from here and from every prefix of it, which is the
             registration tree rather than every object a module defines --
-            over pysnmp/mibs that is about 6,700 arcs instead of 95,000, and
-            an object's own arc is a thing inside a module rather than a node
-            of the tree.
+            over pysnmp/mibs that is 14,752 arcs instead of 98,903, and an
+            object's own arc is a thing inside a module rather than a node of
+            the tree. The whole OID index is accepted and gives the object
+            tree, which is not what any consumer of this wants.
         smi: arc name per arc, as
             :py:func:`pysmi.registry.smi.parse_smi_numbers` returns. Omitted
             leaves the ``1.3.6.1`` subtree to the weaker sources.
