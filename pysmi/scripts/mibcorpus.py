@@ -124,8 +124,9 @@ def start() -> None:
                 and is what makes the tree the complete machine-readable
                 rendering of a module; give it a path of its own to keep
                 a lean published tree beside it. json-texts, core-db,
-                entity and arcs are not in the default layout -- ask for
-                those by name. core-db, entity, arcs, closure and the
+                search-db, entity, arcs and site are not in the default
+                layout -- ask for those by name. core-db, search-db,
+                entity, arcs, closure and the
                 two indexes are projections of the
                 jsondoc tree; a build asking for one without asking for
                 json gets a tree staged in a temporary directory and

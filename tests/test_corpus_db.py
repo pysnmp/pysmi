@@ -964,6 +964,38 @@ class ProfileTestCase(unittest.TestCase):
             with open(one, "rb") as first, open(two, "rb") as second:
                 self.assertEqual(first.read(), second.read(), tables)
 
+    def testValidateRefusesALabelItDoesNotKnow(self):
+        # write_db refuses an unknown profile, so only something else could
+        # have written this -- and reading the label as SEARCH would hold the
+        # file to the one set of checks an unrecognizable file passes, since
+        # both tables being empty is what SEARCH asserts.
+        path, _ = self.build(SEARCH)
+        connection = sqlite3.connect(path)
+
+        try:
+            connection.execute("UPDATE meta SET value = 'invalid' WHERE key = 'tables'")
+            connection.commit()
+
+        finally:
+            connection.close()
+
+        self.assertIn("which is no profile", " ".join(validate(path)))
+
+    def testValidateReadsAnAbsentLabelAsFull(self):
+        # Schema version 2 predates the profile, so a file without the key
+        # carries every table and must be held to the node checks.
+        path, _ = self.build(FULL)
+        connection = sqlite3.connect(path)
+
+        try:
+            connection.execute("DELETE FROM meta WHERE key = 'tables'")
+            connection.commit()
+
+        finally:
+            connection.close()
+
+        self.assertEqual(validate(path), [])
+
     def testRejectsAProfileItDoesNotWrite(self):
         with self.assertRaises(error.PySmiError):
             self.build("everything")

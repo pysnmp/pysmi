@@ -932,11 +932,11 @@ def validate(path: str) -> list[str]:
 
         # A file written before the profile existed carries every table, so
         # its absence reads as FULL rather than as unknown.
-        carried = (profile[0] if profile else FULL) == FULL
+        tables = profile[0] if profile else FULL
 
         checks = (
             *_COUNT_CHECKS,
-            *(_NODE_CHECKS if carried else _SEARCH_CHECKS),
+            *(_NODE_CHECKS if tables == FULL else _SEARCH_CHECKS),
         )
 
         problems = [
@@ -944,6 +944,14 @@ def validate(path: str) -> list[str]:
             for statement, complaint in checks
             if (count := connection.execute(statement).fetchone()[0])
         ]
+
+        # A label nothing recognizes is refused rather than read as SEARCH.
+        # Otherwise the checks that hold a search database to its word are the
+        # ones an unrecognizable file gets, and "tables: invalid" with both
+        # tables empty validates clean. write_db cannot write one, so a file
+        # carrying it was written by something that is not this module.
+        if tables not in PROFILES:
+            problems.append(f"meta.tables says {tables!r}, which is no profile")
 
         broken = _misordered(connection)
 

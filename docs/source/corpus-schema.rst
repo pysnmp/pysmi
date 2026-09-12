@@ -176,7 +176,10 @@ Column            Type     Notes
 ``content_hash``  TEXT     ``pysmi.codegen.normalized.content_hash()`` of
                            the module. Two corpora agree on a module iff they
                            agree here.
-``nodes``         INTEGER  How many rows this module has in ``node``.
+``nodes``         INTEGER  How many nodes this module contributes to the
+                           corpus. In a ``search`` database that is **not**
+                           its row count in ``node``, which is zero -- see
+                           :ref:`corpus-profiles`.
 ================  =======  ===================================================
 
 type
@@ -556,6 +559,8 @@ much later as a trap decoded against the wrong definition. See
 pysnmp/pysmi#248.
 
 
+.. _corpus-profiles:
+
 Profiles
 --------
 
@@ -623,9 +628,11 @@ Building one
 
 Neither ``core-db`` nor ``search-db`` is in the default artifact layout:
 building one costs a pass nothing else needs, so it is asked for by name. Both
-are projections of the jsondoc tree, exactly as the two indexes are, so a build
-asking for either has to emit ``json`` as well -- to a scratch path outside the
-corpus when the corpus is not meant to carry the JSON.
+are projections of the jsondoc tree, exactly as the two indexes are, but the
+dependency is pysmi's own: a build asking for a database and not for ``json``
+gets a tree staged for the duration and removed afterwards, raise or return.
+Emit ``json`` only to *keep* the tree, with a path of its own to say where it
+goes.
 
 Asking for both in one build shares the expensive half. Each database is its
 own pass over the jsondoc documents, but compiling those documents -- which is
