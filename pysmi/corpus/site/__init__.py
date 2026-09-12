@@ -22,6 +22,7 @@ See :doc:`/mibcorpus` for the artifact and pysnmp/pysmi#276 for the reasoning.
 from pysmi.corpus.site.build import (
     SCHEMA_VERSION,
     STYLESHEET,
+    PageSizes,
     SiteReport,
     build_site,
 )
@@ -46,6 +47,7 @@ __all__ = [
     "Definition",
     "EntityPage",
     "ModulePage",
+    "PageSizes",
     "SiteReport",
     "Theme",
     "arc_pages",

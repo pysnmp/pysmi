@@ -25,6 +25,7 @@ import unittest
 from pysmi.corpus.arcs import Arc
 from pysmi.corpus.buckets import buckets
 from pysmi.corpus.site import Theme, build_site, load_theme, module_page
+from pysmi.corpus.site.build import PageSizes
 from pysmi.corpus.site.crawl import Crawl, clip, newest
 from pysmi.corpus.site.html import attributes, paragraphs, table, tag, text
 from pysmi.corpus.site.model import children_of, entity_page, imported_by
@@ -969,3 +970,116 @@ class CrawlHelperTestCase(unittest.TestCase):
         crawl = Crawl(base="https://x.example/")
 
         self.assertEqual("https://x.example/mib/A/", crawl.url("/mib/A/"))
+
+
+class PageSizeTestCase(unittest.TestCase):
+    """How long each kind of list gets before it splits.
+
+    One number would do if the lists were alike. The module list is the site's
+    front door; a registrant's list is reached by someone already narrowed to
+    one vendor, and Cisco's 1,341 modules at the same size would be three
+    pages of 500 links each. pysnmp/mibs#406.
+    """
+
+    def testNothingGivesTheDefaults(self):
+        self.assertEqual(PageSizes(), PageSizes.of(None))
+
+    def testOneNumberAppliesToEveryList(self):
+        self.assertEqual(PageSizes(browse=50, entity=50), PageSizes.of(50))
+
+    def testTheListsCanBeNamedIndividually(self):
+        self.assertEqual(
+            PageSizes(browse=500, entity=200),
+            PageSizes.of({"browse": 500, "entity": 200}),
+        )
+
+    def testNamingOneLeavesTheOtherAtItsDefault(self):
+        found = PageSizes.of({"entity": 200})
+
+        self.assertEqual(200, found.entity)
+        self.assertEqual(PageSizes().browse, found.browse)
+
+    def testAListNobodyKnowsIsRefused(self):
+        """A manifest saying "entities" where the key is "entity" would
+        otherwise publish a site silently paginated wrong."""
+        with self.assertRaises(ValueError):
+            PageSizes.of({"entities": 200})
+
+    def testASizeThatIsNotAPositiveNumberIsRefused(self):
+        for bad in ({"browse": 0}, {"browse": -1}, {"browse": "500"}, {"browse": True}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                PageSizes.of(bad)
+
+    def testSomethingThatIsNeitherIsRefused(self):
+        with self.assertRaises(TypeError):
+            PageSizes.of(["500"])
+
+    def testABooleanIsNotAPageSize(self):
+        with self.assertRaises(TypeError):
+            PageSizes.of(True)
+
+    def testTheTwoListsSplitIndependently(self):
+        root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, root, True)
+        out = os.path.join(root, "site")
+
+        names = {
+            f"M{x:03}-MIB": dict(BETA, meta={"module": f"M{x:03}-MIB"})
+            for x in range(7)
+        }
+
+        build_site(
+            out,
+            corpus(**names),
+            size={"browse": 3, "entity": 100},
+            entities={
+                "1.3.6.1.4.1.41": {
+                    "number": 41,
+                    "organization": "Acme",
+                    "modules": sorted(names),
+                    "contacts": [],
+                }
+            },
+        )
+
+        written = {
+            os.path.relpath(os.path.join(b, f), out).replace(os.sep, "/")
+            for b, _d, files in os.walk(out)
+            for f in files
+            if f == "index.html"
+        }
+
+        self.assertEqual(4, sum(1 for x in written if x.startswith("browse/")))
+        self.assertEqual(1, sum(1 for x in written if x.startswith("entity/41/")))
+
+
+class EmitPathTestCase(unittest.TestCase):
+    """Where ``--emit=site`` puts the trees.
+
+    The site's trees are named so that nothing collides with a corpus path,
+    which is only worth anything if they share a directory with one: a reader
+    browsing ``mib/IF-MIB/`` and a consumer fetching ``asn1/IF-MIB`` are
+    looking at the same publication. pysnmp/mibs#409 depends on it -- the
+    deploy step copies the Sphinx build over the corpus output and ships the
+    lot, with no step of its own for the site.
+    """
+
+    def testTheDefaultPathIsTheOutputDirectory(self):
+        from pysmi.scripts.mibcorpus import _outputs_for
+
+        outputs = _outputs_for("output", ["json", "site"])
+
+        self.assertEqual(os.path.join("output", ""), outputs.site)
+        self.assertEqual(os.path.join("output", "json"), outputs.json)
+
+    def testItIsStillOptIn(self):
+        """The default layout is what pysnmp/mibs published before there was a
+        site, and rendering 7,000 pages is not something a plain run pays."""
+        from pysmi.scripts.mibcorpus import _outputs_for
+
+        self.assertIsNone(_outputs_for("output", None).site)
+
+    def testAPathOfItsOwnIsTakenAsGiven(self):
+        from pysmi.scripts.mibcorpus import _outputs_for
+
+        self.assertEqual("elsewhere", _outputs_for("output", ["site:elsewhere"]).site)
