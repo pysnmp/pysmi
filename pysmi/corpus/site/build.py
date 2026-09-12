@@ -648,6 +648,36 @@ def _write_entities(
         )
         listings += 1
 
+    # A bucketed list still needs something at entity/ itself: every
+    # registrant page's breadcrumb points there, and so does llms.txt. The
+    # module list has had this since it was written; this one did not, and the
+    # corpus it is built for buckets at 356 registrants where the fixtures did
+    # not bucket at all -- 369 breadcrumbs pointed at a page nothing wrote.
+    if len(listed) > 1:
+        writer.page(
+            render.ENTITY,
+            render.listing_html(
+                theme,
+                heading="Registrants",
+                intro=f"{len(found)} enterprise arc(s) this corpus registers "
+                f"under, in {len(listed)} ranges.",
+                entries="",
+                base=render.ENTITY,
+                buckets=listed,
+                here="",
+                depth=1,
+                head=_listing_head(
+                    crawl,
+                    "Registrants",
+                    f"{render.ENTITY}/",
+                    f"{len(found)} enterprise arc(s) this corpus registers under.",
+                    len(found),
+                ),
+            ),
+            site_crawl.newest(dated.values()),
+        )
+        listings += 1
+
     return len(found), listings
 
 
