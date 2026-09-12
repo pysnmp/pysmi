@@ -178,7 +178,8 @@ What it produces
        namespace holds, the node counts, which JSON implementation wrote the
        artifacts, and how long each phase took.
 
-Two artifacts are **not** in that layout and have to be asked for by name:
+The two databases and the site are **not** in that layout and have to be asked
+for by name:
 
 .. list-table::
    :header-rows: 1
@@ -191,6 +192,12 @@ Two artifacts are **not** in that layout and have to be asked for by name:
        by OID and by name, and ordered for GETNEXT. See
        :doc:`/corpus-schema`. Building it costs a pass nothing else needs,
        which is why it is opt-in rather than part of the default layout.
+   * - ``search.db``
+     - The same schema at a seventeenth the size: everything but ``node``
+       and the ``type`` table it references, for a consumer that needs to
+       know which module and never what the object is. 15 MB against
+       ``core.db``'s 256 over the published corpus, which is what makes it
+       something a site can publish. See :ref:`corpus-schema`.
    * - ``site/``
      - The corpus as pages: one per module, per registrant and per node of
        the registration tree. Asked for by name, since a corpus published as
@@ -199,10 +206,10 @@ Two artifacts are **not** in that layout and have to be asked for by name:
 ``--emit`` narrows this to the artifacts named, so a build can ask for just the
 index or just the JSON.
 
-``core.db`` and the two indexes are projections of the jsondoc tree, which is a
-dependency of pysmi's own rather than of the caller's: a build asking for one
-of them without asking for ``json`` gets a tree staged in a temporary directory
-and removed when the build ends, raise or return. The corpus carries what was
+Both databases and the two indexes are projections of the jsondoc tree, which
+is a dependency of pysmi's own rather than of the caller's: a build asking for
+one of them without asking for ``json`` gets a tree staged in a temporary
+directory and removed when the build ends, raise or return. The corpus carries what was
 named and nothing else.
 
 .. code-block:: sh

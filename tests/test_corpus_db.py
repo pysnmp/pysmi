@@ -30,7 +30,9 @@ import unittest
 from pysmi import error
 from pysmi.corpus.db import (
     APPLICATION_ID,
+    FULL,
     SCHEMA_VERSION,
+    SEARCH,
     oid_from_key,
     oid_key,
     open_db,
@@ -770,3 +772,230 @@ class ValidateTestCase(unittest.TestCase):
 
         with self.assertRaises(error.PySmiError):
             validate(path)
+
+
+class ProfileTestCase(unittest.TestCase):
+    """What each profile carries, and that the schema does not move with it.
+
+    The point of the two profiles is that one reader serves both: a browser
+    over ``search.db`` and pysnmp over ``core.db`` issue the same queries and
+    differ only in which ones come back empty. So the schema is asserted
+    identical here, not merely compatible -- a table or column that appeared
+    in one and not the other would make ``meta.tables`` something a consumer
+    has to branch on rather than something it can report.
+    """
+
+    corpus = {
+        "TEST-MIB": document(
+            testMib={
+                "name": "testMib",
+                "oid": "1.3.6.1.4.1.99",
+                "class": "moduleidentity",
+                "lastupdated": "2026-01-01 00:00",
+                "revisions": [{"revision": "2026-01-01 00:00"}],
+            },
+            testScalar=scalar("1.3.6.1.4.1.99.1", "testScalar"),
+            testOther=scalar("1.3.6.1.4.1.99.2", "testOther"),
+            TestTC={
+                "name": "TestTC",
+                "class": "textualconvention",
+                "status": "current",
+                "type": {"type": "OCTET STRING", "class": "type"},
+            },
+            imports={"class": "imports", "SNMPv2-SMI": ["OBJECT-TYPE"]},
+        ),
+        # A second module defining one of the same names, which is the case
+        # the name index exists for: "who defines testScalar" has two answers
+        # and the corpus-wide direction has to give both.
+        "OTHER-MIB": document(
+            otherMib={
+                "name": "otherMib",
+                "oid": "1.3.6.1.4.1.98",
+                "class": "moduleidentity",
+            },
+            testScalar=scalar("1.3.6.1.4.1.98.1", "testScalar"),
+        ),
+    }
+
+    def build(self, tables):
+        return build(
+            self.corpus,
+            tiers={"TEST-MIB": "vendor", "OTHER-MIB": "vendor"},
+            ranked={"1.3.6.1.4.1.99": "TEST-MIB", "1.3.6.1.4.1.98": "OTHER-MIB"},
+            tables=tables,
+            provenance={
+                "TEST-MIB": {"namespace": "test", "file": "TEST-MIB", "digest": "x"},
+                "OTHER-MIB": {"namespace": "test", "file": "OTHER-MIB", "digest": "y"},
+            },
+        )
+
+    #: Written out rather than composed, for the reason ``db.py`` writes its
+    #: inserts out: a name interpolated into SQL reads the same whether or not
+    #: it came from a literal.
+    COUNTS = {
+        "node": "SELECT count(*) FROM node",
+        "type": "SELECT count(*) FROM type",
+        "module": "SELECT count(*) FROM module",
+        "symbol": "SELECT count(*) FROM symbol",
+        "import": "SELECT count(*) FROM import",
+        "provenance": "SELECT count(*) FROM provenance",
+        "oid_index": "SELECT count(*) FROM oid_index",
+    }
+
+    def rows(self, path, table):
+        db = open_db(path)
+
+        try:
+            return db.execute(self.COUNTS[table]).fetchone()[0]
+
+        finally:
+            db.close()
+
+    def testFullIsTheDefault(self):
+        path, _ = build(self.corpus)
+
+        self.assertGreater(self.rows(path, "node"), 0)
+
+    def testSearchCarriesNoNodesAndNoTypes(self):
+        path, counts = self.build(SEARCH)
+
+        for table in ("node", "type"):
+            self.assertEqual(self.rows(path, table), 0)
+            self.assertEqual(counts[table], 0)
+
+    def testSearchCarriesWhatALookupNeeds(self):
+        path, _ = self.build(SEARCH)
+
+        for table in ("module", "symbol", "import", "provenance", "oid_index"):
+            self.assertGreater(self.rows(path, table), 0, table)
+
+    def testBothProfilesCarryTheSameSchema(self):
+        shapes = []
+
+        for tables in (FULL, SEARCH):
+            path, _ = self.build(tables)
+            db = open_db(path)
+
+            try:
+                shapes.append(
+                    sorted(
+                        db.execute(
+                            "SELECT type, name, sql FROM sqlite_schema "
+                            "WHERE name NOT LIKE 'sqlite_%'"
+                        )
+                    )
+                )
+
+            finally:
+                db.close()
+
+        self.assertEqual(shapes[0], shapes[1])
+
+    def testMetaSaysWhichProfileWroteTheFile(self):
+        for tables in (FULL, SEARCH):
+            path, _ = self.build(tables)
+            db = open_db(path)
+
+            try:
+                meta = dict(db.execute("SELECT key, value FROM meta"))
+
+            finally:
+                db.close()
+
+            self.assertEqual(meta["tables"], tables)
+
+    def testSearchStillStatesHowManyNodesTheCorpusHas(self):
+        # An empty node table is a choice about this file, not a claim that
+        # the corpus defines nothing. A consumer reporting corpus size must
+        # get the same number from either profile.
+        counted = {}
+
+        for tables in (FULL, SEARCH):
+            path, _ = self.build(tables)
+            db = open_db(path)
+
+            try:
+                counted[tables] = (
+                    dict(db.execute("SELECT key, value FROM meta"))["nodes"],
+                    db.execute(
+                        "SELECT nodes FROM module WHERE name = 'TEST-MIB'"
+                    ).fetchone()[0],
+                )
+
+            finally:
+                db.close()
+
+        self.assertEqual(counted[FULL], counted[SEARCH])
+        self.assertEqual(counted[SEARCH], ("5", 3))
+
+    def testBothProfilesValidate(self):
+        for tables in (FULL, SEARCH):
+            path, _ = self.build(tables)
+
+            self.assertEqual(validate(path), [], tables)
+
+    def testValidateRefusesASearchFileCarryingNodes(self):
+        # The label has to mean something. A file that says it carries no
+        # nodes and does was written by something that did not mean it.
+        path, _ = self.build(SEARCH)
+        connection = sqlite3.connect(path)
+
+        try:
+            connection.execute(
+                "INSERT INTO node VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (oid_key("1.3.6.1.4.1.99.3"), "TEST-MIB", "x", "1.3.6.1.4.1.99.3")
+                + ("objecttype", "scalar", "current", "read-only")
+                + (None, None, None, None, None),
+            )
+            connection.commit()
+
+        finally:
+            connection.close()
+
+        self.assertIn("says it carries none", " ".join(validate(path)))
+
+    def testEachProfileIsByteReproducible(self):
+        # search.db is a published artifact, so it carries the same promise
+        # core.db does: a rebuild that changed nothing publishes nothing.
+        for tables in (FULL, SEARCH):
+            one, _ = self.build(tables)
+            two, _ = self.build(tables)
+
+            with open(one, "rb") as first, open(two, "rb") as second:
+                self.assertEqual(first.read(), second.read(), tables)
+
+    def testValidateRefusesALabelItDoesNotKnow(self):
+        # write_db refuses an unknown profile, so only something else could
+        # have written this -- and reading the label as SEARCH would hold the
+        # file to the one set of checks an unrecognizable file passes, since
+        # both tables being empty is what SEARCH asserts.
+        path, _ = self.build(SEARCH)
+        connection = sqlite3.connect(path)
+
+        try:
+            connection.execute("UPDATE meta SET value = 'invalid' WHERE key = 'tables'")
+            connection.commit()
+
+        finally:
+            connection.close()
+
+        self.assertIn("which is no profile", " ".join(validate(path)))
+
+    def testValidateReadsAnAbsentLabelAsFull(self):
+        # Schema version 2 predates the profile, so a file without the key
+        # carries every table and must be held to the node checks.
+        path, _ = self.build(FULL)
+        connection = sqlite3.connect(path)
+
+        try:
+            connection.execute("DELETE FROM meta WHERE key = 'tables'")
+            connection.commit()
+
+        finally:
+            connection.close()
+
+        self.assertEqual(validate(path), [])
+
+    def testRejectsAProfileItDoesNotWrite(self):
+        with self.assertRaises(error.PySmiError):
+            self.build("everything")

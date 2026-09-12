@@ -114,15 +114,19 @@ def start() -> None:
                 turns off the full layout, so a build can ask for just
                 the index or just the JSON. ARTIFACT is one of asn1,
                 notexts, texts, json, json-texts, index, index-v2,
-                standard, closure, core-db, entity, arcs, site,
-                report.
+                standard, closure, core-db, search-db, entity, arcs,
+                site, report. search-db is the lookup half of core-db --
+                the tables that answer which module rather than what the
+                object is -- which over pysnmp/mibs is 15 MB against 256,
+                and is what a site can publish.
                 json-texts is a jsondoc tree with DESCRIPTION and the
                 other texts in it, which costs roughly 70% more on disk
                 and is what makes the tree the complete machine-readable
                 rendering of a module; give it a path of its own to keep
                 a lean published tree beside it. json-texts, core-db,
-                entity and arcs are not in the default layout -- ask for
-                those by name. core-db, entity, arcs, closure and the
+                search-db, entity, arcs and site are not in the default
+                layout -- ask for those by name. core-db, search-db,
+                entity, arcs, closure and the
                 two indexes are projections of the
                 jsondoc tree; a build asking for one without asking for
                 json gets a tree staged in a temporary directory and
@@ -465,6 +469,7 @@ _ARTIFACTS: Final = {
     "index-v2": ("ranked_index", "index-v2.csv"),
     "standard": ("standard", "standard.txt"),
     "core-db": ("core_db", "core.db"),
+    "search-db": ("search_db", "search.db"),
     "entity": ("entity", "entity.json"),
     "arcs": ("arcs", "arcs.json"),
     "closure": ("closure", "closure.json"),
@@ -497,7 +502,9 @@ _ARTIFACTS: Final = {
 #: The arc name index is opt-in for the same reason as the entity index,
 #: and for one more: it is the registration tree, which a corpus that only
 #: wants its modules has no use for.
-_OPT_IN: Final = frozenset({"core-db", "json-texts", "entity", "arcs", "site"})
+_OPT_IN: Final = frozenset(
+    {"core-db", "search-db", "json-texts", "entity", "arcs", "site"}
+)
 
 
 def _registries(

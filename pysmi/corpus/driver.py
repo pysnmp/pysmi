@@ -157,6 +157,13 @@ class CorpusOutputs:
     #: The corpus database: the SMI model laid out for lookup. See
     #: :py:mod:`pysmi.corpus.db`.
     core_db: str | None = None
+    #: The lookup half of the corpus database -- the tables that answer
+    #: *which module* rather than *what the object is*. Over pysnmp/mibs, 15
+    #: MB against ``core.db``'s 256 -- the difference between a database a
+    #: site can publish and one that spends a quarter of the whole Pages
+    #: budget. Same schema, so one set of queries reads either. See
+    #: :py:data:`pysmi.corpus.db.SEARCH`.
+    search_db: str | None = None
     #: The enterprise arc index: which arcs under ``1.3.6.1.4.1`` the corpus
     #: registers under, who the registry says holds each, and what it holds
     #: there. See :py:mod:`pysmi.corpus.entity`.
@@ -181,6 +188,7 @@ class CorpusOutputs:
             self.ranked_index,
             self.standard,
             self.core_db,
+            self.search_db,
             self.entity,
             self.arcs,
             self.closure,
@@ -248,6 +256,10 @@ class CorpusReport:
     index: dict[str, int] = field(default_factory=dict)
     #: Rows written to the corpus database, by table.
     db: dict[str, int] = field(default_factory=dict)
+    #: What the search database received, if one was asked for. Its own field
+    #: rather than a nesting of :py:attr:`db`, because ``report.json`` is a
+    #: published artifact and consumers read that key's shape.
+    searchDb: dict[str, int] = field(default_factory=dict)
     #: Enterprise arcs the corpus registers under, how many the registry
     #: named, and how many it did not. The last is the one to look at: a
     #: build where it jumps has lost its registry or grown a module
@@ -281,6 +293,7 @@ class CorpusReport:
             "nodes": self.nodes,
             "index": self.index,
             "db": self.db,
+            "search_db": self.searchDb,
             "entity": self.entity,
             "arcs": self.arcs,
             "closure": self.closure,
@@ -1103,7 +1116,7 @@ class CorpusDriver:
             compiled: the modules this build wrote JSON for, as
                 :py:meth:`write_index` takes it.
         """
-        if not self._outputs.core_db:
+        if not self._outputs.core_db and not self._outputs.search_db:
             return
 
         # Free after staging, which resolved every module anyway. A build
@@ -1118,23 +1131,42 @@ class CorpusDriver:
             for name, tier in self._tierOfModule.items()
         }
 
-        report.db = corpus_db.write_db(
-            self._outputs.core_db,
-            documents,
-            tiers,
-            ranked,
-            corpusVersion=self._corpusVersion,
-            corpusId=self._corpusId,
-            provenance=self.provenance(compiled),
-        )
+        # Both profiles read the same corpus, so a build asking for both pays
+        # the read once and writes twice.
+        for path, profile in (
+            (self._outputs.core_db, corpus_db.FULL),
+            (self._outputs.search_db, corpus_db.SEARCH),
+        ):
+            if not path:
+                continue
+
+            written = corpus_db.write_db(
+                path,
+                documents,
+                tiers,
+                ranked,
+                corpusVersion=self._corpusVersion,
+                corpusId=self._corpusId,
+                provenance=self.provenance(compiled),
+                tables=profile,
+            )
+
+            if profile == corpus_db.FULL:
+                report.db = written
+
+            else:
+                report.searchDb = written
+
+        counted = report.db or report.searchDb
 
         logger.info(
-            "corpus database: %d modules, %d nodes",
-            report.db.get("module", 0),
-            report.db.get("node", 0),
+            "corpus database: %d modules, %d nodes%s",
+            counted.get("module", 0),
+            counted.get("node", 0),
+            " (search tables only)" if not report.db else "",
             extra={
-                "modules": report.db.get("module", 0),
-                "nodes": report.db.get("node", 0),
+                "modules": counted.get("module", 0),
+                "nodes": counted.get("node", 0),
             },
         )
 
@@ -1373,6 +1405,7 @@ class CorpusDriver:
         """
         return bool(
             self._outputs.core_db
+            or self._outputs.search_db
             or self._outputs.entity
             or self._outputs.arcs
             or self._outputs.index
