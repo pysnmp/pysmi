@@ -178,7 +178,7 @@ What it produces
        namespace holds, the node counts, which JSON implementation wrote the
        artifacts, and how long each phase took.
 
-One artifact is **not** in that layout and has to be asked for by name:
+Two artifacts are **not** in that layout and have to be asked for by name:
 
 .. list-table::
    :header-rows: 1
@@ -191,6 +191,10 @@ One artifact is **not** in that layout and has to be asked for by name:
        by OID and by name, and ordered for GETNEXT. See
        :doc:`/corpus-schema`. Building it costs a pass nothing else needs,
        which is why it is opt-in rather than part of the default layout.
+   * - ``site/``
+     - The corpus as pages: one per module, per registrant and per node of
+       the registration tree. Asked for by name, since a corpus published as
+       files rather than as a site has no use for it. See :ref:`site`.
 
 ``--emit`` narrows this to the artifacts named, so a build can ask for just the
 index or just the JSON.
@@ -610,6 +614,106 @@ it. Which of them a *site* gives a page to is a narrower question, and
 over pysnmp/mibs is 1,493 of the 14,752 rather than the 98,903 a page per
 defined OID would be. An arc at a module's anchor is the module, and an arc
 below one is an object the module page already renders.
+
+.. _site:
+
+The browsable site
+------------------
+
+``--emit=site`` writes the corpus as pages, from the same jsondoc tree the
+indexes and the database are projections of. Three trees and an entry point,
+named so that nothing collides with a corpus path:
+
+====================  ==================================================
+``mib/<MODULE>/``     one module: identity, provenance, the repair and
+                      its reason, the load order, imports, what imports
+                      it, the arcs below it, and every object,
+                      notification, textual convention and conformance
+                      statement with its OID, syntax, access, status and
+                      description
+``entity/<PEN>/``     one registrant: who the registry says holds the
+                      arc, who to report a problem to, and every module
+                      the corpus holds under it
+``oid/<arc>/``        one node of the registration tree, and its
+                      children
+``browse/``           the entry point, and the module list
+====================  ==================================================
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output \
+       --emit=site --emit=json \
+       --oid-registry=smi-numbers.xml --oid-registry=pen-snapshot.csv \
+       --site-name="pysnmp/mibs"
+
+Over pysnmp/mibs' 5,510 modules that is **7,346 pages and 220 MB in 18
+seconds**, on top of the build that produced the corpus.
+
+Why the generator is here
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The site is a function of a corpus, so an enterprise pointing ``mibcorpus`` at
+its own manifest -- a private collection, a downstream project vendoring
+additions -- gets the same site over its own modules. The alternative is a
+second implementation in whichever repository publishes the corpus, which is
+the shape pysnmp/mibs#365 removed: that repository's compiler, dependency
+resolver and OID indexer were each a second implementation of PySMI's, and
+each had drifted.
+
+The module set is the corpus
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pages are written for what the manifest declares and nothing else. A directory
+sitting beside the sources is not a namespace, so it is not in the corpus and
+gets no pages; and a namespace declared for resolution only -- ``publish``
+false, which is how a compact corpus resolves against the standard modules
+without carrying them -- contributes none either.
+
+Everything is in the bytes
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No page fetches anything: not the object table, not the description, not the
+navigation. #284 measured the alternative and it costs the same on disk, while
+being unreadable to the AI crawlers that do not run JavaScript -- to those, a
+client-rendered object table is a page about a MIB module that does not say
+what the module defines.
+
+Links are relative to the site root, so a site published under a path on a
+project host works without being told where it lives, and so does one opened
+from a local directory.
+
+The page count is bounded
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Three rules keep it that way, and each is its own module:
+
+- the OID tree stops at the modules, which
+  :py:mod:`pysmi.corpus.pages` decides. An arc at a
+  module's anchor *is* that module and resolves to its page; an arc below one
+  is an object the module page already renders in context.
+- long lists split by range key rather than page number
+  (:ref:`list-buckets`), so adding one module does not renumber every page
+  after it.
+- the list of modules importing a given one is capped. It is the one list on a
+  module page with no natural bound: 1,461 modules in pysnmp/mibs import
+  ``IF-MIB``. The count is the fact worth stating.
+
+**No page is an orphan.** The case that breaks this is a structural arc whose
+parent is a module anchor: the parent has no arc page, so only the module page
+can link down to it, and it does -- see *Under this module's arcs*.
+
+Theming
+~~~~~~~
+
+``--site-template`` and ``--site-stylesheet`` replace the page frame and the
+stylesheet, so a distribution publishing this beside its own documentation
+makes it look like the rest of that documentation without forking the
+generator. ``$name`` substitution, and an unknown placeholder renders as
+itself rather than raising in the middle of a 5,500-page build -- a page with
+``$oops`` on it is something somebody sees.
+
+A named file that cannot be read is refused rather than ignored: falling back
+would publish a whole site in the wrong skin and say nothing.
 
 .. _list-buckets:
 

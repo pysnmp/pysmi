@@ -23,6 +23,7 @@ import sys
 from typing import Final
 
 from pysmi import debug, error
+from pysmi.corpus.buckets import SIZE as BUCKET_SIZE
 from pysmi.corpus.driver import (
     CorpusDriver,
     CorpusOutputs,
@@ -30,6 +31,7 @@ from pysmi.corpus.driver import (
     check_expectations,
 )
 from pysmi.corpus.namespace import Manifest, Namespace, read_manifest
+from pysmi.corpus.site.theme import load_theme
 from pysmi.registry.pen import Registrant, is_pen_registry, load_registry
 from pysmi.registry.smi import ArcName, parse_smi_numbers
 
@@ -67,6 +69,10 @@ def start() -> None:
         [--frozen-index=<FILE>]
         [--emit=<ARTIFACT>[:<PATH>]]
         [--oid-registry=<FILE>]
+        [--site-template=<FILE>]
+        [--site-stylesheet=<FILE>]
+        [--site-name=<NAME>]
+        [--page-size=<COUNT>]
         [--no-bundled-mibs]
         [--fail-on-errors]
     Where:
@@ -106,7 +112,8 @@ def start() -> None:
                 turns off the full layout, so a build can ask for just
                 the index or just the JSON. ARTIFACT is one of asn1,
                 notexts, texts, json, json-texts, index, index-v2,
-                standard, closure, core-db, entity, arcs, report.
+                standard, closure, core-db, entity, arcs, site,
+                report.
                 json-texts is a jsondoc tree with DESCRIPTION and the
                 other texts in it, which costs roughly 70% more on disk
                 and is what makes the tree the complete machine-readable
@@ -141,6 +148,19 @@ def start() -> None:
                 four-line-record form or as the reduced CSV that
                 "python -m pysmi.registry" writes. An arc no registry
                 names is reported as unnamed rather than guessed at.
+        --site-template - an HTML file replacing the page frame
+                --emit=site renders into, so a distribution publishing
+                this beside its own documentation makes it look like the
+                rest of that documentation without forking the generator.
+                $name substitution; pysmi.corpus.site.theme lists the
+                placeholders a page may use.
+        --site-stylesheet - a CSS file replacing the built-in one, for
+                the same reason.
+        --site-name - what the site's header calls this corpus.
+        --page-size - entries per page before a long list splits into
+                buckets keyed by the range each covers rather than by
+                page number. A corpus of 200 modules and one of 50,000
+                want different numbers.
         --fail-on-errors - exit non-zero when any module failed to
                 compile. Off by default: a corpus of MIBs nobody controls
                 always carries some that do not compile, and the report
@@ -165,6 +185,10 @@ def start() -> None:
                 "corpus-version=",
                 "corpus-id=",
                 "oid-registry=",
+                "site-template=",
+                "site-stylesheet=",
+                "site-name=",
+                "page-size=",
                 "no-bundled-mibs",
                 "fail-on-errors",
             ],
@@ -176,6 +200,10 @@ def start() -> None:
 
     bundledMibsFlag = True
     emitted: list[str] = []
+    sitePage: str | None = None
+    siteStylesheet: str | None = None
+    siteName: str | None = None
+    pageSize = BUCKET_SIZE
 
     for opt in opts:
         if opt[0] in ("-h", "--help"):
@@ -233,6 +261,29 @@ def start() -> None:
         if opt[0] == "--oid-registry":
             oidRegistryPaths.append(opt[1])
 
+        if opt[0] == "--site-template":
+            sitePage = opt[1]
+
+        if opt[0] == "--site-stylesheet":
+            siteStylesheet = opt[1]
+
+        if opt[0] == "--site-name":
+            siteName = opt[1]
+
+        if opt[0] == "--page-size":
+            try:
+                pageSize = int(opt[1])
+
+            except ValueError:
+                sys.stderr.write(
+                    f"ERROR: --page-size takes a number, not {opt[1]!r}\r\n"
+                )
+                sys.exit(EX_USAGE)
+
+            if pageSize < 1:
+                sys.stderr.write("ERROR: --page-size is at least 1\r\n")
+                sys.exit(EX_USAGE)
+
         if opt[0] == "--no-bundled-mibs":
             bundledMibsFlag = False
 
@@ -287,6 +338,19 @@ def start() -> None:
         sys.exit(EX_USAGE)
 
     try:
+        theme = (
+            load_theme(sitePage, siteStylesheet, siteName)
+            if outputs.site and (sitePage or siteStylesheet or siteName)
+            else None
+        )
+
+    except error.PySmiError as exc:
+        # Named and unreadable, which is a typo in a manifest rather than a
+        # reason to publish a whole site in the wrong skin and say nothing.
+        sys.stderr.write(f"ERROR: {exc}\r\n")
+        sys.exit(EX_USAGE)
+
+    try:
         report = CorpusDriver(
             namespaces,
             outputs,
@@ -295,6 +359,8 @@ def start() -> None:
             corpusId=corpusId or None,
             oidRegistry=oidRegistry,
             smiRegistry=smiRegistry,
+            theme=theme,
+            pageSize=pageSize,
         ).run()
 
     except error.PySmiError as exc:
@@ -356,6 +422,7 @@ _ARTIFACTS: Final = {
     "entity": ("entity", "entity.json"),
     "arcs": ("arcs", "arcs.json"),
     "closure": ("closure", "closure.json"),
+    "site": ("site", "site"),
     "report": ("report", "report.json"),
 }
 
@@ -378,7 +445,7 @@ _ARTIFACTS: Final = {
 #: The arc name index is opt-in for the same reason as the entity index,
 #: and for one more: it is the registration tree, which a corpus that only
 #: wants its modules has no use for.
-_OPT_IN: Final = frozenset({"core-db", "json-texts", "entity", "arcs"})
+_OPT_IN: Final = frozenset({"core-db", "json-texts", "entity", "arcs", "site"})
 
 
 def _registries(

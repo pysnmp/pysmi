@@ -55,7 +55,10 @@ from pysmi.corpus import closure as corpus_closure
 from pysmi.corpus import db as corpus_db
 from pysmi.corpus import entity as corpus_entity
 from pysmi.corpus import index as corpus_index
+from pysmi.corpus.buckets import SIZE as BUCKET_SIZE
 from pysmi.corpus.namespace import DEFAULT_TIER, TIERS, Namespace
+from pysmi.corpus.site import build_site
+from pysmi.corpus.site.theme import Theme
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader.base import AbstractReader
 from pysmi.reader.localfile import FileReader
@@ -164,6 +167,9 @@ class CorpusOutputs:
     #: The transitive import closure per module: the files a consumer needs
     #: in order to load one. See :py:mod:`pysmi.corpus.closure`.
     closure: str | None = None
+    #: The browsable site: one page per module, per registrant and per node of
+    #: the registration tree. See :py:mod:`pysmi.corpus.site`.
+    site: str | None = None
     #: The build report, as JSON.
     report: str | None = None
 
@@ -254,6 +260,8 @@ class CorpusReport:
     #: not hold. The second number is the one to look at: it counts modules
     #: this corpus publishes that nothing here can load.
     closure: dict[str, int] = field(default_factory=dict)
+    #: What the site pass wrote: pages by kind, and total bytes.
+    site: dict[str, int] = field(default_factory=dict)
     #: Seconds the build took, by phase.
     seconds: dict[str, float] = field(default_factory=dict)
 
@@ -276,6 +284,7 @@ class CorpusReport:
             "entity": self.entity,
             "arcs": self.arcs,
             "closure": self.closure,
+            "site": self.site,
             "seconds": {k: round(v, 3) for k, v in self.seconds.items()},
         }
 
@@ -363,6 +372,9 @@ class CorpusDriver:
         corpusId: str | None = None,
         oidRegistry: "dict[int, Registrant] | None" = None,
         smiRegistry: "dict[str, ArcName] | None" = None,
+        theme: "Theme | None" = None,
+        patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
+        pageSize: int = BUCKET_SIZE,
     ) -> None:
         """Create a driver over the given input set.
 
@@ -397,6 +409,12 @@ class CorpusDriver:
         self._corpusId = corpusId
         self._oidRegistry = dict(oidRegistry or {})
         self._smiRegistry = dict(smiRegistry or {})
+        #: The frame --emit=site renders into, and how long a list page gets
+        #: before it splits. Both are the publishing distribution's call, which
+        #: is why they arrive rather than being decided here.
+        self._theme = theme
+        self._patches = dict(patches or {})
+        self._pageSize = pageSize
         self._parseCache = InMemoryParseCache()
         self._readers: dict[str, AbstractReader] = {
             x.name: self._reader_for(x) for x in self._namespaces
@@ -1212,6 +1230,62 @@ class CorpusDriver:
         report.closure = corpus_closure.counts(found)
         report.seconds["closure"] = time.time() - started
 
+    def write_site(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> None:
+        """Write the browsable site.
+
+        Another projection of the same jsondoc tree the indexes, the database
+        and the closure are read from, so it costs the read the build has
+        already paid for. The module set is the corpus the manifest declared:
+        a namespace this build resolves against without publishing
+        contributes no pages, and nothing outside the manifest is reachable.
+
+        The registrant pages want ``--oid-registry`` and the OID tree wants
+        the arcs to be named; without either, the site is written with the
+        trees it can fill in and the build says which.
+
+        Args:
+            report: filled in with the page counts and how long it took
+            compiled: the modules this build wrote JSON for, as
+                :py:meth:`write_index` takes it.
+        """
+        if not self._outputs.site:
+            return
+
+        started = time.time()
+
+        documents, ranked = self._read_corpus(compiled)
+        anchors = corpus_index.anchor_index(ranked)
+
+        entities = (
+            corpus_entity.as_document(
+                corpus_entity.entities(documents, self._oidRegistry)
+            )["entity"]
+            if self._oidRegistry
+            else {}
+        )
+
+        result = build_site(
+            self._outputs.site,
+            documents,
+            theme=self._theme,
+            anchors=anchors,
+            arcs=corpus_arcs.arcs(
+                documents, anchors, self._smiRegistry, self._oidRegistry
+            ),
+            entities=entities,
+            provenance=self.provenance(compiled),
+            closure=corpus_closure.as_document(corpus_closure.closures(documents))[
+                "closure"
+            ],
+            patches=self._patches,
+            size=self._pageSize,
+        )
+
+        report.site = result.counts()
+        report.seconds["site"] = time.time() - started
+
     def write_index(
         self, report: CorpusReport, compiled: "Iterable[str] | None" = None
     ) -> None:
@@ -1369,6 +1443,7 @@ class CorpusDriver:
         self.write_entities(report, published)
         self.write_arcs(report, published)
         self.write_closure(report, published)
+        self.write_site(report, published)
 
         # Whatever answered provenance -- staging, or the database asking for
         # it -- the report carries it. A build that asked for neither says
