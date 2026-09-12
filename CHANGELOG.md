@@ -3,6 +3,17 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.6](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.5...v5.0.0-rc.6) (2026-09-12)
+
+### Features
+
+* **corpus:** drop the wrapper elements from definition cells ([d812e6f](https://github.com/pysnmp/pysmi/commit/d812e6f80843f93b7cc40ef4ba16ec12a9e5d97c)), closes [pysnmp/pysmi#284](https://github.com/pysnmp/pysmi/issues/284)
+* **corpus:** write a search profile of the corpus database ([20941a1](https://github.com/pysnmp/pysmi/commit/20941a1baadaee24df059cc7163597d1ae5ab96b)), closes [pysnmp/pysmi#293](https://github.com/pysnmp/pysmi/issues/293)
+
+### Bug Fixes
+
+* **corpus:** refuse a table profile validate does not recognize ([99b646b](https://github.com/pysnmp/pysmi/commit/99b646bdb008471ad01d80489d9ce1a7fed848fd)), closes [pysnmp/pysmi#309](https://github.com/pysnmp/pysmi/issues/309) [pysnmp/pysmi#262](https://github.com/pysnmp/pysmi/issues/262)
+
 ## [5.0.0-rc.5](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.4...v5.0.0-rc.5) (2026-09-12)
 
 ### Bug Fixes
