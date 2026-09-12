@@ -205,6 +205,90 @@ class CorpusTestCase(unittest.TestCase):
         return found
 
 
+class ProseTestCase(CorpusTestCase):
+    """The projections that render prose read a tree that carries it.
+
+    ``JsonCodeGen`` gates DESCRIPTION, ORGANIZATION and CONTACT-INFO behind
+    one switch, so a lean jsondoc tree does not hold any of them. The site
+    puts a description under every definition and the entity index reads a
+    module's own contact to say who holds an arc -- and both were being handed
+    the lean tree, which costs a read and answers nothing.
+
+    Nothing here failed loudly. Over pysnmp/mibs it was 85% of 785,252
+    definitions rendering with no description, and every registrant falling
+    back to the registry because no module appeared to name a contact. These
+    tests are what notices.
+    """
+
+    def site_outputs(self, where="output", **kwargs):
+        out = os.path.join(self.root, where)
+        layout = {"site": os.path.join(out, "site")}
+        layout.update(kwargs)
+
+        return CorpusOutputs(**layout)
+
+    def page(self, where="output", name="ALPHA-MIB"):
+        path = os.path.join(self.root, where, "site", "mib", name, "index.html")
+
+        with open(path, encoding="utf-8") as fileObj:
+            return fileObj.read()
+
+    def testTheSiteAloneBuilds(self):
+        # site was absent from _needs_jsondoc, so a build asking for the site
+        # and nothing else staged no tree and raised on the read.
+        outputs = self.site_outputs()
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertIn("ALPHA-MIB", self.page())
+
+    def testTheModulePageCarriesTheDescription(self):
+        outputs = self.site_outputs(json=os.path.join(self.root, "output", "json"))
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertIn("a module", self.page())
+
+    def testThePublishedTreeStaysLean(self):
+        # The prose reaches the page without reaching the artifact the caller
+        # asked for: a publisher who wanted a lean json/ still has one.
+        outputs = self.site_outputs(json=os.path.join(self.root, "output", "json"))
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        with open(
+            os.path.join(self.root, "output", "json", "ALPHA-MIB.json"),
+            encoding="utf-8",
+        ) as fileObj:
+            self.assertNotIn("a module", fileObj.read())
+
+    def testTheEntityIndexCarriesTheModulesOwnContact(self):
+        outputs = self.outputs(entity=os.path.join(self.root, "output", "entity.json"))
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        with open(
+            os.path.join(self.root, "output", "entity.json"), encoding="utf-8"
+        ) as fileObj:
+            written = json.load(fileObj)
+
+        contacts = [
+            contact
+            for arc in written["entity"].values()
+            for contact in arc.get("contacts", ())
+            if contact.get("source") == "module"
+        ]
+
+        self.assertTrue(contacts, "no arc carries a contact from a module")
+        self.assertEqual(contacts[0]["organization"], "test")
+        self.assertEqual(contacts[0]["contact"], "test")
+
+    def testTheSiteIsNotHandedTheLeanDocumentsTheIndexesCached(self):
+        # The read is cached, and the indexes run first. Keyed by the module
+        # selection alone, the site was served whatever the index had already
+        # read -- which is exactly the tree it must not read.
+        outputs = self.outputs(site=os.path.join(self.root, "output", "site"))
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertIn("a module", self.page())
+
+
 class JsonTextsTestCase(CorpusTestCase):
     """Prose in the jsondoc tree, when a build asks for it (pysnmp/pysmi#277).
 

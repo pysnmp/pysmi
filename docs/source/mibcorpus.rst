@@ -212,6 +212,21 @@ one of them without asking for ``json`` gets a tree staged in a temporary
 directory and removed when the build ends, raise or return. The corpus carries what was
 named and nothing else.
 
+.. _prose-tree:
+
+The site and the entity index read a tree with the texts in it. A module page
+carries each definition's DESCRIPTION, and a registrant is named from the
+module's own ORGANIZATION and CONTACT-INFO before the registry is consulted;
+``JsonCodeGen`` gates all three behind one switch, so a lean tree holds none of
+them. A build rendering either gets a texts-carrying tree staged the same way
+-- **even where it named a lean one**, since the lean tree cannot answer. That
+costs a render pass rather than a parse, since the parse is shared, and the
+tree the build publishes is untouched: a publisher asking for a lean ``json``
+still gets a lean ``json``.
+
+Over pysnmp/mibs the prose is 90.2 MB of the module pages, 85% of definitions
+carrying one. Emit ``json-texts`` to keep the tree that produced it.
+
 .. code-block:: sh
 
    mibcorpus --manifest=corpus.json --output-directory=output \

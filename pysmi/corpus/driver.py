@@ -438,8 +438,11 @@ class CorpusDriver:
         }
         #: Which namespace each module name came from, for the index tiers.
         self._tierOfModule: dict[str, int] = {}
+        #: Keyed by (module selection, tree), because the site reads the
+        #: jsondoc tree with the texts in it and everything else reads the
+        #: lean one.
         self._corpus: dict[
-            tuple[str, ...] | None,
+            tuple[tuple[str, ...] | None, str | None],
             tuple[list[tuple[str, dict[str, Any], int, int]], dict[str, str]],
         ] = {}
         self._modulesOfNamespace: dict[str, list[str]] = {}
@@ -1051,7 +1054,7 @@ class CorpusDriver:
         )
 
     def _read_corpus(
-        self, compiled: "Iterable[str] | None"
+        self, compiled: "Iterable[str] | None", tree: str | None = None
     ) -> tuple[list[tuple[str, dict[str, Any], int, int]], dict[str, str]]:
         """The corpus this build produced, read once and ranked once.
 
@@ -1063,6 +1066,8 @@ class CorpusDriver:
         Args:
             compiled: the modules this build wrote JSON for, or ``None`` for
                 everything in the directory
+            tree: which jsondoc tree to read, for a projection that needs the
+                prose -- see :py:attr:`_prose_tree`. Defaults to the lean one.
 
         Returns:
             ``(documents, ranked)`` as
@@ -1073,12 +1078,19 @@ class CorpusDriver:
         # are public and a caller may ask for a named subset and then for all
         # of it. Caching the first answer under both would silently write the
         # subset twice.
-        selector = None if compiled is None else tuple(sorted(set(compiled)))
+        #
+        # Keyed by the tree for the same reason: the site reads the one with
+        # the texts in it and the indexes read the lean one, and handing the
+        # site whichever ran first is how the prose goes missing.
+        selector = (
+            None if compiled is None else tuple(sorted(set(compiled))),
+            tree or self._jsondoc_tree,
+        )
 
         if selector in self._corpus:
             return self._corpus[selector]
 
-        tree = self._jsondoc_tree
+        tree = selector[1]
 
         if not tree:
             raise error.PySmiError(
@@ -1099,7 +1111,7 @@ class CorpusDriver:
             rfcs = {}
 
         documents = list(
-            corpus_index.read_documents(tree, self._tierOfModule, rfcs, selector)
+            corpus_index.read_documents(tree, self._tierOfModule, rfcs, selector[0])
         )
 
         self._corpus[selector] = (documents, corpus_index.rank_index(documents))
@@ -1193,7 +1205,7 @@ class CorpusDriver:
 
         started = time.time()
 
-        documents, _ranked = self._read_corpus(compiled)
+        documents, _ranked = self._read_corpus(compiled, self._prose_tree)
         found = corpus_entity.entities(documents, self._oidRegistry)
 
         _write_text(self._outputs.entity, corpus_entity.render_entities(found))
@@ -1291,7 +1303,7 @@ class CorpusDriver:
 
         started = time.time()
 
-        documents, ranked = self._read_corpus(compiled)
+        documents, ranked = self._read_corpus(compiled, self._prose_tree)
         anchors = corpus_index.anchor_index(ranked)
 
         entities = (
@@ -1394,8 +1406,29 @@ class CorpusDriver:
         the database have always been built from and the texts change nothing
         they carry. A build that asked only for the tree with texts in it gets
         its projections from that one rather than from a second pass.
+
+        Not every projection is indifferent: see :py:attr:`_prose_tree`.
         """
         return self._outputs.json or self._outputs.json_texts
+
+    @property
+    def _prose_tree(self) -> str | None:
+        """The jsondoc tree the projections that render prose read.
+
+        The site puts each definition's DESCRIPTION on the module page, and
+        the entity index reads a module's own ORGANIZATION and CONTACT-INFO
+        to say who holds an arc. ``JsonCodeGen`` gates all three behind the
+        same switch, so a lean tree does not carry them -- and reading one
+        costs nothing and says nothing, which is the failure this exists to
+        prevent. Over pysnmp/mibs it was 85% of definitions rendering with no
+        description at all, and every registrant falling back to the registry
+        because no module appeared to name a contact.
+
+        The other way round is preferred for everything else: the indexes and
+        the database read the lean tree, because the texts change nothing they
+        carry and reading 317 MB where 225 will do is a cost for nothing.
+        """
+        return self._outputs.json_texts or self._outputs.json
 
     def _needs_jsondoc(self) -> bool:
         """Whether an artifact asked for is a projection of the jsondoc tree.
@@ -1413,7 +1446,15 @@ class CorpusDriver:
             or self._outputs.closure
             or self._outputs.asn1
             or self._outputs.standard
+            or self._outputs.site
         )
+
+    def _needs_prose(self) -> bool:
+        """Whether an artifact asked for renders DESCRIPTION or CONTACT-INFO.
+
+        See :py:attr:`_prose_tree` for what reads what.
+        """
+        return bool(self._outputs.site or self._outputs.entity)
 
     def run(self) -> CorpusReport:
         """Build the corpus and report what it did.
@@ -1425,22 +1466,40 @@ class CorpusDriver:
         should not have to know one exists, nor pick a scratch path for it
         and clean up after itself. See pysnmp/pysmi#262.
 
+        The same holds for the prose. A publisher asking for the site asked
+        for pages that say what each object is, not for a second jsondoc tree
+        with the texts in it, so a build that renders prose and was given
+        nowhere to read it from gets that staged too -- **even where it named
+        a lean tree**, since the lean one cannot answer. It costs a render
+        pass rather than a parse, the parse being shared, and the scratch tree
+        goes the way the other one does.
+
         Returns:
             The report, also written to the ``report`` path when one was
             asked for.
         """
-        if self._jsondoc_tree or not self._needs_jsondoc():
+        staged = {}
+
+        if self._needs_jsondoc() and not self._jsondoc_tree:
+            staged["json"] = "json"
+
+        if self._needs_prose() and not self._outputs.json_texts:
+            staged["json_texts"] = "json-texts"
+
+        if not staged:
             return self._build()
 
         with tempfile.TemporaryDirectory(prefix="pysmi-corpus-") as scratch:
-            self._outputs.json = os.path.join(scratch, "json")
+            for attribute, name in staged.items():
+                setattr(self._outputs, attribute, os.path.join(scratch, name))
 
             try:
                 return self._build()
 
             finally:
                 # The caller handed us these outputs; they leave as they came.
-                self._outputs.json = None
+                for attribute in staged:
+                    setattr(self._outputs, attribute, None)
 
     def _build(self) -> CorpusReport:
         """One build, with every output path already decided."""
