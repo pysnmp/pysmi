@@ -25,6 +25,12 @@ Rendering
 .. automodule:: pysmi.corpus.site.html
   :members:
 
+The crawl surface
+~~~~~~~~~~~~~~~~~
+
+.. automodule:: pysmi.corpus.site.crawl
+  :members:
+
 Theming
 ~~~~~~~
 

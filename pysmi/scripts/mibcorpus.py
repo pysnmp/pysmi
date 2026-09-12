@@ -31,6 +31,7 @@ from pysmi.corpus.driver import (
     check_expectations,
 )
 from pysmi.corpus.namespace import Manifest, Namespace, read_manifest
+from pysmi.corpus.site.crawl import Crawl
 from pysmi.corpus.site.theme import load_theme
 from pysmi.registry.pen import Registrant, is_pen_registry, load_registry
 from pysmi.registry.smi import ArcName, parse_smi_numbers
@@ -72,6 +73,8 @@ def start() -> None:
         [--site-template=<FILE>]
         [--site-stylesheet=<FILE>]
         [--site-name=<NAME>]
+        [--base-url=<URL>]
+        [--site-description=<TEXT>]
         [--page-size=<COUNT>]
         [--no-bundled-mibs]
         [--fail-on-errors]
@@ -157,6 +160,15 @@ def start() -> None:
         --site-stylesheet - a CSS file replacing the built-in one, for
                 the same reason.
         --site-name - what the site's header calls this corpus.
+        --base-url - the site's origin and path, which is what makes a
+                build a distribution site rather than a subtree somebody
+                else will assemble. Given, --emit=site also writes the
+                crawl surface: canonical links, JSON-LD, sitemap.xml,
+                robots.txt and llms.txt. Without it there is nothing to
+                put in a canonical link, and guessing an origin would
+                publish a site claiming to live somewhere it does not.
+        --site-description - one paragraph saying what this corpus is,
+                for llms.txt.
         --page-size - entries per page before a long list splits into
                 buckets keyed by the range each covers rather than by
                 page number. A corpus of 200 modules and one of 50,000
@@ -188,6 +200,8 @@ def start() -> None:
                 "site-template=",
                 "site-stylesheet=",
                 "site-name=",
+                "base-url=",
+                "site-description=",
                 "page-size=",
                 "no-bundled-mibs",
                 "fail-on-errors",
@@ -203,7 +217,9 @@ def start() -> None:
     sitePage: str | None = None
     siteStylesheet: str | None = None
     siteName: str | None = None
-    pageSize = BUCKET_SIZE
+    baseUrl: str | None = None
+    siteDescription: str | None = None
+    pageSize: int | None = None
 
     for opt in opts:
         if opt[0] in ("-h", "--help"):
@@ -269,6 +285,12 @@ def start() -> None:
 
         if opt[0] == "--site-name":
             siteName = opt[1]
+
+        if opt[0] == "--base-url":
+            baseUrl = opt[1]
+
+        if opt[0] == "--site-description":
+            siteDescription = opt[1]
 
         if opt[0] == "--page-size":
             try:
@@ -337,6 +359,17 @@ def start() -> None:
         sys.stderr.write(f"ERROR: cannot read --oid-registry: {exc}\r\n")
         sys.exit(EX_USAGE)
 
+    # Flags override the manifest, as flags do everywhere else here.
+    declared = manifest.site
+    sitePage = sitePage or declared.get("template")
+    siteStylesheet = siteStylesheet or declared.get("stylesheet")
+    siteName = siteName or declared.get("name")
+    baseUrl = baseUrl or declared.get("base-url")
+    siteDescription = siteDescription or declared.get("description")
+
+    if pageSize is None:
+        pageSize = declared.get("page-size", BUCKET_SIZE)
+
     try:
         theme = (
             load_theme(sitePage, siteStylesheet, siteName)
@@ -350,6 +383,16 @@ def start() -> None:
         sys.stderr.write(f"ERROR: {exc}\r\n")
         sys.exit(EX_USAGE)
 
+    crawl = (
+        Crawl(
+            base=baseUrl,
+            description=siteDescription or "",
+            policy=declared.get("crawl") or {},
+        )
+        if outputs.site and baseUrl
+        else None
+    )
+
     try:
         report = CorpusDriver(
             namespaces,
@@ -361,6 +404,7 @@ def start() -> None:
             smiRegistry=smiRegistry,
             theme=theme,
             pageSize=pageSize,
+            crawl=crawl,
         ).run()
 
     except error.PySmiError as exc:
