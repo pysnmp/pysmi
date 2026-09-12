@@ -3,6 +3,16 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.3](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.2...v5.0.0-rc.3) (2026-09-12)
+
+### Features
+
+* **corpus:** bucket a long list page by the range it covers ([915ee9b](https://github.com/pysnmp/pysmi/commit/915ee9bf60fe658c2504a949ffc7b1c12ccf93eb)), closes [#284](https://github.com/pysnmp/pysmi/issues/284) [#293](https://github.com/pysnmp/pysmi/issues/293) [#276](https://github.com/pysnmp/pysmi/issues/276)
+
+### Bug Fixes
+
+* **corpus:** build the arc index from registrations, not from every arc ([8a6c0a0](https://github.com/pysnmp/pysmi/commit/8a6c0a08cc6db9ef4c8bc6edf9822af96fe4b231))
+
 ## [5.0.0-rc.2](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.1...v5.0.0-rc.2) (2026-09-11)
 
 ### Features
