@@ -47,6 +47,67 @@ SCHEMA_VERSION: Final = 1
 STYLESHEET: Final = "style.css"
 
 
+class PageSizes(NamedTuple):
+    """How long each kind of list gets before it splits into buckets.
+
+    One number would do if the lists were alike, and they are not. The module
+    list is the site's front door and a reader scrolling it wants few pages;
+    a registrant's list is reached by someone already narrowed to one vendor,
+    and Cisco's 1,341 modules at the same size would be three pages of 500
+    links each. Measured over pysnmp/mibs, 500 and 200 are the sizes that
+    fall out. See pysnmp/pysmi#287.
+    """
+
+    #: ``browse/``, the module list.
+    browse: int = SIZE
+
+    #: A registrant's module list, and the registrant list itself.
+    entity: int = SIZE
+
+    @classmethod
+    def of(cls, declared: "int | Mapping[str, int] | PageSizes | None") -> "PageSizes":
+        """Page sizes from a number, a mapping, or nothing.
+
+        A manifest may say one number for every list or name them
+        individually, and a caller passing neither gets the defaults.
+
+        Raises:
+            ValueError: a list was named that has no page size, or a size is
+                not a positive number. Refused rather than ignored: a
+                manifest saying ``entities`` where the key is ``entity``
+                would otherwise publish a site silently paginated wrong.
+            TypeError: *declared* is neither a number nor a mapping.
+        """
+        if declared is None:
+            return cls()
+
+        if isinstance(declared, PageSizes):
+            return declared
+
+        if isinstance(declared, int) and not isinstance(declared, bool):
+            return cls(browse=declared, entity=declared)
+
+        if not isinstance(declared, Mapping):
+            raise TypeError(
+                f"a page size is a number or an object naming "
+                f"{', '.join(cls._fields)}, not {type(declared).__name__}"
+            )
+
+        unknown = sorted(set(declared) - set(cls._fields))
+
+        if unknown:
+            raise ValueError(
+                f"no such list: {', '.join(unknown)}; "
+                f"expected some of {', '.join(cls._fields)}"
+            )
+
+        for name, value in declared.items():
+            if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+                raise ValueError(f"page size for {name} is not a positive number")
+
+        return cls(**dict(declared))
+
+
 class SiteReport(NamedTuple):
     """What a site build wrote."""
 
@@ -131,7 +192,7 @@ def build_site(
     provenance: "Mapping[str, Mapping[str, str]] | None" = None,
     closure: "Mapping[str, Mapping[str, Sequence[str]]] | None" = None,
     patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
-    size: int = SIZE,
+    size: "int | Mapping[str, int] | PageSizes | None" = None,
     crawl: "site_crawl.Crawl | None" = None,
 ) -> SiteReport:
     """Render the corpus as a browsable site.
@@ -156,7 +217,9 @@ def build_site(
         provenance: where each module came from.
         closure: the load order per module.
         patches: per module, the defects a patch repairs and the diff.
-        size: entries per bucket in a long list.
+        size: entries per bucket, as
+            :py:meth:`~pysmi.corpus.site.PageSizes.of` takes it -- one
+            number for every list, or a mapping naming them.
         crawl: what this build declares about the site it publishes. Given,
             the whole crawl surface is written -- canonical links, JSON-LD,
             the sitemap index, ``robots.txt`` and ``llms.txt``. Omitted, the
@@ -168,6 +231,7 @@ def build_site(
         What was written.
     """
     started = time.time()
+    sizes = PageSizes.of(size)
     theme = theme or Theme()
     writer = _Writer(directory)
     writer.write(STYLESHEET, theme.stylesheet)
@@ -234,8 +298,10 @@ def build_site(
         dated[module] = revised
         written += 1
 
-    listings = _write_browse(writer, theme, held, size, dated, crawl)
-    registrants = _write_entities(writer, theme, entities or {}, size, dated, crawl)
+    listings = _write_browse(writer, theme, held, sizes.browse, dated, crawl)
+    registrants = _write_entities(
+        writer, theme, entities or {}, sizes.entity, dated, crawl
+    )
     listings += registrants[1]
     tree = _write_tree(writer, theme, names, registered, below, crawl)
 

@@ -55,7 +55,6 @@ from pysmi.corpus import closure as corpus_closure
 from pysmi.corpus import db as corpus_db
 from pysmi.corpus import entity as corpus_entity
 from pysmi.corpus import index as corpus_index
-from pysmi.corpus.buckets import SIZE as BUCKET_SIZE
 from pysmi.corpus.namespace import DEFAULT_TIER, TIERS, Namespace
 from pysmi.corpus.site import build_site
 from pysmi.corpus.site.crawl import Crawl
@@ -375,7 +374,7 @@ class CorpusDriver:
         smiRegistry: "dict[str, ArcName] | None" = None,
         theme: "Theme | None" = None,
         patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
-        pageSize: int = BUCKET_SIZE,
+        pageSize: "int | Mapping[str, int] | None" = None,
         crawl: "Crawl | None" = None,
     ) -> None:
         """Create a driver over the given input set.

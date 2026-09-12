@@ -23,7 +23,6 @@ import sys
 from typing import Final
 
 from pysmi import debug, error
-from pysmi.corpus.buckets import SIZE as BUCKET_SIZE
 from pysmi.corpus.driver import (
     CorpusDriver,
     CorpusOutputs,
@@ -172,7 +171,10 @@ def start() -> None:
         --page-size - entries per page before a long list splits into
                 buckets keyed by the range each covers rather than by
                 page number. A corpus of 200 modules and one of 50,000
-                want different numbers.
+                want different numbers. The manifest may instead name the
+                lists individually, naming browse and entity, since the
+                module list is the front door and a registrant's list is
+                reached already narrowed to one vendor.
         --fail-on-errors - exit non-zero when any module failed to
                 compile. Off by default: a corpus of MIBs nobody controls
                 always carries some that do not compile, and the report
@@ -219,7 +221,7 @@ def start() -> None:
     siteName: str | None = None
     baseUrl: str | None = None
     siteDescription: str | None = None
-    pageSize: int | None = None
+    pageSize: int | dict[str, int] | None = None
 
     for opt in opts:
         if opt[0] in ("-h", "--help"):
@@ -368,7 +370,7 @@ def start() -> None:
     siteDescription = siteDescription or declared.get("description")
 
     if pageSize is None:
-        pageSize = declared.get("page-size", BUCKET_SIZE)
+        pageSize = declared.get("page-size")
 
     try:
         theme = (
