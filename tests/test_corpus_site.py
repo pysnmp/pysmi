@@ -596,6 +596,68 @@ class BuildTestCase(unittest.TestCase):
                 with self.subTest(page=page, key=key):
                     self.assertIn(key, written[page])
 
+    def bucketed_entities(self, count=7, size=3):
+        """A corpus with enough registrants that the list of them splits.
+
+        The fixtures elsewhere have one or two, which never bucket -- and the
+        corpus this is built for has 356, which do. That gap is how
+        pysnmp/pysmi#276 shipped with every registrant breadcrumb pointing at
+        a page nothing wrote.
+        """
+        return {
+            f"1.3.6.1.4.1.{40 + x}": {
+                "number": 40 + x,
+                "organization": f"Vendor {x}",
+                "modules": ["ALPHA-MIB"],
+                "contacts": [],
+            }
+            for x in range(count)
+        }
+
+    def testTheRegistrantListHasARootWhenItBuckets(self):
+        """Every registrant page's breadcrumb points at entity/, and so does
+        llms.txt. A bucketed list that writes only its buckets leaves that a
+        404."""
+        self.build(entities=self.bucketed_entities(), size={"entity": 3})
+
+        written = self.pages()
+
+        self.assertIn("entity/index.html", written)
+        self.assertGreater(sum(1 for x in written if x.startswith("entity/")), 8)
+
+    def testEveryLinkResolvesWhenTheListsBucket(self):
+        """The whole-tree check the fixtures above are too small to exercise."""
+        self.build(
+            entities=self.bucketed_entities(),
+            size={"browse": 1, "entity": 3},
+            anchors={"1.3.6.1.4.1.41": "ALPHA-MIB"},
+            arcs=arcs_for(
+                "1",
+                "1.3",
+                "1.3.6",
+                "1.3.6.1",
+                "1.3.6.1.4",
+                "1.3.6.1.4.1",
+                "1.3.6.1.4.1.41",
+            ),
+        )
+
+        for path, body in self.pages().items():
+            base = os.path.dirname(os.path.join(self.out, path))
+
+            for href in re.findall(r'(?:href|src)="([^"]+)"', body):
+                if href.startswith(("http://", "https://", "#", "mailto:")):
+                    continue
+
+                target = os.path.normpath(os.path.join(base, href.split("#")[0]))
+
+                with self.subTest(page=path, href=href):
+                    self.assertTrue(
+                        os.path.isfile(target)
+                        or os.path.isfile(os.path.join(target, "index.html")),
+                        f"{path} links to {href}",
+                    )
+
     def testTheStylesheetIsWrittenOnce(self):
         self.build()
 
