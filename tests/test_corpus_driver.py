@@ -1159,6 +1159,49 @@ class InputSetTestCase(CorpusTestCase):
         self.assertIsNone(outputs.core_db)
         self.assertEqual(report.db, {})
 
+    def testTheSearchDatabaseIsBuiltWhenAskedFor(self):
+        outputs = self.outputs(search_db=os.path.join(self.root, "output", "search.db"))
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertTrue(os.path.exists(outputs.search_db))
+
+        # Its own report key, and the full database's stays empty: report.json
+        # is published and a consumer reads the shape, so the two must not
+        # share one slot.
+        self.assertGreater(report.searchDb["module"], 0)
+        self.assertEqual(report.searchDb["node"], 0)
+        self.assertEqual(report.db, {})
+
+        connection = sqlite3.connect(outputs.search_db)
+
+        try:
+            meta = dict(connection.execute("SELECT key, value FROM meta"))
+            nodes = connection.execute("SELECT count(*) FROM node").fetchone()[0]
+
+        finally:
+            connection.close()
+
+        self.assertEqual(meta["tables"], "search")
+        self.assertEqual(nodes, 0)
+        # The corpus still says what it defines; only the table is empty.
+        self.assertGreater(int(meta["nodes"]), 0)
+
+    def testBothDatabasesCanBeBuiltInOneRun(self):
+        outputs = self.outputs(
+            core_db=os.path.join(self.root, "output", "core.db"),
+            search_db=os.path.join(self.root, "output", "search.db"),
+        )
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        for path in (outputs.core_db, outputs.search_db):
+            self.assertTrue(os.path.exists(path))
+
+        self.assertGreater(report.db["node"], 0)
+        self.assertEqual(report.searchDb["node"], 0)
+        # One corpus, so the two agree on everything but the tables dropped.
+        self.assertEqual(report.db["module"], report.searchDb["module"])
+        self.assertEqual(report.db["oid_index"], report.searchDb["oid_index"])
+
     def testTheBuildIsStampedWithWhatTheCallerGaveIt(self):
         # write_db has taken these since it was written, and until now nothing
         # could pass them: no driver argument, no command-line option. A

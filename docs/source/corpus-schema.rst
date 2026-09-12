@@ -146,9 +146,13 @@ Key                 Meaning
 ``schema_version``  The version this page specifies. Always present.
 ``producer``        ``pysmi``. Always present.
 ``modules``         Rows in ``module``.
-``nodes``           Rows in ``node``.
+``nodes``           How many nodes the corpus defines. In a ``search``
+                    database this is **not** the row count of ``node``,
+                    which is zero; it stays a fact about the corpus.
 ``types``           Rows in ``type``.
 ``texts``           ``0``. Reserved: no build emits prose today.
+``tables``          Which profile wrote the file: ``full`` or ``search``.
+                    Absent in a v2 file, which is always ``full``.
 ``corpus_version``  Present only when the build was given one.
 ``corpus_id``       Present only when the build was given one.
 ==================  ============================================================
@@ -320,7 +324,6 @@ consumer resolves against. ``find_module(oid)`` is therefore a longest-prefix
 search -- chop one arc at a time and look each candidate up -- not a single
 exact match.
 
-
 Resolving an OID
 ----------------
 
@@ -381,6 +384,11 @@ OIDs in practice. Measured at roughly 3 µs each on a corpus of the published
 size, so the whole chop is well inside any trap budget; the range scan
 alternative measures about the same, and neither is a reason to prefer one
 shape over the other.
+
+Every query above except ``find_module`` reads ``node``, so a ``search``
+database answers only that one -- which is the one a browser asks. It
+navigates: to a module by name, or to whatever owns an OID. It does not search
+the corpus for a definition, because once it has the module it displays it.
 
 
 Determinism
@@ -548,6 +556,62 @@ much later as a trap decoded against the wrong definition. See
 pysnmp/pysmi#248.
 
 
+Profiles
+--------
+
+One schema, written at two sizes. ``meta.tables`` says which.
+
+``full``
+    Every table. What ``--emit=core-db`` writes, and what pysnmp reads: the
+    whole SMI model, laid out for lookup.
+
+``search``
+    Everything except ``node`` and the ``type`` table it references. What
+    ``--emit=search-db`` writes, for a consumer that needs to know *which
+    module* and never *what the object is* -- a browser querying the corpus
+    over HTTP range requests (pysnmp/pysmi#293).
+
+The schema is identical: the same tables, the same columns, the same queries.
+The difference is which come back empty, which is why ``meta.tables`` exists
+-- an empty ``node`` has to read as a choice rather than as a corpus that
+parsed nothing. Two consequences for a reader:
+
+* ``meta.nodes`` and ``module.nodes`` state what the corpus defines either
+  way. They are not row counts of ``node`` in a ``search`` database.
+* ``symbol.type`` is NULL in a ``search`` database, because the ``type``
+  table it references is empty. A NULL there means "not carried", not "this
+  symbol has no type".
+
+Why the split is worth having, measured over pysnmp/mibs with ``dbstat``:
+
+====================================  ==========  ==========
+                                      ``full``    ``search``
+====================================  ==========  ==========
+``node``                              124.2 MB    --
+``node_by_name``, ``node_by_module``  98.4 MB     --
+``type`` and its unique index         17.7 MB     --
+everything else                       15.4 MB     15.4 MB
+**file**                              **256 MB**  **15 MB**
+====================================  ==========  ==========
+
+Dropping the descriptive columns instead would not have done it: of ``node``'s
+108.5 MB of payload the identity columns -- ``oid_key``, ``module``, ``name``,
+``oid``, ``class`` -- are 84.5 MB and everything describing the object is
+24.1. The cost is a row per definition, not what each row says.
+
+Nor does ``search`` carry an index of every definition's name, which would be
+780,000 rows and 47 MB. A browser searches in order to **navigate** -- to a
+module, or to whatever owns an OID -- and then displays the module it landed
+on. Searching the corpus for a single field is not a thing a browser does, and
+the module's own page answers it by being a page.
+
+**A profile does not move the schema version.** The tables and the columns are
+identical, so every query a reader has means what it meant. The consequence to
+know is that a reader which does not know ``meta.tables`` reads a ``search``
+file as a corpus with no nodes -- which is why it is written as ``search.db``
+and never published under the name ``core.db``.
+
+
 Building one
 ------------
 
@@ -557,8 +621,18 @@ Building one
      --output-directory=output \
      --emit=core-db --emit=json:build/scratch-jsondoc
 
-``core-db`` is not in the default artifact layout: building it costs a pass
-nothing else needs, so it is asked for by name. It is a projection of the
-jsondoc tree, exactly as the two indexes are, so a build asking for it has to
-emit ``json`` as well -- to a scratch path outside the corpus when the corpus
-is not meant to carry the JSON.
+Neither ``core-db`` nor ``search-db`` is in the default artifact layout:
+building one costs a pass nothing else needs, so it is asked for by name. Both
+are projections of the jsondoc tree, exactly as the two indexes are, so a build
+asking for either has to emit ``json`` as well -- to a scratch path outside the
+corpus when the corpus is not meant to carry the JSON.
+
+Asking for both in one build shares the expensive half. Each database is its
+own pass over the jsondoc documents, but compiling those documents -- which is
+most of a build -- happens once:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json \
+     --output-directory=output \
+     --emit=core-db --emit=search-db --emit=json:build/scratch-jsondoc

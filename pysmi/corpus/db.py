@@ -80,7 +80,50 @@ from pysmi.corpus.namespace import DEFAULT_TIER
 #: A consumer gates on it and refuses what it does not understand. It is
 #: deliberately not the corpus version: conflating the two would force a
 #: pysnmp release on every corpus rebuild (pysnmp/pysnmp#196).
+#:
+#: :py:data:`SEARCH` does not move it. The tables and columns are identical --
+#: a profile changes which rows are there, not what a reader may select -- and
+#: bumping it would make pysnmp refuse an unchanged ``core.db`` for the sake
+#: of a file pysnmp is never handed. ``meta.tables`` is how a reader tells the
+#: two apart, and a reader that does not know the key reads ``search.db`` as a
+#: corpus with no nodes, which is why it is never published under that name.
 SCHEMA_VERSION: Final = 2
+
+#: Every table populated -- the whole SMI model, laid out for lookup.
+FULL: Final = "full"
+
+#: Everything but ``node`` and the ``type`` table it references -- the tables
+#: that answer *which module* rather than *what the object is*.
+#:
+#: Over pysnmp/mibs the full database is 256 MB, and measured per table
+#: ``node`` is 124.2 MB with 58.9 of ``node_by_name`` and 39.5 of
+#: ``node_by_module``, plus 17.7 for ``type`` and its unique index -- 240.2
+#: MB, 94% of the file. What is left answers the two questions a browser
+#: asks: ``oid_index`` 7.7 MB, ``import`` 5.0, ``symbol`` 1.1, ``module``
+#: 0.8, ``provenance`` 0.7. **15 MB against 256**, which is the difference
+#: between a database a site can publish and one that spends a quarter of the
+#: whole Pages budget.
+#:
+#: Dropping the descriptive columns instead would not have done it. Of
+#: ``node``'s 108.5 MB of payload the identity columns -- ``oid_key``,
+#: ``module``, ``name``, ``oid``, ``class`` -- are 84.5 MB and everything
+#: describing the object is 24.1. The cost is a row per definition, 764,353 of
+#: them, not what each row says.
+#:
+#: What it deliberately does not carry is an index of every definition's
+#: name. A browser searches to *navigate* -- to a module, or to whatever owns
+#: an OID -- and then displays the module it landed on. Nobody searches the
+#: corpus for a field, so the 780,000-row index that would answer it is 47 MB
+#: spent on a question the page already answers by being a page.
+#:
+#: The schema is the same either way, so a reader uses one set of queries and
+#: :py:func:`validate` one set of checks. ``meta.tables`` says which profile
+#: wrote the file, so an empty ``node`` reads as a choice rather than as a
+#: corpus with nothing in it. See pysnmp/pysmi#293.
+SEARCH: Final = "search"
+
+#: The profiles :py:func:`write_db` takes.
+PROFILES: Final[tuple[str, ...]] = (FULL, SEARCH)
 
 #: SQLite's ``application_id``, so ``file`` and any other tool that reads the
 #: header can tell a corpus from an unrelated database. "PSMI" as big-endian
@@ -511,6 +554,7 @@ def write_db(
     corpusVersion: str | None = None,
     corpusId: str | None = None,
     provenance: dict[str, dict[str, str]] | None = None,
+    tables: str = FULL,
 ) -> dict[str, int]:
     """Write a corpus database.
 
@@ -534,13 +578,25 @@ def write_db(
             ``digest``. A module not named here gets no ``provenance`` row:
             the absence says the build did not record one, which a reader can
             act on, and a row of empty strings would not.
+        tables: :py:data:`FULL` or :py:data:`SEARCH`. The schema is the same
+            either way; ``SEARCH`` leaves ``node`` and ``type`` empty, which
+            takes pysnmp/mibs' database from 256 MB to 15 and is what a client
+            resolving OIDs and finding modules actually needs.
 
     Returns:
         How many rows each table received, keyed by table name.
 
     Raises:
-        PySmiError: a document carried an OID that cannot be encoded.
+        PySmiError: a document carried an OID that cannot be encoded, or
+            *tables* is not a profile.
     """
+    if tables not in PROFILES:
+        raise error.PySmiError(
+            f"no such table profile: {tables}; expected one of {', '.join(PROFILES)}"
+        )
+
+    bulk = tables == FULL
+    defined = 0
     connection = _connect(path)
     counts = dict.fromkeys(
         (
@@ -563,7 +619,15 @@ def write_db(
     try:
         # Type specifications first, ids assigned in sorted order so that two
         # builds of one source tree number them identically.
-        specs = sorted({spec for _, doc, _, _ in corpus for spec in _type_specs(doc)})
+        # A search database carries no node rows, so the specs those rows
+        # point at have nothing referring to them -- and symbol.type, which
+        # also references them, is left NULL rather than dangling. type and
+        # its unique index are 17.7 MB of the 256.
+        specs = (
+            sorted({spec for _, doc, _, _ in corpus for spec in _type_specs(doc)})
+            if bulk
+            else []
+        )
         types = {spec: n for n, spec in enumerate(specs, start=1)}
 
         connection.executemany(
@@ -579,6 +643,10 @@ def write_db(
             # honest source for that is what was inserted. INSERT OR REPLACE
             # over the (oid_key, module) key collapses a module that declares
             # one OID twice, so the batch length is not it either.
+            # Built either way: module.nodes says how many nodes the module
+            # contributed to the corpus, and that is a fact about the module
+            # rather than about which tables this file happens to carry. A
+            # search database states it and leaves the table empty.
             nodes = list(_node_rows(module, document, types))
             stored = len({(row[0], row[1]) for row in nodes})
 
@@ -587,9 +655,15 @@ def write_db(
                 _module_row(module, document, tier, stored),
             )
             counts["module"] += 1
-            counts["node"] += stored
 
-            if nodes:
+            # What the corpus has, which is what meta reports. The table holds
+            # it only in a FULL database.
+            defined += stored
+
+            if bulk:
+                counts["node"] += stored
+
+            if nodes and bulk:
                 connection.executemany(_INSERT_NODE, nodes)
 
             for table, statement, rows in (
@@ -633,9 +707,10 @@ def write_db(
             "schema_version": str(SCHEMA_VERSION),
             "producer": "pysmi",
             "modules": str(counts["module"]),
-            "nodes": str(counts["node"]),
+            "nodes": str(defined),
             "types": str(counts["type"]),
             "texts": "0",
+            "tables": tables,
         }
 
         if corpusVersion:
@@ -757,10 +832,34 @@ _COUNT_CHECKS: Final[tuple[tuple[str, str], ...]] = (
         "SELECT count(*) FROM module WHERE tier NOT IN ('standard', 'draft', 'vendor')",
         "{count} modules carry a tier outside the vocabulary",
     ),
+)
+
+#: Checks that hold only of a database carrying nodes.
+#:
+#: ``module.nodes`` says how many nodes the module contributed to the corpus,
+#: which stays true in a :py:data:`SEARCH` database even though the table is
+#: empty -- so comparing the column against the rows is asserting the wrong
+#: thing there. Everything in :py:data:`_COUNT_CHECKS` counts *bad* rows and
+#: an empty table gives zero, so those hold either way.
+_NODE_CHECKS: Final[tuple[tuple[str, str], ...]] = (
     (
         "SELECT count(*) FROM module WHERE nodes <> "
         "(SELECT count(*) FROM node WHERE node.module = module.name)",
         "{count} modules have a nodes column disagreeing with their node rows",
+    ),
+)
+
+#: Checks that hold only of a :py:data:`SEARCH` database -- that it is what it
+#: says it is. A file labelled ``search`` with node rows in it was written by
+#: something that did not mean what the label says.
+_SEARCH_CHECKS: Final[tuple[tuple[str, str], ...]] = (
+    (
+        "SELECT count(*) FROM node",
+        "{count} node rows in a database that says it carries none",
+    ),
+    (
+        "SELECT count(*) FROM type",
+        "{count} type rows in a database that says it carries none",
     ),
 )
 
@@ -827,9 +926,22 @@ def validate(path: str) -> list[str]:
     problems: list[str] = []
 
     try:
+        profile = connection.execute(
+            "SELECT value FROM meta WHERE key = 'tables'"
+        ).fetchone()
+
+        # A file written before the profile existed carries every table, so
+        # its absence reads as FULL rather than as unknown.
+        carried = (profile[0] if profile else FULL) == FULL
+
+        checks = (
+            *_COUNT_CHECKS,
+            *(_NODE_CHECKS if carried else _SEARCH_CHECKS),
+        )
+
         problems = [
             complaint.format(count=count)
-            for statement, complaint in _COUNT_CHECKS
+            for statement, complaint in checks
             if (count := connection.execute(statement).fetchone()[0])
         ]
 

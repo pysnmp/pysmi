@@ -373,6 +373,15 @@ VECTORS: Final[tuple[dict[str, Any], ...]] = (
         "expect": "2",
     },
     {
+        "id": "meta-tables",
+        "why": "Which profile wrote the file. A reader that finds node empty "
+        "must be able to tell a search database from a corpus that "
+        "parsed nothing.",
+        "op": "meta",
+        "key": "tables",
+        "expect": "full",
+    },
+    {
         "id": "meta-corpus-version",
         "why": "Corpus version is separate from schema version, and is the "
         "build's own, not something the writer invented.",
