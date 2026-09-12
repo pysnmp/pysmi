@@ -213,11 +213,80 @@ class Manifest:
             this, as flags override files.
         expect: what must be true of the build, keyed by
             :py:data:`EXPECTATIONS`. Empty where the manifest declares none.
+        site: how ``--emit=site`` renders and publishes, keyed by
+            :py:data:`SITE_SETTINGS`. Empty where the manifest declares none,
+            which gives the built-in theme and no crawl surface. See
+            pysnmp/pysmi#284.
     """
 
     namespaces: list[Namespace]
     emit: list[str] | None = None
     expect: dict[str, Any] = field(default_factory=dict)
+    site: dict[str, Any] = field(default_factory=dict)
+
+
+#: The settings ``site`` may declare, mapped to the shape each takes.
+#:
+#: ``base-url`` is what makes a build a **distribution site** rather than a
+#: subtree somebody else will assemble: given, the whole crawl surface is
+#: written, and without it there is nothing to put in a canonical link. The
+#: rest are the page frame, which a distribution replaces so that this looks
+#: like the documentation it is published beside.
+SITE_SETTINGS: Final[dict[str, type | tuple[type, ...]]] = {
+    "base-url": str,
+    "description": str,
+    "name": str,
+    "template": str,
+    "stylesheet": str,
+    "page-size": int,
+    "crawl": dict,
+}
+
+
+def _read_site(manifest: dict[str, Any], path: str) -> dict[str, Any]:
+    """The ``site`` key, checked.
+
+    A setting this release does not know is refused rather than ignored. A
+    manifest saying ``base_url`` where the key is ``base-url`` would otherwise
+    publish a site with no canonical links and no sitemap, and say nothing
+    about why.
+    """
+    if "site" not in manifest:
+        return {}
+
+    declared = manifest["site"]
+
+    if not isinstance(declared, dict):
+        raise error.PySmiError(f"corpus manifest {path}: site is not an object")
+
+    unknown = sorted(set(declared) - set(SITE_SETTINGS))
+
+    if unknown:
+        raise error.PySmiError(
+            f"corpus manifest {path}: site declares "
+            f"{', '.join(unknown)}; expected some of "
+            f"{', '.join(sorted(SITE_SETTINGS))}"
+        )
+
+    for name, value in declared.items():
+        if not isinstance(value, SITE_SETTINGS[name]) or isinstance(value, bool):
+            raise error.PySmiError(
+                f"corpus manifest {path}: site {name} is "
+                f"{type(value).__name__}, expected "
+                f"{SITE_SETTINGS[name].__name__}"  # type: ignore[union-attr]
+            )
+
+    # A relative path in a manifest is relative to the manifest, like every
+    # other path one carries: a theme file sits beside the manifest that names
+    # it, not beside whatever directory the build was started from.
+    where = os.path.dirname(os.path.abspath(path))
+    settings = dict(declared)
+
+    for name in ("template", "stylesheet"):
+        if settings.get(name) and not os.path.isabs(settings[name]):
+            settings[name] = os.path.normpath(os.path.join(where, settings[name]))
+
+    return settings
 
 
 def _read_emit(manifest: dict[str, Any], path: str) -> list[str] | None:
@@ -393,4 +462,5 @@ def read_manifest(path: str) -> Manifest:
         namespaces=_read_namespaces(manifest, path),
         emit=_read_emit(manifest, path),
         expect=_read_expect(manifest, path),
+        site=_read_site(manifest, path),
     )

@@ -34,6 +34,7 @@ from typing import Any, Final, NamedTuple
 from pysmi.corpus import pages as corpus_pages
 from pysmi.corpus.arcs import Arc
 from pysmi.corpus.buckets import SIZE, Bucket, buckets
+from pysmi.corpus.site import crawl as site_crawl
 from pysmi.corpus.site import model, render
 from pysmi.corpus.site.theme import Theme
 
@@ -54,6 +55,11 @@ class SiteReport(NamedTuple):
     arcs: int
     listings: int
     bytes: int
+    #: Sitemap files written, the index aside. Zero for a build that declared
+    #: no ``base_url`` and so is a subtree rather than a distribution site.
+    sitemaps: int = 0
+    #: Whether the crawl surface was written at all.
+    crawlable: bool = False
 
     @property
     def pages(self) -> int:
@@ -70,6 +76,8 @@ class SiteReport(NamedTuple):
             "arcs": self.arcs,
             "listings": self.listings,
             "bytes": self.bytes,
+            "sitemaps": self.sitemaps,
+            "crawlable": int(self.crawlable),
         }
 
 
@@ -79,6 +87,10 @@ class _Writer:
     def __init__(self, directory: str) -> None:
         self.directory = directory
         self.bytes = 0
+        #: Every page written, as ``(path, lastmod)``, in the order written.
+        #: The sitemap is this list; nothing walks the tree again to find out
+        #: what is in it, and nothing can list a URL that was not written.
+        self.written: list[tuple[str, str]] = []
 
     def write(self, path: str, content: str) -> None:
         """One file, at *path* relative to the site root.
@@ -97,7 +109,7 @@ class _Writer:
 
         self.bytes += len(data)
 
-    def page(self, path: str, content: str) -> None:
+    def page(self, path: str, content: str, lastmod: str = "") -> None:
         """One page, written as ``index.html`` under a directory.
 
         Directory URLs rather than ``.html`` files, so a link is
@@ -105,6 +117,7 @@ class _Writer:
         or rewrites for one.
         """
         self.write(f"{path}/index.html" if path else "index.html", content)
+        self.written.append((f"{path}/" if path else "", lastmod))
 
 
 def build_site(
@@ -119,6 +132,7 @@ def build_site(
     closure: "Mapping[str, Mapping[str, Sequence[str]]] | None" = None,
     patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
     size: int = SIZE,
+    crawl: "site_crawl.Crawl | None" = None,
 ) -> SiteReport:
     """Render the corpus as a browsable site.
 
@@ -143,6 +157,12 @@ def build_site(
         closure: the load order per module.
         patches: per module, the defects a patch repairs and the diff.
         size: entries per bucket in a long list.
+        crawl: what this build declares about the site it publishes. Given,
+            the whole crawl surface is written -- canonical links, JSON-LD,
+            the sitemap index, ``robots.txt`` and ``llms.txt``. Omitted, the
+            pages are written without it, which is what a build producing a
+            subtree somebody else will assemble wants. See
+            pysnmp/pysmi#284.
 
     Returns:
         What was written.
@@ -168,6 +188,7 @@ def build_site(
         byModule.setdefault(module, []).append(arc)
 
     written = 0
+    dated: dict[str, str] = {}
     names = dict(arcs or {})
     below = model.children_of(names) if names else {}
 
@@ -196,16 +217,33 @@ def build_site(
             ],
         )
 
+        revised = site_crawl.newest((page.lastupdated, *page.revisions))
+        path = f"{render.MIB}/{module}"
+
         writer.page(
-            f"{render.MIB}/{module}",
-            render.module_html(page, theme, held=held, anchors=registered),
+            path,
+            render.module_html(
+                page,
+                theme,
+                held=held,
+                anchors=registered,
+                head=_module_head(crawl, theme, page, path, revised),
+            ),
+            revised,
         )
+        dated[module] = revised
         written += 1
 
-    listings = _write_browse(writer, theme, held, size)
-    registrants = _write_entities(writer, theme, entities or {}, size)
+    listings = _write_browse(writer, theme, held, size, dated, crawl)
+    registrants = _write_entities(writer, theme, entities or {}, size, dated, crawl)
     listings += registrants[1]
-    tree = _write_tree(writer, theme, names, registered, below)
+    tree = _write_tree(writer, theme, names, registered, below, crawl)
+
+    sitemaps = (
+        _write_crawl(writer, crawl, len(held), registrants[0], theme.corpus)
+        if crawl
+        else 0
+    )
 
     report = SiteReport(
         modules=written,
@@ -213,6 +251,8 @@ def build_site(
         arcs=tree,
         listings=listings,
         bytes=writer.bytes,
+        sitemaps=sitemaps,
+        crawlable=crawl is not None,
     )
 
     logger.info(
@@ -226,8 +266,153 @@ def build_site(
     return report
 
 
+def _module_head(
+    crawl: "site_crawl.Crawl | None",
+    theme: Theme,
+    page: model.ModulePage,
+    path: str,
+    revised: str,
+) -> str:
+    """A module page's head metadata, or nothing for a non-distribution build.
+
+    The description comes from the module's own DESCRIPTION where it has one
+    -- a build carrying no texts has none -- and falls back to what the page
+    demonstrably is. Either beats a generated sentence that says nothing.
+    """
+    if crawl is None:
+        return ""
+
+    url = crawl.url(path + "/")
+    described = site_crawl.clip(page.description) or (
+        f"{page.module}: {len(page.objects)} object(s), "
+        f"{len(page.notifications)} notification(s)"
+        f"{', registered at ' + page.anchors[0] if page.anchors else ''}."
+    )
+
+    return site_crawl.head(
+        title=page.module,
+        description=described,
+        canonical=url,
+        jsonld=site_crawl.module_jsonld(
+            page.module,
+            url,
+            oid=page.anchors[0] if page.anchors else "",
+            organization=page.organization,
+            revised=revised,
+            description=site_crawl.clip(page.description, 1000),
+            terms=[
+                (x.name, x.oid)
+                for x in (*page.objects, *page.notifications, *page.types)
+            ],
+            corpus=theme.corpus,
+        ),
+    )
+
+
+def _listing_head(
+    crawl: "site_crawl.Crawl | None",
+    name: str,
+    path: str,
+    described: str,
+    items: int,
+) -> str:
+    """A list page's head metadata: what it collects, and how much of it."""
+    if crawl is None:
+        return ""
+
+    url = crawl.url(path)
+
+    return site_crawl.head(
+        title=name,
+        description=site_crawl.clip(described),
+        canonical=url,
+        jsonld=site_crawl.collection_jsonld(
+            name, url, description=site_crawl.clip(described), items=items
+        ),
+    )
+
+
+def _write_crawl(
+    writer: _Writer,
+    crawl: "site_crawl.Crawl",
+    modules: int,
+    entities: int,
+    corpus: str,
+) -> int:
+    """The sitemap index, ``robots.txt`` and ``llms.txt``.
+
+    The sitemap is built from what the writer recorded rather than by walking
+    the tree, so it cannot list a URL this build did not write -- which is the
+    failure that makes a sitemap worse than none.
+
+    One file per tree, and the index emitted regardless. At 7,346 URLs one
+    file is well inside the protocol's 50,000 and 50 MB, but a downstream
+    corpus may not be and exceeding it fails silently.
+    """
+    trees: dict[str, list[tuple[str, str]]] = {}
+
+    for path, date in writer.written:
+        tree = path.split("/", 1)[0] or "root"
+        trees.setdefault(tree, []).append((crawl.url(path), date))
+
+    files: list[tuple[str, str]] = []
+
+    for tree, entries in sorted(trees.items()):
+        for part, chunk in enumerate(
+            [
+                entries[at : at + site_crawl.PER_SITEMAP]
+                for at in range(0, len(entries), site_crawl.PER_SITEMAP)
+            ]
+        ):
+            name = f"sitemap-{tree}.xml" if part == 0 else f"sitemap-{tree}-{part}.xml"
+            writer.write(name, site_crawl.sitemap(chunk))
+            files.append(
+                (crawl.url(name), site_crawl.newest(date for _url, date in chunk))
+            )
+
+    writer.write("sitemap.xml", site_crawl.sitemap_index(files))
+    writer.write("robots.txt", site_crawl.robots(crawl, [crawl.url("sitemap.xml")]))
+    writer.write(
+        "llms.txt",
+        site_crawl.llms(
+            crawl,
+            (
+                (
+                    "Browse",
+                    [
+                        (f"All {modules} modules", crawl.url("browse/")),
+                        *(
+                            [(f"{entities} registrants", crawl.url("entity/"))]
+                            if entities
+                            else []
+                        ),
+                        ("OID tree", crawl.url("oid/")),
+                    ],
+                ),
+                (
+                    "Bulk data",
+                    [
+                        ("Sitemap index", crawl.url("sitemap.xml")),
+                        ("ASN.1 sources, one file per module", crawl.url("asn1/")),
+                        ("jsondoc documents", crawl.url("json/")),
+                        ("OID index", crawl.url("index-v2.csv")),
+                    ],
+                ),
+            ),
+            corpus,
+        ),
+    )
+
+    return len(files)
+
+
 def _write_browse(
-    writer: _Writer, theme: Theme, held: "Sequence[str]", size: int
+    writer: _Writer,
+    theme: Theme,
+    held: "Sequence[str]",
+    size: int,
+    dated: "Mapping[str, str]",
+    crawl: "site_crawl.Crawl | None" = None,
 ) -> int:
     """The entry point and the module list, bucketed where it is long."""
     found = buckets(held, size)
@@ -246,10 +431,21 @@ def _write_browse(
             buckets=found,
             here=bucket.key,
             depth=2 if bucket.key else 1,
+            head=_listing_head(
+                crawl,
+                "Modules",
+                f"{render.BROWSE}/{bucket.key}/" if bucket.key else f"{render.BROWSE}/",
+                f"MIB modules {bucket.low} to {bucket.high}."
+                if bucket.key
+                else f"All {len(held)} MIB module(s) in this corpus.",
+                len(bucket.entries),
+            ),
         )
 
         writer.page(
-            f"{render.BROWSE}/{bucket.key}" if bucket.key else render.BROWSE, page
+            f"{render.BROWSE}/{bucket.key}" if bucket.key else render.BROWSE,
+            page,
+            site_crawl.newest(dated.get(x, "") for x in bucket.entries),
         )
         written += 1
 
@@ -267,7 +463,16 @@ def _write_browse(
                 buckets=found,
                 here="",
                 depth=1,
+                head=_listing_head(
+                    crawl,
+                    "Modules",
+                    f"{render.BROWSE}/",
+                    f"All {len(held)} MIB module(s) in this corpus, "
+                    f"in {len(found)} ranges.",
+                    len(held),
+                ),
             ),
+            site_crawl.newest(dated.values()),
         )
         written += 1
 
@@ -279,6 +484,8 @@ def _write_entities(
     theme: Theme,
     entities: "Mapping[str, Mapping[str, Any]]",
     size: int,
+    dated: "Mapping[str, str]",
+    crawl: "site_crawl.Crawl | None" = None,
 ) -> tuple[int, int]:
     """One page per registrant, plus the registrant list."""
     if not entities:
@@ -301,13 +508,45 @@ def _write_entities(
                 f"{render.ENTITY}/{page.number}/{bucket.key}"
                 if bucket.key
                 else f"{render.ENTITY}/{page.number}",
-                render.entity_html(page, theme, buckets=held, here=bucket.key),
+                render.entity_html(
+                    page,
+                    theme,
+                    buckets=held,
+                    here=bucket.key,
+                    head=_listing_head(
+                        crawl,
+                        page.organization or f"Enterprise {page.number}",
+                        f"{render.ENTITY}/{page.number}/{bucket.key}/"
+                        if bucket.key
+                        else f"{render.ENTITY}/{page.number}/",
+                        f"{len(page.modules)} MIB module(s) registered under "
+                        f"{page.arc}"
+                        + (f" by {page.organization}" if page.organization else "")
+                        + ".",
+                        len(bucket.entries),
+                    ),
+                ),
+                site_crawl.newest(dated.get(x, "") for x in bucket.entries),
             )
 
         if len(held) > 1:
             writer.page(
                 f"{render.ENTITY}/{page.number}",
-                render.entity_html(page, theme, buckets=held, here=""),
+                render.entity_html(
+                    page,
+                    theme,
+                    buckets=held,
+                    here="",
+                    head=_listing_head(
+                        crawl,
+                        page.organization or f"Enterprise {page.number}",
+                        f"{render.ENTITY}/{page.number}/",
+                        f"{len(page.modules)} MIB module(s) registered under "
+                        f"{page.arc}.",
+                        len(page.modules),
+                    ),
+                ),
+                site_crawl.newest(dated.get(x, "") for x in page.modules),
             )
 
     listed = buckets([str(x.number) for x in found], size, order=int)
@@ -329,7 +568,17 @@ def _write_entities(
                 buckets=listed,
                 here=bucket.key,
                 depth=2 if bucket.key else 1,
+                head=_listing_head(
+                    crawl,
+                    "Registrants",
+                    f"{render.ENTITY}/{bucket.key}/"
+                    if bucket.key
+                    else f"{render.ENTITY}/",
+                    f"{len(found)} enterprise arc(s) this corpus registers under.",
+                    len(bucket.entries),
+                ),
             ),
+            site_crawl.newest(dated.values()),
         )
         listings += 1
 
@@ -342,6 +591,7 @@ def _write_tree(
     arcs: "Mapping[str, Arc]",
     anchors: "Mapping[str, str]",
     below: "Mapping[str, tuple[Arc, ...]]",
+    crawl: "site_crawl.Crawl | None" = None,
 ) -> int:
     """One page per structural arc: the path down to every module.
 
@@ -357,7 +607,21 @@ def _write_tree(
 
     for arc, page in found.items():
         writer.page(
-            f"{render.OID}/{arc}", render.arc_html(page, theme, anchors=anchors)
+            f"{render.OID}/{arc}",
+            render.arc_html(
+                page,
+                theme,
+                anchors=anchors,
+                head=_listing_head(
+                    crawl,
+                    page.arc,
+                    f"{render.OID}/{arc}/",
+                    f"OID {page.arc}"
+                    + (f", {page.name}" if page.name else "")
+                    + f": {len(page.children)} registered arc(s) beneath it.",
+                    len(page.children),
+                ),
+            ),
         )
 
     # The root of the tree, so oid/ is not a 404 the breadcrumb points at.
@@ -373,6 +637,14 @@ def _write_tree(
             or _roots(render.root_for(1), top, arcs),
             base=render.OID,
             depth=1,
+            head=_listing_head(
+                crawl,
+                "OID tree",
+                f"{render.OID}/",
+                f"The registration tree above the modules this corpus holds: "
+                f"{len(structural)} node(s).",
+                len(top),
+            ),
         ),
     )
 

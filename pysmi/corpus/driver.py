@@ -58,6 +58,7 @@ from pysmi.corpus import index as corpus_index
 from pysmi.corpus.buckets import SIZE as BUCKET_SIZE
 from pysmi.corpus.namespace import DEFAULT_TIER, TIERS, Namespace
 from pysmi.corpus.site import build_site
+from pysmi.corpus.site.crawl import Crawl
 from pysmi.corpus.site.theme import Theme
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader.base import AbstractReader
@@ -375,6 +376,7 @@ class CorpusDriver:
         theme: "Theme | None" = None,
         patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
         pageSize: int = BUCKET_SIZE,
+        crawl: "Crawl | None" = None,
     ) -> None:
         """Create a driver over the given input set.
 
@@ -415,6 +417,9 @@ class CorpusDriver:
         self._theme = theme
         self._patches = dict(patches or {})
         self._pageSize = pageSize
+        #: What this build declares about the site it publishes, or None for
+        #: a build producing a subtree somebody else will assemble.
+        self._crawl = crawl
         self._parseCache = InMemoryParseCache()
         self._readers: dict[str, AbstractReader] = {
             x.name: self._reader_for(x) for x in self._namespaces
@@ -1281,6 +1286,7 @@ class CorpusDriver:
             ],
             patches=self._patches,
             size=self._pageSize,
+            crawl=self._crawl,
         )
 
         report.site = result.counts()

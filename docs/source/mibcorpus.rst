@@ -702,6 +702,87 @@ Three rules keep it that way, and each is its own module:
 parent is a module anchor: the parent has no arc page, so only the module page
 can link down to it, and it does -- see *Under this module's arcs*.
 
+The crawl surface
+~~~~~~~~~~~~~~~~~
+
+Declaring a ``base-url`` says this build is producing a **distribution site**
+rather than a subtree somebody else will assemble, and the whole crawl surface
+is written with it: a canonical link and a ``meta description`` per page,
+JSON-LD, ``sitemap.xml`` as an index, ``robots.txt`` and ``llms.txt``. Without
+it there is nothing to put in a canonical link, and guessing an origin would
+publish a site claiming to live somewhere it does not.
+
+.. code-block:: json
+
+   {
+     "site": {
+       "base-url": "https://mibs.pysnmp.com",
+       "name": "pysnmp/mibs",
+       "description": "5,500 SNMP MIB modules from their publishers.",
+       "crawl": {
+         "*": {"disallow": ["asn1", "json", "index-v2", "core-db"]},
+         "ClaudeBot": {"allow": ["asn1", "json", "index-v2"]}
+       }
+     }
+   }
+
+**A crawl policy names artifacts, not paths.** A distribution saying "keep
+search engines out of the raw JSON" should not have to know whether that tree
+is called ``json`` or something this release renamed. An artifact the policy
+names that the build did not produce is skipped rather than written: a rule
+about a tree that is not there would read as though the tree existed.
+
+The policy is per-agent because a search engine and an agent want opposite
+things from the same tree. To the first, 460 MB of ``asn1/`` and ``json/``
+across 11,000 files is crawl budget spent on files with no indexing value; to
+the second they are the point, and ``llms.txt`` sends it there deliberately.
+The agent list is configuration because crawler names change faster than
+releases.
+
+``llms.txt`` is a convention rather than a mechanism -- no major AI crawler is
+documented as consuming it. It is emitted and nothing depends on it. What
+reaches an AI crawler is server-rendered HTML and a ``robots.txt`` that admits
+it.
+
+**PySMI cannot decide where robots.txt lands.** On GitHub Pages a *project*
+site cannot serve its own: crawlers read it only from the host root, which
+belongs to a different repository. So the file is produced here and the
+deployment places it.
+
+``lastmod`` is a date the content states
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A corpus rebuilt on every push that stamps every page with today's date
+teaches a crawler the field is noise. A module page's ``lastmod`` is the
+module's own newest ``REVISION`` or ``LAST-UPDATED``, which is the date its
+content last changed; a page listing modules takes the newest among them.
+
+So **no build clock reaches a sitemap**, and two builds of one corpus produce
+the same one. Over pysnmp/mibs that is 2,635 distinct dates across 7,350 URLs,
+and today's date is not among them. A page describing something with no
+readable date is listed without a ``lastmod`` at all -- which says "I do not
+know", where the build date would say something false.
+
+A stamp shaped like a date and not one is dropped rather than ranked, for the
+reason the index ranker gives: ``HPR-MIB`` carries ``970514000000Z``, month
+14, which compares above every real date there will ever be.
+
+What the JSON-LD says, and what it costs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A MIB module is a published artifact with an identifier, a publisher and a
+revision date, which defines a vocabulary of named terms -- ``DefinedTermSet``
+crossed with ``Dataset``. **The identifiers are the OIDs**, which is the
+point: an OID is a globally unique identifier that already exists, and a
+consumer holding one should be able to match it without reading prose.
+
+It is not free. Enumerating 98,000 definitions adds 40% to the site: 220 MB
+becomes 309 MB. A first cut also carried each term's description and an
+``inDefinedTermSet`` back-reference, which took it to 360 MB; both are gone,
+the descriptions because they are already in the HTML the JSON-LD sits in, and
+the back-reference because nesting under ``hasDefinedTerm`` already says a term
+belongs to the set.
+
 Theming
 ~~~~~~~
 

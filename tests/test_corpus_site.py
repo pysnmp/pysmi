@@ -25,6 +25,7 @@ import unittest
 from pysmi.corpus.arcs import Arc
 from pysmi.corpus.buckets import buckets
 from pysmi.corpus.site import Theme, build_site, load_theme, module_page
+from pysmi.corpus.site.crawl import Crawl, clip, newest
 from pysmi.corpus.site.html import attributes, paragraphs, table, tag, text
 from pysmi.corpus.site.model import children_of, entity_page, imported_by
 from pysmi.corpus.site.render import module_html
@@ -669,3 +670,302 @@ class EntityModelTestCase(unittest.TestCase):
         self.assertEqual(9, page.number)
         self.assertEqual("1.3.6.1.4.1.9", page.arc)
         self.assertEqual(("A", "B"), page.modules)
+
+
+class CrawlTestCase(unittest.TestCase):
+    """The crawl surface (pysnmp/pysmi#284).
+
+    Written only when the manifest declares a ``base-url``, which is what says
+    this build is producing a distribution site rather than a subtree somebody
+    else will assemble.
+    """
+
+    CRAWL = Crawl(
+        base="https://mibs.example",
+        description="A corpus of MIB modules.",
+        policy={
+            "*": {"disallow": ["asn1", "json"]},
+            "ClaudeBot": {"allow": ["asn1", "json"]},
+        },
+    )
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        self.out = os.path.join(self.root, "site")
+
+    def build(self, crawl=None, **kwargs):
+        return build_site(
+            self.out,
+            corpus(**{"ALPHA-MIB": ALPHA, "BETA-MIB": BETA}),
+            crawl=self.CRAWL if crawl is None else crawl,
+            **kwargs,
+        )
+
+    def read(self, name):
+        with open(os.path.join(self.out, *name.split("/")), encoding="utf-8") as f:
+            return f.read()
+
+    def testASubtreeBuildWritesNoCrawlSurface(self):
+        report = build_site(self.out, corpus(**{"ALPHA-MIB": ALPHA}))
+
+        self.assertFalse(report.crawlable)
+        self.assertEqual(0, report.sitemaps)
+
+        for name in ("sitemap.xml", "robots.txt", "llms.txt"):
+            with self.subTest(file=name):
+                self.assertFalse(os.path.exists(os.path.join(self.out, name)))
+
+    def testADistributionBuildWritesIt(self):
+        report = self.build()
+
+        self.assertTrue(report.crawlable)
+        self.assertGreater(report.sitemaps, 0)
+
+        for name in ("sitemap.xml", "robots.txt", "llms.txt"):
+            with self.subTest(file=name):
+                self.assertTrue(os.path.exists(os.path.join(self.out, name)))
+
+    def testAPageCarriesItsCanonicalUrl(self):
+        self.build()
+
+        self.assertIn(
+            '<link rel="canonical" href="https://mibs.example/mib/ALPHA-MIB/">',
+            self.read("mib/ALPHA-MIB/index.html"),
+        )
+
+    def testAPageCarriesADescription(self):
+        self.build()
+        written = self.read("mib/ALPHA-MIB/index.html")
+
+        self.assertIn('<meta name="description"', written)
+        self.assertIn("First paragraph.", written)
+
+    def testADescriptionFallsBackToWhatThePageIs(self):
+        """A build carrying no texts has no DESCRIPTION, and a stated count
+        beats a generated sentence that says nothing."""
+        build_site(self.out, corpus(**{"BETA-MIB": BETA}), crawl=self.CRAWL)
+
+        self.assertIn("BETA-MIB: 0 object(s)", self.read("mib/BETA-MIB/index.html"))
+
+    def testTheJsonLdIdentifiesByOid(self):
+        """An OID is a globally unique identifier that already exists, and a
+        consumer holding one should be able to match it without reading
+        prose."""
+        self.build(anchors={"1.3.6.1.4.1.41": "ALPHA-MIB"})
+        written = self.read("mib/ALPHA-MIB/index.html")
+
+        self.assertIn('"identifier":"urn:oid:1.3.6.1.4.1.41"', written)
+        self.assertIn('"identifier":"urn:oid:1.3.6.1.4.1.41.1"', written)
+        self.assertIn('"@type":["DefinedTermSet","Dataset"]', written)
+
+    def testTheJsonLdCarriesTheRevisionDate(self):
+        self.build()
+
+        self.assertIn(
+            '"dateModified":"2024-01-01"', self.read("mib/ALPHA-MIB/index.html")
+        )
+
+    def testTheJsonLdCannotCloseItsOwnScriptElement(self):
+        """Inside <script> the only sequence that ends it is "</", and a
+        vendor DESCRIPTION containing one would otherwise break the page."""
+        document = dict(ALPHA)
+        document["alphaMI"] = dict(
+            ALPHA["alphaMI"], description="ends with </script> in it"
+        )
+
+        build_site(self.out, corpus(**{"ALPHA-MIB": document}), crawl=self.CRAWL)
+        written = self.read("mib/ALPHA-MIB/index.html")
+
+        self.assertIn("<\\/script>", written)
+        self.assertEqual(1, written.count("</script>"))
+
+    def testTheJsonLdCannotOpenAnHtmlComment(self):
+        document = dict(ALPHA)
+        document["alphaMI"] = dict(ALPHA["alphaMI"], description="a <!-- b")
+
+        build_site(self.out, corpus(**{"ALPHA-MIB": document}), crawl=self.CRAWL)
+        written = self.read("mib/ALPHA-MIB/index.html")
+
+        self.assertIn("<\\!--", written)
+
+    def testEverySitemapUrlIsAPageThatWasWritten(self):
+        """Built from what the writer recorded rather than by walking the
+        tree, so it cannot list a URL this build did not write."""
+        self.build()
+
+        listed = set()
+
+        for name in os.listdir(self.out):
+            if name.startswith("sitemap-"):
+                listed.update(re.findall(r"<loc>([^<]+)</loc>", self.read(name)))
+
+        for url in listed:
+            path = url[len("https://mibs.example/") :]
+
+            with self.subTest(url=url):
+                self.assertTrue(
+                    os.path.isfile(
+                        os.path.join(self.out, *path.split("/"), "index.html")
+                    )
+                    if path
+                    else os.path.isfile(os.path.join(self.out, "index.html"))
+                )
+
+    def testEveryPageIsInTheSitemap(self):
+        self.build()
+
+        listed = set()
+
+        for name in os.listdir(self.out):
+            if name.startswith("sitemap-"):
+                listed.update(re.findall(r"<loc>([^<]+)</loc>", self.read(name)))
+
+        for base, _dirs, files in os.walk(self.out):
+            if "index.html" not in files:
+                continue
+
+            rel = os.path.relpath(base, self.out).replace(os.sep, "/")
+            url = "https://mibs.example/" + ("" if rel == "." else rel + "/")
+
+            with self.subTest(page=rel):
+                self.assertIn(url, listed)
+
+    def testTheIndexIsEmittedRegardless(self):
+        """At this size one file is well inside the protocol's 50,000-URL
+        limit, but a downstream corpus may not be and exceeding it fails
+        silently."""
+        self.build()
+        index = self.read("sitemap.xml")
+
+        self.assertIn("<sitemapindex", index)
+        self.assertIn("sitemap-mib.xml", index)
+
+    def testLastmodIsTheModulesOwnRevisionDate(self):
+        """Not the build clock. A corpus rebuilt on every push that stamps
+        every page with today's date teaches a crawler the field is noise."""
+        self.build()
+
+        self.assertIn("<lastmod>2024-01-01</lastmod>", self.read("sitemap-mib.xml"))
+
+    def testNoBuildDateReachesASitemap(self):
+        import datetime
+
+        self.build()
+        today = datetime.date.today().isoformat()
+
+        for name in os.listdir(self.out):
+            if name.startswith("sitemap"):
+                with self.subTest(file=name):
+                    self.assertNotIn(today, self.read(name))
+
+    def testAPageWithNoDateIsListedWithoutOne(self):
+        """Absent rather than invented: no lastmod says "I do not know", which
+        is true, where the build date says something false."""
+        build_site(
+            self.out,
+            corpus(**{"UNDATED-MIB": {"x": {"name": "x", "class": "objecttype"}}}),
+            crawl=self.CRAWL,
+        )
+        written = self.read("sitemap-mib.xml")
+
+        self.assertIn("UNDATED-MIB", written)
+        self.assertNotIn("<lastmod>", written)
+
+    def testTwoBuildsProduceTheSameSitemap(self):
+        first = os.path.join(self.root, "one")
+        second = os.path.join(self.root, "two")
+        rows = corpus(**{"ALPHA-MIB": ALPHA, "BETA-MIB": BETA})
+
+        build_site(first, rows, crawl=self.CRAWL)
+        build_site(second, rows, crawl=self.CRAWL)
+
+        for name in ("sitemap.xml", "sitemap-mib.xml", "robots.txt", "llms.txt"):
+            with self.subTest(file=name):
+                with open(os.path.join(first, name), "rb") as f:
+                    one = f.read()
+
+                with open(os.path.join(second, name), "rb") as f:
+                    two = f.read()
+
+                self.assertEqual(one, two)
+
+    def testRobotsNamesArtifactsRatherThanPaths(self):
+        """A distribution saying "keep search engines out of the raw JSON"
+        should not have to know what that tree is called."""
+        self.build()
+        written = self.read("robots.txt")
+
+        self.assertIn("User-agent: *\nDisallow: /asn1/\nDisallow: /json/", written)
+        self.assertIn("User-agent: ClaudeBot\nAllow: /asn1/\nAllow: /json/", written)
+
+    def testRobotsPointsAtTheSitemap(self):
+        self.build()
+
+        self.assertIn(
+            "Sitemap: https://mibs.example/sitemap.xml", self.read("robots.txt")
+        )
+
+    def testAnArtifactNobodyKnowsIsSkippedRatherThanWritten(self):
+        """A rule about a tree that is not there is a rule nobody can act on,
+        and it would read as though the tree existed."""
+        crawl = Crawl(base="https://mibs.example", policy={"*": {"disallow": ["nope"]}})
+
+        self.build(crawl=crawl)
+        written = self.read("robots.txt")
+
+        self.assertNotIn("nope", written)
+        self.assertIn("User-agent: *", written)
+
+    def testLlmsSaysWhatThisIsAndWhereTheDataIs(self):
+        self.build()
+        written = self.read("llms.txt")
+
+        self.assertIn("A corpus of MIB modules.", written)
+        self.assertIn("https://mibs.example/browse/", written)
+        self.assertIn("https://mibs.example/asn1/", written)
+
+    def testLlmsIsTitledForTheCorpusRatherThanItsDescription(self):
+        report = build_site(
+            self.out,
+            corpus(**{"ALPHA-MIB": ALPHA}),
+            theme=Theme(corpus="pysnmp/mibs"),
+            crawl=self.CRAWL,
+        )
+
+        self.assertTrue(report.crawlable)
+        self.assertTrue(self.read("llms.txt").startswith("# pysnmp/mibs\n"))
+
+
+class CrawlHelperTestCase(unittest.TestCase):
+    """The pieces, away from a whole build."""
+
+    def testNewestTakesTheLatestDate(self):
+        self.assertEqual("2020-05-06", newest(["2019-01-01 00:00", "2020-05-06 12:00"]))
+
+    def testAnUnreadableStampIsDroppedRatherThanRanked(self):
+        """HPR-MIB carries 970514000000Z -- year 9705, month 14 -- and month
+        14 compares above every real date there will ever be, so the module
+        carrying it would set the lastmod of every page listing it."""
+        self.assertEqual("2020-05-06", newest(["9705-14-01", "2020-05-06 00:00", ""]))
+
+    def testSomethingThatIsNotShapedLikeADateIsDropped(self):
+        self.assertEqual("", newest(["not a date", "202401010000Z"]))
+
+    def testNoDatesGiveNoDate(self):
+        self.assertEqual("", newest([]))
+
+    def testClipCollapsesWhitespaceForAMetaTag(self):
+        self.assertEqual("a b c", clip("a\n  b\tc"))
+
+    def testClipStopsAtAWordBoundary(self):
+        written = clip("alpha beta gamma delta", 12)
+
+        self.assertLessEqual(len(written), 12)
+        self.assertTrue(written.endswith("…"))
+        self.assertNotIn("gamma", written)
+
+    def testAUrlIsJoinedWithoutDoubledSlashes(self):
+        crawl = Crawl(base="https://x.example/")
+
+        self.assertEqual("https://x.example/mib/A/", crawl.url("/mib/A/"))
