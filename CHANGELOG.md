@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.5](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.4...v5.0.0-rc.5) (2026-09-12)
+
+### Bug Fixes
+
+* **corpus:** write the registrant list's own page when it buckets ([95ad5f9](https://github.com/pysnmp/pysmi/commit/95ad5f9139545b62140a29e5728e95b19b506316))
+
 ## [5.0.0-rc.4](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.3...v5.0.0-rc.4) (2026-09-12)
 
 ### Features
