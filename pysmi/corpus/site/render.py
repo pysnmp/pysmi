@@ -46,7 +46,6 @@ BROWSE: Final = "browse"
 
 #: Rows beyond which a definition table gets its own scroll container rather
 #: than stretching the page.
-WIDE: Final = 12
 
 #: How many reverse dependencies a module page lists before it stops and gives
 #: a count instead.
@@ -162,7 +161,7 @@ def _defs(found: "Sequence[Definition]", *, syntax: bool = True) -> str:
         anchors=anchors,
     )
 
-    return tag("div", written, class_="wide") if len(found) > WIDE else written
+    return written
 
 
 def _imports(

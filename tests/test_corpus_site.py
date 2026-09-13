@@ -144,6 +144,25 @@ class EscapingTestCase(unittest.TestCase):
         """A heading over an empty table reads as a fact being withheld."""
         self.assertEqual("", table(["A"], []))
 
+    def testAShortTableScrollsToo(self):
+        """A table is wide because of its columns, not its rows.
+
+        The wrapper used to be gated on the row count, more than twelve, so a
+        three-row definition table went out bare and pushed the page sideways
+        instead of scrolling inside itself. One row is enough to want it.
+        """
+        written = table(["A", "B"], [["1", "2"]])
+
+        self.assertIn('<div class="wide">', written)
+        self.assertTrue(
+            written.startswith('<div class="wide">'),
+            f"the table is not inside the container: {written[:60]}",
+        )
+
+    def testAnEmptyTableHasNoContainerEither(self):
+        """Nothing to scroll, so nothing to wrap."""
+        self.assertNotIn("wide", table(["A"], []))
+
 
 class ModulePageTestCase(unittest.TestCase):
     """What a module page says, before it is rendered."""
