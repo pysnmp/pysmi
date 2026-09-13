@@ -23,13 +23,21 @@ import sys
 from typing import Final
 
 from pysmi import debug, error
+from pysmi.cache.base import AbstractParseCache
+from pysmi.cache.file import FileParseCache
+from pysmi.cache.memory import InMemoryParseCache
 from pysmi.corpus.driver import (
     CorpusDriver,
     CorpusOutputs,
     CorpusReport,
     check_expectations,
 )
-from pysmi.corpus.namespace import Manifest, Namespace, read_manifest
+from pysmi.corpus.namespace import (
+    Manifest,
+    Namespace,
+    contained_path,
+    read_manifest,
+)
 from pysmi.corpus.site.crawl import Crawl
 from pysmi.corpus.site.theme import load_theme
 from pysmi.registry.pen import Registrant, is_pen_registry, load_registry
@@ -48,10 +56,10 @@ def start() -> None:
     manifestPath = ""
     outputDirectory = "output"
     frozenIndex = ""
+    parseCachePath = ""
     verboseFlag = True
     failOnErrorsFlag = False
     namespaceArgs: list[tuple[str, bool]] = []
-    outputs = CorpusOutputs()
     explicitOutputs = False
     corpusVersion = ""
     corpusId = ""
@@ -67,6 +75,7 @@ def start() -> None:
         [--resolve-namespace=<TIER>:<NAME>:<SOURCE>]
         [--output-directory=<DIRECTORY>]
         [--frozen-index=<FILE>]
+        [--parse-cache=<DIRECTORY>]
         [--emit=<ARTIFACT>[:<PATH>]]
         [--oid-registry=<FILE>]
         [--site-template=<FILE>]
@@ -107,6 +116,18 @@ def start() -> None:
                 default layout -- ask for either by name. core.db costs
                 a pass nothing else needs; entity.json is only worth
                 having with --oid-registry to name its arcs.
+        --parse-cache - a directory to keep parse trees in, so a rebuild
+                of a mostly unchanged corpus reparses only what changed.
+                Parsing is about three quarters of a pass and the key is
+                the module's own text, so an unedited module keeps its
+                entry across runs. Without this the trees are held in
+                memory and discarded when the process exits, which is
+                right for a one-off build and wasteful for a nightly.
+
+                It stores pickles, and reading one reconstructs arbitrary
+                Python objects, so name a directory this build owns.
+                Never one written by anything you would not run.
+                A damaged or unreadable entry is a miss, never an error.
         --frozen-index - the snapshot index.csv replays, so that consumers
                 keying on the module an OID resolves to keep the answers
                 they already have. Absent, index.csv is the ranked index.
@@ -209,6 +230,7 @@ def start() -> None:
                 "base-url=",
                 "site-description=",
                 "page-size=",
+                "parse-cache=",
                 "no-bundled-mibs",
                 "fail-on-errors",
             ],
@@ -269,6 +291,9 @@ def start() -> None:
 
         if opt[0] == "--frozen-index":
             frozenIndex = opt[1]
+
+        if opt[0] == "--parse-cache":
+            parseCachePath = opt[1]
 
         if opt[0] == "--emit":
             emitted.append(opt[1])
@@ -342,17 +367,37 @@ def start() -> None:
         )
         sys.exit(EX_USAGE)
 
-    # A flag overrides a file. Absent both, the full published layout.
-    selected = emitted if explicitOutputs else manifest.emit
-
+    # A flag overrides a file, here as everywhere: --emit names one tree, so
+    # it collapses a manifest's publications to the one the caller asked for.
+    # Absent both, the full published layout, as a single unnamed publication.
     try:
-        outputs = _outputs_for(outputDirectory, selected)
+        if explicitOutputs:
+            plan = [("", _outputs_for(outputDirectory, emitted))]
+
+        elif manifest.publications:
+            plan = [
+                (
+                    publication.name,
+                    _outputs_for(
+                        os.path.join(outputDirectory, publication.output)
+                        if publication.output
+                        else outputDirectory,
+                        publication.emit,
+                        confine=True,
+                    ),
+                )
+                for publication in manifest.publications
+            ]
+
+        else:
+            plan = [("", _outputs_for(outputDirectory, manifest.emit))]
 
     except error.PySmiError as exc:
         sys.stderr.write(f"ERROR: {exc}\r\n{helpMessage}\r\n")
         sys.exit(EX_USAGE)
 
-    outputs.frozen_index = frozenIndex or None
+    for _name, publicationOutputs in plan:
+        publicationOutputs.frozen_index = frozenIndex or None
 
     try:
         oidRegistry, smiRegistry = _registries(oidRegistryPaths)
@@ -376,60 +421,95 @@ def start() -> None:
     if pageSize is None:
         pageSize = declared.get("page-size")
 
+    # One cache for every publication in the plan, which is the whole point:
+    # two trees off one build parse the corpus once between them rather than
+    # once each. Persistent when the caller named a directory, so a rebuild
+    # skips the modules that did not change as well.
     try:
-        theme = (
-            load_theme(sitePage, siteStylesheet, siteName)
-            if outputs.site and (sitePage or siteStylesheet or siteName)
+        parseCache: AbstractParseCache = (
+            FileParseCache(parseCachePath) if parseCachePath else InMemoryParseCache()
+        )
+
+    except OSError as exc:
+        # FileParseCache makes the directory up front, so a path that cannot
+        # be one says so here rather than as a traceback out of a build that
+        # had already started.
+        sys.stderr.write(f"ERROR: cannot use --parse-cache {parseCachePath}: {exc}\r\n")
+        sys.exit(EX_USAGE)
+
+    reports = []
+
+    for name, publicationOutputs in plan:
+        try:
+            theme = (
+                load_theme(sitePage, siteStylesheet, siteName)
+                if publicationOutputs.site and (sitePage or siteStylesheet or siteName)
+                else None
+            )
+
+        except error.PySmiError as exc:
+            # Named and unreadable, which is a typo in a manifest rather than
+            # a reason to publish a whole site in the wrong skin and say
+            # nothing.
+            sys.stderr.write(f"ERROR: {exc}\r\n")
+            sys.exit(EX_USAGE)
+
+        crawl = (
+            Crawl(
+                base=baseUrl,
+                description=siteDescription or "",
+                policy=declared.get("crawl") or {},
+            )
+            if publicationOutputs.site and baseUrl
             else None
         )
 
-    except error.PySmiError as exc:
-        # Named and unreadable, which is a typo in a manifest rather than a
-        # reason to publish a whole site in the wrong skin and say nothing.
-        sys.stderr.write(f"ERROR: {exc}\r\n")
-        sys.exit(EX_USAGE)
+        try:
+            report = CorpusDriver(
+                namespaces,
+                publicationOutputs,
+                useBundledMibs=bundledMibsFlag,
+                corpusVersion=corpusVersion or None,
+                corpusId=corpusId or None,
+                oidRegistry=oidRegistry,
+                smiRegistry=smiRegistry,
+                theme=theme,
+                pageSize=pageSize,
+                crawl=crawl,
+                parseCache=parseCache,
+            ).run()
 
-    crawl = (
-        Crawl(
-            base=baseUrl,
-            description=siteDescription or "",
-            policy=declared.get("crawl") or {},
-        )
-        if outputs.site and baseUrl
-        else None
-    )
+        except error.PySmiError as exc:
+            where = f" for publication {name}" if name else ""
+            sys.stderr.write(f"ERROR{where}: {exc}\r\n")
+            sys.exit(EX_SOFTWARE)
 
-    try:
-        report = CorpusDriver(
-            namespaces,
-            outputs,
-            useBundledMibs=bundledMibsFlag,
-            corpusVersion=corpusVersion or None,
-            corpusId=corpusId or None,
-            oidRegistry=oidRegistry,
-            smiRegistry=smiRegistry,
-            theme=theme,
-            pageSize=pageSize,
-            crawl=crawl,
-        ).run()
+        reports.append((name, report))
 
-    except error.PySmiError as exc:
-        sys.stderr.write(f"ERROR: {exc}\r\n")
-        sys.exit(EX_SOFTWARE)
+    # Every publication is summarized and held to the manifest's
+    # expectations, not just the last one: a build that wrote two trees and
+    # checked one has not checked the build.
+    failures = 0
 
-    if verboseFlag:
-        _summarize(report)
+    for name, report in reports:
+        if verboseFlag:
+            if name:
+                sys.stderr.write(f"\r\n== publication {name}\r\n")
 
-    missed = check_expectations(manifest.expect, report)
+            _summarize(report)
 
-    if missed:
-        sys.stderr.write(
-            "ERROR: the build is not what the manifest says this corpus is:\r\n"
-        )
-        sys.stderr.writelines(f"    {x}\r\n" for x in missed)
-        sys.exit(EX_DATAERR)
+        missed = check_expectations(manifest.expect, report)
 
-    failures = sum(len(x) for x in report.failed.values())
+        if missed:
+            where = f" ({name})" if name else ""
+            sys.stderr.write(
+                f"ERROR: the build is not what the manifest says this "
+                f"corpus is{where}:\r\n"
+            )
+            sys.stderr.writelines(f"    {x}\r\n" for x in missed)
+            sys.exit(EX_DATAERR)
+
+        failures += sum(len(x) for x in report.failed.values())
 
     if failures and failOnErrorsFlag:
         sys.exit(EX_MIB_FAILED)
@@ -550,15 +630,26 @@ def _registries(
     return enterprises, smi
 
 
-def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
+def _outputs_for(
+    directory: str, emitted: list[str] | None, *, confine: bool = False
+) -> CorpusOutputs:
     """Where each artifact goes: the full published layout, or a subset.
 
     Args:
         directory: the build directory
         emitted: the artifacts asked for by name, or ``None`` for all of them
+        confine: whether a path of an artifact's own has to stay under
+            *directory*. False for ``--emit``, where naming a path elsewhere
+            is the point -- a build writing its JSON to a scratch disk says
+            ``json:/mnt/scratch/json``. True for a publication, which is a
+            tree and stops being one as soon as an artifact writes outside it.
 
     Returns:
         The outputs, with every artifact not asked for left unset.
+
+    Raises:
+        PySmiError: an artifact is not one this release knows, or names a
+            path *confine* does not allow.
     """
     outputs = CorpusOutputs()
 
@@ -582,6 +673,17 @@ def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
                 f"unknown --emit artifact {artifact!r}; expected one of "
                 f"{', '.join(sorted(_ARTIFACTS))}"
             ) from None
+
+        if path and confine:
+            try:
+                path = os.path.join(directory, contained_path(path))
+
+            except ValueError as exc:
+                raise error.PySmiError(
+                    f"publication artifact {spec!r} names {path!r}: {exc}. "
+                    f"A publication is one tree and everything it emits "
+                    f"belongs under it"
+                ) from None
 
         setattr(outputs, attribute, path or os.path.join(directory, default))
 

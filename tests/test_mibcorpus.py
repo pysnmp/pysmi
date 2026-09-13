@@ -274,6 +274,176 @@ class RunTestCase(unittest.TestCase):
 
         return None
 
+    def testTwoPublicationsComeOutOfOneBuild(self):
+        """One build, two trees, each carrying what it declared.
+
+        The corpus goes out as the data a runtime fetches and as the pages a
+        reader browses, and building it twice parses every module twice to
+        reach the same answer.
+        """
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "publications": [
+                        {"name": "data", "emit": ["asn1", "json"], "output": "data"},
+                        {"name": "pages", "emit": ["site"], "output": "pages"},
+                    ],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+
+        self.assertTrue(os.path.isdir(os.path.join(self.out, "data", "asn1")))
+        self.assertTrue(os.path.isdir(os.path.join(self.out, "data", "json")))
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.out, "pages", "browse", "index.html"))
+        )
+
+        # Each tree carries its own and not the other's.
+        self.assertFalse(os.path.exists(os.path.join(self.out, "data", "browse")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "pages", "asn1")))
+
+    def testAFlagCollapsesThePublicationsToTheOneAsked(self):
+        """--emit names one tree, as flags override files everywhere here."""
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "publications": [
+                        {"name": "data", "emit": ["asn1"], "output": "data"},
+                        {"name": "pages", "emit": ["site"], "output": "pages"},
+                    ],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+            ),
+        )
+
+        self.assertTrue(os.path.isdir(os.path.join(self.out, "json")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "data")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "pages")))
+
+    def testAPublicationArtifactStaysInsideIt(self):
+        """A publication is one tree, and an artifact naming its own path
+        cannot be the exception that leaves it.
+
+        --emit deliberately allows a path anywhere, which is how a build sends
+        its JSON to a scratch disk. A publication is the case where that would
+        quietly undo the containment the manifest just declared.
+        """
+        manifest = os.path.join(self.root, "corpus.json")
+        escape = os.path.join(self.root, "elsewhere", "report.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "publications": [
+                        {
+                            "name": "data",
+                            "emit": ["asn1", f"report:{escape}"],
+                            "output": "data",
+                        }
+                    ],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+        self.assertFalse(os.path.exists(escape))
+
+    def testAnEmitFlagMayStillNameAnyPath(self):
+        """The confinement is the publication's, not a new rule for --emit."""
+        elsewhere = os.path.join(self.root, "elsewhere")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                f"--emit=json:{elsewhere}",
+            ),
+        )
+
+        self.assertTrue(os.path.isdir(elsewhere))
+
+    def testASiteTemplateThatIsNotThereIsRefused(self):
+        """Named and unreadable is a typo in a manifest, not a reason to
+        publish a whole site in the wrong skin and say nothing."""
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "emit": ["site"],
+                    "site": {"template": os.path.join(self.root, "absent.html")},
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+
+    def testAnUnusableParseCacheDirectoryIsRefused(self):
+        """Not a traceback out of a build that had already started."""
+        # A file where the directory should be: makedirs cannot have it.
+        blocker = os.path.join(self.root, "blocker")
+
+        with open(blocker, "w") as fileObj:
+            fileObj.write("")
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+                f"--parse-cache={blocker}",
+            ),
+        )
+
+    def testAParseCacheDirectoryOutlivesTheBuild(self):
+        """--parse-cache is what makes a rebuild skip what did not change."""
+        cache = os.path.join(self.root, "trees")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+                f"--parse-cache={cache}",
+            ),
+        )
+
+        self.assertTrue(os.listdir(cache), "the build cached nothing it parsed")
+
     def testAManifestBuildProducesThePublishedLayout(self):
         manifest = os.path.join(self.root, "corpus.json")
 

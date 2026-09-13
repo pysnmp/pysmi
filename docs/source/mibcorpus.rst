@@ -30,6 +30,7 @@ it.
          [--namespace=<TIER>:<NAME>:<SOURCE>]
          [--output-directory=<DIRECTORY>]
          [--frozen-index=<FILE>]
+         [--parse-cache=<DIRECTORY>]
          [--emit=<ARTIFACT>[:<PATH>]]
          [--corpus-version=<VERSION>]
          [--corpus-id=<NAME>]
@@ -237,6 +238,65 @@ goes.
 
 Every artifact but ``report.json`` is byte-reproducible. The report is the
 build's log and records elapsed time.
+
+.. _corpus-publications:
+
+One build, more than one tree
+-----------------------------
+
+A distribution is not always one tree. The same corpus goes out as the data a
+runtime fetches and as the pages a reader browses, and those may belong on
+different hosts with different limits. Building it twice parses every module
+twice to reach the same answer.
+
+A manifest declaring ``publications`` instead of ``emit`` says a build writes
+several trees:
+
+.. code-block:: json
+
+   {
+     "version": 1,
+     "namespaces": [{"include": "src/*", "tier": "vendor"}],
+     "publications": [
+       {"name": "data",  "emit": ["asn1", "json", "index-v2"], "output": "data"},
+       {"name": "pages", "emit": ["site", "search-db"],        "output": "pages"}
+     ]
+   }
+
+Each publication names what it carries and where it goes, under
+``--output-directory``. The corpus is parsed once for all of them: the parse
+cache is shared across the plan, and parsing is about three quarters of a
+pass.
+
+``emit`` and ``publications`` are alternatives, not layers. A manifest
+declaring both is refused, because the artifacts would belong to no tree in
+particular and a reader could not tell which by looking. A publication naming
+no ``output`` writes into the build directory itself, which is the ordinary
+single-tree build said the long way.
+
+``--emit`` on the command line collapses the plan to the one tree it names,
+as a flag overrides a file everywhere else here.
+
+Every publication is summarized and held to the manifest's ``expect``: a build
+that wrote two trees and checked one has not checked the build.
+
+.. _corpus-parse-cache:
+
+Keeping the parse trees
+-----------------------
+
+``--parse-cache=<DIRECTORY>`` keeps parse trees between runs, so a rebuild of
+a mostly unchanged corpus reparses only what changed. The key is the module's
+own text together with the identity of the parser, so an unedited module keeps
+its entry and an edited one cannot match a stale tree. Without it the trees
+are held in memory and discarded with the process, which is right for a
+one-off build and wasteful for a nightly.
+
+It stores pickles, and reading one reconstructs arbitrary Python objects.
+Name a directory the build owns, never one written by anything you would not
+run, and never one shared across trust domains. A damaged, truncated or
+unreadable entry is a miss rather than an error: the cache is an optimisation
+and never a source of truth.
 
 .. _corpus-json-encoding:
 

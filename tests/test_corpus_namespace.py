@@ -228,6 +228,135 @@ class ManifestDeclarationTestCase(unittest.TestCase):
 
         self.assertEqual(["asn1", "json:/elsewhere"], manifest.emit)
 
+    def testPublicationsAreReadAsDeclared(self):
+        """A build may write more than one tree; see pysnmp/pysmi#21."""
+        manifest = read_manifest(
+            self.manifest(
+                publications=[
+                    {"name": "data", "emit": ["asn1", "json"], "output": "pages"},
+                    {"name": "pages", "emit": ["site"], "output": "site"},
+                ]
+            )
+        )
+
+        self.assertIsNone(manifest.emit)
+        self.assertEqual(["data", "pages"], [x.name for x in manifest.publications])
+        self.assertEqual(["site"], manifest.publications[1].emit)
+
+    def testAPublicationNeedNotNameAnOutput(self):
+        """One publication writing into the build directory is the ordinary
+        single-tree build, said the long way."""
+        manifest = read_manifest(
+            self.manifest(publications=[{"name": "only", "emit": ["asn1"]}])
+        )
+
+        self.assertEqual("", manifest.publications[0].output)
+
+    def testEmitAndPublicationsTogetherIsRefused(self):
+        """Which artifacts belong to which tree would be unanswerable."""
+        with self.assertRaises(error.PySmiError) as caught:
+            read_manifest(
+                self.manifest(
+                    emit=["asn1"],
+                    publications=[{"name": "p", "emit": ["site"]}],
+                )
+            )
+
+        self.assertIn("both emit and publications", str(caught.exception))
+
+    def testTwoPublicationsMayNotOverlap(self):
+        """Distinct strings are not distinct trees.
+
+        "" and "." are the same directory, "data" and "data/." are the same
+        directory, and "data" contains "data/inner": whichever publication ran
+        last would decide what a reader found in it.
+        """
+        for first, second in (
+            ("same", "same"),
+            ("", "."),
+            ("data", "data/."),
+            ("data", "data/inner"),
+            ("", "anything"),
+        ):
+            with self.subTest(first=first, second=second):
+                with self.assertRaises(error.PySmiError) as caught:
+                    read_manifest(
+                        self.manifest(
+                            publications=[
+                                {"name": "a", "emit": ["asn1"], "output": first},
+                                {"name": "b", "emit": ["site"], "output": second},
+                            ]
+                        )
+                    )
+
+                self.assertIn("one inside the other", str(caught.exception))
+
+    def testAPublicationMayNotEscapeTheBuildDirectory(self):
+        """The output directory is the caller's, not the manifest's.
+
+        A manifest is written on whatever machine its author has and read on
+        whatever machine builds, so the separator this build's os.sep happens
+        to be does not decide what counts as a parent. ``os.path.isabs`` is
+        false for "/etc" on Windows, and "../x" split on a Windows os.sep has
+        no parent component in it -- both of which this let through until
+        Windows CI said so.
+        """
+        for output in (
+            "/etc",
+            "../elsewhere",
+            "..\\elsewhere",
+            "data/../../elsewhere",
+            "C:/tmp",
+            "C:tmp",
+        ):
+            with self.subTest(output=output):
+                with self.assertRaises(error.PySmiError) as caught:
+                    read_manifest(
+                        self.manifest(
+                            publications=[
+                                {"name": "a", "emit": ["asn1"], "output": output}
+                            ]
+                        )
+                    )
+
+                self.assertIn("output directory", str(caught.exception))
+
+    def testAPublicationOutputIsNormalized(self):
+        """So that two spellings of one directory compare as one."""
+        manifest = read_manifest(
+            self.manifest(
+                publications=[{"name": "a", "emit": ["asn1"], "output": "./data/."}]
+            )
+        )
+
+        self.assertEqual("data", manifest.publications[0].output)
+
+    def testAMalformedPublicationsKeyIsRefused(self):
+        """Each of these would otherwise fail later and less clearly."""
+        cases = {
+            "not a list": "asn1",
+            "an empty list": [],
+            "an entry that is not an object": ["asn1"],
+            "a duplicate name": [
+                {"name": "a", "emit": ["asn1"], "output": "one"},
+                {"name": "a", "emit": ["site"], "output": "two"},
+            ],
+            "an emit that is not a list of names": [{"name": "a", "emit": "asn1"}],
+            "an empty emit": [{"name": "a", "emit": []}],
+            "an output that is not a path": [
+                {"name": "a", "emit": ["asn1"], "output": 7}
+            ],
+        }
+
+        for label, declared in cases.items():
+            with self.subTest(label), self.assertRaises(error.PySmiError):
+                read_manifest(self.manifest(publications=declared))
+
+    def testAPublicationIsNamed(self):
+        for entry in ({"emit": ["asn1"]}, {"name": "", "emit": ["asn1"]}):
+            with self.subTest(entry=entry), self.assertRaises(error.PySmiError):
+                read_manifest(self.manifest(publications=[entry]))
+
     def testTheExpectationsAreReadAsDeclared(self):
         expect = {"modules": {"min": 8000}, "namespaces-present": ["ietf"]}
 

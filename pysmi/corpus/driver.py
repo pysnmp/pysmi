@@ -45,6 +45,7 @@ from typing import Any, Final
 
 from pysmi import __version__ as packageVersion
 from pysmi import error, jsonio
+from pysmi.cache.base import AbstractParseCache
 from pysmi.cache.memory import InMemoryParseCache
 from pysmi.codegen.base import AbstractCodeGen
 from pysmi.codegen.jsondoc import JsonCodeGen
@@ -389,6 +390,7 @@ class CorpusDriver:
         patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
         pageSize: "int | Mapping[str, int] | None" = None,
         crawl: "Crawl | None" = None,
+        parseCache: "AbstractParseCache | None" = None,
     ) -> None:
         """Create a driver over the given input set.
 
@@ -432,7 +434,16 @@ class CorpusDriver:
         #: What this build declares about the site it publishes, or None for
         #: a build producing a subtree somebody else will assemble.
         self._crawl = crawl
-        self._parseCache = InMemoryParseCache()
+        #: Shared by every destination, so the ASN.1 is parsed once for the
+        #: run rather than once per format. In memory unless the caller hands
+        #: over something that outlives the process -- see
+        #: :py:class:`~pysmi.cache.file.FileParseCache`, which a build
+        #: repeating over a mostly unchanged corpus wants and which this
+        #: cannot choose on its own: it writes pickles, so the directory is
+        #: the caller's to nominate and to trust.
+        self._parseCache = (
+            parseCache if parseCache is not None else InMemoryParseCache()
+        )
         self._readers: dict[str, AbstractReader] = {
             x.name: self._reader_for(x) for x in self._namespaces
         }
