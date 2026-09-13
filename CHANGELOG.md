@@ -3,6 +3,16 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.9](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.8...v5.0.0-rc.9) (2026-09-13)
+
+### Features
+
+* **corpus:** reach the file parse cache, and write more than one tree ([e34a703](https://github.com/pysnmp/pysmi/commit/e34a70327f7ba567f8a18e81840ef9322b281581)), closes [pysnmp/mibs#405](https://github.com/pysnmp/mibs/issues/405)
+
+### Bug Fixes
+
+* **corpus:** hold a publication to its own tree on every platform ([37da581](https://github.com/pysnmp/pysmi/commit/37da5818cd4231f34b06d9f67451268a39512c1e))
+
 ## [5.0.0-rc.8](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.7...v5.0.0-rc.8) (2026-09-13)
 
 ### Bug Fixes
