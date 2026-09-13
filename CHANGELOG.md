@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.8](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.7...v5.0.0-rc.8) (2026-09-13)
+
+### Bug Fixes
+
+* **corpus:** scroll every table, not the long ones ([223f987](https://github.com/pysnmp/pysmi/commit/223f987e453e1cc2715efbd88d12f559d874d426)), closes [pysnmp/pysmi#310](https://github.com/pysnmp/pysmi/issues/310) [#310](https://github.com/pysnmp/pysmi/issues/310) [pysnmp/mibs#413](https://github.com/pysnmp/mibs/issues/413) [pysnmp/mibs#406](https://github.com/pysnmp/mibs/issues/406)
+
 ## [5.0.0-rc.7](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.6...v5.0.0-rc.7) (2026-09-12)
 
 ### Bug Fixes
