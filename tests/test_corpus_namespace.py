@@ -331,6 +331,27 @@ class ManifestDeclarationTestCase(unittest.TestCase):
 
         self.assertEqual("data", manifest.publications[0].output)
 
+    def testAMalformedPublicationsKeyIsRefused(self):
+        """Each of these would otherwise fail later and less clearly."""
+        cases = {
+            "not a list": "asn1",
+            "an empty list": [],
+            "an entry that is not an object": ["asn1"],
+            "a duplicate name": [
+                {"name": "a", "emit": ["asn1"], "output": "one"},
+                {"name": "a", "emit": ["site"], "output": "two"},
+            ],
+            "an emit that is not a list of names": [{"name": "a", "emit": "asn1"}],
+            "an empty emit": [{"name": "a", "emit": []}],
+            "an output that is not a path": [
+                {"name": "a", "emit": ["asn1"], "output": 7}
+            ],
+        }
+
+        for label, declared in cases.items():
+            with self.subTest(label), self.assertRaises(error.PySmiError):
+                read_manifest(self.manifest(publications=declared))
+
     def testAPublicationIsNamed(self):
         for entry in ({"emit": ["asn1"]}, {"name": "", "emit": ["asn1"]}):
             with self.subTest(entry=entry), self.assertRaises(error.PySmiError):
