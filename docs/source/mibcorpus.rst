@@ -30,6 +30,7 @@ it.
          [--namespace=<TIER>:<NAME>:<SOURCE>]
          [--output-directory=<DIRECTORY>]
          [--frozen-index=<FILE>]
+         [--parse-cache=<DIRECTORY>]
          [--emit=<ARTIFACT>[:<PATH>]]
          [--corpus-version=<VERSION>]
          [--corpus-id=<NAME>]

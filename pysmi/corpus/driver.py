@@ -441,7 +441,9 @@ class CorpusDriver:
         #: repeating over a mostly unchanged corpus wants and which this
         #: cannot choose on its own: it writes pickles, so the directory is
         #: the caller's to nominate and to trust.
-        self._parseCache = parseCache or InMemoryParseCache()
+        self._parseCache = (
+            parseCache if parseCache is not None else InMemoryParseCache()
+        )
         self._readers: dict[str, AbstractReader] = {
             x.name: self._reader_for(x) for x in self._namespaces
         }

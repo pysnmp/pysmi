@@ -264,22 +264,51 @@ class ManifestDeclarationTestCase(unittest.TestCase):
 
         self.assertIn("both emit and publications", str(caught.exception))
 
-    def testTwoPublicationsMayNotShareAnOutput(self):
-        with self.assertRaises(error.PySmiError) as caught:
-            read_manifest(
-                self.manifest(
-                    publications=[
-                        {"name": "a", "emit": ["asn1"], "output": "same"},
-                        {"name": "b", "emit": ["site"], "output": "same"},
-                    ]
-                )
-            )
+    def testTwoPublicationsMayNotOverlap(self):
+        """Distinct strings are not distinct trees.
 
-        self.assertIn("same output", str(caught.exception))
+        "" and "." are the same directory, "data" and "data/." are the same
+        directory, and "data" contains "data/inner": whichever publication ran
+        last would decide what a reader found in it.
+        """
+        for first, second in (
+            ("same", "same"),
+            ("", "."),
+            ("data", "data/."),
+            ("data", "data/inner"),
+            ("", "anything"),
+        ):
+            with self.subTest(first=first, second=second):
+                with self.assertRaises(error.PySmiError) as caught:
+                    read_manifest(
+                        self.manifest(
+                            publications=[
+                                {"name": "a", "emit": ["asn1"], "output": first},
+                                {"name": "b", "emit": ["site"], "output": second},
+                            ]
+                        )
+                    )
+
+                self.assertIn("one inside the other", str(caught.exception))
 
     def testAPublicationMayNotEscapeTheBuildDirectory(self):
-        """The output directory is the caller's, not the manifest's."""
-        for output in ("/etc", "../elsewhere"):
+        """The output directory is the caller's, not the manifest's.
+
+        A manifest is written on whatever machine its author has and read on
+        whatever machine builds, so the separator this build's os.sep happens
+        to be does not decide what counts as a parent. ``os.path.isabs`` is
+        false for "/etc" on Windows, and "../x" split on a Windows os.sep has
+        no parent component in it -- both of which this let through until
+        Windows CI said so.
+        """
+        for output in (
+            "/etc",
+            "../elsewhere",
+            "..\\elsewhere",
+            "data/../../elsewhere",
+            "C:/tmp",
+            "C:tmp",
+        ):
             with self.subTest(output=output):
                 with self.assertRaises(error.PySmiError) as caught:
                     read_manifest(
@@ -290,9 +319,17 @@ class ManifestDeclarationTestCase(unittest.TestCase):
                         )
                     )
 
-                self.assertIn(
-                    "under the build's output directory", str(caught.exception)
-                )
+                self.assertIn("output directory", str(caught.exception))
+
+    def testAPublicationOutputIsNormalized(self):
+        """So that two spellings of one directory compare as one."""
+        manifest = read_manifest(
+            self.manifest(
+                publications=[{"name": "a", "emit": ["asn1"], "output": "./data/."}]
+            )
+        )
+
+        self.assertEqual("data", manifest.publications[0].output)
 
     def testAPublicationIsNamed(self):
         for entry in ({"emit": ["asn1"]}, {"name": "", "emit": ["asn1"]}):

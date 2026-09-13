@@ -32,7 +32,12 @@ from pysmi.corpus.driver import (
     CorpusReport,
     check_expectations,
 )
-from pysmi.corpus.namespace import Manifest, Namespace, read_manifest
+from pysmi.corpus.namespace import (
+    Manifest,
+    Namespace,
+    contained_path,
+    read_manifest,
+)
 from pysmi.corpus.site.crawl import Crawl
 from pysmi.corpus.site.theme import load_theme
 from pysmi.registry.pen import Registrant, is_pen_registry, load_registry
@@ -378,6 +383,7 @@ def start() -> None:
                         if publication.output
                         else outputDirectory,
                         publication.emit,
+                        confine=True,
                     ),
                 )
                 for publication in manifest.publications
@@ -419,9 +425,18 @@ def start() -> None:
     # two trees off one build parse the corpus once between them rather than
     # once each. Persistent when the caller named a directory, so a rebuild
     # skips the modules that did not change as well.
-    parseCache: AbstractParseCache = (
-        FileParseCache(parseCachePath) if parseCachePath else InMemoryParseCache()
-    )
+    try:
+        parseCache: AbstractParseCache = (
+            FileParseCache(parseCachePath) if parseCachePath else InMemoryParseCache()
+        )
+
+    except OSError as exc:
+        # FileParseCache makes the directory up front, so a path that cannot
+        # be one says so here rather than as a traceback out of a build that
+        # had already started.
+        sys.stderr.write(f"ERROR: cannot use --parse-cache {parseCachePath}: {exc}\r\n")
+        sys.exit(EX_USAGE)
+
     reports = []
 
     for name, publicationOutputs in plan:
@@ -615,15 +630,26 @@ def _registries(
     return enterprises, smi
 
 
-def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
+def _outputs_for(
+    directory: str, emitted: list[str] | None, *, confine: bool = False
+) -> CorpusOutputs:
     """Where each artifact goes: the full published layout, or a subset.
 
     Args:
         directory: the build directory
         emitted: the artifacts asked for by name, or ``None`` for all of them
+        confine: whether a path of an artifact's own has to stay under
+            *directory*. False for ``--emit``, where naming a path elsewhere
+            is the point -- a build writing its JSON to a scratch disk says
+            ``json:/mnt/scratch/json``. True for a publication, which is a
+            tree and stops being one as soon as an artifact writes outside it.
 
     Returns:
         The outputs, with every artifact not asked for left unset.
+
+    Raises:
+        PySmiError: an artifact is not one this release knows, or names a
+            path *confine* does not allow.
     """
     outputs = CorpusOutputs()
 
@@ -647,6 +673,17 @@ def _outputs_for(directory: str, emitted: list[str] | None) -> CorpusOutputs:
                 f"unknown --emit artifact {artifact!r}; expected one of "
                 f"{', '.join(sorted(_ARTIFACTS))}"
             ) from None
+
+        if path and confine:
+            try:
+                path = os.path.join(directory, contained_path(path))
+
+            except ValueError as exc:
+                raise error.PySmiError(
+                    f"publication artifact {spec!r} names {path!r}: {exc}. "
+                    f"A publication is one tree and everything it emits "
+                    f"belongs under it"
+                ) from None
 
         setattr(outputs, attribute, path or os.path.join(directory, default))
 

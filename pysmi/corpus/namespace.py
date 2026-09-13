@@ -416,24 +416,78 @@ def _read_publications(
                 f"an output that is not a path"
             )
 
-        if os.path.isabs(output) or ".." in output.split(os.sep):
+        try:
+            output = contained_path(output)
+
+        except ValueError as exc:
             raise error.PySmiError(
                 f"corpus manifest {path} declares publication {name!r} with "
-                f"output {output!r}; a publication writes under the build's "
-                f"output directory, not wherever the manifest says"
-            )
+                f"output {entry.get('output')!r}: {exc}. A publication writes "
+                f"under the build's output directory, which is the caller's "
+                f"and not the manifest's"
+            ) from None
 
         publications.append(Publication(name=name, emit=emitted, output=output))
 
-    outputs = [x.output for x in publications]
-
-    if len(set(outputs)) != len(outputs):
-        raise error.PySmiError(
-            f"corpus manifest {path} declares two publications writing to the "
-            f"same output; each one is a tree of its own"
-        )
+    _distinct_trees(publications, path)
 
     return publications
+
+
+def contained_path(output: str) -> str:
+    """*output* as components under a root, or ValueError if it escapes one.
+
+    A manifest is written by a person on whatever machine they have and read
+    on whatever machine builds, so both separators are significant here
+    whatever ``os.sep`` says today: ``../elsewhere`` split on a Windows
+    ``os.sep`` has no parent component in it, and ``os.path.isabs('/etc')``
+    is false on Windows, where it means the root of the current drive.
+
+    Returns the path normalized to forward slashes, so that two spellings of
+    one directory -- ``""`` and ``"."``, ``data`` and ``data/.`` -- compare
+    equal rather than passing a check that only ever saw the strings.
+    """
+    plain = output.replace("\\", "/")
+
+    if plain.startswith("/"):
+        raise ValueError("an absolute path")
+
+    # C:, C:/, C:data -- the last of which is relative to that drive's
+    # working directory and so not under this build's output at all.
+    if len(plain) > 1 and plain[1] == ":" and plain[0].isalpha():
+        raise ValueError("a drive-relative path")
+
+    parts = [x for x in plain.split("/") if x not in ("", ".")]
+
+    if ".." in parts:
+        raise ValueError("a path leaving the directory it is written under")
+
+    return "/".join(parts)
+
+
+def _distinct_trees(publications: "list[Publication]", path: str) -> None:
+    """Each publication is a tree of its own, or PySmiError saying which two.
+
+    Not merely distinct strings: one output inside another means the second
+    writes into the first, and whichever runs last decides what the reader
+    finds. ``""`` -- the build directory itself -- contains everything, so a
+    manifest pairing it with any other publication is caught here too.
+    """
+    for index, publication in enumerate(publications):
+        mine = publication.output.split("/") if publication.output else []
+
+        for other in publications[index + 1 :]:
+            theirs = other.output.split("/") if other.output else []
+            shared = min(len(mine), len(theirs))
+
+            if mine[:shared] == theirs[:shared]:
+                raise error.PySmiError(
+                    f"corpus manifest {path} declares publications "
+                    f"{publication.name!r} and {other.name!r} writing to "
+                    f"{publication.output or '.'!r} and {other.output or '.'!r}, "
+                    f"one inside the other; each publication is a tree of "
+                    f"its own"
+                )
 
 
 def _read_expect(manifest: dict[str, Any], path: str) -> dict[str, Any]:

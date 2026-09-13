@@ -341,6 +341,72 @@ class RunTestCase(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(self.out, "data")))
         self.assertFalse(os.path.exists(os.path.join(self.out, "pages")))
 
+    def testAPublicationArtifactStaysInsideIt(self):
+        """A publication is one tree, and an artifact naming its own path
+        cannot be the exception that leaves it.
+
+        --emit deliberately allows a path anywhere, which is how a build sends
+        its JSON to a scratch disk. A publication is the case where that would
+        quietly undo the containment the manifest just declared.
+        """
+        manifest = os.path.join(self.root, "corpus.json")
+        escape = os.path.join(self.root, "elsewhere", "report.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "publications": [
+                        {
+                            "name": "data",
+                            "emit": ["asn1", f"report:{escape}"],
+                            "output": "data",
+                        }
+                    ],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+        self.assertFalse(os.path.exists(escape))
+
+    def testAnEmitFlagMayStillNameAnyPath(self):
+        """The confinement is the publication's, not a new rule for --emit."""
+        elsewhere = os.path.join(self.root, "elsewhere")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                f"--emit=json:{elsewhere}",
+            ),
+        )
+
+        self.assertTrue(os.path.isdir(elsewhere))
+
+    def testAnUnusableParseCacheDirectoryIsRefused(self):
+        """Not a traceback out of a build that had already started."""
+        # A file where the directory should be: makedirs cannot have it.
+        blocker = os.path.join(self.root, "blocker")
+
+        with open(blocker, "w") as fileObj:
+            fileObj.write("")
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+                f"--parse-cache={blocker}",
+            ),
+        )
+
     def testAParseCacheDirectoryOutlivesTheBuild(self):
         """--parse-cache is what makes a rebuild skip what did not change."""
         cache = os.path.join(self.root, "trees")
