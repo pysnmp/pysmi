@@ -157,10 +157,25 @@ def table(
     if not body:
         return ""
 
+    # Wrapped, always. A table is wide because of its columns, not its rows: a
+    # three-row definition table carries the same five headings as a
+    # three-hundred-row one and needs the same width. Gating the wrapper on the
+    # row count -- which this did, at more than twelve -- left the short tables
+    # bare, and a bare one pushes the document instead of scrolling inside it:
+    # IF-MIB came to 418px against a 400px viewport, because Textual
+    # conventions and Notifications are short and Objects and Conformance are
+    # not.
+    #
+    # 24 bytes a table rather than a row, which is the distinction
+    # pysnmp/pysmi#310 drew: it took the wrappers off cells, 764,000 of them.
     return tag(
-        "table",
-        join((tag("thead", head), tag("tbody", body))),
-        **pairs,
+        "div",
+        tag(
+            "table",
+            join((tag("thead", head), tag("tbody", body))),
+            **pairs,
+        ),
+        class_="wide",
     )
 
 
