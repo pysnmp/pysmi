@@ -228,6 +228,77 @@ class ManifestDeclarationTestCase(unittest.TestCase):
 
         self.assertEqual(["asn1", "json:/elsewhere"], manifest.emit)
 
+    def testPublicationsAreReadAsDeclared(self):
+        """A build may write more than one tree; see pysnmp/pysmi#21."""
+        manifest = read_manifest(
+            self.manifest(
+                publications=[
+                    {"name": "data", "emit": ["asn1", "json"], "output": "pages"},
+                    {"name": "pages", "emit": ["site"], "output": "site"},
+                ]
+            )
+        )
+
+        self.assertIsNone(manifest.emit)
+        self.assertEqual(["data", "pages"], [x.name for x in manifest.publications])
+        self.assertEqual(["site"], manifest.publications[1].emit)
+
+    def testAPublicationNeedNotNameAnOutput(self):
+        """One publication writing into the build directory is the ordinary
+        single-tree build, said the long way."""
+        manifest = read_manifest(
+            self.manifest(publications=[{"name": "only", "emit": ["asn1"]}])
+        )
+
+        self.assertEqual("", manifest.publications[0].output)
+
+    def testEmitAndPublicationsTogetherIsRefused(self):
+        """Which artifacts belong to which tree would be unanswerable."""
+        with self.assertRaises(error.PySmiError) as caught:
+            read_manifest(
+                self.manifest(
+                    emit=["asn1"],
+                    publications=[{"name": "p", "emit": ["site"]}],
+                )
+            )
+
+        self.assertIn("both emit and publications", str(caught.exception))
+
+    def testTwoPublicationsMayNotShareAnOutput(self):
+        with self.assertRaises(error.PySmiError) as caught:
+            read_manifest(
+                self.manifest(
+                    publications=[
+                        {"name": "a", "emit": ["asn1"], "output": "same"},
+                        {"name": "b", "emit": ["site"], "output": "same"},
+                    ]
+                )
+            )
+
+        self.assertIn("same output", str(caught.exception))
+
+    def testAPublicationMayNotEscapeTheBuildDirectory(self):
+        """The output directory is the caller's, not the manifest's."""
+        for output in ("/etc", "../elsewhere"):
+            with self.subTest(output=output):
+                with self.assertRaises(error.PySmiError) as caught:
+                    read_manifest(
+                        self.manifest(
+                            publications=[
+                                {"name": "a", "emit": ["asn1"], "output": output}
+                            ]
+                        )
+                    )
+
+                self.assertIn(
+                    "under the build's output directory", str(caught.exception)
+                )
+
+    def testAPublicationIsNamed(self):
+        for entry in ({"emit": ["asn1"]}, {"name": "", "emit": ["asn1"]}):
+            with self.subTest(entry=entry), self.assertRaises(error.PySmiError):
+                read_manifest(self.manifest(publications=[entry]))
+
     def testTheExpectationsAreReadAsDeclared(self):
         expect = {"modules": {"min": 8000}, "namespaces-present": ["ietf"]}
 

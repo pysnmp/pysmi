@@ -274,6 +274,89 @@ class RunTestCase(unittest.TestCase):
 
         return None
 
+    def testTwoPublicationsComeOutOfOneBuild(self):
+        """One build, two trees, each carrying what it declared.
+
+        The corpus goes out as the data a runtime fetches and as the pages a
+        reader browses, and building it twice parses every module twice to
+        reach the same answer.
+        """
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "publications": [
+                        {"name": "data", "emit": ["asn1", "json"], "output": "data"},
+                        {"name": "pages", "emit": ["site"], "output": "pages"},
+                    ],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+
+        self.assertTrue(os.path.isdir(os.path.join(self.out, "data", "asn1")))
+        self.assertTrue(os.path.isdir(os.path.join(self.out, "data", "json")))
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.out, "pages", "browse", "index.html"))
+        )
+
+        # Each tree carries its own and not the other's.
+        self.assertFalse(os.path.exists(os.path.join(self.out, "data", "browse")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "pages", "asn1")))
+
+    def testAFlagCollapsesThePublicationsToTheOneAsked(self):
+        """--emit names one tree, as flags override files everywhere here."""
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "publications": [
+                        {"name": "data", "emit": ["asn1"], "output": "data"},
+                        {"name": "pages", "emit": ["site"], "output": "pages"},
+                    ],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+            ),
+        )
+
+        self.assertTrue(os.path.isdir(os.path.join(self.out, "json")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "data")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "pages")))
+
+    def testAParseCacheDirectoryOutlivesTheBuild(self):
+        """--parse-cache is what makes a rebuild skip what did not change."""
+        cache = os.path.join(self.root, "trees")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+                f"--parse-cache={cache}",
+            ),
+        )
+
+        self.assertTrue(os.listdir(cache), "the build cached nothing it parsed")
+
     def testAManifestBuildProducesThePublishedLayout(self):
         manifest = os.path.join(self.root, "corpus.json")
 

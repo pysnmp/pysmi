@@ -29,6 +29,8 @@ import unittest
 from unittest import mock
 
 from pysmi import error
+from pysmi.cache.file import FileParseCache
+from pysmi.cache.memory import InMemoryParseCache
 from pysmi.corpus import CorpusDriver, CorpusOutputs, Namespace, check_disjoint
 from pysmi.corpus.driver import STANDARD_TXT_EXCLUDED_PREFIXES, CorpusReport
 from pysmi.mibinfo import source_digest
@@ -203,6 +205,46 @@ class CorpusTestCase(unittest.TestCase):
                     found[os.path.relpath(path, base)] = fileObj.read()
 
         return found
+
+
+class ParseCacheTestCase(CorpusTestCase):
+    """A build may keep its parse trees somewhere that outlives it.
+
+    Parsing is about three quarters of a pass, and a corpus rebuilt nightly
+    reparses 5,510 modules to find that almost none of them changed.
+    :py:class:`~pysmi.cache.file.FileParseCache` has always been able to hold
+    them; nothing could ask the driver to use it.
+    """
+
+    def testTheDriverKeepsItsOwnCacheByDefault(self):
+        outputs = self.outputs()
+        driver = CorpusDriver(self.namespaces(), outputs)
+
+        self.assertIsInstance(driver._parseCache, InMemoryParseCache)
+
+    def testAHandedCacheIsTheOneUsed(self):
+        cache = FileParseCache(os.path.join(self.root, "trees"))
+        outputs = self.outputs()
+
+        CorpusDriver(self.namespaces(), outputs, parseCache=cache).run()
+
+        self.assertTrue(
+            os.listdir(os.path.join(self.root, "trees")),
+            "the build parsed modules and cached none of them",
+        )
+
+    def testTheCorpusIsTheSameEitherWay(self):
+        """A cache is an optimisation, so it may not change what is written."""
+        CorpusDriver(self.namespaces(), self.outputs("cold")).run()
+
+        cache = FileParseCache(os.path.join(self.root, "trees"))
+        CorpusDriver(self.namespaces(), self.outputs("warm"), parseCache=cache).run()
+        # Again, now that the cache has something in it to serve.
+        CorpusDriver(self.namespaces(), self.outputs("hot"), parseCache=cache).run()
+
+        cold = self.tree("cold")
+        self.assertEqual(cold, self.tree("warm"))
+        self.assertEqual(cold, self.tree("hot"))
 
 
 class ProseTestCase(CorpusTestCase):
