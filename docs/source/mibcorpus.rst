@@ -388,7 +388,7 @@ Prose in the JSON
 -----------------
 
 A published jsondoc carries names, OIDs, syntax, access and status, and no
-prose. `IF-MIB.json <https://pysnmp.github.io/mibs/json/IF-MIB.json>`_ has no
+prose. `IF-MIB.json <https://data.mibsdepot.com/json/IF-MIB.json>`_ has no
 description on ``ifOperStatus``, though the module's text describes all seven
 of its enumerated states. Measured over a 300-file sample,
 ``DESCRIPTION``, ``REFERENCE`` and ``CONTACT-INFO`` are **38% of the text of a
@@ -798,12 +798,21 @@ JSON-LD, ``sitemap.xml`` as an index, ``robots.txt`` and ``llms.txt``. Without
 it there is nothing to put in a canonical link, and guessing an origin would
 publish a site claiming to live somewhere it does not.
 
+``data-url`` is the second origin, for a distribution that serves its pages
+and its downloads from two hosts. This one does: a page URL is a directory
+that a host resolves to ``index.html``, and object storage serves the key it
+is given, so the pages and the files cannot share an origin without something
+on the serving path rewriting every request. Only the ``llms.txt`` bulk links
+read it. A canonical link and a sitemap entry describe a page, and a page is
+always on ``base-url``. Omitted, one origin serves both.
+
 .. code-block:: json
 
    {
      "site": {
-       "base-url": "https://mibs.pysnmp.com",
-       "name": "pysnmp/mibs",
+       "base-url": "https://mibsdepot.com",
+       "data-url": "https://data.mibsdepot.com",
+       "name": "MIBs Depot",
        "description": "5,500 SNMP MIB modules from their publishers.",
        "crawl": {
          "*": {"disallow": ["asn1", "json", "index-v2", "core-db"]},

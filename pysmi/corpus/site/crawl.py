@@ -97,12 +97,24 @@ class Crawl(NamedTuple):
     """What a distribution build declares about the site it is publishing."""
 
     #: The site's origin and path, without a trailing slash --
-    #: ``https://mibs.pysnmp.com``. Every canonical link and sitemap entry is
+    #: ``https://mibsdepot.com``. Every canonical link and sitemap entry is
     #: built from it. This is what makes a build a distribution site.
     base: str
 
     #: One paragraph saying what this corpus is, for ``llms.txt``.
     description: str = ""
+
+    #: Where the bulk artifacts are, when they are not on :py:attr:`base`.
+    #:
+    #: A distribution may serve its pages and its downloads from two origins,
+    #: and the pysnmp corpus does: pages at ``https://mibsdepot.com``, files at
+    #: ``https://data.mibsdepot.com``. Pages resolve a directory URL to its
+    #: ``index.html`` and object storage does not, which is what splits them.
+    #:
+    #: Only the ``llms.txt`` bulk links use this. A canonical link, a sitemap
+    #: entry and the sitemap index are statements about a page, and a page is
+    #: always on :py:attr:`base`. Empty means one origin serves both.
+    data: str = ""
 
     #: Per user-agent, which artifacts to allow and disallow, keyed
     #: ``allow`` and ``disallow`` and naming :py:data:`ARTIFACTS`. ``*`` is
@@ -119,6 +131,14 @@ class Crawl(NamedTuple):
     def url(self, path: str) -> str:
         """The absolute URL of a path relative to the site root."""
         return f"{self.base.rstrip('/')}/{path.lstrip('/')}"
+
+    def data_url(self, path: str) -> str:
+        """The absolute URL of a bulk artifact.
+
+        :py:attr:`data` where a distribution declares one, and :py:attr:`base`
+        otherwise, so a site on one origin is unaffected by the distinction.
+        """
+        return f"{(self.data or self.base).rstrip('/')}/{path.lstrip('/')}"
 
 
 def newest(dates: "Iterable[str]") -> str:

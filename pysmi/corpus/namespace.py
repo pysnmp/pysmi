@@ -262,6 +262,7 @@ class Manifest:
 #: like the documentation it is published beside.
 SITE_SETTINGS: Final[dict[str, type | tuple[type, ...]]] = {
     "base-url": str,
+    "data-url": str,
     "description": str,
     "name": str,
     "template": str,

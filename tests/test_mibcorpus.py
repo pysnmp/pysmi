@@ -311,6 +311,58 @@ class RunTestCase(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(self.out, "data", "browse")))
         self.assertFalse(os.path.exists(os.path.join(self.out, "pages", "asn1")))
 
+    def testTheTwoOriginFlagsReachTheCrawlSurface(self):
+        """--base-url and --data-url, driven through the command line.
+
+        Neither had a test that ran them, and both decide URLs written into
+        7,430 pages: --base-url is what makes a build a distribution site at
+        all, and --data-url is what keeps the bulk links off the pages host.
+        """
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "emit": ["site"],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+                "--base-url=https://pages.example",
+                "--data-url=https://data.example",
+                "--site-description=A corpus of MIB modules.",
+            ),
+        )
+
+        with open(os.path.join(self.out, "llms.txt"), encoding="utf-8") as fileObj:
+            written = fileObj.read()
+
+        self.assertIn("https://data.example/asn1/", written)
+        self.assertIn("https://data.example/json/", written)
+        self.assertIn("https://data.example/index-v2.csv", written)
+        # A page is on the pages host, the sitemap included.
+        self.assertIn("https://pages.example/browse/", written)
+        self.assertIn("https://pages.example/sitemap.xml", written)
+        self.assertNotIn("https://pages.example/asn1/", written)
+
+        with open(os.path.join(self.out, "robots.txt"), encoding="utf-8") as fileObj:
+            self.assertIn("https://pages.example/sitemap.xml", fileObj.read())
+
+        with open(
+            os.path.join(self.out, "mib", "A-MIB", "index.html"), encoding="utf-8"
+        ) as fileObj:
+            page = fileObj.read()
+
+        self.assertIn('rel="canonical" href="https://pages.example/mib/A-MIB/"', page)
+        self.assertNotIn("data.example", page)
+
     def testAFlagCollapsesThePublicationsToTheOneAsked(self):
         """--emit names one tree, as flags override files everywhere here."""
         manifest = os.path.join(self.root, "corpus.json")

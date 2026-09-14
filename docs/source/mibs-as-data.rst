@@ -505,14 +505,14 @@ repository:
      - Default
      - Use
    * - ``MIB_SOURCES``
-     - ``https://pysnmp.github.io/mibs/asn1/@mib@``
+     - ``https://data.mibsdepot.com/asn1/@mib@``
      - passed to ``compiler.addMibCompiler()``; pysmi compiles ASN.1 to pysnmp
        modules in process, per module, at runtime
    * - ``MIB_INDEX``
-     - ``https://pysnmp.github.io/mibs/index.csv``
+     - ``https://data.mibsdepot.com/index.csv``
      - parsed into ``mib_map`` as OID-to-module
    * - ``MIB_STANDARD``
-     - ``https://pysnmp.github.io/mibs/standard.txt``
+     - ``https://data.mibsdepot.com/standard.txt``
      - the standard module list
 
 ``is_mib_known()`` truncates the OID one arc at a time, longest prefix first,

@@ -723,5 +723,5 @@ either. ``LLDP-EXT-HM-MIB`` declares ORGANIZATION "Hirschmann Automation &
 Control"; it came across with the LLDP extension set and is recorded as
 ``source: hirschmann`` so that the exception is visible rather than buried.
 
-Everything left out remains available from https://pysnmp.github.io/mibs/asn1/,
+Everything left out remains available from https://data.mibsdepot.com/asn1/,
 which is where pysmi looks by default.
