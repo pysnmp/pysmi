@@ -97,7 +97,7 @@ class Crawl(NamedTuple):
     """What a distribution build declares about the site it is publishing."""
 
     #: The site's origin and path, without a trailing slash --
-    #: ``https://mibs.pysnmp.com``. Every canonical link and sitemap entry is
+    #: ``https://mibsdepot.com``. Every canonical link and sitemap entry is
     #: built from it. This is what makes a build a distribution site.
     base: str
 

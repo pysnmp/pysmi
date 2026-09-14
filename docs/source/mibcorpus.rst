@@ -388,7 +388,7 @@ Prose in the JSON
 -----------------
 
 A published jsondoc carries names, OIDs, syntax, access and status, and no
-prose. `IF-MIB.json <https://pysnmp.github.io/mibs/json/IF-MIB.json>`_ has no
+prose. `IF-MIB.json <https://data.mibsdepot.com/json/IF-MIB.json>`_ has no
 description on ``ifOperStatus``, though the module's text describes all seven
 of its enumerated states. Measured over a 300-file sample,
 ``DESCRIPTION``, ``REFERENCE`` and ``CONTACT-INFO`` are **38% of the text of a
@@ -802,8 +802,8 @@ publish a site claiming to live somewhere it does not.
 
    {
      "site": {
-       "base-url": "https://mibs.pysnmp.com",
-       "name": "pysnmp/mibs",
+       "base-url": "https://mibsdepot.com",
+       "name": "MIBs Depot",
        "description": "5,500 SNMP MIB modules from their publishers.",
        "crawl": {
          "*": {"disallow": ["asn1", "json", "index-v2", "core-db"]},
@@ -1047,7 +1047,7 @@ parallel job finished first.
 
 **Nothing is fetched.** Sources are local directories and packages, and no
 borrowers are configured. The old build passed
-``--mib-source=https://pysnmp.github.io/mibs/asn1/@mib@``, resolving missing
+``--mib-source=https://data.mibsdepot.com/asn1/@mib@``, resolving missing
 dependencies from its own last publish -- so the corpus was not reproducible
 from the repository alone, and a bad publish perpetuated itself. Measured
 against the published corpus, dropping that source costs nothing: everything

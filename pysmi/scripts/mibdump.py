@@ -28,7 +28,7 @@ from pysmi.compiler import (
     bundled_mib_names,
 )
 from pysmi.parser import SmiV1CompatParser
-from pysmi.reader import getReadersFromUrls
+from pysmi.reader import DEFAULT_MIB_SOURCES, getReadersFromUrls
 from pysmi.reader.base import AbstractReader
 from pysmi.searcher import (
     AnyFileSearcher,
@@ -817,7 +817,7 @@ def start() -> None:
             strictSourcesFlag = True
 
     if not mibSources:
-        mibSources = ["https://pysnmp.github.io:443/mibs/asn1/@mib@"]
+        mibSources = list(DEFAULT_MIB_SOURCES)
 
     if inputMibs:
         mibSources = (

@@ -73,7 +73,7 @@ methods are supported -- a URL of any other scheme is rejected:
 * HTTP/HTTPS. A fully specified URL where MIB module name is specified by
   a @mib@ placeholder. When specific MIB is looked up, PySMI will replace
   that placeholder with MIB module name it is looking for. 
-  Example: `https://pysnmp.github.io/mibs/asn1/@mib@ <https://pysnmp.github.io/mibs/asn1>`_
+  Example: ``https://data.mibsdepot.com/asn1/@mib@``
 
 When trying to fetch a MIB module, the *mibcopy* tool will try each of
 configured --mib-source transports in order of specification till 
@@ -82,7 +82,8 @@ first successful hit.
 By default *mibcopy* will search:
 
 * file:///usr/share/snmp
-* https://pysnmp.github.io/mibs/asn1/@mib@
+* https://data.mibsdepot.com/asn1/@mib@
+* https://pysnmp.github.io/mibs/asn1/@mib@, if the first does not answer
 
 Once another --mib-source option is given, those defaults will not be used
 and should be manually given to *mibcopy* if needed.

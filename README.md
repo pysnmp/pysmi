@@ -75,7 +75,7 @@ the reason the [MIB distribution](https://pysnmp.github.io/mibs/channels.html)
 gives.
 
 JSON document build from
-[IF-MIB module](https://pysnmp.github.io/mibs/asn1/IF-MIB)
+[IF-MIB module](https://mibsdepot.com/mib/IF-MIB/)
 would hold information such as:
 
 ```
@@ -127,15 +127,15 @@ would hold information such as:
 
 In general, converted MIBs capture all aspects of original (ASN.1) MIB contents
 and layout. The snippet above is just a partial example, but here is the
-complete [IF-MIB.json](https://pysnmp.github.io/mibs/json/IF-MIB.json)
+complete [IF-MIB.json](https://data.mibsdepot.com/json/IF-MIB.json)
 file.
 
 Besides one-to-one MIB conversion, PySMI library can produce JSON index to
 facilitate fast MIB information lookup across large collection of MIB files.
 For example, JSON index for
-[IP-MIB.json](https://pysnmp.github.io/mibs/json/IP-MIB.json),
-[TCP-MIB.json](https://pysnmp.github.io/mibs/json/TCP-MIB.json) and
-[UDP-MIB.json](https://pysnmp.github.io/mibs/json/UDP-MIB.json)
+[IP-MIB.json](https://data.mibsdepot.com/json/IP-MIB.json),
+[TCP-MIB.json](https://data.mibsdepot.com/json/TCP-MIB.json) and
+[UDP-MIB.json](https://data.mibsdepot.com/json/UDP-MIB.json)
 modules would keep information like this:
 
 ```
@@ -190,7 +190,7 @@ With this example, *compliance* and *identity* keys point to
 list top-level OIDs branches defined in MIB modules.
 
 The published distribution no longer carries a JSON index of its own. What it
-publishes is [`index-v2.csv`](https://pysnmp.github.io/mibs/index-v2.csv), OID
+publishes is [`index-v2.csv`](https://data.mibsdepot.com/index-v2.csv), OID
 to module, and `core.db`, which answers per node rather than per module — see
 [the MIB distribution](https://pysnmp.github.io/mibs/channels.html).
 

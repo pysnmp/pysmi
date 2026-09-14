@@ -81,7 +81,7 @@ The SNMP SMI library software is distributed under 2-clause BSD License.
 MIB files archive
 -----------------
 
-The PySMI project maintains a `collection <https://pysnmp.github.io/mibs/asn1>`_
+The PySMI project maintains a `collection <https://mibsdepot.com/browse/>`_
 of publicly available ASN.1 MIB files collected on the Internet. You are
 welcome to use this MIBs archive however we can't guarantee any degree
 of consistency or reliability when it comes to these MIB modules.
