@@ -1043,6 +1043,31 @@ class CrawlTestCase(unittest.TestCase):
         self.assertIn("https://mibs.example/browse/", written)
         self.assertIn("https://mibs.example/asn1/", written)
 
+    def testBulkLinksTakeTheDataOriginWhereOneIsDeclared(self):
+        """Pages and files can be on two hosts. mibsdepot.com resolves a
+        directory URL to its index.html and data.mibsdepot.com does not, so a
+        build that wrote every link against one origin would publish three
+        bulk links that 404."""
+        self.build(
+            crawl=Crawl(
+                base="https://mibs.example",
+                data="https://data.mibs.example",
+                description="A corpus of MIB modules.",
+            )
+        )
+        written = self.read("llms.txt")
+
+        self.assertIn("https://data.mibs.example/asn1/", written)
+        self.assertIn("https://data.mibs.example/json/", written)
+        self.assertIn("https://data.mibs.example/index-v2.csv", written)
+        # A page is always on the site's own origin, the sitemap included.
+        self.assertIn("https://mibs.example/browse/", written)
+        self.assertIn("https://mibs.example/sitemap.xml", written)
+        self.assertNotIn("https://mibs.example/asn1/", written)
+        # The canonical link describes a page, so the data origin never
+        # reaches one.
+        self.assertNotIn("data.mibs.example", self.read("sitemap.xml"))
+
     def testLlmsIsTitledForTheCorpusRatherThanItsDescription(self):
         report = build_site(
             self.out,
@@ -1087,6 +1112,19 @@ class CrawlHelperTestCase(unittest.TestCase):
         crawl = Crawl(base="https://x.example/")
 
         self.assertEqual("https://x.example/mib/A/", crawl.url("/mib/A/"))
+
+    def testADataUrlFallsBackToTheSiteOrigin(self):
+        """One origin serving both is the ordinary case, and a distribution
+        that declares no data-url must not lose its bulk links to an empty
+        string."""
+        crawl = Crawl(base="https://x.example")
+
+        self.assertEqual("https://x.example/asn1/", crawl.data_url("asn1/"))
+
+    def testADataUrlIsJoinedWithoutDoubledSlashes(self):
+        crawl = Crawl(base="https://x.example/", data="https://data.x.example/")
+
+        self.assertEqual("https://data.x.example/asn1/", crawl.data_url("/asn1/"))
 
 
 class PageSizeTestCase(unittest.TestCase):

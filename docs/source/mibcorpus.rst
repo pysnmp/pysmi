@@ -798,11 +798,20 @@ JSON-LD, ``sitemap.xml`` as an index, ``robots.txt`` and ``llms.txt``. Without
 it there is nothing to put in a canonical link, and guessing an origin would
 publish a site claiming to live somewhere it does not.
 
+``data-url`` is the second origin, for a distribution that serves its pages
+and its downloads from two hosts. This one does: a page URL is a directory
+that a host resolves to ``index.html``, and object storage serves the key it
+is given, so the pages and the files cannot share an origin without something
+on the serving path rewriting every request. Only the ``llms.txt`` bulk links
+read it. A canonical link and a sitemap entry describe a page, and a page is
+always on ``base-url``. Omitted, one origin serves both.
+
 .. code-block:: json
 
    {
      "site": {
        "base-url": "https://mibsdepot.com",
+       "data-url": "https://data.mibsdepot.com",
        "name": "MIBs Depot",
        "description": "5,500 SNMP MIB modules from their publishers.",
        "crawl": {
@@ -1047,7 +1056,7 @@ parallel job finished first.
 
 **Nothing is fetched.** Sources are local directories and packages, and no
 borrowers are configured. The old build passed
-``--mib-source=https://data.mibsdepot.com/asn1/@mib@``, resolving missing
+``--mib-source=https://pysnmp.github.io/mibs/asn1/@mib@``, resolving missing
 dependencies from its own last publish -- so the corpus was not reproducible
 from the repository alone, and a bad publish perpetuated itself. Measured
 against the published corpus, dropping that source costs nothing: everything

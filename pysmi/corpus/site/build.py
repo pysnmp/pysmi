@@ -458,10 +458,16 @@ def _write_crawl(
                 (
                     "Bulk data",
                     [
+                        # The sitemap is a statement about pages, so it stays
+                        # on the site's own origin. The three below are files,
+                        # and a distribution may serve those from another host.
                         ("Sitemap index", crawl.url("sitemap.xml")),
-                        ("ASN.1 sources, one file per module", crawl.url("asn1/")),
-                        ("jsondoc documents", crawl.url("json/")),
-                        ("OID index", crawl.url("index-v2.csv")),
+                        (
+                            "ASN.1 sources, one file per module",
+                            crawl.data_url("asn1/"),
+                        ),
+                        ("jsondoc documents", crawl.data_url("json/")),
+                        ("OID index", crawl.data_url("index-v2.csv")),
                     ],
                 ),
             ),

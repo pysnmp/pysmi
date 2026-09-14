@@ -82,6 +82,7 @@ def start() -> None:
         [--site-stylesheet=<FILE>]
         [--site-name=<NAME>]
         [--base-url=<URL>]
+        [--data-url=<URL>]
         [--site-description=<TEXT>]
         [--page-size=<COUNT>]
         [--no-bundled-mibs]
@@ -191,6 +192,14 @@ def start() -> None:
                 robots.txt and llms.txt. Without it there is nothing to
                 put in a canonical link, and guessing an origin would
                 publish a site claiming to live somewhere it does not.
+        --data-url - the origin the bulk artifacts are served from,
+                where that is not --base-url. The pysnmp corpus serves
+                its pages from one host and its files from another,
+                because a page URL is a directory that a host resolves
+                to index.html and object storage does not. Only the
+                llms.txt bulk links use it; a canonical link and a
+                sitemap entry describe a page, which is always on
+                --base-url. Omitted, one origin serves both.
         --site-description - one paragraph saying what this corpus is,
                 for llms.txt.
         --page-size - entries per page before a long list splits into
@@ -228,6 +237,7 @@ def start() -> None:
                 "site-stylesheet=",
                 "site-name=",
                 "base-url=",
+                "data-url=",
                 "site-description=",
                 "page-size=",
                 "parse-cache=",
@@ -246,6 +256,7 @@ def start() -> None:
     siteStylesheet: str | None = None
     siteName: str | None = None
     baseUrl: str | None = None
+    dataUrl: str | None = None
     siteDescription: str | None = None
     pageSize: int | dict[str, int] | None = None
 
@@ -319,6 +330,9 @@ def start() -> None:
 
         if opt[0] == "--base-url":
             baseUrl = opt[1]
+
+        if opt[0] == "--data-url":
+            dataUrl = opt[1]
 
         if opt[0] == "--site-description":
             siteDescription = opt[1]
@@ -416,6 +430,7 @@ def start() -> None:
     siteStylesheet = siteStylesheet or declared.get("stylesheet")
     siteName = siteName or declared.get("name")
     baseUrl = baseUrl or declared.get("base-url")
+    dataUrl = dataUrl or declared.get("data-url")
     siteDescription = siteDescription or declared.get("description")
 
     if pageSize is None:
@@ -457,6 +472,7 @@ def start() -> None:
         crawl = (
             Crawl(
                 base=baseUrl,
+                data=dataUrl or "",
                 description=siteDescription or "",
                 policy=declared.get("crawl") or {},
             )
