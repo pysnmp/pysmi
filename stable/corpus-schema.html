@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Corpus database schema - SNMP SMI compiler 4.1.1 documentation</title>
+        <title>Corpus database schema - SNMP SMI compiler 5.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 4.1.1 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.0.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 4.1.1 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.0.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -211,10 +211,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="mib-defects.html">Defects a patch repairs</a><input aria-label="Toggle navigation of Defects a patch repairs" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Corpus database schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibcompiler.html">MIB compiler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibstatus.html">Compilation status</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibresolution.html">Source resolution</a></li>
@@ -222,6 +225,15 @@
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html">OID index ranking</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html#precedence-vectors">Precedence vectors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/db.html">Corpus database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/closure.html">Import closures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/entity.html">Enterprise arcs and their registrants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/arcs.html">Arc names and where they come from</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/pages.html">The OID tree’s page inventory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/buckets.html">Bucketing a long list page</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/site.html">The browsable site</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="pysmi/registry.html">Published registries</a><input aria-label="Toggle navigation of Published registries" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/patches.html">MIB patches</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/reader/localfile/filereader.html">Local file reader</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/reader/zipreader/zipreader.html">ZIP archive reader</a></li>
@@ -340,15 +352,17 @@ this package. A reader should be writable from this page alone.</p>
 <li><p><a class="reference internal" href="#node" id="id9">node</a></p></li>
 <li><p><a class="reference internal" href="#symbol" id="id10">symbol</a></p></li>
 <li><p><a class="reference internal" href="#import" id="id11">import</a></p></li>
-<li><p><a class="reference internal" href="#oid-index" id="id12">oid_index</a></p></li>
+<li><p><a class="reference internal" href="#provenance" id="id12">provenance</a></p></li>
+<li><p><a class="reference internal" href="#oid-index" id="id13">oid_index</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#resolving-an-oid" id="id13">Resolving an OID</a></p></li>
-<li><p><a class="reference internal" href="#determinism" id="id14">Determinism</a></p></li>
-<li><p><a class="reference internal" href="#checking-a-build-before-publishing-it" id="id15">Checking a build before publishing it</a></p></li>
-<li><p><a class="reference internal" href="#proving-a-reader-conforms" id="id16">Proving a reader conforms</a></p></li>
-<li><p><a class="reference internal" href="#proving-the-precedence-rule-agrees" id="id17">Proving the precedence rule agrees</a></p></li>
-<li><p><a class="reference internal" href="#building-one" id="id18">Building one</a></p></li>
+<li><p><a class="reference internal" href="#resolving-an-oid" id="id14">Resolving an OID</a></p></li>
+<li><p><a class="reference internal" href="#determinism" id="id15">Determinism</a></p></li>
+<li><p><a class="reference internal" href="#checking-a-build-before-publishing-it" id="id16">Checking a build before publishing it</a></p></li>
+<li><p><a class="reference internal" href="#proving-a-reader-conforms" id="id17">Proving a reader conforms</a></p></li>
+<li><p><a class="reference internal" href="#proving-the-precedence-rule-agrees" id="id18">Proving the precedence rule agrees</a></p></li>
+<li><p><a class="reference internal" href="#profiles" id="id19">Profiles</a></p></li>
+<li><p><a class="reference internal" href="#building-one" id="id20">Building one</a></p></li>
 </ul>
 </nav>
 <section id="what-it-is-for">
@@ -382,6 +396,24 @@ nothing here invents one. Changes weekly.</p>
 </dl>
 <p>Conflating them would force a pysnmp release on every corpus rebuild, which is
 the mistake pysnmp/pysnmp#196 records.</p>
+<p>What each schema version added:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>v1</p></td>
+<td><p>The layout this page describes, less <code class="docutils literal notranslate"><span class="pre">provenance</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p>v2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">provenance</span></code>: which namespace supplied each module, which file was
+read, and that file’s digest. See pysnmp/pysmi#278.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>A reader gates on the version before it trusts a table, so a corpus written at
+one version is not read by a reader written for another. Both move together:
+<a class="reference internal" href="pysmi/corpus/db.html#module-pysmi.corpus.conformance" title="pysmi.corpus.conformance"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.conformance</span></code></a> carries a vector for everything a version
+added, and a consumer runs those vectors against its own reader.</p>
 <p>The file also carries <code class="docutils literal notranslate"><span class="pre">application_id</span></code> <code class="docutils literal notranslate"><span class="pre">0x50534D49</span></code> (<code class="docutils literal notranslate"><span class="pre">PSMI</span></code>), so a reader
 – or <code class="docutils literal notranslate"><span class="pre">file</span></code> – can tell a corpus from an unrelated database before trusting
 its tables.</p>
@@ -454,7 +486,9 @@ twenty lines and importing pysmi for them would defeat the point.</p>
 <td><p>Rows in <code class="docutils literal notranslate"><span class="pre">module</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nodes</span></code></p></td>
-<td><p>Rows in <code class="docutils literal notranslate"><span class="pre">node</span></code>.</p></td>
+<td><p>How many nodes the corpus defines. In a <code class="docutils literal notranslate"><span class="pre">search</span></code>
+database this is <strong>not</strong> the row count of <code class="docutils literal notranslate"><span class="pre">node</span></code>,
+which is zero; it stays a fact about the corpus.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">types</span></code></p></td>
 <td><p>Rows in <code class="docutils literal notranslate"><span class="pre">type</span></code>.</p></td>
@@ -462,10 +496,14 @@ twenty lines and importing pysmi for them would defeat the point.</p>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">texts</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">0</span></code>. Reserved: no build emits prose today.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">corpus_version</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tables</span></code></p></td>
+<td><p>Which profile wrote the file: <code class="docutils literal notranslate"><span class="pre">full</span></code> or <code class="docutils literal notranslate"><span class="pre">search</span></code>.
+Absent in a v2 file, which is always <code class="docutils literal notranslate"><span class="pre">full</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">corpus_version</span></code></p></td>
 <td><p>Present only when the build was given one.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">corpus_id</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">corpus_id</span></code></p></td>
 <td><p>Present only when the build was given one.</p></td>
 </tr>
 </tbody>
@@ -515,7 +553,10 @@ agree here.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nodes</span></code></p></td>
 <td><p>INTEGER</p></td>
-<td><p>How many rows this module has in <code class="docutils literal notranslate"><span class="pre">node</span></code>.</p></td>
+<td><p>How many nodes this module contributes to the
+corpus. In a <code class="docutils literal notranslate"><span class="pre">search</span></code> database that is <strong>not</strong>
+its row count in <code class="docutils literal notranslate"><span class="pre">node</span></code>, which is zero – see
+<a class="reference internal" href="#corpus-profiles"><span class="std std-ref">Profiles</span></a>.</p></td>
 </tr>
 </tbody>
 </table>
@@ -703,8 +744,58 @@ asks which module defines it.</p>
 </table>
 </div>
 </section>
+<section id="provenance">
+<h3><a class="toc-backref" href="#id12" role="doc-backlink">provenance</a><a class="headerlink" href="#provenance" title="Link to this heading">¶</a></h3>
+<p>Where each module came from. A build knows, for every module it publishes,
+which namespace supplied it, which file it read and what that file’s digest
+was; none of it used to survive the build, so nothing downstream could answer
+“where did this file come from and is it the vendor’s text” – which is the
+first question anyone asks of a MIB they did not publish.</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Column</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">module</span></code></p></td>
+<td><p>TEXT</p></td>
+<td><p>Primary key.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">namespace</span></code></p></td>
+<td><p>TEXT</p></td>
+<td><p>The namespace that supplied the copy that won. Two
+namespaces may be two directories under one root, so
+the path does not say it.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">file</span></code></p></td>
+<td><p>TEXT</p></td>
+<td><p>The file read, <strong>relative to that namespace’s root</strong>.
+Never absolute: this file is byte-reproducible, and a
+path carrying the directory a build happened to run in
+would end that.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">digest</span></code></p></td>
+<td><p>TEXT</p></td>
+<td><p>Digest of that file’s text, as PySMI’s
+<code class="docutils literal notranslate"><span class="pre">source_digest</span></code> computes it: <code class="docutils literal notranslate"><span class="pre">sha256:</span></code> and the hex,
+taken over normalised line endings, so a CRLF checkout
+hashes the same as the LF copy it was made from.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>A module may have no row here</strong>, and that is a different answer from a row
+of empty strings: it means the build did not record an origin for it. A reader
+rendering provenance must say so rather than showing blanks.</p>
+<p><code class="docutils literal notranslate"><span class="pre">shadowed</span></code> in the build report is the origin story for exactly the modules
+more than one namespace held a differing copy of, which is a small minority.
+This is the answer for the rest.</p>
+</section>
 <section id="oid-index">
-<h3><a class="toc-backref" href="#id12" role="doc-backlink">oid_index</a><a class="headerlink" href="#oid-index" title="Link to this heading">¶</a></h3>
+<h3><a class="toc-backref" href="#id13" role="doc-backlink">oid_index</a><a class="headerlink" href="#oid-index" title="Link to this heading">¶</a></h3>
 <p>The ranked OID projection – the same content as <code class="docutils literal notranslate"><span class="pre">index-v2.csv</span></code>, carried here
 so a consumer needs one file rather than two.</p>
 <div class="table-wrapper docutils container">
@@ -740,7 +831,7 @@ exact match.</p>
 </section>
 </section>
 <section id="resolving-an-oid">
-<h2><a class="toc-backref" href="#id13" role="doc-backlink">Resolving an OID</a><a class="headerlink" href="#resolving-an-oid" title="Link to this heading">¶</a></h2>
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">Resolving an OID</a><a class="headerlink" href="#resolving-an-oid" title="Link to this heading">¶</a></h2>
 <p>The whole access pattern, in the order a trap receiver runs it:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">find_module</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">oid</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Longest prefix of oid that the index resolves, and its module."""</span>
@@ -796,9 +887,13 @@ OIDs in practice. Measured at roughly 3 µs each on a corpus of the published
 size, so the whole chop is well inside any trap budget; the range scan
 alternative measures about the same, and neither is a reason to prefer one
 shape over the other.</p>
+<p>Every query above except <code class="docutils literal notranslate"><span class="pre">find_module</span></code> reads <code class="docutils literal notranslate"><span class="pre">node</span></code>, so a <code class="docutils literal notranslate"><span class="pre">search</span></code>
+database answers only that one – which is the one a browser asks. It
+navigates: to a module by name, or to whatever owns an OID. It does not search
+the corpus for a definition, because once it has the module it displays it.</p>
 </section>
 <section id="determinism">
-<h2><a class="toc-backref" href="#id14" role="doc-backlink">Determinism</a><a class="headerlink" href="#determinism" title="Link to this heading">¶</a></h2>
+<h2><a class="toc-backref" href="#id15" role="doc-backlink">Determinism</a><a class="headerlink" href="#determinism" title="Link to this heading">¶</a></h2>
 <p>Two builds of one source tree produce <strong>byte-identical</strong> files, which is what
 lets a corpus be content-addressed and a rebuild that changed nothing publish
 nothing.</p>
@@ -825,7 +920,7 @@ source tree differ – which is the property everything above is written to
 preserve.</p>
 </section>
 <section id="checking-a-build-before-publishing-it">
-<h2><a class="toc-backref" href="#id15" role="doc-backlink">Checking a build before publishing it</a><a class="headerlink" href="#checking-a-build-before-publishing-it" title="Link to this heading">¶</a></h2>
+<h2><a class="toc-backref" href="#id16" role="doc-backlink">Checking a build before publishing it</a><a class="headerlink" href="#checking-a-build-before-publishing-it" title="Link to this heading">¶</a></h2>
 <p><a class="reference internal" href="pysmi/corpus/db.html#pysmi.corpus.db.open_db" title="pysmi.corpus.db.open_db"><code class="xref py py-func docutils literal notranslate"><span class="pre">pysmi.corpus.db.open_db()</span></code></a> decides whether a file is a corpus at all:
 the <code class="docutils literal notranslate"><span class="pre">application_id</span></code>, a readable header, a schema version the reader
 implements. <a class="reference internal" href="pysmi/corpus/db.html#pysmi.corpus.db.validate" title="pysmi.corpus.db.validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">pysmi.corpus.db.validate()</span></code></a> asks the question that one
@@ -855,7 +950,7 @@ corpus. Over pysnmp/mibs’ 5,510 modules and 767,450 nodes it is one indexed
 pass, measured at 17 seconds.</p>
 </section>
 <section id="proving-a-reader-conforms">
-<h2><a class="toc-backref" href="#id16" role="doc-backlink">Proving a reader conforms</a><a class="headerlink" href="#proving-a-reader-conforms" title="Link to this heading">¶</a></h2>
+<h2><a class="toc-backref" href="#id17" role="doc-backlink">Proving a reader conforms</a><a class="headerlink" href="#proving-a-reader-conforms" title="Link to this heading">¶</a></h2>
 <p><a class="reference internal" href="pysmi/corpus/db.html#module-pysmi.corpus.conformance" title="pysmi.corpus.conformance"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.conformance</span></code></a> publishes a small fixed corpus and the
 answers a reader of it must give. It exists because the contract between the
 two repositories is data: pysnmp’s reader is correct or not in a repository
@@ -900,7 +995,7 @@ bump fails until someone has been through the vectors, which is the point at
 which a v2 either gains vectors for what it added or says why it did not.</p>
 </section>
 <section id="proving-the-precedence-rule-agrees">
-<h2><a class="toc-backref" href="#id17" role="doc-backlink">Proving the precedence rule agrees</a><a class="headerlink" href="#proving-the-precedence-rule-agrees" title="Link to this heading">¶</a></h2>
+<h2><a class="toc-backref" href="#id18" role="doc-backlink">Proving the precedence rule agrees</a><a class="headerlink" href="#proving-the-precedence-rule-agrees" title="Link to this heading">¶</a></h2>
 <p>“Newest MODULE-IDENTITY revision wins, configured order breaks ties only” is
 implemented three times, in two repositories that cannot import each other.
 pysmi ranks a module found in several sources
@@ -939,18 +1034,100 @@ would break the other fails in whichever project moved, rather than surfacing
 much later as a trap decoded against the wrong definition. See
 pysnmp/pysmi#248.</p>
 </section>
+<section id="profiles">
+<span id="corpus-profiles"></span><h2><a class="toc-backref" href="#id19" role="doc-backlink">Profiles</a><a class="headerlink" href="#profiles" title="Link to this heading">¶</a></h2>
+<p>One schema, written at two sizes. <code class="docutils literal notranslate"><span class="pre">meta.tables</span></code> says which.</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">full</span></code></dt><dd><p>Every table. What <code class="docutils literal notranslate"><span class="pre">--emit=core-db</span></code> writes, and what pysnmp reads: the
+whole SMI model, laid out for lookup.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">search</span></code></dt><dd><p>Everything except <code class="docutils literal notranslate"><span class="pre">node</span></code> and the <code class="docutils literal notranslate"><span class="pre">type</span></code> table it references. What
+<code class="docutils literal notranslate"><span class="pre">--emit=search-db</span></code> writes, for a consumer that needs to know <em>which
+module</em> and never <em>what the object is</em> – a browser querying the corpus
+over HTTP range requests (pysnmp/pysmi#293).</p>
+</dd>
+</dl>
+<p>The schema is identical: the same tables, the same columns, the same queries.
+The difference is which come back empty, which is why <code class="docutils literal notranslate"><span class="pre">meta.tables</span></code> exists
+– an empty <code class="docutils literal notranslate"><span class="pre">node</span></code> has to read as a choice rather than as a corpus that
+parsed nothing. Two consequences for a reader:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">meta.nodes</span></code> and <code class="docutils literal notranslate"><span class="pre">module.nodes</span></code> state what the corpus defines either
+way. They are not row counts of <code class="docutils literal notranslate"><span class="pre">node</span></code> in a <code class="docutils literal notranslate"><span class="pre">search</span></code> database.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">symbol.type</span></code> is NULL in a <code class="docutils literal notranslate"><span class="pre">search</span></code> database, because the <code class="docutils literal notranslate"><span class="pre">type</span></code>
+table it references is empty. A NULL there means “not carried”, not “this
+symbol has no type”.</p></li>
+</ul>
+<p>Why the split is worth having, measured over pysnmp/mibs with <code class="docutils literal notranslate"><span class="pre">dbstat</span></code>:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"></th>
+<th class="head"></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">node</span></code></p></td>
+<td><p>124.2 MB</p></td>
+<td><p>–</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">node_by_name</span></code>, <code class="docutils literal notranslate"><span class="pre">node_by_module</span></code></p></td>
+<td><p>98.4 MB</p></td>
+<td><p>–</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">type</span></code> and its unique index</p></td>
+<td><p>17.7 MB</p></td>
+<td><p>–</p></td>
+</tr>
+<tr class="row-odd"><td><p>everything else</p></td>
+<td><p>15.4 MB</p></td>
+<td><p>15.4 MB</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>file</strong></p></td>
+<td><p><strong>256 MB</strong></p></td>
+<td><p><strong>15 MB</strong></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Dropping the descriptive columns instead would not have done it: of <code class="docutils literal notranslate"><span class="pre">node</span></code>’s
+108.5 MB of payload the identity columns – <code class="docutils literal notranslate"><span class="pre">oid_key</span></code>, <code class="docutils literal notranslate"><span class="pre">module</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>,
+<code class="docutils literal notranslate"><span class="pre">oid</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code> – are 84.5 MB and everything describing the object is
+24.1. The cost is a row per definition, not what each row says.</p>
+<p>Nor does <code class="docutils literal notranslate"><span class="pre">search</span></code> carry an index of every definition’s name, which would be
+780,000 rows and 47 MB. A browser searches in order to <strong>navigate</strong> – to a
+module, or to whatever owns an OID – and then displays the module it landed
+on. Searching the corpus for a single field is not a thing a browser does, and
+the module’s own page answers it by being a page.</p>
+<p><strong>A profile does not move the schema version.</strong> The tables and the columns are
+identical, so every query a reader has means what it meant. The consequence to
+know is that a reader which does not know <code class="docutils literal notranslate"><span class="pre">meta.tables</span></code> reads a <code class="docutils literal notranslate"><span class="pre">search</span></code>
+file as a corpus with no nodes – which is why it is written as <code class="docutils literal notranslate"><span class="pre">search.db</span></code>
+and never published under the name <code class="docutils literal notranslate"><span class="pre">core.db</span></code>.</p>
+</section>
 <section id="building-one">
-<h2><a class="toc-backref" href="#id18" role="doc-backlink">Building one</a><a class="headerlink" href="#building-one" title="Link to this heading">¶</a></h2>
+<h2><a class="toc-backref" href="#id20" role="doc-backlink">Building one</a><a class="headerlink" href="#building-one" title="Link to this heading">¶</a></h2>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--output-directory<span class="o">=</span>output<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--emit<span class="o">=</span>core-db<span class="w"> </span>--emit<span class="o">=</span>json:build/scratch-jsondoc
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">core-db</span></code> is not in the default artifact layout: building it costs a pass
-nothing else needs, so it is asked for by name. It is a projection of the
-jsondoc tree, exactly as the two indexes are, so a build asking for it has to
-emit <code class="docutils literal notranslate"><span class="pre">json</span></code> as well – to a scratch path outside the corpus when the corpus
-is not meant to carry the JSON.</p>
+<p>Neither <code class="docutils literal notranslate"><span class="pre">core-db</span></code> nor <code class="docutils literal notranslate"><span class="pre">search-db</span></code> is in the default artifact layout:
+building one costs a pass nothing else needs, so it is asked for by name. Both
+are projections of the jsondoc tree, exactly as the two indexes are, but the
+dependency is pysmi’s own: a build asking for a database and not for <code class="docutils literal notranslate"><span class="pre">json</span></code>
+gets a tree staged for the duration and removed afterwards, raise or return.
+Emit <code class="docutils literal notranslate"><span class="pre">json</span></code> only to <em>keep</em> the tree, with a path of its own to say where it
+goes.</p>
+<p>Asking for both in one build shares the expensive half. Each database is its
+own pass over the jsondoc documents, but compiling those documents – which is
+most of a build – happens once:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output-directory<span class="o">=</span>output<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--emit<span class="o">=</span>core-db<span class="w"> </span>--emit<span class="o">=</span>search-db<span class="w"> </span>--emit<span class="o">=</span>json:build/scratch-jsondoc
+</pre></div>
+</div>
 </section>
 </section>
 
@@ -1020,6 +1197,7 @@ is not meant to carry the JSON.</p>
 <li><a class="reference internal" href="#node">node</a></li>
 <li><a class="reference internal" href="#symbol">symbol</a></li>
 <li><a class="reference internal" href="#import">import</a></li>
+<li><a class="reference internal" href="#provenance">provenance</a></li>
 <li><a class="reference internal" href="#oid-index">oid_index</a></li>
 </ul>
 </li>
@@ -1028,6 +1206,7 @@ is not meant to carry the JSON.</p>
 <li><a class="reference internal" href="#checking-a-build-before-publishing-it">Checking a build before publishing it</a></li>
 <li><a class="reference internal" href="#proving-a-reader-conforms">Proving a reader conforms</a></li>
 <li><a class="reference internal" href="#proving-the-precedence-rule-agrees">Proving the precedence rule agrees</a></li>
+<li><a class="reference internal" href="#profiles">Profiles</a></li>
 <li><a class="reference internal" href="#building-one">Building one</a></li>
 </ul>
 </li>
@@ -1040,7 +1219,7 @@ is not meant to carry the JSON.</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=58fc1558"></script>
+</div><script src="_static/documentation_options.js?v=b1b76d9c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

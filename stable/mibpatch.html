@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The mibpatch tool - SNMP SMI compiler 4.1.1 documentation</title>
+        <title>The mibpatch tool - SNMP SMI compiler 5.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 4.1.1 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.0.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 4.1.1 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.0.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -211,10 +211,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="mib-defects.html">Defects a patch repairs</a><input aria-label="Toggle navigation of Defects a patch repairs" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="corpus-schema.html">Corpus database schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibcompiler.html">MIB compiler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibstatus.html">Compilation status</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibresolution.html">Source resolution</a></li>
@@ -222,6 +225,15 @@
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html">OID index ranking</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html#precedence-vectors">Precedence vectors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/db.html">Corpus database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/closure.html">Import closures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/entity.html">Enterprise arcs and their registrants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/arcs.html">Arc names and where they come from</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/pages.html">The OID tree’s page inventory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/buckets.html">Bucketing a long list page</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/site.html">The browsable site</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="pysmi/registry.html">Published registries</a><input aria-label="Toggle navigation of Published registries" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/patches.html">MIB patches</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/reader/localfile/filereader.html">Local file reader</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/reader/zipreader/zipreader.html">ZIP archive reader</a></li>
@@ -362,8 +374,8 @@ parses each one, and writes <code class="docutils literal notranslate"><span cla
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>mibpatch<span class="w"> </span>--source<span class="w"> </span>./mibs<span class="w"> </span>--output-directory<span class="w"> </span>./mib-patches
 Read<span class="w"> </span><span class="m">214</span><span class="w"> </span>modules,<span class="w"> </span><span class="m">209</span><span class="w"> </span>needing<span class="w"> </span>nothing
 Repairs<span class="w"> </span>derived<span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="m">4</span><span class="w"> </span>modules:
-<span class="w"> </span>ACME-CHASSIS-MIB<span class="w"> </span><span class="o">(</span>TruthValue<span class="w"> </span>from<span class="w"> </span>SNMPv2-TC<span class="o">)</span>
-<span class="w"> </span>ACME-POWER-MIB<span class="w"> </span><span class="o">(</span>enterprises<span class="w"> </span>from<span class="w"> </span>SNMPv2-SMI<span class="o">)</span>
+<span class="w"> </span>ACME-CHASSIS-MIB<span class="w"> </span><span class="o">(</span>uses<span class="w"> </span>base-SMI<span class="w"> </span>symbols<span class="w"> </span>it<span class="w"> </span>does<span class="w"> </span>not<span class="w"> </span>import:<span class="w"> </span>TruthValue<span class="w"> </span>from<span class="w"> </span>SNMPv2-TC<span class="o">)</span>
+<span class="w"> </span>ACME-POWER-MIB<span class="w"> </span><span class="o">(</span>uses<span class="w"> </span>base-SMI<span class="w"> </span>symbols<span class="w"> </span>it<span class="w"> </span>does<span class="w"> </span>not<span class="w"> </span>import:<span class="w"> </span>enterprises<span class="w"> </span>from<span class="w"> </span>SNMPv2-SMI<span class="o">)</span>
 <span class="w"> </span>...
 No<span class="w"> </span>repair<span class="w"> </span>could<span class="w"> </span>be<span class="w"> </span>derived<span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="m">1</span><span class="w"> </span>modules,<span class="w"> </span>so<span class="w"> </span>a<span class="w"> </span>patch<span class="w"> </span><span class="k">for</span><span class="w"> </span>each<span class="w"> </span>has<span class="w"> </span>to<span class="w"> </span>be<span class="w"> </span>written<span class="w"> </span>by<span class="w"> </span>hand:
 <span class="w"> </span>ACME-LEGACY-MIB<span class="w"> </span><span class="o">(</span>Bad<span class="w"> </span>grammar<span class="w"> </span>near<span class="w"> </span>token<span class="w"> </span><span class="nb">type</span><span class="w"> </span>STRING,<span class="w"> </span>value<span class="w"> </span><span class="s2">"x"</span>,<span class="w"> </span>line<span class="w"> </span><span class="m">84</span><span class="o">)</span>
@@ -371,6 +383,45 @@ No<span class="w"> </span>repair<span class="w"> </span>could<span class="w"> </
 </div>
 <p>A patch is named after the module rather than the file it was found in, because
 that is what it is keyed by everywhere else. The sources are not touched.</p>
+</section>
+<section id="why-a-patch-exists">
+<h2>Why a patch exists<a class="headerlink" href="#why-a-patch-exists" title="Link to this heading">¶</a></h2>
+<p>A diff carries the correction. It does not name the defect – and the defect is
+what decides whether the patch should still be there, because a repair to text
+the publisher has since fixed should go, and a local preference dressed as a
+repair should never have been written. So every patch opens with the defect it
+repairs:</p>
+<div class="highlight-diff notranslate"><div class="highlight"><pre><span></span>Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
+
+<span class="gd">--- a/ACME-CHASSIS-MIB</span>
+<span class="gi">+++ b/ACME-CHASSIS-MIB</span>
+<span class="gu">@@ -8,7 +8,7 @@</span>
+</pre></div>
+</div>
+<p>An identifier and the page documenting it, one <code class="docutils literal notranslate"><span class="pre">Defect:</span></code> line each – a patch
+may repair more than one. The explanation lives once, on <a class="reference internal" href="mib-defects.html#mib-defects"><span class="std std-ref">Defects a patch repairs</span></a>,
+rather than being written out again in every patch that repairs the same kind of
+thing.</p>
+<p>This is a convention over the format rather than a change to it:
+<a class="reference internal" href="pysmi/patches.html#pysmi.patches.parse_patch" title="pysmi.patches.parse_patch"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_patch()</span></code></a> ignores everything above the first <code class="docutils literal notranslate"><span class="pre">&#64;&#64;</span></code>,
+and so does GNU <code class="docutils literal notranslate"><span class="pre">patch</span></code>, so a headed patch is readable by every tool that
+reads a diff and a patch written without a header stays valid. An identifier
+PySMI does not know is read the same way, so a tree with its own catalogue
+points at its own page.</p>
+<p>The tool writes the identifier for a repair it derived, since a derived repair
+knows its own defect exactly – always <code class="docutils literal notranslate"><span class="pre">SMI-MISSING-IMPORT</span></code>, that being the
+one defect a correction can be decided for. A header edited by hand is kept when
+the patch is regenerated, and <code class="docutils literal notranslate"><span class="pre">--check</span></code> compares diffs rather than headers for
+the same reason: classifying a defect better does not make a patch stale.</p>
+<p>Reading one back:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pysmi.patches</span><span class="w"> </span><span class="kn">import</span> <span class="n">PatchSet</span>
+
+<span class="n">patches</span> <span class="o">=</span> <span class="n">PatchSet</span><span class="o">.</span><span class="n">from_directory</span><span class="p">(</span><span class="s2">"./mib-patches"</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">defect</span> <span class="ow">in</span> <span class="n">patches</span><span class="o">.</span><span class="n">defects_for</span><span class="p">(</span><span class="s2">"ACME-CHASSIS-MIB"</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">defect</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">defect</span><span class="o">.</span><span class="n">url</span><span class="p">)</span>
+</pre></div>
+</div>
 </section>
 <section id="what-can-and-cannot-be-derived">
 <h2>What can and cannot be derived<a class="headerlink" href="#what-can-and-cannot-be-derived" title="Link to this heading">¶</a></h2>
@@ -518,6 +569,7 @@ why it is drawn where it is.</p>
             <ul>
 <li><a class="reference internal" href="#">The <em>mibpatch</em> tool</a><ul>
 <li><a class="reference internal" href="#writing-the-repairs-down">Writing the repairs down</a></li>
+<li><a class="reference internal" href="#why-a-patch-exists">Why a patch exists</a></li>
 <li><a class="reference internal" href="#what-can-and-cannot-be-derived">What can and cannot be derived</a></li>
 <li><a class="reference internal" href="#applying-them">Applying them</a></li>
 <li><a class="reference internal" href="#keeping-them-honest">Keeping them honest</a></li>
@@ -535,7 +587,7 @@ why it is drawn where it is.</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=58fc1558"></script>
+</div><script src="_static/documentation_options.js?v=b1b76d9c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

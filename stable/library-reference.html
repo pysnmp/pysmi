@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>PySMI library - SNMP SMI compiler 4.1.1 documentation</title>
+        <title>PySMI library - SNMP SMI compiler 5.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 4.1.1 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.0.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 4.1.1 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.0.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -211,10 +211,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="mib-defects.html">Defects a patch repairs</a><input aria-label="Toggle navigation of Defects a patch repairs" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="corpus-schema.html">Corpus database schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
-<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">PySMI library</a><input aria-label="Toggle navigation of PySMI library" checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">PySMI library</a><input aria-label="Toggle navigation of PySMI library" checked="" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibcompiler.html">MIB compiler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibstatus.html">Compilation status</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibresolution.html">Source resolution</a></li>
@@ -222,6 +225,15 @@
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html">OID index ranking</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html#precedence-vectors">Precedence vectors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/db.html">Corpus database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/closure.html">Import closures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/entity.html">Enterprise arcs and their registrants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/arcs.html">Arc names and where they come from</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/pages.html">The OID tree’s page inventory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/buckets.html">Bucketing a long list page</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/site.html">The browsable site</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="pysmi/registry.html">Published registries</a><input aria-label="Toggle navigation of Published registries" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/patches.html">MIB patches</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/reader/localfile/filereader.html">Local file reader</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/reader/zipreader/zipreader.html">ZIP archive reader</a></li>
@@ -332,7 +344,7 @@ and manages the workflow of ASN.1 MIB transformation.</p>
 
 <span class="n">inputMibs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'IF-MIB'</span><span class="p">,</span> <span class="s1">'IP-MIB'</span><span class="p">]</span>
 
-<span class="n">httpSources</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'https://pysnmp.github.io/mibs/asn1/@mib@'</span><span class="p">]</span>
+<span class="n">httpSources</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'https://data.mibsdepot.com/asn1/@mib@'</span><span class="p">]</span>
 
 <span class="c1"># store compiled MIBs by calling this function</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">store_mibs</span><span class="p">(</span><span class="n">mibName</span><span class="p">,</span> <span class="n">jsonDoc</span><span class="p">,</span> <span class="n">cbCtx</span><span class="p">):</span>
@@ -379,6 +391,7 @@ and manages the workflow of ASN.1 MIB transformation.</p>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/index.html#pysmi.corpus.index.ANCHOR_RANK"><code class="docutils literal notranslate"><span class="pre">ANCHOR_RANK</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/index.html#pysmi.corpus.index.ANCHOR_RANK_FALLBACK"><code class="docutils literal notranslate"><span class="pre">ANCHOR_RANK_FALLBACK</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/index.html#pysmi.corpus.index.OBJECT_CLASSES"><code class="docutils literal notranslate"><span class="pre">OBJECT_CLASSES</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/index.html#pysmi.corpus.index.anchor_index"><code class="docutils literal notranslate"><span class="pre">anchor_index()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/index.html#pysmi.corpus.index.arcs"><code class="docutils literal notranslate"><span class="pre">arcs()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/index.html#pysmi.corpus.index.merge_frozen"><code class="docutils literal notranslate"><span class="pre">merge_frozen()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/index.html#pysmi.corpus.index.module_rank"><code class="docutils literal notranslate"><span class="pre">module_rank()</span></code></a></li>
@@ -406,11 +419,114 @@ and manages the workflow of ASN.1 MIB transformation.</p>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/db.html#conformance">Conformance</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/corpus/closure.html">Import closures</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/closure.html#pysmi.corpus.closure.Closure"><code class="docutils literal notranslate"><span class="pre">Closure</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/closure.html#pysmi.corpus.closure.SCHEMA_VERSION"><code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSION</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/closure.html#pysmi.corpus.closure.as_document"><code class="docutils literal notranslate"><span class="pre">as_document()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/closure.html#pysmi.corpus.closure.closures"><code class="docutils literal notranslate"><span class="pre">closures()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/closure.html#pysmi.corpus.closure.counts"><code class="docutils literal notranslate"><span class="pre">counts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/closure.html#pysmi.corpus.closure.imported"><code class="docutils literal notranslate"><span class="pre">imported()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/closure.html#pysmi.corpus.closure.render_closure"><code class="docutils literal notranslate"><span class="pre">render_closure()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/corpus/entity.html">Enterprise arcs and their registrants</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#owner-contact">Owner contact</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.Contact"><code class="docutils literal notranslate"><span class="pre">Contact</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.Entity"><code class="docutils literal notranslate"><span class="pre">Entity</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.MODULE"><code class="docutils literal notranslate"><span class="pre">MODULE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.REGISTRY"><code class="docutils literal notranslate"><span class="pre">REGISTRY</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.SCHEMA_VERSION"><code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSION</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.as_document"><code class="docutils literal notranslate"><span class="pre">as_document()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.counts"><code class="docutils literal notranslate"><span class="pre">counts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.enterprise_of"><code class="docutils literal notranslate"><span class="pre">enterprise_of()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.entities"><code class="docutils literal notranslate"><span class="pre">entities()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.module_contact"><code class="docutils literal notranslate"><span class="pre">module_contact()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/entity.html#pysmi.corpus.entity.render_entities"><code class="docutils literal notranslate"><span class="pre">render_entities()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/corpus/arcs.html">Arc names and where they come from</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#where-a-name-comes-from">Where a name comes from</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#scope">Scope</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.Arc"><code class="docutils literal notranslate"><span class="pre">Arc</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.MODULE"><code class="docutils literal notranslate"><span class="pre">MODULE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.REGISTRY"><code class="docutils literal notranslate"><span class="pre">REGISTRY</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.SCHEMA_VERSION"><code class="docutils literal notranslate"><span class="pre">SCHEMA_VERSION</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.STANDARD"><code class="docutils literal notranslate"><span class="pre">STANDARD</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.arcs"><code class="docutils literal notranslate"><span class="pre">arcs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.as_document"><code class="docutils literal notranslate"><span class="pre">as_document()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.counts"><code class="docutils literal notranslate"><span class="pre">counts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.descriptors"><code class="docutils literal notranslate"><span class="pre">descriptors()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.prefixes"><code class="docutils literal notranslate"><span class="pre">prefixes()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.render_arcs"><code class="docutils literal notranslate"><span class="pre">render_arcs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.unregistered"><code class="docutils literal notranslate"><span class="pre">unregistered()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/corpus/pages.html">The OID tree’s page inventory</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/pages.html#the-rule">The rule</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/pages.html#why-this-is-the-right-cut-rather-than-the-cheap-one">Why this is the right cut rather than the cheap one</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/pages.html#resolving-an-arc-that-has-no-page">Resolving an arc that has no page</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/pages.html#pysmi.corpus.pages.MODULE"><code class="docutils literal notranslate"><span class="pre">MODULE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/pages.html#pysmi.corpus.pages.OBJECT"><code class="docutils literal notranslate"><span class="pre">OBJECT</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/pages.html#pysmi.corpus.pages.Target"><code class="docutils literal notranslate"><span class="pre">Target</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/pages.html#pysmi.corpus.pages.counts"><code class="docutils literal notranslate"><span class="pre">counts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/pages.html#pysmi.corpus.pages.resolve"><code class="docutils literal notranslate"><span class="pre">resolve()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/pages.html#pysmi.corpus.pages.structural_arcs"><code class="docutils literal notranslate"><span class="pre">structural_arcs()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/corpus/buckets.html">Bucketing a long list page</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#why-not-first-letters">Why not first letters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#why-not-page-numbers">Why not page numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#what-this-does-instead">What this does instead</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#the-separator-is-ascii">The separator is ASCII</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#sorted-how">Sorted how</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.Bucket"><code class="docutils literal notranslate"><span class="pre">Bucket</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.ELLIPSIS"><code class="docutils literal notranslate"><span class="pre">ELLIPSIS</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.MINIMUM"><code class="docutils literal notranslate"><span class="pre">MINIMUM</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.RENDERED"><code class="docutils literal notranslate"><span class="pre">RENDERED</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.SEPARATOR"><code class="docutils literal notranslate"><span class="pre">SEPARATOR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.SIZE"><code class="docutils literal notranslate"><span class="pre">SIZE</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.abbreviate"><code class="docutils literal notranslate"><span class="pre">abbreviate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.buckets"><code class="docutils literal notranslate"><span class="pre">buckets()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.counts"><code class="docutils literal notranslate"><span class="pre">counts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.locate"><code class="docutils literal notranslate"><span class="pre">locate()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.parse_key"><code class="docutils literal notranslate"><span class="pre">parse_key()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.retired"><code class="docutils literal notranslate"><span class="pre">retired()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/buckets.html#pysmi.corpus.buckets.successors"><code class="docutils literal notranslate"><span class="pre">successors()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/corpus/site.html">The browsable site</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.ArcPage"><code class="docutils literal notranslate"><span class="pre">ArcPage</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.Definition"><code class="docutils literal notranslate"><span class="pre">Definition</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.EntityPage"><code class="docutils literal notranslate"><span class="pre">EntityPage</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.ModulePage"><code class="docutils literal notranslate"><span class="pre">ModulePage</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.PageSizes"><code class="docutils literal notranslate"><span class="pre">PageSizes</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.SiteReport"><code class="docutils literal notranslate"><span class="pre">SiteReport</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.Theme"><code class="docutils literal notranslate"><span class="pre">Theme</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.arc_pages"><code class="docutils literal notranslate"><span class="pre">arc_pages()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.build_site"><code class="docutils literal notranslate"><span class="pre">build_site()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.entity_page"><code class="docutils literal notranslate"><span class="pre">entity_page()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.imported_by"><code class="docutils literal notranslate"><span class="pre">imported_by()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.load_theme"><code class="docutils literal notranslate"><span class="pre">load_theme()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#pysmi.corpus.site.module_page"><code class="docutils literal notranslate"><span class="pre">module_page()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#module-pysmi.corpus.site.model">The page models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#module-pysmi.corpus.site.render">Rendering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#module-pysmi.corpus.site.crawl">The crawl surface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/corpus/site.html#module-pysmi.corpus.site.theme">Theming</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pysmi/registry.html">Published registries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/registry.html#module-pysmi.registry.pen">Private Enterprise Numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/registry.html#module-pysmi.registry.smi">SMI numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/registry.html#module-pysmi.registry.tree">The top of the tree, cited</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="pysmi/patches.html">MIB patches</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/patches.html#applying-a-patch-set">Applying a patch set</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/patches.html#reading-why-a-repair-exists">Reading why a repair exists</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/patches.html#deriving-one">Deriving one</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/patches.html#statuses">Statuses</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/patches.html#reading-and-applying">Reading and applying</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pysmi/patches.html#module-pysmi.defects">Defects</a></li>
 <li class="toctree-l2"><a class="reference internal" href="pysmi/patches.html#deriving">Deriving</a></li>
 </ul>
 </li>
@@ -426,7 +542,7 @@ and manages the workflow of ASN.1 MIB transformation.</p>
 <span class="n">mibCompiler</span><span class="o">.</span><span class="n">add_sources</span><span class="p">(</span><span class="n">HttpReader</span><span class="p">(</span><span class="n">url</span><span class="p">))</span>  <span class="c1"># the same thing, quietly</span>
 </pre></div>
 </div>
-<p>Calling the old name raises a <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#DeprecationWarning" title="(in Python v3.14)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">DeprecationWarning</span></code></a>, which Python hides
+<p>Calling the old name raises a <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#DeprecationWarning" title="(in Python v3.14)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">DeprecationWarning</span></code></a>, which Python hides
 by default. To see where your code still uses the old spelling, run it with
 warnings turned on:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">W</span> <span class="n">always</span><span class="p">::</span><span class="ne">DeprecationWarning</span> <span class="n">your_script</span><span class="o">.</span><span class="n">py</span>
@@ -807,7 +923,7 @@ deprecated in favour of <code class="docutils literal notranslate"><span class="
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=58fc1558"></script>
+</div><script src="_static/documentation_options.js?v=b1b76d9c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

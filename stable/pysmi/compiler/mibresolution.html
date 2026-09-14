@@ -8,7 +8,7 @@
         <link rel="prefetch" href="../../_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="../../_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Source resolution - SNMP SMI compiler 4.1.1 documentation</title>
+        <title>Source resolution - SNMP SMI compiler 5.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 4.1.1 documentation</div></a>
+      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 5.0.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="../../_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 4.1.1 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.0.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -211,10 +211,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../mib-defects.html">Defects a patch repairs</a><input aria-label="Toggle navigation of Defects a patch repairs" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../jsondoc-schema.html">JSON document schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../corpus-schema.html">Corpus database schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../mibs-as-data.html">MIBs as data: layering review</a></li>
-<li class="toctree-l2 current has-children"><a class="reference internal" href="../../library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../../library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" checked="" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="mibcompiler.html">MIB compiler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="mibstatus.html">Compilation status</a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Source resolution</a></li>
@@ -222,6 +225,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../corpus/index.html">OID index ranking</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../corpus/index.html#precedence-vectors">Precedence vectors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../corpus/db.html">Corpus database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../corpus/closure.html">Import closures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../corpus/entity.html">Enterprise arcs and their registrants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../corpus/arcs.html">Arc names and where they come from</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../corpus/pages.html">The OID tree’s page inventory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../corpus/buckets.html">Bucketing a long list page</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../corpus/site.html">The browsable site</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../registry.html">Published registries</a><input aria-label="Toggle navigation of Published registries" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../patches.html">MIB patches</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reader/localfile/filereader.html">Local file reader</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../reader/zipreader/zipreader.html">ZIP archive reader</a></li>
@@ -326,51 +338,62 @@ anything, so a build publishing the ASN.1 beside the compiled output can make
 the two agree by construction.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="pysmi.compiler.MibResolution">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">MibResolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">digest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">shadowed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precedence</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.compiler.MibResolution" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">MibResolution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">digest</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">shadowed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">precedence</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../extending.html#pysmi.reader.base.AbstractReader" title="pysmi.reader.base.AbstractReader"><span class="pre">AbstractReader</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pysmi.compiler.MibResolution" title="Link to this definition">¶</a></dt>
 <dd><p>Which copy of one MIB module a set of sources supplies.</p>
 <p>What <a class="reference internal" href="mibcompiler.html#pysmi.compiler.MibCompiler.resolve" title="pysmi.compiler.MibCompiler.resolve"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MibCompiler.resolve()</span></code></a> reports: the file that would be
 compiled, the ones passed over, and the rule that chose between them.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmi.compiler.MibResolution.data">
-<span class="sig-name descname"><span class="pre">data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.data" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">data</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.data" title="Link to this definition">¶</a></dt>
 <dd><p>Its ASN.1 text.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmi.compiler.MibResolution.digest">
-<span class="sig-name descname"><span class="pre">digest</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.digest" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">digest</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.digest" title="Link to this definition">¶</a></dt>
 <dd><p>Digest of that text, as <code class="docutils literal notranslate"><span class="pre">source_digest</span></code> computes it.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmi.compiler.MibResolution.file">
-<span class="sig-name descname"><span class="pre">file</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.file" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">file</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.file" title="Link to this definition">¶</a></dt>
 <dd><p>File name that copy was found under.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmi.compiler.MibResolution.name">
-<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.name" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.name" title="Link to this definition">¶</a></dt>
 <dd><p>The module name asked for.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmi.compiler.MibResolution.path">
-<span class="sig-name descname"><span class="pre">path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.path" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">path</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.compiler.MibResolution.path" title="Link to this definition">¶</a></dt>
 <dd><p>URL the copy that wins was read from.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmi.compiler.MibResolution.precedence">
-<span class="sig-name descname"><span class="pre">precedence</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.compiler.MibResolution.precedence" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">precedence</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></span><a class="headerlink" href="#pysmi.compiler.MibResolution.precedence" title="Link to this definition">¶</a></dt>
 <dd><p>Which rule put the winner first, one of the <code class="docutils literal notranslate"><span class="pre">PRECEDENCE_*</span></code>
 constants. Empty when only one source had the module.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="pysmi.compiler.MibResolution.shadowed">
-<span class="sig-name descname"><span class="pre">shadowed</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#pysmi.compiler.MibResolution.shadowed" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">shadowed</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">()</span></span><a class="headerlink" href="#pysmi.compiler.MibResolution.shadowed" title="Link to this definition">¶</a></dt>
 <dd><p>Paths of the copies passed over, where their content differed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pysmi.compiler.MibResolution.source">
+<span class="sig-name descname"><span class="pre">source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="../extending.html#pysmi.reader.base.AbstractReader" title="pysmi.reader.base.AbstractReader"><span class="pre">AbstractReader</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#pysmi.compiler.MibResolution.source" title="Link to this definition">¶</a></dt>
+<dd><p>The reader that supplied the winning copy, or <code class="docutils literal notranslate"><span class="pre">None</span></code> where the
+resolution was built without one. A caller that configured its sources
+knows what each one is for – a corpus build knows which namespace –
+and <code class="docutils literal notranslate"><span class="pre">path</span></code> alone does not say, since two namespaces can be two
+directories under one root. Identity is the lookup: this is the same
+object that was passed to <a class="reference internal" href="mibcompiler.html#pysmi.compiler.MibCompiler.add_sources" title="pysmi.compiler.MibCompiler.add_sources"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MibCompiler.add_sources()</span></code></a>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -383,7 +406,7 @@ pysnmp implements the same rule over its own candidates and
 kept private is a rule the vectors can only approximate.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="pysmi.compiler.rank_by_revision">
-<span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">rank_by_revision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">revisions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.compiler.rank_by_revision" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pysmi.compiler.</span></span><span class="sig-name descname"><span class="pre">rank_by_revision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">revisions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.14)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.14)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#pysmi.compiler.rank_by_revision" title="Link to this definition">¶</a></dt>
 <dd><p>Order candidate copies of one module, newest MODULE-IDENTITY first.</p>
 <p>The rule in one place, because it is implemented more than once and in
 more than one repository: <a class="reference internal" href="mibcompiler.html#pysmi.compiler.MibCompiler.resolve" title="pysmi.compiler.MibCompiler.resolve"><code class="xref py py-meth docutils literal notranslate"><span class="pre">resolve()</span></code></a>
@@ -512,6 +535,7 @@ errors defaults to ‘strict’.</p>
 <li><a class="reference internal" href="#pysmi.compiler.MibResolution.path"><code class="docutils literal notranslate"><span class="pre">MibResolution.path</span></code></a></li>
 <li><a class="reference internal" href="#pysmi.compiler.MibResolution.precedence"><code class="docutils literal notranslate"><span class="pre">MibResolution.precedence</span></code></a></li>
 <li><a class="reference internal" href="#pysmi.compiler.MibResolution.shadowed"><code class="docutils literal notranslate"><span class="pre">MibResolution.shadowed</span></code></a></li>
+<li><a class="reference internal" href="#pysmi.compiler.MibResolution.source"><code class="docutils literal notranslate"><span class="pre">MibResolution.source</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#the-rule-itself">The rule itself</a><ul>
@@ -532,7 +556,7 @@ errors defaults to ‘strict’.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=58fc1558"></script>
+</div><script src="../../_static/documentation_options.js?v=b1b76d9c"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

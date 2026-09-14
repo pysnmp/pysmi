@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The mibcorpus tool - SNMP SMI compiler 4.1.1 documentation</title>
+        <title>The mibcorpus tool - SNMP SMI compiler 5.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 4.1.1 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.0.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 4.1.1 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.0.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -211,10 +211,13 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="bundled-mibs.html">Bundled base MIBs</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="mib-defects.html">Defects a patch repairs</a><input aria-label="Toggle navigation of Defects a patch repairs" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="jsondoc-schema.html">JSON document schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="corpus-schema.html">Corpus database schema</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mibs-as-data.html">MIBs as data: layering review</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="library-reference.html">PySMI library</a><input aria-label="Toggle navigation of PySMI library" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibcompiler.html">MIB compiler</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibstatus.html">Compilation status</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/compiler/mibresolution.html">Source resolution</a></li>
@@ -222,6 +225,15 @@
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html">OID index ranking</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/index.html#precedence-vectors">Precedence vectors</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/db.html">Corpus database</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/closure.html">Import closures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/entity.html">Enterprise arcs and their registrants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/arcs.html">Arc names and where they come from</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/pages.html">The OID tree’s page inventory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/buckets.html">Bucketing a long list page</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pysmi/corpus/site.html">The browsable site</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="pysmi/registry.html">Published registries</a><input aria-label="Toggle navigation of Published registries" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="simple">
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/patches.html">MIB patches</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/reader/localfile/filereader.html">Local file reader</a></li>
 <li class="toctree-l3"><a class="reference internal" href="pysmi/reader/zipreader/zipreader.html">ZIP archive reader</a></li>
@@ -341,6 +353,7 @@ Usage: mibcorpus [--help]
       [--namespace=&lt;TIER&gt;:&lt;NAME&gt;:&lt;SOURCE&gt;]
       [--output-directory=&lt;DIRECTORY&gt;]
       [--frozen-index=&lt;FILE&gt;]
+      [--parse-cache=&lt;DIRECTORY&gt;]
       [--emit=&lt;ARTIFACT&gt;[:&lt;PATH&gt;]]
       [--corpus-version=&lt;VERSION&gt;]
       [--corpus-id=&lt;NAME&gt;]
@@ -468,7 +481,8 @@ the text it was compiled from. Its naming is a contract – see
 <td><p>pysnmp modules with them, in their original layout.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">json/</span></code></p></td>
-<td><p>jsondoc documents.</p></td>
+<td><p>jsondoc documents. Without DESCRIPTION and the other texts unless
+the build asks – see <a class="reference internal" href="#json-texts"><span class="std std-ref">Prose in the JSON</span></a>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">index-v2.csv</span></code></p></td>
 <td><p>The ranked OID index: for every OID, the one module that owns it.</p></td>
@@ -482,14 +496,30 @@ they already have.</p></td>
 <td><p>The modules from every <code class="docutils literal notranslate"><span class="pre">standard</span></code> namespace, less the <code class="docutils literal notranslate"><span class="pre">RFC*</span></code> and
 <code class="docutils literal notranslate"><span class="pre">SNMPv2*</span></code> prefixes the published file has never carried.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">report.json</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">closure.json</span></code></p></td>
+<td><p>Per module, the files a consumer needs in order to load it, and
+anything it needs that the corpus does not hold. See
+<a class="reference internal" href="#import-closure"><span class="std std-ref">The files a module needs</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">entity.json</span></code></p></td>
+<td><p>Which enterprise arcs the corpus registers under, who the registry
+says holds each, and who to report a problem to. Asked for by name,
+and wants <code class="docutils literal notranslate"><span class="pre">--oid-registry</span></code>. See <a class="reference internal" href="#entity-index"><span class="std std-ref">Who registered an arc</span></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">arcs.json</span></code></p></td>
+<td><p>What every arc the corpus reaches is called, and which authority says
+so. Asked for by name. See <a class="reference internal" href="#arc-names"><span class="std std-ref">What an arc is called</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">report.json</span></code></p></td>
 <td><p>What the build did: the failure inventory, the modules more than one
-namespace holds, the node counts, and how long each phase took.</p></td>
+namespace holds, the node counts, which JSON implementation wrote the
+artifacts, and how long each phase took.</p></td>
 </tr>
 </tbody>
 </table>
 </div>
-<p>One artifact is <strong>not</strong> in that layout and has to be asked for by name:</p>
+<p>The two databases and the site are <strong>not</strong> in that layout and have to be asked
+for by name:</p>
 <div class="table-wrapper colwidths-given docutils container">
 <table class="docutils align-default">
 <colgroup>
@@ -508,16 +538,39 @@ by OID and by name, and ordered for GETNEXT. See
 <a class="reference internal" href="corpus-schema.html"><span class="doc">Corpus database schema</span></a>. Building it costs a pass nothing else needs,
 which is why it is opt-in rather than part of the default layout.</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">search.db</span></code></p></td>
+<td><p>The same schema at a seventeenth the size: everything but <code class="docutils literal notranslate"><span class="pre">node</span></code>
+and the <code class="docutils literal notranslate"><span class="pre">type</span></code> table it references, for a consumer that needs to
+know which module and never what the object is. 15 MB against
+<code class="docutils literal notranslate"><span class="pre">core.db</span></code>’s 256 over the published corpus, which is what makes it
+something a site can publish. See <a class="reference internal" href="corpus-schema.html#corpus-schema"><span class="std std-ref">Corpus database schema</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">site/</span></code></p></td>
+<td><p>The corpus as pages: one per module, per registrant and per node of
+the registration tree. Asked for by name, since a corpus published as
+files rather than as a site has no use for it. See <a class="reference internal" href="#site"><span class="std std-ref">The browsable site</span></a>.</p></td>
+</tr>
 </tbody>
 </table>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">--emit</span></code> narrows this to the artifacts named, so a build can ask for just the
 index or just the JSON.</p>
-<p><code class="docutils literal notranslate"><span class="pre">core.db</span></code> and the two indexes are projections of the jsondoc tree, which is a
-dependency of pysmi’s own rather than of the caller’s: a build asking for one
-of them without asking for <code class="docutils literal notranslate"><span class="pre">json</span></code> gets a tree staged in a temporary directory
-and removed when the build ends, raise or return. The corpus carries what was
+<p>Both databases and the two indexes are projections of the jsondoc tree, which
+is a dependency of pysmi’s own rather than of the caller’s: a build asking for
+one of them without asking for <code class="docutils literal notranslate"><span class="pre">json</span></code> gets a tree staged in a temporary
+directory and removed when the build ends, raise or return. The corpus carries what was
 named and nothing else.</p>
+<p id="prose-tree">The site and the entity index read a tree with the texts in it. A module page
+carries each definition’s DESCRIPTION, and a registrant is named from the
+module’s own ORGANIZATION and CONTACT-INFO before the registry is consulted;
+<code class="docutils literal notranslate"><span class="pre">JsonCodeGen</span></code> gates all three behind one switch, so a lean tree holds none of
+them. A build rendering either gets a texts-carrying tree staged the same way
+– <strong>even where it named a lean one</strong>, since the lean tree cannot answer. That
+costs a render pass rather than a parse, since the parse is shared, and the
+tree the build publishes is untouched: a publisher asking for a lean <code class="docutils literal notranslate"><span class="pre">json</span></code>
+still gets a lean <code class="docutils literal notranslate"><span class="pre">json</span></code>.</p>
+<p>Over pysnmp/mibs the prose is 90.2 MB of the module pages, 85% of definitions
+carrying one. Emit <code class="docutils literal notranslate"><span class="pre">json-texts</span></code> to keep the tree that produced it.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span>--output-directory<span class="o">=</span>output<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--emit<span class="o">=</span>asn1<span class="w"> </span>--emit<span class="o">=</span>index-v2<span class="w"> </span>--emit<span class="o">=</span>core-db
 </pre></div>
@@ -526,6 +579,715 @@ named and nothing else.</p>
 goes.</p>
 <p>Every artifact but <code class="docutils literal notranslate"><span class="pre">report.json</span></code> is byte-reproducible. The report is the
 build’s log and records elapsed time.</p>
+</section>
+<section id="one-build-more-than-one-tree">
+<span id="corpus-publications"></span><h2>One build, more than one tree<a class="headerlink" href="#one-build-more-than-one-tree" title="Link to this heading">¶</a></h2>
+<p>A distribution is not always one tree. The same corpus goes out as the data a
+runtime fetches and as the pages a reader browses, and those may belong on
+different hosts with different limits. Building it twice parses every module
+twice to reach the same answer.</p>
+<p>A manifest declaring <code class="docutils literal notranslate"><span class="pre">publications</span></code> instead of <code class="docutils literal notranslate"><span class="pre">emit</span></code> says a build writes
+several trees:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"namespaces"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">"include"</span><span class="p">:</span><span class="w"> </span><span class="s2">"src/*"</span><span class="p">,</span><span class="w"> </span><span class="nt">"tier"</span><span class="p">:</span><span class="w"> </span><span class="s2">"vendor"</span><span class="p">}],</span>
+<span class="w">  </span><span class="nt">"publications"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"data"</span><span class="p">,</span><span class="w">  </span><span class="nt">"emit"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"asn1"</span><span class="p">,</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span><span class="w"> </span><span class="s2">"index-v2"</span><span class="p">],</span><span class="w"> </span><span class="nt">"output"</span><span class="p">:</span><span class="w"> </span><span class="s2">"data"</span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pages"</span><span class="p">,</span><span class="w"> </span><span class="nt">"emit"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"site"</span><span class="p">,</span><span class="w"> </span><span class="s2">"search-db"</span><span class="p">],</span><span class="w">        </span><span class="nt">"output"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pages"</span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Each publication names what it carries and where it goes, under
+<code class="docutils literal notranslate"><span class="pre">--output-directory</span></code>. The corpus is parsed once for all of them: the parse
+cache is shared across the plan, and parsing is about three quarters of a
+pass.</p>
+<p><code class="docutils literal notranslate"><span class="pre">emit</span></code> and <code class="docutils literal notranslate"><span class="pre">publications</span></code> are alternatives, not layers. A manifest
+declaring both is refused, because the artifacts would belong to no tree in
+particular and a reader could not tell which by looking. A publication naming
+no <code class="docutils literal notranslate"><span class="pre">output</span></code> writes into the build directory itself, which is the ordinary
+single-tree build said the long way.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--emit</span></code> on the command line collapses the plan to the one tree it names,
+as a flag overrides a file everywhere else here.</p>
+<p>Every publication is summarized and held to the manifest’s <code class="docutils literal notranslate"><span class="pre">expect</span></code>: a build
+that wrote two trees and checked one has not checked the build.</p>
+</section>
+<section id="keeping-the-parse-trees">
+<span id="corpus-parse-cache"></span><h2>Keeping the parse trees<a class="headerlink" href="#keeping-the-parse-trees" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">--parse-cache=&lt;DIRECTORY&gt;</span></code> keeps parse trees between runs, so a rebuild of
+a mostly unchanged corpus reparses only what changed. The key is the module’s
+own text together with the identity of the parser, so an unedited module keeps
+its entry and an edited one cannot match a stale tree. Without it the trees
+are held in memory and discarded with the process, which is right for a
+one-off build and wasteful for a nightly.</p>
+<p>It stores pickles, and reading one reconstructs arbitrary Python objects.
+Name a directory the build owns, never one written by anything you would not
+run, and never one shared across trust domains. A damaged, truncated or
+unreadable entry is a miss rather than an error: the cache is an optimisation
+and never a source of truth.</p>
+</section>
+<section id="how-the-json-is-written">
+<span id="corpus-json-encoding"></span><h2>How the JSON is written<a class="headerlink" href="#how-the-json-is-written" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">json/</span></code> and the JSON index are written compactly – one line per document,
+no space after a separator, UTF-8 written as itself rather than escaped. They
+are generated trees that nobody reads by eye, and indenting them costs about
+30% of the tree on disk: roughly 50 MB over a corpus the size of the one
+pysnmp/mibs publishes. Gzipped the difference is about 8%, because gzip
+already eats indentation, so this is a saving on a checkout, an image and a
+Pages site rather than on bandwidth.</p>
+<p><code class="docutils literal notranslate"><span class="pre">report.json</span></code> is not written that way and stays indented. It is the build’s
+log, read by a person looking at a failed build.</p>
+<p>A faster JSON implementation is used when one is installed:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'pysnmp-pysmi[fast]'</span>
+</pre></div>
+</div>
+<p>That pulls in orjson; msgspec is taken instead if a caller already has it.
+Either is worth about 4% of a build, because SMI parsing dominates everything
+else, which is why it is an extra rather than a dependency – 4% does not buy
+a wheel with a compiled extension in it for everyone.</p>
+<p><strong>What is installed does not change a published byte.</strong> The standard library
+is the reference, the faster encoders are used only where they agree with it,
+and <code class="docutils literal notranslate"><span class="pre">tests/test_jsonio.py</span></code> asserts that agreement over every document the
+bundled corpus produces rather than trusting that it holds. A build with the
+extra and one without are the same corpus. <code class="docutils literal notranslate"><span class="pre">report.json</span></code> records which
+implementation ran, as <code class="docutils literal notranslate"><span class="pre">json</span></code>, so two builds being compared can each say
+what they resolved.</p>
+</section>
+<section id="the-files-a-module-needs">
+<span id="import-closure"></span><h2>The files a module needs<a class="headerlink" href="#the-files-a-module-needs" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">core.db</span></code>’s <code class="docutils literal notranslate"><span class="pre">import</span></code> table holds the direct edges – this module imports
+that symbol from that module. The question consumers actually arrive with is
+the closure: <em>which files do I need in order to load this module?</em>
+<code class="docutils literal notranslate"><span class="pre">closure.json</span></code> answers it per module:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"meta"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"schema"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"modules"</span><span class="p">:</span><span class="w"> </span><span class="mi">5347</span><span class="p">,</span><span class="w"> </span><span class="nt">"incomplete"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"closure"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"IF-MIB"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"files"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"IANAifType-MIB"</span><span class="p">,</span><span class="w"> </span><span class="s2">"IF-MIB"</span><span class="p">,</span><span class="w"> </span><span class="s2">"SNMPv2-CONF"</span><span class="p">,</span>
+<span class="w">                </span><span class="s2">"SNMPv2-MIB"</span><span class="p">,</span><span class="w"> </span><span class="s2">"SNMPv2-SMI"</span><span class="p">,</span><span class="w"> </span><span class="s2">"SNMPv2-TC"</span><span class="p">],</span>
+<span class="w">      </span><span class="nt">"missing"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>(Re-indented to be read; the file is written on one line.)</p>
+<p>The build resolves every one of those edges in order to compile, so having
+each consumer re-walk a table to recover a fact the compiler established is
+the pattern this exists to avoid. Three arrive with the question: a page
+answering “the files you need”, anyone packaging a subset – an air-gapped
+install, an image carrying only what one product needs – and pysnmp,
+deciding what to preload.</p>
+<p>Two things the artifact settles rather than leaving to the caller:</p>
+<ul class="simple">
+<li><p><strong>A module is in its own closure.</strong> <code class="docutils literal notranslate"><span class="pre">IF-MIB</span></code> needs six files and one of
+them is <code class="docutils literal notranslate"><span class="pre">IF-MIB</span></code>. That makes the list directly usable as a file list,
+which is what most callers want.</p></li>
+<li><p><strong>A dependency the corpus does not hold is recorded, not dropped.</strong> It goes
+in <code class="docutils literal notranslate"><span class="pre">missing</span></code> rather than quietly out of <code class="docutils literal notranslate"><span class="pre">files</span></code>, so a caller can tell
+“this module needs nothing else” from “something it needs is not here”. A
+module is listed however deep it was reached from: a hole anywhere below a
+module is a hole for that module, which still cannot be loaded. The build
+report counts them, as <code class="docutils literal notranslate"><span class="pre">closure.incomplete</span></code>.</p></li>
+</ul>
+<p>The names are module names, which are the names of the files in <code class="docutils literal notranslate"><span class="pre">asn1/</span></code> –
+see <a class="reference internal" href="#asn1-naming"><span class="std std-ref">How the ASN.1 tree is named</span></a> – so a caller holding a closure holds the file list
+and can build the URLs itself.</p>
+</section>
+<section id="prose-in-the-json">
+<span id="json-texts"></span><h2>Prose in the JSON<a class="headerlink" href="#prose-in-the-json" title="Link to this heading">¶</a></h2>
+<p>A published jsondoc carries names, OIDs, syntax, access and status, and no
+prose. <a class="reference external" href="https://data.mibsdepot.com/json/IF-MIB.json">IF-MIB.json</a> has no
+description on <code class="docutils literal notranslate"><span class="pre">ifOperStatus</span></code>, though the module’s text describes all seven
+of its enumerated states. Measured over a 300-file sample,
+<code class="docutils literal notranslate"><span class="pre">DESCRIPTION</span></code>, <code class="docutils literal notranslate"><span class="pre">REFERENCE</span></code> and <code class="docutils literal notranslate"><span class="pre">CONTACT-INFO</span></code> are <strong>38% of the text of a
+MIB</strong> – a large part of the module the JSON rendering omits, and a consumer
+that wants it has to fetch and parse the ASN.1, which means a second SMI parser
+for prose the compiler already read.</p>
+<p><code class="docutils literal notranslate"><span class="pre">json-texts</span></code> is a jsondoc tree with the texts in it:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span>--output-directory<span class="o">=</span>output<span class="w"> </span>--emit<span class="o">=</span>json-texts
+</pre></div>
+</div>
+<p>That writes <code class="docutils literal notranslate"><span class="pre">json/</span></code> – one tree, carrying the prose, at one compile pass.</p>
+<p>It is a destination of its own rather than a flag on <code class="docutils literal notranslate"><span class="pre">json</span></code>, so a build may
+also have both:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span>--output-directory<span class="o">=</span>output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--emit<span class="o">=</span>json<span class="w"> </span>--emit<span class="o">=</span>json-texts:build/full
+</pre></div>
+</div>
+<p>which publishes the lean tree and keeps a complete one for something that needs
+the prose – a site generator rendering descriptions into its pages, say –
+without the published artifact growing. That is two passes, because it is two
+trees. Naming both at one path is refused: the second pass would overwrite the
+first, and which of them survived would depend on the order the emit list was
+read in.</p>
+<p>The texts cost roughly 70% more on disk: over pysnmp/mibs’ corpus <code class="docutils literal notranslate"><span class="pre">json/</span></code>
+goes from about 170 MB to about 290 MB. That is a decision for the build, which
+is the argument for asking rather than assuming, and <code class="docutils literal notranslate"><span class="pre">json-texts</span></code> is not in
+the default layout.</p>
+<p>What <code class="docutils literal notranslate"><span class="pre">genTexts</span></code> gates is more than descriptions:
+<code class="docutils literal notranslate"><span class="pre">JsonCodeGen.gen_module_identity</span></code> puts <code class="docutils literal notranslate"><span class="pre">organization</span></code> and <code class="docutils literal notranslate"><span class="pre">contactinfo</span></code>
+behind the same switch. <code class="docutils literal notranslate"><span class="pre">CISCO-ENTITY-ALARM-MIB</span></code> carries a full
+<code class="docutils literal notranslate"><span class="pre">CONTACT-INFO</span></code> block in its ASN.1 – Cisco Systems, Customer Service, a
+postal address, a phone number and <code class="docutils literal notranslate"><span class="pre">cs-snmp&#64;cisco.com</span></code> – and none of it
+reaches the published JSON. Over a 500-module sample, 90% of modules carry
+<code class="docutils literal notranslate"><span class="pre">ORGANIZATION</span></code> and <code class="docutils literal notranslate"><span class="pre">CONTACT-INFO</span></code>, and 66% of those carry an email. That is
+the publisher’s own statement of where to report a problem, and it is what
+<a class="reference internal" href="#"><span class="doc">The mibcorpus tool</span></a> cannot show a reader until this is turned on.</p>
+<p><code class="docutils literal notranslate"><span class="pre">keepTextsLayout</span></code> is not turned on with it. The two are separate for the
+pysnmp destinations and stay separate here: a JSON consumer generally wants the
+text normalised rather than the publisher’s line breaks preserved.</p>
+</section>
+<section id="who-registered-an-arc">
+<span id="entity-index"></span><h2>Who registered an arc<a class="headerlink" href="#who-registered-an-arc" title="Link to this heading">¶</a></h2>
+<p>A corpus knows that <code class="docutils literal notranslate"><span class="pre">CISCO-ENTITY-ALARM-MIB</span></code> registers under
+<code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code>. It does not know that <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code> is Cisco: nothing in
+the MIB text says so in a form anything can rely on, and the directory a file
+sits in is a filing convention rather than a registration. Over pysnmp/mibs the
+two disagree in practice – the <code class="docutils literal notranslate"><span class="pre">aironet</span></code> directory holds Cisco modules, and
+<code class="docutils literal notranslate"><span class="pre">src/vendor/cisco/ALTIGA-*</span></code> registers under Altiga’s arc.</p>
+<p>The registration is a published fact. <code class="docutils literal notranslate"><span class="pre">--oid-registry</span></code> supplies it and
+<code class="docutils literal notranslate"><span class="pre">--emit=entity</span></code> writes the projection:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span>--output-directory<span class="o">=</span>output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--emit<span class="o">=</span>entity<span class="w"> </span>--oid-registry<span class="o">=</span>pen-snapshot.csv
+</pre></div>
+</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"meta"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"schema"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"arcs"</span><span class="p">:</span><span class="w"> </span><span class="mi">351</span><span class="p">,</span><span class="w"> </span><span class="nt">"named"</span><span class="p">:</span><span class="w"> </span><span class="mi">350</span><span class="p">,</span><span class="w"> </span><span class="nt">"unregistered"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"entity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"1.3.6.1.4.1.9"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"number"</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"organization"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Cisco Systems, Inc."</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"modules"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"CISCO-AAA-CLIENT-MIB"</span><span class="p">,</span><span class="w"> </span><span class="s2">"..."</span><span class="p">],</span>
+<span class="w">      </span><span class="nt">"contacts"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"module"</span><span class="p">,</span><span class="w"> </span><span class="nt">"organization"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Cisco Systems, Inc."</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">"contact"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Cisco Systems\n Customer Service\n ..."</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">"email"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span><span class="w"> </span><span class="nt">"module"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CISCO-ENTITY-ALARM-MIB"</span><span class="p">,</span><span class="w"> </span><span class="nt">"authority"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">},</span>
+<span class="w">        </span><span class="p">{</span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"registry"</span><span class="p">,</span><span class="w"> </span><span class="nt">"organization"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Cisco Systems, Inc."</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">"contact"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Dave J"</span><span class="p">,</span><span class="w"> </span><span class="nt">"email"</span><span class="p">:</span><span class="w"> </span><span class="s2">"davej&amp;cisco.com"</span><span class="p">,</span><span class="w"> </span><span class="nt">"module"</span><span class="p">:</span><span class="w"> </span><span class="s2">""</span><span class="p">,</span>
+<span class="w">         </span><span class="nt">"authority"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://www.iana.org/assignments/enterprise-numbers#9"</span><span class="p">}</span>
+<span class="w">      </span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Measured over pysnmp/mibs: 351 distinct enterprise arcs, 350 of them named by
+the registry, against 290 vendor directories. Those two numbers are the
+argument for driving navigation from the registry rather than from the tree.</p>
+<p><strong>An arc the registry does not name is reported as unregistered, never guessed
+at.</strong> pysnmp/mibs has exactly one, <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.1004849</span></code>, above anything IANA
+has allocated. The build report counts them, as <code class="docutils literal notranslate"><span class="pre">entity.unregistered</span></code>.</p>
+<p>The index groups by <strong>arc</strong>, not by company. The registry maps arcs to
+registrants and a company can hold several: Cisco modules sit under
+<code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code> and, from the Altiga acquisition, under
+<code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.3076</span></code>, which IANA still lists as “Altiga Networks, Inc.”.
+Nothing in the registry models an acquisition and PySMI does not infer one.</p>
+<p><code class="docutils literal notranslate"><span class="pre">entity.json</span></code> is not in the default layout: it is only worth having with a
+registry to name its arcs, and that is an input the caller supplies.</p>
+<section id="owner-contact">
+<h3>Owner contact<a class="headerlink" href="#owner-contact" title="Link to this heading">¶</a></h3>
+<p>Each arc carries who to report a problem to, best source first, each naming its
+source so a reader can weigh a vendor’s current support address against an
+undated registration:</p>
+<ol class="arabic simple">
+<li><p><strong>The module’s own ``CONTACT-INFO``</strong> – a corporate block with a role
+mailbox, and the publisher’s current statement of where to report a
+problem. It reaches the corpus only when the build carries texts, since
+<code class="docutils literal notranslate"><span class="pre">JsonCodeGen</span></code> gates <code class="docutils literal notranslate"><span class="pre">organization</span></code> and <code class="docutils literal notranslate"><span class="pre">contactinfo</span></code> behind the same
+switch as <code class="docutils literal notranslate"><span class="pre">description</span></code> – see pysnmp/pysmi#277. Where an arc has
+many modules, the one with the newest <code class="docutils literal notranslate"><span class="pre">LAST-UPDATED</span></code> speaks for it, with
+the module name breaking a tie so that two builds agree.</p></li>
+<li><p><strong>The IANA registration</strong> – registrant, contact name, contact email.
+Second because it is undated and often stale, and carrying the authority
+link, because a correction to a registration belongs at IANA.</p></li>
+</ol>
+<p>Each is rendered as its source publishes it. An email from the registry is
+<code class="docutils literal notranslate"><span class="pre">davej&amp;cisco.com</span></code> because that is what the registry says; a module’s block is
+reproduced whole rather than picked apart for an address, since a block holds a
+company, a postal address, a phone number and a mailbox and choosing between
+them is not the build’s decision.</p>
+<p>Remediation is precedence rather than a suppression list. A registrant who does
+not want an undated personal registration standing as the contact for their arc
+publishes a module carrying current <code class="docutils literal notranslate"><span class="pre">ORGANIZATION</span></code> and <code class="docutils literal notranslate"><span class="pre">CONTACT-INFO</span></code>, and
+source 1 displaces source 2 on the next build.</p>
+</section>
+<section id="the-registry-file">
+<h3>The registry file<a class="headerlink" href="#the-registry-file" title="Link to this heading">¶</a></h3>
+<p><strong>Taken as an input. Never bundled, never fetched.</strong> A corpus build resolves
+nothing over the network – a build with the network unplugged produces the
+same corpus as one without – and a registry that changes daily, fetched at
+build time, would end that. 5.1 MB that changes daily is also not a thing to
+vendor into a compiler.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--oid-registry</span></code> is repeatable and reads two registries: the Private
+Enterprise Numbers registry, in either the published four-line-record format or
+a reduced CSV, and IANA’s <code class="docutils literal notranslate"><span class="pre">smi-numbers</span></code> XML (see <a class="reference internal" href="#arc-names"><span class="std std-ref">What an arc is called</span></a>). Which one
+a file is comes from its content rather than from its name, since a snapshot a
+repository commits is called whatever that repository calls it. A repository that keeps a snapshot reduces a download once:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pysmi.registry<span class="w"> </span>enterprise-numbers.txt<span class="w"> </span>&gt;<span class="w"> </span>pen-snapshot.csv
+</pre></div>
+</div>
+<p>The reduced form keeps the whole registry, whole records, by default.
+<code class="docutils literal notranslate"><span class="pre">--fields</span></code> narrows the record and <code class="docutils literal notranslate"><span class="pre">--only</span></code>/<code class="docutils literal notranslate"><span class="pre">--only-from</span></code> narrow the rows.
+What leaves IANA’s copy is the committing repository’s decision rather than
+PySMI’s, so both are arguments rather than a hard-coded projection. Nothing is
+normalised: the output is a rendering of IANA’s record rather than a corrected
+version of it.</p>
+<p>The registry is 66,807 registrations and IANA revises it daily, so a repository
+committing all of it commits a large file and re-diffs the whole of it every
+month. The other choice is a snapshot of the registrants this corpus’s own arcs
+use – for pysnmp/mibs, 351 rows rather than 66,807:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pysmi.registry<span class="w"> </span>--only-from<span class="o">=</span>arcs.txt<span class="w"> </span>enterprise-numbers.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>&gt;<span class="w"> </span>pen-snapshot.csv
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">--only-from</span></code> reads enterprise numbers one per line, blanks and <code class="docutils literal notranslate"><span class="pre">#</span></code>
+comments ignored, which is what a corpus can write out of its own index. The
+cost is staleness – a module arriving later under an arc the snapshot predates
+goes nameless – and the build says when that has happened rather than leaving
+it to be found on the site.</p>
+</section>
+</section>
+<section id="what-an-arc-is-called">
+<span id="arc-names"></span><h2>What an arc is called<a class="headerlink" href="#what-an-arc-is-called" title="Link to this heading">¶</a></h2>
+<p>The OID index ranks modules to decide which one owns an arc. The rule is total
+and works for arcs a module actually registers; for the arcs <em>above</em> those it
+has nothing good to choose from, so it picks whichever module happened to
+mention the arc on its way somewhere else. Measured against pysnmp/mibs:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>arc</p></th>
+<th class="head"><p>is</p></th>
+<th class="head"><p>attributed to</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">1.3</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">identified-organization</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OCCAM-ETHERLIKE-MIB</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">1.3.6</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dod</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OCCAM-ETHERLIKE-MIB</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">1.3.6.1.6</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snmpv2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RAPID-CITY</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">1.3.6.1.6.3</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">snmpModules</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RAPID-CITY</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">1.2</span></code></p></td>
+<td><p>ISO member-body</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">IEEE802dot11-MIB</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>ITU-T recommendation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DLSW-MIB</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>A tree that says <code class="docutils literal notranslate"><span class="pre">snmpModules</span></code> belongs to a Nortel enterprise MIB is wrong in
+a way that matters, and no ranking over MIB text can fix it, because the fact
+is not in the MIB text. Twenty-five arcs are claimed by nothing at all, and a
+tree still has to render a path through them – <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code> among them,
+since no module registers Cisco’s bare arc, only what hangs beneath it.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--emit=arcs</span></code> writes the answer, from the registries the build was given:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span>--output-directory<span class="o">=</span>output<span class="w"> </span>--emit<span class="o">=</span>arcs<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--oid-registry<span class="o">=</span>smi-numbers.xml<span class="w"> </span>--oid-registry<span class="o">=</span>pen-snapshot.csv
+</pre></div>
+</div>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"meta"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"schema"</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">"arcs"</span><span class="p">:</span><span class="w"> </span><span class="mi">6694</span><span class="p">,</span>
+<span class="w">           </span><span class="nt">"by-source"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"module"</span><span class="p">:</span><span class="w"> </span><span class="mi">5900</span><span class="p">,</span><span class="w"> </span><span class="nt">"registry"</span><span class="p">:</span><span class="w"> </span><span class="mi">700</span><span class="p">,</span>
+<span class="w">                         </span><span class="nt">"standard"</span><span class="p">:</span><span class="w"> </span><span class="mi">15</span><span class="p">,</span><span class="w"> </span><span class="nt">"unnamed"</span><span class="p">:</span><span class="w"> </span><span class="mi">79</span><span class="p">}},</span>
+<span class="w">  </span><span class="nt">"arc"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"1.3.6.1.6.3"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"snmpModules"</span><span class="p">,</span><span class="w"> </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"registry"</span><span class="p">,</span>
+<span class="w">                    </span><span class="nt">"reference"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://www.iana.org/assignments/smi-numbers"</span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"1.0.8802"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"iso8802"</span><span class="p">,</span><span class="w"> </span><span class="nt">"source"</span><span class="p">:</span><span class="w"> </span><span class="s2">"standard"</span><span class="p">,</span>
+<span class="w">                 </span><span class="nt">"reference"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ISO-IEC 8802"</span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<section id="every-name-says-which-kind-of-fact-it-is">
+<h3>Every name says which kind of fact it is<a class="headerlink" href="#every-name-says-which-kind-of-fact-it-is" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">source</span></code> is rendered, because an IANA registration, a cited standard and a
+name read off whichever MIB mentioned an arc are three different things and a
+reader has to be able to tell them apart. Strongest first:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">registry</span></code></dt><dd><p>IANA. <code class="docutils literal notranslate"><span class="pre">smi-numbers</span></code> names the <code class="docutils literal notranslate"><span class="pre">1.3.6.1</span></code> subtree – and, through the
+dotted names in its own registry descriptions, <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">iso</span></code> down to
+<code class="docutils literal notranslate"><span class="pre">1.3.6.1</span> <span class="pre">internet</span></code>, which nothing else in the file names. The Private
+Enterprise Numbers registry names a bare enterprise arc.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">standard</span></code></dt><dd><p>A standard, cited. ITU-T’s OID registry does not answer, and IEEE
+publishes landing pages and PDFs, so there is no feed for <code class="docutils literal notranslate"><span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">1.0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">1.2</span></code>, <code class="docutils literal notranslate"><span class="pre">1.3.111</span></code> or <code class="docutils literal notranslate"><span class="pre">1.0.8802</span></code> – the chains IEEE registers its 802
+MIBs under, and <code class="docutils literal notranslate"><span class="pre">LLDP-MIB</span></code> sits at <code class="docutils literal notranslate"><span class="pre">1.0.8802.1.1.2</span></code>. Those are defined
+in ITU-T X.660 and ISO/IEC 9834-1 and have not changed in decades, so
+PySMI carries a small table with a reference per entry. A cited name is
+not a registration and is labelled as what it is.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">module</span></code></dt><dd><p>A module’s own descriptor, which is what the index has always used. Still
+here, still useful, and now labelled rather than presented as though it
+were an authority’s answer.</p>
+</dd>
+</dl>
+<p><strong>An arc nothing names says so</strong>, with an empty name rather than a borrowed
+one. The build report counts them.</p>
+</section>
+<section id="when-a-committed-pen-snapshot-has-gone-stale">
+<h3>When a committed PEN snapshot has gone stale<a class="headerlink" href="#when-a-committed-pen-snapshot-has-gone-stale" title="Link to this heading">¶</a></h3>
+<p>A repository that commits the whole Private Enterprise Numbers registry
+commits 66,807 registrants and re-diffs all of them every time IANA moves,
+which is daily. Committing only the registrants its own arcs use is a far
+smaller file and a far smaller monthly diff, at the cost of going stale: the
+first module the corpus gains under a newer enterprise arc has no registrant
+in the snapshot, and that registrant’s page renders nameless.</p>
+<p>Nothing about the build would otherwise say so – the arc is still in the
+index, still reachable, still rendered, just blank. So the build says it:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING  3 enterprise arc(s) no PEN registrant names: 62373, 99999, 100001
+</pre></div>
+</div>
+<p>and <code class="docutils literal notranslate"><span class="pre">report.json</span></code> carries the count as <code class="docutils literal notranslate"><span class="pre">arcs.unregistered-enterprises</span></code>, so
+a build nobody watched can still be asked. <code class="docutils literal notranslate"><span class="pre">arcs.json</span></code> carries every one of
+them, since a log line is not the artifact.</p>
+<p>It is a <strong>warning and never a failure</strong>. An arc can be registered to nobody,
+and IANA’s registry has gaps of its own. An arc a module names is still
+counted: the module’s own descriptor says what the vendor calls its subtree,
+not who registered it, and it is the registrant a refresh would supply.</p>
+<p><a class="reference internal" href="pysmi/corpus/arcs.html#pysmi.corpus.arcs.unregistered" title="pysmi.corpus.arcs.unregistered"><code class="xref py py-func docutils literal notranslate"><span class="pre">pysmi.corpus.arcs.unregistered()</span></code></a> is the same answer as data, for a
+build that wants to act on it.</p>
+</section>
+<section id="what-is-in-the-inventory">
+<h3>What is in the inventory<a class="headerlink" href="#what-is-in-the-inventory" title="Link to this heading">¶</a></h3>
+<p>The arc set comes from the OID index and every prefix of it – the
+registration tree – rather than from every OID a module defines. Over
+pysnmp/mibs that is 14,752 arcs instead of 98,903; the difference is
+objects, and an object’s arc is a thing inside a module rather than a node
+anybody navigates to.</p>
+<p>It is not filtered to one subtree. 97.0% of pysnmp/mibs’ index rows sit under
+<code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1</span></code> and 2.3% under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.2.1</span></code>, but IEEE publishes its 802.1
+MIBs under <code class="docutils literal notranslate"><span class="pre">1.3.111.2.802.1</span></code> and <code class="docutils literal notranslate"><span class="pre">LLDP-MIB</span></code> registers under
+<code class="docutils literal notranslate"><span class="pre">1.0.8802.1.1.2</span></code>. A <code class="docutils literal notranslate"><span class="pre">1.3.6.1</span></code> filter drops both, and LLDP is among the most
+widely polled MIBs there is. Arc depth runs from 2 to 20.</p>
+<p>That inventory counts an arc whether or not anything would render a page for
+it. Which of them a <em>site</em> gives a page to is a narrower question, and
+<a class="reference internal" href="pysmi/corpus/pages.html#module-pysmi.corpus.pages" title="pysmi.corpus.pages"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.pages</span></code></a> answers it: the arcs above the modules, which
+over pysnmp/mibs is 1,493 of the 14,752 rather than the 98,903 a page per
+defined OID would be. An arc at a module’s anchor is the module, and an arc
+below one is an object the module page already renders.</p>
+</section>
+</section>
+<section id="the-browsable-site">
+<span id="site"></span><h2>The browsable site<a class="headerlink" href="#the-browsable-site" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">--emit=site</span></code> writes the corpus as pages, from the same jsondoc tree the
+indexes and the database are projections of. Three trees and an entry point,
+named so that nothing collides with a corpus path:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mib/&lt;MODULE&gt;/</span></code></p></td>
+<td><p>one module: identity, provenance, the repair and
+its reason, the load order, imports, what imports
+it, the arcs below it, and every object,
+notification, textual convention and conformance
+statement with its OID, syntax, access, status and
+description</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">entity/&lt;PEN&gt;/</span></code></p></td>
+<td><p>one registrant: who the registry says holds the
+arc, who to report a problem to, and every module
+the corpus holds under it</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">oid/&lt;arc&gt;/</span></code></p></td>
+<td><p>one node of the registration tree, and its
+children</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">browse/</span></code></p></td>
+<td><p>the entry point, and the module list</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span>--output-directory<span class="o">=</span>output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--emit<span class="o">=</span>site<span class="w"> </span>--emit<span class="o">=</span>json<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--oid-registry<span class="o">=</span>smi-numbers.xml<span class="w"> </span>--oid-registry<span class="o">=</span>pen-snapshot.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--site-name<span class="o">=</span><span class="s2">"pysnmp/mibs"</span>
+</pre></div>
+</div>
+<p>Over pysnmp/mibs’ 5,510 modules that is <strong>7,346 pages and 220 MB in 18
+seconds</strong>, on top of the build that produced the corpus.</p>
+<section id="why-the-generator-is-here">
+<h3>Why the generator is here<a class="headerlink" href="#why-the-generator-is-here" title="Link to this heading">¶</a></h3>
+<p>The site is a function of a corpus, so an enterprise pointing <code class="docutils literal notranslate"><span class="pre">mibcorpus</span></code> at
+its own manifest – a private collection, a downstream project vendoring
+additions – gets the same site over its own modules. The alternative is a
+second implementation in whichever repository publishes the corpus, which is
+the shape pysnmp/mibs#365 removed: that repository’s compiler, dependency
+resolver and OID indexer were each a second implementation of PySMI’s, and
+each had drifted.</p>
+</section>
+<section id="the-module-set-is-the-corpus">
+<h3>The module set is the corpus<a class="headerlink" href="#the-module-set-is-the-corpus" title="Link to this heading">¶</a></h3>
+<p>Pages are written for what the manifest declares and nothing else. A directory
+sitting beside the sources is not a namespace, so it is not in the corpus and
+gets no pages; and a namespace declared for resolution only – <code class="docutils literal notranslate"><span class="pre">publish</span></code>
+false, which is how a compact corpus resolves against the standard modules
+without carrying them – contributes none either.</p>
+</section>
+<section id="everything-is-in-the-bytes">
+<h3>Everything is in the bytes<a class="headerlink" href="#everything-is-in-the-bytes" title="Link to this heading">¶</a></h3>
+<p>No page fetches anything: not the object table, not the description, not the
+navigation. #284 measured the alternative and it costs the same on disk, while
+being unreadable to the AI crawlers that do not run JavaScript – to those, a
+client-rendered object table is a page about a MIB module that does not say
+what the module defines.</p>
+<p>Links are relative to the site root, so a site published under a path on a
+project host works without being told where it lives, and so does one opened
+from a local directory.</p>
+</section>
+<section id="the-page-count-is-bounded">
+<h3>The page count is bounded<a class="headerlink" href="#the-page-count-is-bounded" title="Link to this heading">¶</a></h3>
+<p>Three rules keep it that way, and each is its own module:</p>
+<ul class="simple">
+<li><p>the OID tree stops at the modules, which
+<a class="reference internal" href="pysmi/corpus/pages.html#module-pysmi.corpus.pages" title="pysmi.corpus.pages"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.pages</span></code></a> decides. An arc at a
+module’s anchor <em>is</em> that module and resolves to its page; an arc below one
+is an object the module page already renders in context.</p></li>
+<li><p>long lists split by range key rather than page number
+(<a class="reference internal" href="#list-buckets"><span class="std std-ref">Splitting a long list page</span></a>), so adding one module does not renumber every page
+after it. <code class="docutils literal notranslate"><span class="pre">page-size</span></code> sets how long a list gets first, as one number for
+every list or as an object naming them – <code class="docutils literal notranslate"><span class="pre">{&quot;browse&quot;:</span> <span class="pre">500,</span> <span class="pre">&quot;entity&quot;:</span> <span class="pre">200}</span></code>.
+The module list is the site’s front door and wants few pages; a registrant’s
+list is reached by somebody already narrowed to one vendor, and Cisco’s
+1,341 modules at the same size would be three pages of 500 links each.</p></li>
+<li><p>the list of modules importing a given one is capped. It is the one list on a
+module page with no natural bound: 1,461 modules in pysnmp/mibs import
+<code class="docutils literal notranslate"><span class="pre">IF-MIB</span></code>. The count is the fact worth stating.</p></li>
+</ul>
+<p><strong>No page is an orphan.</strong> The case that breaks this is a structural arc whose
+parent is a module anchor: the parent has no arc page, so only the module page
+can link down to it, and it does – see <em>Under this module’s arcs</em>.</p>
+</section>
+<section id="the-crawl-surface">
+<h3>The crawl surface<a class="headerlink" href="#the-crawl-surface" title="Link to this heading">¶</a></h3>
+<p>Declaring a <code class="docutils literal notranslate"><span class="pre">base-url</span></code> says this build is producing a <strong>distribution site</strong>
+rather than a subtree somebody else will assemble, and the whole crawl surface
+is written with it: a canonical link and a <code class="docutils literal notranslate"><span class="pre">meta</span> <span class="pre">description</span></code> per page,
+JSON-LD, <code class="docutils literal notranslate"><span class="pre">sitemap.xml</span></code> as an index, <code class="docutils literal notranslate"><span class="pre">robots.txt</span></code> and <code class="docutils literal notranslate"><span class="pre">llms.txt</span></code>. Without
+it there is nothing to put in a canonical link, and guessing an origin would
+publish a site claiming to live somewhere it does not.</p>
+<p><code class="docutils literal notranslate"><span class="pre">data-url</span></code> is the second origin, for a distribution that serves its pages
+and its downloads from two hosts. This one does: a page URL is a directory
+that a host resolves to <code class="docutils literal notranslate"><span class="pre">index.html</span></code>, and object storage serves the key it
+is given, so the pages and the files cannot share an origin without something
+on the serving path rewriting every request. Only the <code class="docutils literal notranslate"><span class="pre">llms.txt</span></code> bulk links
+read it. A canonical link and a sitemap entry describe a page, and a page is
+always on <code class="docutils literal notranslate"><span class="pre">base-url</span></code>. Omitted, one origin serves both.</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"site"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"base-url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://mibsdepot.com"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"data-url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://data.mibsdepot.com"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"MIBs Depot"</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5,500 SNMP MIB modules from their publishers."</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"crawl"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"*"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"disallow"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"asn1"</span><span class="p">,</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span><span class="w"> </span><span class="s2">"index-v2"</span><span class="p">,</span><span class="w"> </span><span class="s2">"core-db"</span><span class="p">]},</span>
+<span class="w">      </span><span class="nt">"ClaudeBot"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"allow"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"asn1"</span><span class="p">,</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span><span class="w"> </span><span class="s2">"index-v2"</span><span class="p">]}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><strong>A crawl policy names artifacts, not paths.</strong> A distribution saying “keep
+search engines out of the raw JSON” should not have to know whether that tree
+is called <code class="docutils literal notranslate"><span class="pre">json</span></code> or something this release renamed. An artifact the policy
+names that the build did not produce is skipped rather than written: a rule
+about a tree that is not there would read as though the tree existed.</p>
+<p>The policy is per-agent because a search engine and an agent want opposite
+things from the same tree. To the first, 460 MB of <code class="docutils literal notranslate"><span class="pre">asn1/</span></code> and <code class="docutils literal notranslate"><span class="pre">json/</span></code>
+across 11,000 files is crawl budget spent on files with no indexing value; to
+the second they are the point, and <code class="docutils literal notranslate"><span class="pre">llms.txt</span></code> sends it there deliberately.
+The agent list is configuration because crawler names change faster than
+releases.</p>
+<p><code class="docutils literal notranslate"><span class="pre">llms.txt</span></code> is a convention rather than a mechanism – no major AI crawler is
+documented as consuming it. It is emitted and nothing depends on it. What
+reaches an AI crawler is server-rendered HTML and a <code class="docutils literal notranslate"><span class="pre">robots.txt</span></code> that admits
+it.</p>
+<p><strong>PySMI cannot decide where robots.txt lands.</strong> On GitHub Pages a <em>project</em>
+site cannot serve its own: crawlers read it only from the host root, which
+belongs to a different repository. So the file is produced here and the
+deployment places it.</p>
+<section id="lastmod-is-a-date-the-content-states">
+<h4><code class="docutils literal notranslate"><span class="pre">lastmod</span></code> is a date the content states<a class="headerlink" href="#lastmod-is-a-date-the-content-states" title="Link to this heading">¶</a></h4>
+<p>A corpus rebuilt on every push that stamps every page with today’s date
+teaches a crawler the field is noise. A module page’s <code class="docutils literal notranslate"><span class="pre">lastmod</span></code> is the
+module’s own newest <code class="docutils literal notranslate"><span class="pre">REVISION</span></code> or <code class="docutils literal notranslate"><span class="pre">LAST-UPDATED</span></code>, which is the date its
+content last changed; a page listing modules takes the newest among them.</p>
+<p>So <strong>no build clock reaches a sitemap</strong>, and two builds of one corpus produce
+the same one. Over pysnmp/mibs that is 2,635 distinct dates across 7,350 URLs,
+and today’s date is not among them. A page describing something with no
+readable date is listed without a <code class="docutils literal notranslate"><span class="pre">lastmod</span></code> at all – which says “I do not
+know”, where the build date would say something false.</p>
+<p>A stamp shaped like a date and not one is dropped rather than ranked, for the
+reason the index ranker gives: <code class="docutils literal notranslate"><span class="pre">HPR-MIB</span></code> carries <code class="docutils literal notranslate"><span class="pre">970514000000Z</span></code>, month
+14, which compares above every real date there will ever be.</p>
+</section>
+<section id="what-the-json-ld-says-and-what-it-costs">
+<h4>What the JSON-LD says, and what it costs<a class="headerlink" href="#what-the-json-ld-says-and-what-it-costs" title="Link to this heading">¶</a></h4>
+<p>A MIB module is a published artifact with an identifier, a publisher and a
+revision date, which defines a vocabulary of named terms – <code class="docutils literal notranslate"><span class="pre">DefinedTermSet</span></code>
+crossed with <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. <strong>The identifiers are the OIDs</strong>, which is the
+point: an OID is a globally unique identifier that already exists, and a
+consumer holding one should be able to match it without reading prose.</p>
+<p>It is not free. Enumerating 98,000 definitions adds 40% to the site: 220 MB
+becomes 309 MB. A first cut also carried each term’s description and an
+<code class="docutils literal notranslate"><span class="pre">inDefinedTermSet</span></code> back-reference, which took it to 360 MB; both are gone,
+the descriptions because they are already in the HTML the JSON-LD sits in, and
+the back-reference because nesting under <code class="docutils literal notranslate"><span class="pre">hasDefinedTerm</span></code> already says a term
+belongs to the set.</p>
+</section>
+</section>
+<section id="theming">
+<h3>Theming<a class="headerlink" href="#theming" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">--site-template</span></code> and <code class="docutils literal notranslate"><span class="pre">--site-stylesheet</span></code> replace the page frame and the
+stylesheet, so a distribution publishing this beside its own documentation
+makes it look like the rest of that documentation without forking the
+generator. <code class="docutils literal notranslate"><span class="pre">$name</span></code> substitution, and an unknown placeholder renders as
+itself rather than raising in the middle of a 5,500-page build – a page with
+<code class="docutils literal notranslate"><span class="pre">$oops</span></code> on it is something somebody sees.</p>
+<p>A named file that cannot be read is refused rather than ignored: falling back
+would publish a whole site in the wrong skin and say nothing.</p>
+<section id="what-a-replacement-stylesheet-reaches">
+<h4>What a replacement stylesheet reaches<a class="headerlink" href="#what-a-replacement-stylesheet-reaches" title="Link to this heading">¶</a></h4>
+<p>The definition tables carry <strong>no element inside a cell</strong>. At 764,000
+definitions over pysnmp/mibs a wrapper per cell was 61 bytes a row – 47 MB of
+module pages – so the cells hold their text and the stylesheet reaches them by
+position:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>selector</p></th>
+<th class="head"><p>the column</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">.defs</span></code></p></td>
+<td><p>a definition table.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.defs.typed</span></code></p></td>
+<td><p>the five-column shape: Name, OID, Syntax, Access,
+Status. Without <code class="docutils literal notranslate"><span class="pre">typed</span></code> it is the three-column
+one: Name, OID, Status.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">td:first-child</span></code></p></td>
+<td><p>the descriptor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">td:nth-child(2)</span></code></p></td>
+<td><p>the OID.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">td:last-child</span></code></p></td>
+<td><p>STATUS, in either shape.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">.desc</span></code></p></td>
+<td><p>the macro a definition came from, and its
+DESCRIPTION where the build carries texts. The one
+element still written inside a cell, because it is
+a block under the name rather than a column.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Each row carries the descriptor as its <code class="docutils literal notranslate"><span class="pre">id</span></code>, so <code class="docutils literal notranslate"><span class="pre">mib/IF-MIB/#ifTable</span></code> is a
+link to one definition. Style <code class="docutils literal notranslate"><span class="pre">:target</span></code> to show which one was asked for.</p>
+</section>
+</section>
+</section>
+<section id="splitting-a-long-list-page">
+<span id="list-buckets"></span><h2>Splitting a long list page<a class="headerlink" href="#splitting-a-long-list-page" title="Link to this heading">¶</a></h2>
+<p>A site rendering a corpus has lists too long for one page: every module it
+holds, every module one registrant published, the children of a wide OID node.
+<a class="reference internal" href="pysmi/corpus/buckets.html#module-pysmi.corpus.buckets" title="pysmi.corpus.buckets"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.buckets</span></code></a> decides what the pieces are called.</p>
+<p><strong>Not first letters.</strong> A to Z is the obvious index and it fails on MIB names,
+which are dominated by vendor prefixes rather than spread across the alphabet:</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>list</p></th>
+<th class="head"><p>buckets</p></th>
+<th class="head"><p>largest</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>all 5,510 modules, by first letter</p></td>
+<td><p>25</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">C</span></code> at 1,708</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cisco’s 1,353 modules, by first letter</p></td>
+<td><p>7</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">C</span></code> at 1,280</p></td>
+</tr>
+<tr class="row-even"><td><p>Cisco’s, by first seven characters</p></td>
+<td><p>38</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CISCO-I</span></code> at 166</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>1,224 of Cisco’s 1,353 modules begin <code class="docutils literal notranslate"><span class="pre">CISCO-</span></code>. No fixed prefix length gives
+even buckets, and the length that would work differs between the global list
+and one registrant.</p>
+<p><strong>Not page numbers.</strong> <code class="docutils literal notranslate"><span class="pre">page/4/</span></code> is stable only while the list is. Adding one
+module shifts the contents of every later page, so every already-crawled URL
+past the insertion point serves different content and reports a fresh
+<code class="docutils literal notranslate"><span class="pre">lastmod</span></code>. A range key disturbs only the bucket the new entry lands in.</p>
+<p><strong>A range key, derived.</strong> The sorted list is partitioned into equal-count runs
+of the page size, and each run is labelled with the shortest prefix
+distinguishing its ends from its neighbours’ – so the label length falls out
+of the local density:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>AT..CISCO-DIAMETER-SG-C            200
+CISCO-DIAMETER-SG-M..CISCO-HC      200
+CISCO-HE..CISCO-LICENSE-MG         200
+CISCO-LICENSE-MI..CISCO-PRI        200
+CISCO-PRO..CISCO-TM                200
+CISCO-TN..CISCO-WDS-IDS-C          200
+CISCO-WDS-IDS-M..RP                153
+</pre></div>
+</div>
+<p>The separator is <code class="docutils literal notranslate"><span class="pre">..</span></code> rather than an en dash: an en dash percent-encodes to
+<code class="docutils literal notranslate"><span class="pre">%E2%80%93</span></code>, which works and is a needless hazard in a string that crawlers,
+server logs, shell history, spreadsheets and copy-paste all handle. A plain
+<code class="docutils literal notranslate"><span class="pre">-</span></code> is ambiguous in names full of hyphens. <code class="docutils literal notranslate"><span class="pre">..</span></code> occurs in neither a module
+name nor an arc number.</p>
+<p>The sort is case-sensitive byte order, which is what the labels imply; a
+display sort that differed would put entries in buckets whose range excludes
+them. A wide OID node’s children sort numerically instead, and take their
+numbers whole as labels – the shortest distinguishing prefix of a decimal
+number is not a number.</p>
+<p>Four things the generator needs beyond the split:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">locate</span></code></dt><dd><p>Which bucket a name belongs to, including a name the list did not have
+when the buckets were built. This is what the browser-side navigation
+resolves against.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">successors</span></code></dt><dd><p>A bucket that outgrows the page size splits, which renames a key – the
+one case where a range URL moves. Static hosting serves no redirects, so
+the retired key is emitted as a small page carrying a canonical link and a
+meta refresh to whatever now covers it. <code class="docutils literal notranslate"><span class="pre">retired</span></code> names those keys.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">abbreviate</span></code></dt><dd><p>Every bucket is listed on every bucket page, so any bucket is one hop from
+any other and crawl depth does not grow with the corpus. That works only
+if the strip fits, and a label runs to 27 characters. The URL keeps the
+whole label; the rendering is clipped.</p>
+</dd>
+<dt>A single bucket</dt><dd><p>A list no longer than the page size comes back as one bucket with <strong>no
+key</strong>: it keeps its unbucketed URL and renders no key strip.</p>
+</dd>
+</dl>
 </section>
 <section id="how-the-asn-1-tree-is-named">
 <span id="asn1-naming"></span><h2>How the ASN.1 tree is named<a class="headerlink" href="#how-the-asn-1-tree-is-named" title="Link to this heading">¶</a></h2>
@@ -739,6 +1501,39 @@ snapshot never had. Corrections land in <code class="docutils literal notranslat
 <li><a class="reference internal" href="#the-input-set">The input set</a></li>
 <li><a class="reference internal" href="#what-the-corpus-is">What the corpus is</a></li>
 <li><a class="reference internal" href="#what-it-produces">What it produces</a></li>
+<li><a class="reference internal" href="#one-build-more-than-one-tree">One build, more than one tree</a></li>
+<li><a class="reference internal" href="#keeping-the-parse-trees">Keeping the parse trees</a></li>
+<li><a class="reference internal" href="#how-the-json-is-written">How the JSON is written</a></li>
+<li><a class="reference internal" href="#the-files-a-module-needs">The files a module needs</a></li>
+<li><a class="reference internal" href="#prose-in-the-json">Prose in the JSON</a></li>
+<li><a class="reference internal" href="#who-registered-an-arc">Who registered an arc</a><ul>
+<li><a class="reference internal" href="#owner-contact">Owner contact</a></li>
+<li><a class="reference internal" href="#the-registry-file">The registry file</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#what-an-arc-is-called">What an arc is called</a><ul>
+<li><a class="reference internal" href="#every-name-says-which-kind-of-fact-it-is">Every name says which kind of fact it is</a></li>
+<li><a class="reference internal" href="#when-a-committed-pen-snapshot-has-gone-stale">When a committed PEN snapshot has gone stale</a></li>
+<li><a class="reference internal" href="#what-is-in-the-inventory">What is in the inventory</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#the-browsable-site">The browsable site</a><ul>
+<li><a class="reference internal" href="#why-the-generator-is-here">Why the generator is here</a></li>
+<li><a class="reference internal" href="#the-module-set-is-the-corpus">The module set is the corpus</a></li>
+<li><a class="reference internal" href="#everything-is-in-the-bytes">Everything is in the bytes</a></li>
+<li><a class="reference internal" href="#the-page-count-is-bounded">The page count is bounded</a></li>
+<li><a class="reference internal" href="#the-crawl-surface">The crawl surface</a><ul>
+<li><a class="reference internal" href="#lastmod-is-a-date-the-content-states"><code class="docutils literal notranslate"><span class="pre">lastmod</span></code> is a date the content states</a></li>
+<li><a class="reference internal" href="#what-the-json-ld-says-and-what-it-costs">What the JSON-LD says, and what it costs</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#theming">Theming</a><ul>
+<li><a class="reference internal" href="#what-a-replacement-stylesheet-reaches">What a replacement stylesheet reaches</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#splitting-a-long-list-page">Splitting a long list page</a></li>
 <li><a class="reference internal" href="#how-the-asn-1-tree-is-named">How the ASN.1 tree is named</a></li>
 <li><a class="reference internal" href="#why-it-is-deterministic">Why it is deterministic</a></li>
 <li><a class="reference internal" href="#two-corpora-from-one-source-set">Two corpora from one source set</a></li>
@@ -755,7 +1550,7 @@ snapshot never had. Corrections land in <code class="docutils literal notranslat
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=58fc1558"></script>
+</div><script src="_static/documentation_options.js?v=b1b76d9c"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
