@@ -30,6 +30,7 @@ it.
          [--namespace=<TIER>:<NAME>:<SOURCE>]
          [--output-directory=<DIRECTORY>]
          [--frozen-index=<FILE>]
+         [--parse-cache=<DIRECTORY>]
          [--emit=<ARTIFACT>[:<PATH>]]
          [--corpus-version=<VERSION>]
          [--corpus-id=<NAME>]
@@ -151,7 +152,8 @@ What it produces
    * - ``texts/``
      - pysnmp modules with them, in their original layout.
    * - ``json/``
-     - jsondoc documents.
+     - jsondoc documents. Without DESCRIPTION and the other texts unless
+       the build asks -- see :ref:`json-texts`.
    * - ``index-v2.csv``
      - The ranked OID index: for every OID, the one module that owns it.
    * - ``index.csv``
@@ -161,11 +163,24 @@ What it produces
    * - ``standard.txt``
      - The modules from every ``standard`` namespace, less the ``RFC*`` and
        ``SNMPv2*`` prefixes the published file has never carried.
+   * - ``closure.json``
+     - Per module, the files a consumer needs in order to load it, and
+       anything it needs that the corpus does not hold. See
+       :ref:`import-closure`.
+   * - ``entity.json``
+     - Which enterprise arcs the corpus registers under, who the registry
+       says holds each, and who to report a problem to. Asked for by name,
+       and wants ``--oid-registry``. See :ref:`entity-index`.
+   * - ``arcs.json``
+     - What every arc the corpus reaches is called, and which authority says
+       so. Asked for by name. See :ref:`arc-names`.
    * - ``report.json``
      - What the build did: the failure inventory, the modules more than one
-       namespace holds, the node counts, and how long each phase took.
+       namespace holds, the node counts, which JSON implementation wrote the
+       artifacts, and how long each phase took.
 
-One artifact is **not** in that layout and has to be asked for by name:
+The two databases and the site are **not** in that layout and have to be asked
+for by name:
 
 .. list-table::
    :header-rows: 1
@@ -178,15 +193,40 @@ One artifact is **not** in that layout and has to be asked for by name:
        by OID and by name, and ordered for GETNEXT. See
        :doc:`/corpus-schema`. Building it costs a pass nothing else needs,
        which is why it is opt-in rather than part of the default layout.
+   * - ``search.db``
+     - The same schema at a seventeenth the size: everything but ``node``
+       and the ``type`` table it references, for a consumer that needs to
+       know which module and never what the object is. 15 MB against
+       ``core.db``'s 256 over the published corpus, which is what makes it
+       something a site can publish. See :ref:`corpus-schema`.
+   * - ``site/``
+     - The corpus as pages: one per module, per registrant and per node of
+       the registration tree. Asked for by name, since a corpus published as
+       files rather than as a site has no use for it. See :ref:`site`.
 
 ``--emit`` narrows this to the artifacts named, so a build can ask for just the
 index or just the JSON.
 
-``core.db`` and the two indexes are projections of the jsondoc tree, which is a
-dependency of pysmi's own rather than of the caller's: a build asking for one
-of them without asking for ``json`` gets a tree staged in a temporary directory
-and removed when the build ends, raise or return. The corpus carries what was
+Both databases and the two indexes are projections of the jsondoc tree, which
+is a dependency of pysmi's own rather than of the caller's: a build asking for
+one of them without asking for ``json`` gets a tree staged in a temporary
+directory and removed when the build ends, raise or return. The corpus carries what was
 named and nothing else.
+
+.. _prose-tree:
+
+The site and the entity index read a tree with the texts in it. A module page
+carries each definition's DESCRIPTION, and a registrant is named from the
+module's own ORGANIZATION and CONTACT-INFO before the registry is consulted;
+``JsonCodeGen`` gates all three behind one switch, so a lean tree holds none of
+them. A build rendering either gets a texts-carrying tree staged the same way
+-- **even where it named a lean one**, since the lean tree cannot answer. That
+costs a render pass rather than a parse, since the parse is shared, and the
+tree the build publishes is untouched: a publisher asking for a lean ``json``
+still gets a lean ``json``.
+
+Over pysnmp/mibs the prose is 90.2 MB of the module pages, 85% of definitions
+carrying one. Emit ``json-texts`` to keep the tree that produced it.
 
 .. code-block:: sh
 
@@ -199,6 +239,763 @@ goes.
 Every artifact but ``report.json`` is byte-reproducible. The report is the
 build's log and records elapsed time.
 
+.. _corpus-publications:
+
+One build, more than one tree
+-----------------------------
+
+A distribution is not always one tree. The same corpus goes out as the data a
+runtime fetches and as the pages a reader browses, and those may belong on
+different hosts with different limits. Building it twice parses every module
+twice to reach the same answer.
+
+A manifest declaring ``publications`` instead of ``emit`` says a build writes
+several trees:
+
+.. code-block:: json
+
+   {
+     "version": 1,
+     "namespaces": [{"include": "src/*", "tier": "vendor"}],
+     "publications": [
+       {"name": "data",  "emit": ["asn1", "json", "index-v2"], "output": "data"},
+       {"name": "pages", "emit": ["site", "search-db"],        "output": "pages"}
+     ]
+   }
+
+Each publication names what it carries and where it goes, under
+``--output-directory``. The corpus is parsed once for all of them: the parse
+cache is shared across the plan, and parsing is about three quarters of a
+pass.
+
+``emit`` and ``publications`` are alternatives, not layers. A manifest
+declaring both is refused, because the artifacts would belong to no tree in
+particular and a reader could not tell which by looking. A publication naming
+no ``output`` writes into the build directory itself, which is the ordinary
+single-tree build said the long way.
+
+``--emit`` on the command line collapses the plan to the one tree it names,
+as a flag overrides a file everywhere else here.
+
+Every publication is summarized and held to the manifest's ``expect``: a build
+that wrote two trees and checked one has not checked the build.
+
+.. _corpus-parse-cache:
+
+Keeping the parse trees
+-----------------------
+
+``--parse-cache=<DIRECTORY>`` keeps parse trees between runs, so a rebuild of
+a mostly unchanged corpus reparses only what changed. The key is the module's
+own text together with the identity of the parser, so an unedited module keeps
+its entry and an edited one cannot match a stale tree. Without it the trees
+are held in memory and discarded with the process, which is right for a
+one-off build and wasteful for a nightly.
+
+It stores pickles, and reading one reconstructs arbitrary Python objects.
+Name a directory the build owns, never one written by anything you would not
+run, and never one shared across trust domains. A damaged, truncated or
+unreadable entry is a miss rather than an error: the cache is an optimisation
+and never a source of truth.
+
+.. _corpus-json-encoding:
+
+How the JSON is written
+-----------------------
+
+``json/`` and the JSON index are written compactly -- one line per document,
+no space after a separator, UTF-8 written as itself rather than escaped. They
+are generated trees that nobody reads by eye, and indenting them costs about
+30% of the tree on disk: roughly 50 MB over a corpus the size of the one
+pysnmp/mibs publishes. Gzipped the difference is about 8%, because gzip
+already eats indentation, so this is a saving on a checkout, an image and a
+Pages site rather than on bandwidth.
+
+``report.json`` is not written that way and stays indented. It is the build's
+log, read by a person looking at a failed build.
+
+A faster JSON implementation is used when one is installed:
+
+.. code-block:: sh
+
+   pip install 'pysnmp-pysmi[fast]'
+
+That pulls in orjson; msgspec is taken instead if a caller already has it.
+Either is worth about 4% of a build, because SMI parsing dominates everything
+else, which is why it is an extra rather than a dependency -- 4% does not buy
+a wheel with a compiled extension in it for everyone.
+
+**What is installed does not change a published byte.** The standard library
+is the reference, the faster encoders are used only where they agree with it,
+and ``tests/test_jsonio.py`` asserts that agreement over every document the
+bundled corpus produces rather than trusting that it holds. A build with the
+extra and one without are the same corpus. ``report.json`` records which
+implementation ran, as ``json``, so two builds being compared can each say
+what they resolved.
+
+
+.. _import-closure:
+
+The files a module needs
+------------------------
+
+``core.db``'s ``import`` table holds the direct edges -- this module imports
+that symbol from that module. The question consumers actually arrive with is
+the closure: *which files do I need in order to load this module?*
+``closure.json`` answers it per module:
+
+.. code-block:: json
+
+   {
+     "meta": {"schema": 1, "modules": 5347, "incomplete": 0},
+     "closure": {
+       "IF-MIB": {
+         "files": ["IANAifType-MIB", "IF-MIB", "SNMPv2-CONF",
+                   "SNMPv2-MIB", "SNMPv2-SMI", "SNMPv2-TC"],
+         "missing": []
+       }
+     }
+   }
+
+(Re-indented to be read; the file is written on one line.)
+
+The build resolves every one of those edges in order to compile, so having
+each consumer re-walk a table to recover a fact the compiler established is
+the pattern this exists to avoid. Three arrive with the question: a page
+answering "the files you need", anyone packaging a subset -- an air-gapped
+install, an image carrying only what one product needs -- and pysnmp,
+deciding what to preload.
+
+Two things the artifact settles rather than leaving to the caller:
+
+* **A module is in its own closure.** ``IF-MIB`` needs six files and one of
+  them is ``IF-MIB``. That makes the list directly usable as a file list,
+  which is what most callers want.
+* **A dependency the corpus does not hold is recorded, not dropped.** It goes
+  in ``missing`` rather than quietly out of ``files``, so a caller can tell
+  "this module needs nothing else" from "something it needs is not here". A
+  module is listed however deep it was reached from: a hole anywhere below a
+  module is a hole for that module, which still cannot be loaded. The build
+  report counts them, as ``closure.incomplete``.
+
+The names are module names, which are the names of the files in ``asn1/`` --
+see :ref:`asn1-naming` -- so a caller holding a closure holds the file list
+and can build the URLs itself.
+
+.. _json-texts:
+
+Prose in the JSON
+-----------------
+
+A published jsondoc carries names, OIDs, syntax, access and status, and no
+prose. `IF-MIB.json <https://data.mibsdepot.com/json/IF-MIB.json>`_ has no
+description on ``ifOperStatus``, though the module's text describes all seven
+of its enumerated states. Measured over a 300-file sample,
+``DESCRIPTION``, ``REFERENCE`` and ``CONTACT-INFO`` are **38% of the text of a
+MIB** -- a large part of the module the JSON rendering omits, and a consumer
+that wants it has to fetch and parse the ASN.1, which means a second SMI parser
+for prose the compiler already read.
+
+``json-texts`` is a jsondoc tree with the texts in it:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output --emit=json-texts
+
+That writes ``json/`` -- one tree, carrying the prose, at one compile pass.
+
+It is a destination of its own rather than a flag on ``json``, so a build may
+also have both:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output \
+       --emit=json --emit=json-texts:build/full
+
+which publishes the lean tree and keeps a complete one for something that needs
+the prose -- a site generator rendering descriptions into its pages, say --
+without the published artifact growing. That is two passes, because it is two
+trees. Naming both at one path is refused: the second pass would overwrite the
+first, and which of them survived would depend on the order the emit list was
+read in.
+
+The texts cost roughly 70% more on disk: over pysnmp/mibs' corpus ``json/``
+goes from about 170 MB to about 290 MB. That is a decision for the build, which
+is the argument for asking rather than assuming, and ``json-texts`` is not in
+the default layout.
+
+What ``genTexts`` gates is more than descriptions:
+``JsonCodeGen.gen_module_identity`` puts ``organization`` and ``contactinfo``
+behind the same switch. ``CISCO-ENTITY-ALARM-MIB`` carries a full
+``CONTACT-INFO`` block in its ASN.1 -- Cisco Systems, Customer Service, a
+postal address, a phone number and ``cs-snmp@cisco.com`` -- and none of it
+reaches the published JSON. Over a 500-module sample, 90% of modules carry
+``ORGANIZATION`` and ``CONTACT-INFO``, and 66% of those carry an email. That is
+the publisher's own statement of where to report a problem, and it is what
+:doc:`/mibcorpus` cannot show a reader until this is turned on.
+
+``keepTextsLayout`` is not turned on with it. The two are separate for the
+pysnmp destinations and stay separate here: a JSON consumer generally wants the
+text normalised rather than the publisher's line breaks preserved.
+
+.. _entity-index:
+
+Who registered an arc
+---------------------
+
+A corpus knows that ``CISCO-ENTITY-ALARM-MIB`` registers under
+``1.3.6.1.4.1.9``. It does not know that ``1.3.6.1.4.1.9`` is Cisco: nothing in
+the MIB text says so in a form anything can rely on, and the directory a file
+sits in is a filing convention rather than a registration. Over pysnmp/mibs the
+two disagree in practice -- the ``aironet`` directory holds Cisco modules, and
+``src/vendor/cisco/ALTIGA-*`` registers under Altiga's arc.
+
+The registration is a published fact. ``--oid-registry`` supplies it and
+``--emit=entity`` writes the projection:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output \
+       --emit=entity --oid-registry=pen-snapshot.csv
+
+.. code-block:: json
+
+   {
+     "meta": {"schema": 1, "arcs": 351, "named": 350, "unregistered": 1},
+     "entity": {
+       "1.3.6.1.4.1.9": {
+         "number": 9,
+         "organization": "Cisco Systems, Inc.",
+         "modules": ["CISCO-AAA-CLIENT-MIB", "..."],
+         "contacts": [
+           {"source": "module", "organization": "Cisco Systems, Inc.",
+            "contact": "Cisco Systems\n Customer Service\n ...",
+            "email": "", "module": "CISCO-ENTITY-ALARM-MIB", "authority": ""},
+           {"source": "registry", "organization": "Cisco Systems, Inc.",
+            "contact": "Dave J", "email": "davej&cisco.com", "module": "",
+            "authority": "https://www.iana.org/assignments/enterprise-numbers#9"}
+         ]
+       }
+     }
+   }
+
+Measured over pysnmp/mibs: 351 distinct enterprise arcs, 350 of them named by
+the registry, against 290 vendor directories. Those two numbers are the
+argument for driving navigation from the registry rather than from the tree.
+
+**An arc the registry does not name is reported as unregistered, never guessed
+at.** pysnmp/mibs has exactly one, ``1.3.6.1.4.1.1004849``, above anything IANA
+has allocated. The build report counts them, as ``entity.unregistered``.
+
+The index groups by **arc**, not by company. The registry maps arcs to
+registrants and a company can hold several: Cisco modules sit under
+``1.3.6.1.4.1.9`` and, from the Altiga acquisition, under
+``1.3.6.1.4.1.3076``, which IANA still lists as "Altiga Networks, Inc.".
+Nothing in the registry models an acquisition and PySMI does not infer one.
+
+``entity.json`` is not in the default layout: it is only worth having with a
+registry to name its arcs, and that is an input the caller supplies.
+
+Owner contact
+~~~~~~~~~~~~~
+
+Each arc carries who to report a problem to, best source first, each naming its
+source so a reader can weigh a vendor's current support address against an
+undated registration:
+
+1. **The module's own ``CONTACT-INFO``** -- a corporate block with a role
+   mailbox, and the publisher's current statement of where to report a
+   problem. It reaches the corpus only when the build carries texts, since
+   ``JsonCodeGen`` gates ``organization`` and ``contactinfo`` behind the same
+   switch as ``description`` -- see pysnmp/pysmi#277. Where an arc has
+   many modules, the one with the newest ``LAST-UPDATED`` speaks for it, with
+   the module name breaking a tie so that two builds agree.
+
+2. **The IANA registration** -- registrant, contact name, contact email.
+   Second because it is undated and often stale, and carrying the authority
+   link, because a correction to a registration belongs at IANA.
+
+Each is rendered as its source publishes it. An email from the registry is
+``davej&cisco.com`` because that is what the registry says; a module's block is
+reproduced whole rather than picked apart for an address, since a block holds a
+company, a postal address, a phone number and a mailbox and choosing between
+them is not the build's decision.
+
+Remediation is precedence rather than a suppression list. A registrant who does
+not want an undated personal registration standing as the contact for their arc
+publishes a module carrying current ``ORGANIZATION`` and ``CONTACT-INFO``, and
+source 1 displaces source 2 on the next build.
+
+The registry file
+~~~~~~~~~~~~~~~~~
+
+**Taken as an input. Never bundled, never fetched.** A corpus build resolves
+nothing over the network -- a build with the network unplugged produces the
+same corpus as one without -- and a registry that changes daily, fetched at
+build time, would end that. 5.1 MB that changes daily is also not a thing to
+vendor into a compiler.
+
+``--oid-registry`` is repeatable and reads two registries: the Private
+Enterprise Numbers registry, in either the published four-line-record format or
+a reduced CSV, and IANA's ``smi-numbers`` XML (see :ref:`arc-names`). Which one
+a file is comes from its content rather than from its name, since a snapshot a
+repository commits is called whatever that repository calls it. A repository that keeps a snapshot reduces a download once:
+
+.. code-block:: sh
+
+   python -m pysmi.registry enterprise-numbers.txt > pen-snapshot.csv
+
+The reduced form keeps the whole registry, whole records, by default.
+``--fields`` narrows the record and ``--only``/``--only-from`` narrow the rows.
+What leaves IANA's copy is the committing repository's decision rather than
+PySMI's, so both are arguments rather than a hard-coded projection. Nothing is
+normalised: the output is a rendering of IANA's record rather than a corrected
+version of it.
+
+The registry is 66,807 registrations and IANA revises it daily, so a repository
+committing all of it commits a large file and re-diffs the whole of it every
+month. The other choice is a snapshot of the registrants this corpus's own arcs
+use -- for pysnmp/mibs, 351 rows rather than 66,807:
+
+.. code-block:: sh
+
+   python -m pysmi.registry --only-from=arcs.txt enterprise-numbers.txt \
+       > pen-snapshot.csv
+
+``--only-from`` reads enterprise numbers one per line, blanks and ``#``
+comments ignored, which is what a corpus can write out of its own index. The
+cost is staleness -- a module arriving later under an arc the snapshot predates
+goes nameless -- and the build says when that has happened rather than leaving
+it to be found on the site.
+
+.. _arc-names:
+
+What an arc is called
+---------------------
+
+The OID index ranks modules to decide which one owns an arc. The rule is total
+and works for arcs a module actually registers; for the arcs *above* those it
+has nothing good to choose from, so it picks whichever module happened to
+mention the arc on its way somewhere else. Measured against pysnmp/mibs:
+
+===================  ===========================  =========================
+arc                  is                           attributed to
+===================  ===========================  =========================
+``1.3``              ``identified-organization``  ``OCCAM-ETHERLIKE-MIB``
+``1.3.6``            ``dod``                      ``OCCAM-ETHERLIKE-MIB``
+``1.3.6.1.6``        ``snmpv2``                   ``RAPID-CITY``
+``1.3.6.1.6.3``      ``snmpModules``              ``RAPID-CITY``
+``1.2``              ISO member-body              ``IEEE802dot11-MIB``
+``0.0``              ITU-T recommendation         ``DLSW-MIB``
+===================  ===========================  =========================
+
+A tree that says ``snmpModules`` belongs to a Nortel enterprise MIB is wrong in
+a way that matters, and no ranking over MIB text can fix it, because the fact
+is not in the MIB text. Twenty-five arcs are claimed by nothing at all, and a
+tree still has to render a path through them -- ``1.3.6.1.4.1.9`` among them,
+since no module registers Cisco's bare arc, only what hangs beneath it.
+
+``--emit=arcs`` writes the answer, from the registries the build was given:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output --emit=arcs \
+       --oid-registry=smi-numbers.xml --oid-registry=pen-snapshot.csv
+
+.. code-block:: json
+
+   {
+     "meta": {"schema": 1, "arcs": 6694,
+              "by-source": {"module": 5900, "registry": 700,
+                            "standard": 15, "unnamed": 79}},
+     "arc": {
+       "1.3.6.1.6.3": {"name": "snmpModules", "source": "registry",
+                       "reference": "https://www.iana.org/assignments/smi-numbers"},
+       "1.0.8802": {"name": "iso8802", "source": "standard",
+                    "reference": "ISO-IEC 8802"}
+     }
+   }
+
+Every name says which kind of fact it is
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``source`` is rendered, because an IANA registration, a cited standard and a
+name read off whichever MIB mentioned an arc are three different things and a
+reader has to be able to tell them apart. Strongest first:
+
+``registry``
+    IANA. ``smi-numbers`` names the ``1.3.6.1`` subtree -- and, through the
+    dotted names in its own registry descriptions, ``1 iso`` down to
+    ``1.3.6.1 internet``, which nothing else in the file names. The Private
+    Enterprise Numbers registry names a bare enterprise arc.
+
+``standard``
+    A standard, cited. ITU-T's OID registry does not answer, and IEEE
+    publishes landing pages and PDFs, so there is no feed for ``0``, ``1.0``,
+    ``1.2``, ``1.3.111`` or ``1.0.8802`` -- the chains IEEE registers its 802
+    MIBs under, and ``LLDP-MIB`` sits at ``1.0.8802.1.1.2``. Those are defined
+    in ITU-T X.660 and ISO/IEC 9834-1 and have not changed in decades, so
+    PySMI carries a small table with a reference per entry. A cited name is
+    not a registration and is labelled as what it is.
+
+``module``
+    A module's own descriptor, which is what the index has always used. Still
+    here, still useful, and now labelled rather than presented as though it
+    were an authority's answer.
+
+**An arc nothing names says so**, with an empty name rather than a borrowed
+one. The build report counts them.
+
+When a committed PEN snapshot has gone stale
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A repository that commits the whole Private Enterprise Numbers registry
+commits 66,807 registrants and re-diffs all of them every time IANA moves,
+which is daily. Committing only the registrants its own arcs use is a far
+smaller file and a far smaller monthly diff, at the cost of going stale: the
+first module the corpus gains under a newer enterprise arc has no registrant
+in the snapshot, and that registrant's page renders nameless.
+
+Nothing about the build would otherwise say so -- the arc is still in the
+index, still reachable, still rendered, just blank. So the build says it:
+
+.. code-block:: text
+
+   WARNING  3 enterprise arc(s) no PEN registrant names: 62373, 99999, 100001
+
+and ``report.json`` carries the count as ``arcs.unregistered-enterprises``, so
+a build nobody watched can still be asked. ``arcs.json`` carries every one of
+them, since a log line is not the artifact.
+
+It is a **warning and never a failure**. An arc can be registered to nobody,
+and IANA's registry has gaps of its own. An arc a module names is still
+counted: the module's own descriptor says what the vendor calls its subtree,
+not who registered it, and it is the registrant a refresh would supply.
+
+:py:func:`pysmi.corpus.arcs.unregistered` is the same answer as data, for a
+build that wants to act on it.
+
+What is in the inventory
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The arc set comes from the OID index and every prefix of it -- the
+registration tree -- rather than from every OID a module defines. Over
+pysnmp/mibs that is 14,752 arcs instead of 98,903; the difference is
+objects, and an object's arc is a thing inside a module rather than a node
+anybody navigates to.
+
+It is not filtered to one subtree. 97.0% of pysnmp/mibs' index rows sit under
+``1.3.6.1.4.1`` and 2.3% under ``1.3.6.1.2.1``, but IEEE publishes its 802.1
+MIBs under ``1.3.111.2.802.1`` and ``LLDP-MIB`` registers under
+``1.0.8802.1.1.2``. A ``1.3.6.1`` filter drops both, and LLDP is among the most
+widely polled MIBs there is. Arc depth runs from 2 to 20.
+
+That inventory counts an arc whether or not anything would render a page for
+it. Which of them a *site* gives a page to is a narrower question, and
+:py:mod:`pysmi.corpus.pages` answers it: the arcs above the modules, which
+over pysnmp/mibs is 1,493 of the 14,752 rather than the 98,903 a page per
+defined OID would be. An arc at a module's anchor is the module, and an arc
+below one is an object the module page already renders.
+
+.. _site:
+
+The browsable site
+------------------
+
+``--emit=site`` writes the corpus as pages, from the same jsondoc tree the
+indexes and the database are projections of. Three trees and an entry point,
+named so that nothing collides with a corpus path:
+
+====================  ==================================================
+``mib/<MODULE>/``     one module: identity, provenance, the repair and
+                      its reason, the load order, imports, what imports
+                      it, the arcs below it, and every object,
+                      notification, textual convention and conformance
+                      statement with its OID, syntax, access, status and
+                      description
+``entity/<PEN>/``     one registrant: who the registry says holds the
+                      arc, who to report a problem to, and every module
+                      the corpus holds under it
+``oid/<arc>/``        one node of the registration tree, and its
+                      children
+``browse/``           the entry point, and the module list
+====================  ==================================================
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output \
+       --emit=site --emit=json \
+       --oid-registry=smi-numbers.xml --oid-registry=pen-snapshot.csv \
+       --site-name="pysnmp/mibs"
+
+Over pysnmp/mibs' 5,510 modules that is **7,346 pages and 220 MB in 18
+seconds**, on top of the build that produced the corpus.
+
+Why the generator is here
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The site is a function of a corpus, so an enterprise pointing ``mibcorpus`` at
+its own manifest -- a private collection, a downstream project vendoring
+additions -- gets the same site over its own modules. The alternative is a
+second implementation in whichever repository publishes the corpus, which is
+the shape pysnmp/mibs#365 removed: that repository's compiler, dependency
+resolver and OID indexer were each a second implementation of PySMI's, and
+each had drifted.
+
+The module set is the corpus
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pages are written for what the manifest declares and nothing else. A directory
+sitting beside the sources is not a namespace, so it is not in the corpus and
+gets no pages; and a namespace declared for resolution only -- ``publish``
+false, which is how a compact corpus resolves against the standard modules
+without carrying them -- contributes none either.
+
+Everything is in the bytes
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+No page fetches anything: not the object table, not the description, not the
+navigation. #284 measured the alternative and it costs the same on disk, while
+being unreadable to the AI crawlers that do not run JavaScript -- to those, a
+client-rendered object table is a page about a MIB module that does not say
+what the module defines.
+
+Links are relative to the site root, so a site published under a path on a
+project host works without being told where it lives, and so does one opened
+from a local directory.
+
+The page count is bounded
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Three rules keep it that way, and each is its own module:
+
+- the OID tree stops at the modules, which
+  :py:mod:`pysmi.corpus.pages` decides. An arc at a
+  module's anchor *is* that module and resolves to its page; an arc below one
+  is an object the module page already renders in context.
+- long lists split by range key rather than page number
+  (:ref:`list-buckets`), so adding one module does not renumber every page
+  after it. ``page-size`` sets how long a list gets first, as one number for
+  every list or as an object naming them -- ``{"browse": 500, "entity": 200}``.
+  The module list is the site's front door and wants few pages; a registrant's
+  list is reached by somebody already narrowed to one vendor, and Cisco's
+  1,341 modules at the same size would be three pages of 500 links each.
+- the list of modules importing a given one is capped. It is the one list on a
+  module page with no natural bound: 1,461 modules in pysnmp/mibs import
+  ``IF-MIB``. The count is the fact worth stating.
+
+**No page is an orphan.** The case that breaks this is a structural arc whose
+parent is a module anchor: the parent has no arc page, so only the module page
+can link down to it, and it does -- see *Under this module's arcs*.
+
+The crawl surface
+~~~~~~~~~~~~~~~~~
+
+Declaring a ``base-url`` says this build is producing a **distribution site**
+rather than a subtree somebody else will assemble, and the whole crawl surface
+is written with it: a canonical link and a ``meta description`` per page,
+JSON-LD, ``sitemap.xml`` as an index, ``robots.txt`` and ``llms.txt``. Without
+it there is nothing to put in a canonical link, and guessing an origin would
+publish a site claiming to live somewhere it does not.
+
+``data-url`` is the second origin, for a distribution that serves its pages
+and its downloads from two hosts. This one does: a page URL is a directory
+that a host resolves to ``index.html``, and object storage serves the key it
+is given, so the pages and the files cannot share an origin without something
+on the serving path rewriting every request. Only the ``llms.txt`` bulk links
+read it. A canonical link and a sitemap entry describe a page, and a page is
+always on ``base-url``. Omitted, one origin serves both.
+
+.. code-block:: json
+
+   {
+     "site": {
+       "base-url": "https://mibsdepot.com",
+       "data-url": "https://data.mibsdepot.com",
+       "name": "MIBs Depot",
+       "description": "5,500 SNMP MIB modules from their publishers.",
+       "crawl": {
+         "*": {"disallow": ["asn1", "json", "index-v2", "core-db"]},
+         "ClaudeBot": {"allow": ["asn1", "json", "index-v2"]}
+       }
+     }
+   }
+
+**A crawl policy names artifacts, not paths.** A distribution saying "keep
+search engines out of the raw JSON" should not have to know whether that tree
+is called ``json`` or something this release renamed. An artifact the policy
+names that the build did not produce is skipped rather than written: a rule
+about a tree that is not there would read as though the tree existed.
+
+The policy is per-agent because a search engine and an agent want opposite
+things from the same tree. To the first, 460 MB of ``asn1/`` and ``json/``
+across 11,000 files is crawl budget spent on files with no indexing value; to
+the second they are the point, and ``llms.txt`` sends it there deliberately.
+The agent list is configuration because crawler names change faster than
+releases.
+
+``llms.txt`` is a convention rather than a mechanism -- no major AI crawler is
+documented as consuming it. It is emitted and nothing depends on it. What
+reaches an AI crawler is server-rendered HTML and a ``robots.txt`` that admits
+it.
+
+**PySMI cannot decide where robots.txt lands.** On GitHub Pages a *project*
+site cannot serve its own: crawlers read it only from the host root, which
+belongs to a different repository. So the file is produced here and the
+deployment places it.
+
+``lastmod`` is a date the content states
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A corpus rebuilt on every push that stamps every page with today's date
+teaches a crawler the field is noise. A module page's ``lastmod`` is the
+module's own newest ``REVISION`` or ``LAST-UPDATED``, which is the date its
+content last changed; a page listing modules takes the newest among them.
+
+So **no build clock reaches a sitemap**, and two builds of one corpus produce
+the same one. Over pysnmp/mibs that is 2,635 distinct dates across 7,350 URLs,
+and today's date is not among them. A page describing something with no
+readable date is listed without a ``lastmod`` at all -- which says "I do not
+know", where the build date would say something false.
+
+A stamp shaped like a date and not one is dropped rather than ranked, for the
+reason the index ranker gives: ``HPR-MIB`` carries ``970514000000Z``, month
+14, which compares above every real date there will ever be.
+
+What the JSON-LD says, and what it costs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A MIB module is a published artifact with an identifier, a publisher and a
+revision date, which defines a vocabulary of named terms -- ``DefinedTermSet``
+crossed with ``Dataset``. **The identifiers are the OIDs**, which is the
+point: an OID is a globally unique identifier that already exists, and a
+consumer holding one should be able to match it without reading prose.
+
+It is not free. Enumerating 98,000 definitions adds 40% to the site: 220 MB
+becomes 309 MB. A first cut also carried each term's description and an
+``inDefinedTermSet`` back-reference, which took it to 360 MB; both are gone,
+the descriptions because they are already in the HTML the JSON-LD sits in, and
+the back-reference because nesting under ``hasDefinedTerm`` already says a term
+belongs to the set.
+
+Theming
+~~~~~~~
+
+``--site-template`` and ``--site-stylesheet`` replace the page frame and the
+stylesheet, so a distribution publishing this beside its own documentation
+makes it look like the rest of that documentation without forking the
+generator. ``$name`` substitution, and an unknown placeholder renders as
+itself rather than raising in the middle of a 5,500-page build -- a page with
+``$oops`` on it is something somebody sees.
+
+A named file that cannot be read is refused rather than ignored: falling back
+would publish a whole site in the wrong skin and say nothing.
+
+What a replacement stylesheet reaches
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The definition tables carry **no element inside a cell**. At 764,000
+definitions over pysnmp/mibs a wrapper per cell was 61 bytes a row -- 47 MB of
+module pages -- so the cells hold their text and the stylesheet reaches them by
+position:
+
+====================  ================================================
+selector              the column
+====================  ================================================
+``.defs``             a definition table.
+``.defs.typed``       the five-column shape: Name, OID, Syntax, Access,
+                      Status. Without ``typed`` it is the three-column
+                      one: Name, OID, Status.
+``td:first-child``    the descriptor.
+``td:nth-child(2)``   the OID.
+``td:last-child``     STATUS, in either shape.
+``.desc``             the macro a definition came from, and its
+                      DESCRIPTION where the build carries texts. The one
+                      element still written inside a cell, because it is
+                      a block under the name rather than a column.
+====================  ================================================
+
+Each row carries the descriptor as its ``id``, so ``mib/IF-MIB/#ifTable`` is a
+link to one definition. Style ``:target`` to show which one was asked for.
+
+.. _list-buckets:
+
+Splitting a long list page
+--------------------------
+
+A site rendering a corpus has lists too long for one page: every module it
+holds, every module one registrant published, the children of a wide OID node.
+:py:mod:`pysmi.corpus.buckets` decides what the pieces are called.
+
+**Not first letters.** A to Z is the obvious index and it fails on MIB names,
+which are dominated by vendor prefixes rather than spread across the alphabet:
+
+======================================  =======  ==================
+list                                    buckets  largest
+======================================  =======  ==================
+all 5,510 modules, by first letter      25       ``C`` at 1,708
+Cisco's 1,353 modules, by first letter  7        ``C`` at 1,280
+Cisco's, by first seven characters      38       ``CISCO-I`` at 166
+======================================  =======  ==================
+
+1,224 of Cisco's 1,353 modules begin ``CISCO-``. No fixed prefix length gives
+even buckets, and the length that would work differs between the global list
+and one registrant.
+
+**Not page numbers.** ``page/4/`` is stable only while the list is. Adding one
+module shifts the contents of every later page, so every already-crawled URL
+past the insertion point serves different content and reports a fresh
+``lastmod``. A range key disturbs only the bucket the new entry lands in.
+
+**A range key, derived.** The sorted list is partitioned into equal-count runs
+of the page size, and each run is labelled with the shortest prefix
+distinguishing its ends from its neighbours' -- so the label length falls out
+of the local density:
+
+.. code-block:: text
+
+   AT..CISCO-DIAMETER-SG-C            200
+   CISCO-DIAMETER-SG-M..CISCO-HC      200
+   CISCO-HE..CISCO-LICENSE-MG         200
+   CISCO-LICENSE-MI..CISCO-PRI        200
+   CISCO-PRO..CISCO-TM                200
+   CISCO-TN..CISCO-WDS-IDS-C          200
+   CISCO-WDS-IDS-M..RP                153
+
+The separator is ``..`` rather than an en dash: an en dash percent-encodes to
+``%E2%80%93``, which works and is a needless hazard in a string that crawlers,
+server logs, shell history, spreadsheets and copy-paste all handle. A plain
+``-`` is ambiguous in names full of hyphens. ``..`` occurs in neither a module
+name nor an arc number.
+
+The sort is case-sensitive byte order, which is what the labels imply; a
+display sort that differed would put entries in buckets whose range excludes
+them. A wide OID node's children sort numerically instead, and take their
+numbers whole as labels -- the shortest distinguishing prefix of a decimal
+number is not a number.
+
+Four things the generator needs beyond the split:
+
+``locate``
+    Which bucket a name belongs to, including a name the list did not have
+    when the buckets were built. This is what the browser-side navigation
+    resolves against.
+
+``successors``
+    A bucket that outgrows the page size splits, which renames a key -- the
+    one case where a range URL moves. Static hosting serves no redirects, so
+    the retired key is emitted as a small page carrying a canonical link and a
+    meta refresh to whatever now covers it. ``retired`` names those keys.
+
+``abbreviate``
+    Every bucket is listed on every bucket page, so any bucket is one hop from
+    any other and crawl depth does not grow with the corpus. That works only
+    if the strip fits, and a label runs to 27 characters. The URL keeps the
+    whole label; the rendering is clipped.
+
+A single bucket
+    A list no longer than the page size comes back as one bucket with **no
+    key**: it keeps its unbucketed URL and renders no key strip.
 
 .. _asn1-naming:
 

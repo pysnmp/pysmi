@@ -1,3 +1,6 @@
+Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
+Defect: SMI-SUPERSEDED-MODULE https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-superseded-module
+
 --- a/RDBMS-MIB
 +++ b/RDBMS-MIB
 @@ -6,8 +6,10 @@

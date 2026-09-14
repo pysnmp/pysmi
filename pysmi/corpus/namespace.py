@@ -195,6 +195,33 @@ def _expand(entry: dict[str, Any], root: str) -> list[Namespace]:
 
 
 @dataclass(frozen=True)
+class Publication:
+    """One tree a build writes, where a build may write more than one.
+
+    A distribution is not always one tree. The same corpus may go out as the
+    data a runtime fetches and as the pages a reader browses, to two hosts with
+    different limits, and building it twice parses 5,510 modules twice to reach
+    the same answer.
+
+    Attributes:
+        name: what to call it, for the report and for errors. Unique within
+            a manifest.
+        emit: the artifacts this tree carries, in ``--emit`` syntax. Declared
+            per publication rather than inherited: two publications that share
+            a build rarely share an artifact -- the data and the pages are the
+            case this exists for -- and a set assembled half from the top level
+            and half from here is a set nobody can read off the file.
+        output: where the tree goes, under the build's output directory. A
+            publication naming no output of its own writes into that directory
+            itself, which is what a manifest with a single publication means.
+    """
+
+    name: str
+    emit: list[str]
+    output: str = ""
+
+
+@dataclass(frozen=True)
 class Manifest:
     """What a corpus manifest declares.
 
@@ -213,11 +240,88 @@ class Manifest:
             this, as flags override files.
         expect: what must be true of the build, keyed by
             :py:data:`EXPECTATIONS`. Empty where the manifest declares none.
+        site: how ``--emit=site`` renders and publishes, keyed by
+            :py:data:`SITE_SETTINGS`. Empty where the manifest declares none,
+            which gives the built-in theme and no crawl surface. See
+            pysnmp/pysmi#284.
     """
 
     namespaces: list[Namespace]
     emit: list[str] | None = None
+    publications: "list[Publication] | None" = None
     expect: dict[str, Any] = field(default_factory=dict)
+    site: dict[str, Any] = field(default_factory=dict)
+
+
+#: The settings ``site`` may declare, mapped to the shape each takes.
+#:
+#: ``base-url`` is what makes a build a **distribution site** rather than a
+#: subtree somebody else will assemble: given, the whole crawl surface is
+#: written, and without it there is nothing to put in a canonical link. The
+#: rest are the page frame, which a distribution replaces so that this looks
+#: like the documentation it is published beside.
+SITE_SETTINGS: Final[dict[str, type | tuple[type, ...]]] = {
+    "base-url": str,
+    "data-url": str,
+    "description": str,
+    "name": str,
+    "template": str,
+    "stylesheet": str,
+    "page-size": (int, dict),
+    "crawl": dict,
+}
+
+
+def _read_site(manifest: dict[str, Any], path: str) -> dict[str, Any]:
+    """The ``site`` key, checked.
+
+    A setting this release does not know is refused rather than ignored. A
+    manifest saying ``base_url`` where the key is ``base-url`` would otherwise
+    publish a site with no canonical links and no sitemap, and say nothing
+    about why.
+    """
+    if "site" not in manifest:
+        return {}
+
+    declared = manifest["site"]
+
+    if not isinstance(declared, dict):
+        raise error.PySmiError(f"corpus manifest {path}: site is not an object")
+
+    unknown = sorted(set(declared) - set(SITE_SETTINGS))
+
+    if unknown:
+        raise error.PySmiError(
+            f"corpus manifest {path}: site declares "
+            f"{', '.join(unknown)}; expected some of "
+            f"{', '.join(sorted(SITE_SETTINGS))}"
+        )
+
+    for name, value in declared.items():
+        if not isinstance(value, SITE_SETTINGS[name]) or isinstance(value, bool):
+            expected = SITE_SETTINGS[name]
+            spelled = (
+                " or ".join(x.__name__ for x in expected)
+                if isinstance(expected, tuple)
+                else expected.__name__
+            )
+
+            raise error.PySmiError(
+                f"corpus manifest {path}: site {name} is "
+                f"{type(value).__name__}, expected {spelled}"
+            )
+
+    # A relative path in a manifest is relative to the manifest, like every
+    # other path one carries: a theme file sits beside the manifest that names
+    # it, not beside whatever directory the build was started from.
+    where = os.path.dirname(os.path.abspath(path))
+    settings = dict(declared)
+
+    for name in ("template", "stylesheet"):
+        if settings.get(name) and not os.path.isabs(settings[name]):
+            settings[name] = os.path.normpath(os.path.join(where, settings[name]))
+
+    return settings
 
 
 def _read_emit(manifest: dict[str, Any], path: str) -> list[str] | None:
@@ -240,6 +344,151 @@ def _read_emit(manifest: dict[str, Any], path: str) -> list[str] | None:
         )
 
     return emitted
+
+
+def _read_publications(
+    manifest: dict[str, Any], path: str
+) -> "list[Publication] | None":
+    """The ``publications`` key, checked.
+
+    A manifest declares ``emit`` or ``publications``, never both: the first
+    says this build writes one tree, the second says it writes several, and a
+    file saying both does not say which artifacts belong to which.
+    """
+    if "publications" not in manifest:
+        return None
+
+    if "emit" in manifest:
+        raise error.PySmiError(
+            f"corpus manifest {path} declares both emit and publications; "
+            f"emit is the artifact set of a build writing one tree, and "
+            f"publications is a build writing several, each with its own"
+        )
+
+    declared = manifest["publications"]
+
+    if not isinstance(declared, list) or not declared:
+        raise error.PySmiError(
+            f"corpus manifest {path} declares publications as something "
+            f"other than a non-empty list"
+        )
+
+    publications = []
+    seen = set()
+
+    for entry in declared:
+        if not isinstance(entry, dict):
+            raise error.PySmiError(
+                f"corpus manifest {path} declares a publication that is not an object"
+            )
+
+        name = entry.get("name")
+
+        if not isinstance(name, str) or not name:
+            raise error.PySmiError(
+                f"corpus manifest {path} declares a publication with no name; "
+                f"the report and any error have to be able to say which one"
+            )
+
+        if name in seen:
+            raise error.PySmiError(
+                f"corpus manifest {path} declares publication {name!r} twice"
+            )
+
+        seen.add(name)
+
+        emitted = entry.get("emit")
+
+        if (
+            not isinstance(emitted, list)
+            or not emitted
+            or not all(isinstance(x, str) for x in emitted)
+        ):
+            raise error.PySmiError(
+                f"corpus manifest {path} declares publication {name!r} with "
+                f"no emit set; a publication carrying no artifact is not one"
+            )
+
+        output = entry.get("output", "")
+
+        if not isinstance(output, str):
+            raise error.PySmiError(
+                f"corpus manifest {path} declares publication {name!r} with "
+                f"an output that is not a path"
+            )
+
+        try:
+            output = contained_path(output)
+
+        except ValueError as exc:
+            raise error.PySmiError(
+                f"corpus manifest {path} declares publication {name!r} with "
+                f"output {entry.get('output')!r}: {exc}. A publication writes "
+                f"under the build's output directory, which is the caller's "
+                f"and not the manifest's"
+            ) from None
+
+        publications.append(Publication(name=name, emit=emitted, output=output))
+
+    _distinct_trees(publications, path)
+
+    return publications
+
+
+def contained_path(output: str) -> str:
+    """*output* as components under a root, or ValueError if it escapes one.
+
+    A manifest is written by a person on whatever machine they have and read
+    on whatever machine builds, so both separators are significant here
+    whatever ``os.sep`` says today: ``../elsewhere`` split on a Windows
+    ``os.sep`` has no parent component in it, and ``os.path.isabs('/etc')``
+    is false on Windows, where it means the root of the current drive.
+
+    Returns the path normalized to forward slashes, so that two spellings of
+    one directory -- ``""`` and ``"."``, ``data`` and ``data/.`` -- compare
+    equal rather than passing a check that only ever saw the strings.
+    """
+    plain = output.replace("\\", "/")
+
+    if plain.startswith("/"):
+        raise ValueError("an absolute path")
+
+    # C:, C:/, C:data -- the last of which is relative to that drive's
+    # working directory and so not under this build's output at all.
+    if len(plain) > 1 and plain[1] == ":" and plain[0].isalpha():
+        raise ValueError("a drive-relative path")
+
+    parts = [x for x in plain.split("/") if x not in ("", ".")]
+
+    if ".." in parts:
+        raise ValueError("a path leaving the directory it is written under")
+
+    return "/".join(parts)
+
+
+def _distinct_trees(publications: "list[Publication]", path: str) -> None:
+    """Each publication is a tree of its own, or PySmiError saying which two.
+
+    Not merely distinct strings: one output inside another means the second
+    writes into the first, and whichever runs last decides what the reader
+    finds. ``""`` -- the build directory itself -- contains everything, so a
+    manifest pairing it with any other publication is caught here too.
+    """
+    for index, publication in enumerate(publications):
+        mine = publication.output.split("/") if publication.output else []
+
+        for other in publications[index + 1 :]:
+            theirs = other.output.split("/") if other.output else []
+            shared = min(len(mine), len(theirs))
+
+            if mine[:shared] == theirs[:shared]:
+                raise error.PySmiError(
+                    f"corpus manifest {path} declares publications "
+                    f"{publication.name!r} and {other.name!r} writing to "
+                    f"{publication.output or '.'!r} and {other.output or '.'!r}, "
+                    f"one inside the other; each publication is a tree of "
+                    f"its own"
+                )
 
 
 def _read_expect(manifest: dict[str, Any], path: str) -> dict[str, Any]:
@@ -392,5 +641,7 @@ def read_manifest(path: str) -> Manifest:
     return Manifest(
         namespaces=_read_namespaces(manifest, path),
         emit=_read_emit(manifest, path),
+        publications=_read_publications(manifest, path),
         expect=_read_expect(manifest, path),
+        site=_read_site(manifest, path),
     )

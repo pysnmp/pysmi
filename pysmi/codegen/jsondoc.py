@@ -6,14 +6,13 @@
 #
 """Rendering MIB modules as JSON documents."""
 
-import json
 import logging
 import re
 from collections import OrderedDict
 from keyword import iskeyword
 from typing import Any, ClassVar, cast
 
-from pysmi import error
+from pysmi import error, jsonio
 from pysmi._aliases import deprecated_camel_case
 from pysmi.codegen.base import (
     AbstractCodeGen,
@@ -1937,7 +1936,7 @@ class JsonCodeGen(AbstractCodeGen):
             compliance=self._complianceOids,
             notification=self._notificationOids,
             imported=tuple(x for x in importedModules if x not in self.fakeMibs),
-        ), json.dumps(outDict, indent=2)
+        ), jsonio.dumps(outDict)
 
     def gen_index(self, processed: dict[str, Any], **kwargs: Any) -> str:
         """Render an index of the modules compiled and what they define.
@@ -1974,7 +1973,7 @@ class JsonCodeGen(AbstractCodeGen):
         }
         if kwargs.get("old_index_data"):
             try:
-                outDict.update(json.loads(kwargs["old_index_data"]))
+                outDict.update(jsonio.loads(kwargs["old_index_data"]))
 
             except (TypeError, ValueError) as exc:
                 raise error.PySmiCodegenError(f"Index load error: {exc}") from exc
@@ -2078,4 +2077,4 @@ class JsonCodeGen(AbstractCodeGen):
             extra={"entries": len(processed)},
         )
 
-        return json.dumps(order(outDict), indent=2)
+        return jsonio.dumps(order(outDict))

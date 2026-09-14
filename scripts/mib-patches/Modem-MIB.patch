@@ -1,3 +1,5 @@
+Defect: SMI-UNDEFINED-NAME https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-undefined-name
+
 --- a/Modem-MIB
 +++ b/Modem-MIB
 @@ -24,7 +24,7 @@

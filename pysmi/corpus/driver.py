@@ -39,28 +39,38 @@ import logging
 import os
 import tempfile
 import time
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Final
 
 from pysmi import __version__ as packageVersion
-from pysmi import error
+from pysmi import error, jsonio
+from pysmi.cache.base import AbstractParseCache
 from pysmi.cache.memory import InMemoryParseCache
 from pysmi.codegen.base import AbstractCodeGen
 from pysmi.codegen.jsondoc import JsonCodeGen
 from pysmi.codegen.pysnmp import PySnmpCodeGen
-from pysmi.compiler import MibCompiler, bundled_mib_names
+from pysmi.compiler import MibCompiler, MibResolution, bundled_mib_names
+from pysmi.corpus import arcs as corpus_arcs
+from pysmi.corpus import closure as corpus_closure
 from pysmi.corpus import db as corpus_db
+from pysmi.corpus import entity as corpus_entity
 from pysmi.corpus import index as corpus_index
 from pysmi.corpus.namespace import DEFAULT_TIER, TIERS, Namespace
+from pysmi.corpus.site import build_site
+from pysmi.corpus.site.crawl import Crawl
+from pysmi.corpus.site.theme import Theme
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader.base import AbstractReader
 from pysmi.reader.localfile import FileReader
 from pysmi.reader.package import PackageReader
+from pysmi.registry.pen import Registrant
+from pysmi.registry.smi import ArcName
 from pysmi.searcher.anyfile import AnyFileSearcher
 from pysmi.searcher.base import AbstractSearcher
 from pysmi.searcher.stub import StubSearcher
 from pysmi.writer.base import AbstractWriter
+from pysmi.writer.callback import CallbackWriter
 from pysmi.writer.localfile import FileWriter
 from pysmi.writer.pyfile import PyFileWriter
 
@@ -117,6 +127,26 @@ class CorpusOutputs:
     texts: str | None = None
     #: jsondoc documents.
     json: str | None = None
+    #: jsondoc documents carrying DESCRIPTION and the other texts.
+    #:
+    #: A tree of its own, so a build may have both: the lean one it publishes,
+    #: and a complete one for something that needs the prose. Pointed at the
+    #: same directory as :py:attr:`json` it is that tree with the texts in it,
+    #: which is the other thing a build may want.
+    #:
+    #: What ``genTexts`` gates is more than descriptions.
+    #: ``JsonCodeGen.gen_module_identity`` puts ``organization`` and
+    #: ``contactinfo`` behind the same switch, so a published MODULE-IDENTITY
+    #: is ``name``, ``oid``, ``class`` and ``lastupdated`` and nothing else --
+    #: ``CISCO-ENTITY-ALARM-MIB`` carries a full CONTACT-INFO block in its
+    #: ASN.1 and no trace of it reaches the JSON. Over a 500-module sample,
+    #: 90% of modules carry ORGANIZATION and CONTACT-INFO.
+    #:
+    #: It costs roughly 70% more on disk, which is why it is asked for rather
+    #: than assumed. ``keepTextsLayout`` stays off: a JSON consumer generally
+    #: wants the text normalised rather than the publisher's line breaks
+    #: preserved. See pysnmp/pysmi#277.
+    json_texts: str | None = None
     #: The legacy OID index, which replays :py:attr:`frozen_index`.
     index: str | None = None
     #: The ranked OID index, where collisions are resolved by rule.
@@ -128,17 +158,41 @@ class CorpusOutputs:
     #: The corpus database: the SMI model laid out for lookup. See
     #: :py:mod:`pysmi.corpus.db`.
     core_db: str | None = None
+    #: The lookup half of the corpus database -- the tables that answer
+    #: *which module* rather than *what the object is*. Over pysnmp/mibs, 15
+    #: MB against ``core.db``'s 256 -- the difference between a database a
+    #: site can publish and one that spends a quarter of the whole Pages
+    #: budget. Same schema, so one set of queries reads either. See
+    #: :py:data:`pysmi.corpus.db.SEARCH`.
+    search_db: str | None = None
+    #: The enterprise arc index: which arcs under ``1.3.6.1.4.1`` the corpus
+    #: registers under, who the registry says holds each, and what it holds
+    #: there. See :py:mod:`pysmi.corpus.entity`.
+    entity: str | None = None
+    #: The arc name index: what every arc the corpus reaches is called, and
+    #: which authority says so. See :py:mod:`pysmi.corpus.arcs`.
+    arcs: str | None = None
+    #: The transitive import closure per module: the files a consumer needs
+    #: in order to load one. See :py:mod:`pysmi.corpus.closure`.
+    closure: str | None = None
+    #: The browsable site: one page per module, per registrant and per node of
+    #: the registration tree. See :py:mod:`pysmi.corpus.site`.
+    site: str | None = None
     #: The build report, as JSON.
     report: str | None = None
 
     def directories(self) -> list[str]:
         """Every directory this build writes into."""
-        dirs = [self.asn1, self.notexts, self.texts, self.json]
+        dirs = [self.asn1, self.notexts, self.texts, self.json, self.json_texts]
         files = [
             self.index,
             self.ranked_index,
             self.standard,
             self.core_db,
+            self.search_db,
+            self.entity,
+            self.arcs,
+            self.closure,
             self.report,
         ]
 
@@ -160,6 +214,12 @@ class CorpusReport:
 
     #: pysmi version that produced this.
     version: str = packageVersion
+    #: Which JSON implementation wrote the corpus artifacts. What it wrote
+    #: does not depend on this -- ``tests/test_jsonio.py`` holds the
+    #: implementations to identical bytes -- but a build being compared
+    #: against another is easier to reason about when each says what it
+    #: resolved. See :py:mod:`pysmi.jsonio`.
+    json: str = jsonio.IMPLEMENTATION
     #: Namespaces built, in declaration order, with their tier and how many
     #: modules each supplied.
     namespaces: list[dict[str, Any]] = field(default_factory=list)
@@ -173,6 +233,12 @@ class CorpusReport:
     #: Modules more than one namespace holds a differing copy of: which file
     #: was used, which were passed over, and which rule decided.
     shadowed: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: Where each published module came from: the namespace that supplied it,
+    #: the file read, and that file's digest. :py:attr:`shadowed` is the
+    #: origin story for exactly the modules more than one namespace held a
+    #: differing copy of, which is a small minority; this is the answer for
+    #: the rest. See pysnmp/pysmi#278.
+    provenance: dict[str, dict[str, str]] = field(default_factory=dict)
     #: Modules the corpus publishes, counted once however many namespaces
     #: hold one: what compiled, which is what every artifact carries. A
     #: module that failed, and anything that imports it, is not in this
@@ -191,6 +257,24 @@ class CorpusReport:
     index: dict[str, int] = field(default_factory=dict)
     #: Rows written to the corpus database, by table.
     db: dict[str, int] = field(default_factory=dict)
+    #: What the search database received, if one was asked for. Its own field
+    #: rather than a nesting of :py:attr:`db`, because ``report.json`` is a
+    #: published artifact and consumers read that key's shape.
+    searchDb: dict[str, int] = field(default_factory=dict)
+    #: Enterprise arcs the corpus registers under, how many the registry
+    #: named, and how many it did not. The last is the one to look at: a
+    #: build where it jumps has lost its registry or grown a module
+    #: registering where nobody allocated.
+    entity: dict[str, int] = field(default_factory=dict)
+    #: Arcs the corpus reaches, and where their names came from. The
+    #: ``unnamed`` count should fall as registries are supplied.
+    arcs: dict[str, int] = field(default_factory=dict)
+    #: Import closures written, and how many name a module the corpus does
+    #: not hold. The second number is the one to look at: it counts modules
+    #: this corpus publishes that nothing here can load.
+    closure: dict[str, int] = field(default_factory=dict)
+    #: What the site pass wrote: pages by kind, and total bytes.
+    site: dict[str, int] = field(default_factory=dict)
     #: Seconds the build took, by phase.
     seconds: dict[str, float] = field(default_factory=dict)
 
@@ -198,16 +282,23 @@ class CorpusReport:
         """This report as plain data, for JSON."""
         return {
             "version": self.version,
+            "json": self.json,
             "namespaces": self.namespaces,
             "statuses": self.statuses,
             "failed": self.failed,
             "unprocessed": self.unprocessed,
             "shadowed": self.shadowed,
+            "provenance": self.provenance,
             "modules": self.modules,
             "staged": self.staged,
             "nodes": self.nodes,
             "index": self.index,
             "db": self.db,
+            "search_db": self.searchDb,
+            "entity": self.entity,
+            "arcs": self.arcs,
+            "closure": self.closure,
+            "site": self.site,
             "seconds": {k: round(v, 3) for k, v in self.seconds.items()},
         }
 
@@ -293,8 +384,23 @@ class CorpusDriver:
         stubs: "Mapping[str, Iterable[str]] | None" = None,
         corpusVersion: str | None = None,
         corpusId: str | None = None,
+        oidRegistry: "dict[int, Registrant] | None" = None,
+        smiRegistry: "dict[str, ArcName] | None" = None,
+        theme: "Theme | None" = None,
+        patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
+        pageSize: "int | Mapping[str, int] | None" = None,
+        crawl: "Crawl | None" = None,
+        parseCache: "AbstractParseCache | None" = None,
     ) -> None:
-        """Create a driver over the given input set."""
+        """Create a driver over the given input set.
+
+        *oidRegistry* names the arcs under ``1.3.6.1.4.1``, as
+        :py:func:`pysmi.registry.pen.load_registry` reads it, and
+        *smiRegistry* names the arcs under ``1.3.6.1``, as
+        :py:func:`pysmi.registry.smi.parse_smi_numbers` reads it. Both are
+        taken as inputs and never fetched: a registry that changes daily,
+        downloaded at build time, would end the property this module opens on.
+        """
         if not namespaces:
             raise error.PySmiError("a corpus needs at least one source namespace")
 
@@ -317,17 +423,61 @@ class CorpusDriver:
         #: is written to preserve.
         self._corpusVersion = corpusVersion
         self._corpusId = corpusId
-        self._parseCache = InMemoryParseCache()
+        self._oidRegistry = dict(oidRegistry or {})
+        self._smiRegistry = dict(smiRegistry or {})
+        #: The frame --emit=site renders into, and how long a list page gets
+        #: before it splits. Both are the publishing distribution's call, which
+        #: is why they arrive rather than being decided here.
+        self._theme = theme
+        self._patches = dict(patches or {})
+        self._pageSize = pageSize
+        #: What this build declares about the site it publishes, or None for
+        #: a build producing a subtree somebody else will assemble.
+        self._crawl = crawl
+        #: Shared by every destination, so the ASN.1 is parsed once for the
+        #: run rather than once per format. In memory unless the caller hands
+        #: over something that outlives the process -- see
+        #: :py:class:`~pysmi.cache.file.FileParseCache`, which a build
+        #: repeating over a mostly unchanged corpus wants and which this
+        #: cannot choose on its own: it writes pickles, so the directory is
+        #: the caller's to nominate and to trust.
+        self._parseCache = (
+            parseCache if parseCache is not None else InMemoryParseCache()
+        )
         self._readers: dict[str, AbstractReader] = {
             x.name: self._reader_for(x) for x in self._namespaces
         }
         #: Which namespace each module name came from, for the index tiers.
         self._tierOfModule: dict[str, int] = {}
+        #: Keyed by (module selection, tree), because the site reads the
+        #: jsondoc tree with the texts in it and everything else reads the
+        #: lean one.
         self._corpus: dict[
-            tuple[str, ...] | None,
+            tuple[tuple[str, ...] | None, str | None],
             tuple[list[tuple[str, dict[str, Any], int, int]], dict[str, str]],
         ] = {}
         self._modulesOfNamespace: dict[str, list[str]] = {}
+        #: Where each module came from, per module selection. Filled by
+        #: staging, which resolves every module anyway, and computed on its
+        #: own only for a build that asked for provenance without asking for
+        #: the ASN.1 tree.
+        self._provenance: dict[tuple[str, ...] | None, dict[str, dict[str, str]]] = {}
+        #: Namespace name per reader, by identity, so a resolution can say
+        #: which namespace supplied it. Two namespaces may be two directories
+        #: under one root, so the path alone does not answer it.
+        self._namespaceOfReader = {
+            id(reader): name for name, reader in self._readers.items()
+        }
+        #: The same answer keyed by what a reader reads rather than by which
+        #: object it is, for a resolution served by a reader this driver did
+        #: not construct. :py:class:`~pysmi.compiler.MibCompiler` adds its own
+        #: priority reader over ``pysmi.mibs.asn1``, so a manifest declaring a
+        #: namespace over that package is served by the compiler's instance
+        #: and identity alone reports no namespace at all. First declaration
+        #: wins, which is the precedence order the namespaces are already in.
+        self._namespaceOfSource: dict[str, str] = {}
+        for name, reader in self._readers.items():
+            self._namespaceOfSource.setdefault(str(reader), name)
 
     @staticmethod
     def _reader_for(namespace: Namespace) -> AbstractReader:
@@ -408,6 +558,17 @@ class CorpusDriver:
 
         if self._outputs.json:
             wanted.append(Destination("json", "json", self._outputs.json))
+
+        # Its own destination rather than a flag on the one above, so that a
+        # build may have both: the lean tree it publishes, and a complete one
+        # for something that needs the prose. A build wanting only the second
+        # names only the second, and pays one pass for it.
+        if self._outputs.json_texts:
+            wanted.append(
+                Destination(
+                    "json-texts", "json", self._outputs.json_texts, genTexts=True
+                )
+            )
 
         return wanted
 
@@ -636,6 +797,148 @@ class CorpusDriver:
 
         return results
 
+    @staticmethod
+    def _selector(compiled: "Iterable[str] | None") -> tuple[str, ...] | None:
+        """A hashable key for one module selection, for the per-build caches."""
+        return None if compiled is None else tuple(sorted(set(compiled)))
+
+    def _resolutions(
+        self, compiled: "Iterable[str] | None"
+    ) -> "Iterator[MibResolution]":
+        """Which copy of each published module the sources supply.
+
+        One pass, streamed rather than collected, because a resolution carries
+        the module's whole text and a corpus holds thousands of them.
+
+        Which copy wins is
+        :py:meth:`~pysmi.compiler.MibCompiler.resolve`'s answer, which is the
+        same rule -- applied by the same code -- that decides which copy the
+        compile uses. That is what makes the published ASN.1 the text the
+        published ``.py`` and ``.json`` beside it were generated from, and
+        what makes the provenance recorded beside them true of that text.
+
+        Args:
+            compiled: the modules this build compiled, or ``None`` for every
+                module the namespaces hold.
+
+        Yields:
+            One resolution per published module, in namespace order, each
+            module once.
+        """
+        # A resolver over the same source set, with no code generator or
+        # writer doing anything: this asks where a module comes from, which
+        # costs a read of the sources and not a compile.
+        resolver = MibCompiler(
+            SmiV1CompatParser(tempdir=""),
+            JsonCodeGen(),
+            CallbackWriter(lambda *_: None),
+            useBundledMibs=self._useBundledMibs,
+            parseCache=self._parseCache,
+        )
+        resolver.add_sources(*[self._readers[x.name] for x in self._namespaces])
+
+        seen: set[str] = set()
+        publishable = None if compiled is None else set(compiled)
+
+        for namespace in self._published:
+            for module in self._module_sets()[namespace.name]:
+                if module in seen:
+                    continue
+
+                if publishable is not None and module not in publishable:
+                    continue
+
+                resolution = resolver.resolve(module)
+
+                if resolution is None:
+                    logger.error(
+                        "%s vanished from the sources between enumeration and staging",
+                        module,
+                        extra={"mib": module},
+                    )
+                    continue
+
+                seen.add(module)
+
+                yield resolution
+
+    def _origin(self, resolution: "MibResolution") -> dict[str, str]:
+        """Where one module came from, as the report and the database carry it.
+
+        The file is recorded relative to the namespace that supplied it, never
+        as the absolute path the build happened to read. ``core.db`` is
+        byte-reproducible, and a path carrying a checkout directory or a
+        runner's scratch space would end that -- as well as saying where this
+        build ran, which is nobody's business downstream.
+        """
+        namespace = self._namespaceOfReader.get(id(resolution.source), "")
+
+        if not namespace and resolution.source is not None:
+            namespace = self._namespaceOfSource.get(str(resolution.source), "")
+
+        return {
+            "namespace": namespace,
+            "file": self._relative_source(namespace, resolution),
+            "digest": resolution.digest,
+        }
+
+    def _relative_source(self, namespace: str, resolution: "MibResolution") -> str:
+        """The path *resolution* was read from, relative to its namespace root.
+
+        Falls back to the file name, which is what a package namespace has and
+        all a caller can use of it.
+        """
+        source = next(
+            (
+                x.source
+                for x in self._namespaces
+                if x.name == namespace and not x.is_package
+            ),
+            None,
+        )
+
+        if source and resolution.path:
+            try:
+                relative = os.path.relpath(
+                    os.path.abspath(resolution.path), os.path.abspath(source)
+                )
+
+            except ValueError:
+                # Different drives on Windows. The file name is still true.
+                return resolution.file
+
+            if not relative.startswith(os.pardir):
+                return relative.replace(os.sep, "/")
+
+        return resolution.file
+
+    def provenance(
+        self, compiled: "Iterable[str] | None" = None
+    ) -> dict[str, dict[str, str]]:
+        """Where every published module came from.
+
+        Free after :py:meth:`stage`, which resolves every module in order to
+        write it and records this on the way past. A build that asked for the
+        database but not for the ASN.1 tree pays one resolution pass here,
+        which is the cost of the answer rather than an accident of ordering.
+
+        Args:
+            compiled: the modules this build compiled, as :py:meth:`stage`
+                takes it.
+
+        Returns:
+            Per module, the namespace that supplied it, the file read
+            relative to that namespace, and that file's digest.
+        """
+        selector = self._selector(compiled)
+
+        if selector not in self._provenance:
+            self._provenance[selector] = {
+                x.name: self._origin(x) for x in self._resolutions(compiled)
+            }
+
+        return self._provenance[selector]
+
     def stage(
         self, report: CorpusReport, compiled: "Iterable[str] | None" = None
     ) -> dict[str, str]:
@@ -653,7 +956,8 @@ class CorpusDriver:
         rather than whichever copy a parallel job happened to copy last.
 
         Args:
-            report: filled in with what was staged and what was shadowed
+            report: filled in with what was staged, what was shadowed, and
+                where each module came from
             compiled: the modules this build compiled, which is what the
                 corpus publishes. A module that does not compile -- and, by
                 the same result, everything that imports it -- is left out,
@@ -673,52 +977,32 @@ class CorpusDriver:
         started = time.time()
         os.makedirs(directory, exist_ok=True)
 
-        # A resolver over the same source set, with no code generator or
-        # writer doing anything: this asks where a module comes from, which
-        # costs a read of the sources and not a compile.
-        resolver = MibCompiler(
-            SmiV1CompatParser(tempdir=""),
-            JsonCodeGen(),
-            FileWriter(directory),
-            useBundledMibs=self._useBundledMibs,
-            parseCache=self._parseCache,
-        )
-        resolver.add_sources(*[self._readers[x.name] for x in self._namespaces])
-
         staged: dict[str, str] = {}
-        publishable = None if compiled is None else set(compiled)
+        provenance: dict[str, dict[str, str]] = {}
 
-        for namespace in self._published:
-            for module in self._module_sets()[namespace.name]:
-                if module in staged:
-                    continue
+        for resolution in self._resolutions(compiled):
+            with open(
+                os.path.join(directory, resolution.name),
+                "w",
+                encoding="utf-8",
+                newline="",
+            ) as fileObj:
+                fileObj.write(resolution.data)
 
-                if publishable is not None and module not in publishable:
-                    continue
+            staged[resolution.name] = resolution.path
+            provenance[resolution.name] = self._origin(resolution)
 
-                resolution = resolver.resolve(module)
+            if resolution.shadowed:
+                report.shadowed[resolution.name] = {
+                    "used": resolution.path,
+                    "shadowed": list(resolution.shadowed),
+                    "precedence": resolution.precedence,
+                }
 
-                if resolution is None:
-                    logger.error(
-                        "%s vanished from the sources between enumeration and staging",
-                        module,
-                        extra={"mib": module},
-                    )
-                    continue
-
-                with open(
-                    os.path.join(directory, module), "w", encoding="utf-8", newline=""
-                ) as fileObj:
-                    fileObj.write(resolution.data)
-
-                staged[module] = resolution.path
-
-                if resolution.shadowed:
-                    report.shadowed[module] = {
-                        "used": resolution.path,
-                        "shadowed": list(resolution.shadowed),
-                        "precedence": resolution.precedence,
-                    }
+        # Staging resolved every module, so provenance is already answered
+        # and the pass that would answer it again is not run.
+        self._provenance[self._selector(compiled)] = provenance
+        report.provenance = provenance
 
         report.staged = len(staged)
         report.seconds["stage"] = time.time() - started
@@ -781,7 +1065,7 @@ class CorpusDriver:
         )
 
     def _read_corpus(
-        self, compiled: "Iterable[str] | None"
+        self, compiled: "Iterable[str] | None", tree: str | None = None
     ) -> tuple[list[tuple[str, dict[str, Any], int, int]], dict[str, str]]:
         """The corpus this build produced, read once and ranked once.
 
@@ -793,6 +1077,8 @@ class CorpusDriver:
         Args:
             compiled: the modules this build wrote JSON for, or ``None`` for
                 everything in the directory
+            tree: which jsondoc tree to read, for a projection that needs the
+                prose -- see :py:attr:`_prose_tree`. Defaults to the lean one.
 
         Returns:
             ``(documents, ranked)`` as
@@ -803,12 +1089,21 @@ class CorpusDriver:
         # are public and a caller may ask for a named subset and then for all
         # of it. Caching the first answer under both would silently write the
         # subset twice.
-        selector = None if compiled is None else tuple(sorted(set(compiled)))
+        #
+        # Keyed by the tree for the same reason: the site reads the one with
+        # the texts in it and the indexes read the lean one, and handing the
+        # site whichever ran first is how the prose goes missing.
+        selector = (
+            None if compiled is None else tuple(sorted(set(compiled))),
+            tree or self._jsondoc_tree,
+        )
 
         if selector in self._corpus:
             return self._corpus[selector]
 
-        if not self._outputs.json:
+        tree = selector[1]
+
+        if not tree:
             raise error.PySmiError(
                 "the OID indexes and the corpus database are projections of "
                 "the jsondoc tree; emit json to build either"
@@ -827,9 +1122,7 @@ class CorpusDriver:
             rfcs = {}
 
         documents = list(
-            corpus_index.read_documents(
-                self._outputs.json, self._tierOfModule, rfcs, selector
-            )
+            corpus_index.read_documents(tree, self._tierOfModule, rfcs, selector[0])
         )
 
         self._corpus[selector] = (documents, corpus_index.rank_index(documents))
@@ -846,8 +1139,12 @@ class CorpusDriver:
             compiled: the modules this build wrote JSON for, as
                 :py:meth:`write_index` takes it.
         """
-        if not self._outputs.core_db:
+        if not self._outputs.core_db and not self._outputs.search_db:
             return
+
+        # Free after staging, which resolved every module anyway. A build
+        # asking for the database without the ASN.1 tree pays one resolution
+        # pass for it, which is what the answer costs.
 
         started = time.time()
 
@@ -857,26 +1154,197 @@ class CorpusDriver:
             for name, tier in self._tierOfModule.items()
         }
 
-        report.db = corpus_db.write_db(
-            self._outputs.core_db,
-            documents,
-            tiers,
-            ranked,
-            corpusVersion=self._corpusVersion,
-            corpusId=self._corpusId,
-        )
+        # Both profiles read the same corpus, so a build asking for both pays
+        # the read once and writes twice.
+        for path, profile in (
+            (self._outputs.core_db, corpus_db.FULL),
+            (self._outputs.search_db, corpus_db.SEARCH),
+        ):
+            if not path:
+                continue
+
+            written = corpus_db.write_db(
+                path,
+                documents,
+                tiers,
+                ranked,
+                corpusVersion=self._corpusVersion,
+                corpusId=self._corpusId,
+                provenance=self.provenance(compiled),
+                tables=profile,
+            )
+
+            if profile == corpus_db.FULL:
+                report.db = written
+
+            else:
+                report.searchDb = written
+
+        counted = report.db or report.searchDb
 
         logger.info(
-            "corpus database: %d modules, %d nodes",
-            report.db.get("module", 0),
-            report.db.get("node", 0),
+            "corpus database: %d modules, %d nodes%s",
+            counted.get("module", 0),
+            counted.get("node", 0),
+            " (search tables only)" if not report.db else "",
             extra={
-                "modules": report.db.get("module", 0),
-                "nodes": report.db.get("node", 0),
+                "modules": counted.get("module", 0),
+                "nodes": counted.get("node", 0),
             },
         )
 
         report.seconds["db"] = time.time() - started
+
+    def write_entities(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> None:
+        """Write the enterprise arc index.
+
+        A projection of the same jsondoc tree the OID indexes are read from,
+        annotated from the registry this build was given. Without one the arcs
+        are still the arcs: the corpus knows what it registers under whether or
+        not anybody told it whose that is, and an unnamed arc is rendered as
+        unregistered rather than guessed at.
+
+        Args:
+            report: filled in with the counts and how long it took
+            compiled: the modules this build wrote JSON for, as
+                :py:meth:`write_index` takes it.
+        """
+        if not self._outputs.entity:
+            return
+
+        started = time.time()
+
+        documents, _ranked = self._read_corpus(compiled, self._prose_tree)
+        found = corpus_entity.entities(documents, self._oidRegistry)
+
+        _write_text(self._outputs.entity, corpus_entity.render_entities(found))
+
+        report.entity = corpus_entity.counts(found)
+        report.seconds["entity"] = time.time() - started
+
+    def write_arcs(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> None:
+        """Write the arc name index.
+
+        Every arc the corpus *registers at* and every arc above one, named from
+        the registries this build was given and from the cited table where no
+        registry publishes the arc, each carrying which of those named it. An
+        arc nothing names is written with an empty name rather than left out:
+        a tree still renders a path through it.
+
+        The arcs *below* a registration are objects, and are left out --
+        :py:func:`~pysmi.corpus.index.anchor_index` is what draws the line.
+        Including them made this 98,903 arcs and an 11 MB artifact over
+        pysnmp/mibs, against 14,752 and about 1.6 MB. See pysnmp/pysmi#301.
+
+        Args:
+            report: filled in with the counts and how long it took
+            compiled: the modules this build wrote JSON for, as
+                :py:meth:`write_index` takes it.
+        """
+        if not self._outputs.arcs:
+            return
+
+        started = time.time()
+
+        documents, ranked = self._read_corpus(compiled)
+        found = corpus_arcs.arcs(
+            documents,
+            corpus_index.anchor_index(ranked),
+            self._smiRegistry,
+            self._oidRegistry,
+        )
+
+        _write_text(self._outputs.arcs, corpus_arcs.render_arcs(found))
+
+        report.arcs = corpus_arcs.counts(found)
+        report.seconds["arcs"] = time.time() - started
+
+    def write_closure(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> None:
+        """Write the transitive import closure per module.
+
+        A projection of the same jsondoc tree the indexes and the database are
+        read from, so it costs the read the build has already paid for.
+
+        Args:
+            report: filled in with the counts and how long it took
+            compiled: the modules this build wrote JSON for, as
+                :py:meth:`write_index` takes it.
+        """
+        if not self._outputs.closure:
+            return
+
+        started = time.time()
+
+        documents, _ranked = self._read_corpus(compiled)
+        found = corpus_closure.closures(documents)
+
+        _write_text(self._outputs.closure, corpus_closure.render_closure(found))
+
+        report.closure = corpus_closure.counts(found)
+        report.seconds["closure"] = time.time() - started
+
+    def write_site(
+        self, report: CorpusReport, compiled: "Iterable[str] | None" = None
+    ) -> None:
+        """Write the browsable site.
+
+        Another projection of the same jsondoc tree the indexes, the database
+        and the closure are read from, so it costs the read the build has
+        already paid for. The module set is the corpus the manifest declared:
+        a namespace this build resolves against without publishing
+        contributes no pages, and nothing outside the manifest is reachable.
+
+        The registrant pages want ``--oid-registry`` and the OID tree wants
+        the arcs to be named; without either, the site is written with the
+        trees it can fill in and the build says which.
+
+        Args:
+            report: filled in with the page counts and how long it took
+            compiled: the modules this build wrote JSON for, as
+                :py:meth:`write_index` takes it.
+        """
+        if not self._outputs.site:
+            return
+
+        started = time.time()
+
+        documents, ranked = self._read_corpus(compiled, self._prose_tree)
+        anchors = corpus_index.anchor_index(ranked)
+
+        entities = (
+            corpus_entity.as_document(
+                corpus_entity.entities(documents, self._oidRegistry)
+            )["entity"]
+            if self._oidRegistry
+            else {}
+        )
+
+        result = build_site(
+            self._outputs.site,
+            documents,
+            theme=self._theme,
+            anchors=anchors,
+            arcs=corpus_arcs.arcs(
+                documents, anchors, self._smiRegistry, self._oidRegistry
+            ),
+            entities=entities,
+            provenance=self.provenance(compiled),
+            closure=corpus_closure.as_document(corpus_closure.closures(documents))[
+                "closure"
+            ],
+            patches=self._patches,
+            size=self._pageSize,
+            crawl=self._crawl,
+        )
+
+        report.site = result.counts()
+        report.seconds["site"] = time.time() - started
 
     def write_index(
         self, report: CorpusReport, compiled: "Iterable[str] | None" = None
@@ -941,6 +1409,38 @@ class CorpusDriver:
 
         report.seconds["index"] = time.time() - started
 
+    @property
+    def _jsondoc_tree(self) -> str | None:
+        """The jsondoc tree the projections read.
+
+        The lean one where a build has it, since that is what the indexes and
+        the database have always been built from and the texts change nothing
+        they carry. A build that asked only for the tree with texts in it gets
+        its projections from that one rather than from a second pass.
+
+        Not every projection is indifferent: see :py:attr:`_prose_tree`.
+        """
+        return self._outputs.json or self._outputs.json_texts
+
+    @property
+    def _prose_tree(self) -> str | None:
+        """The jsondoc tree the projections that render prose read.
+
+        The site puts each definition's DESCRIPTION on the module page, and
+        the entity index reads a module's own ORGANIZATION and CONTACT-INFO
+        to say who holds an arc. ``JsonCodeGen`` gates all three behind the
+        same switch, so a lean tree does not carry them -- and reading one
+        costs nothing and says nothing, which is the failure this exists to
+        prevent. Over pysnmp/mibs it was 85% of definitions rendering with no
+        description at all, and every registrant falling back to the registry
+        because no module appeared to name a contact.
+
+        The other way round is preferred for everything else: the indexes and
+        the database read the lean tree, because the texts change nothing they
+        carry and reading 317 MB where 225 will do is a cost for nothing.
+        """
+        return self._outputs.json_texts or self._outputs.json
+
     def _needs_jsondoc(self) -> bool:
         """Whether an artifact asked for is a projection of the jsondoc tree.
 
@@ -949,11 +1449,23 @@ class CorpusDriver:
         """
         return bool(
             self._outputs.core_db
+            or self._outputs.search_db
+            or self._outputs.entity
+            or self._outputs.arcs
             or self._outputs.index
             or self._outputs.ranked_index
+            or self._outputs.closure
             or self._outputs.asn1
             or self._outputs.standard
+            or self._outputs.site
         )
+
+    def _needs_prose(self) -> bool:
+        """Whether an artifact asked for renders DESCRIPTION or CONTACT-INFO.
+
+        See :py:attr:`_prose_tree` for what reads what.
+        """
+        return bool(self._outputs.site or self._outputs.entity)
 
     def run(self) -> CorpusReport:
         """Build the corpus and report what it did.
@@ -965,22 +1477,40 @@ class CorpusDriver:
         should not have to know one exists, nor pick a scratch path for it
         and clean up after itself. See pysnmp/pysmi#262.
 
+        The same holds for the prose. A publisher asking for the site asked
+        for pages that say what each object is, not for a second jsondoc tree
+        with the texts in it, so a build that renders prose and was given
+        nowhere to read it from gets that staged too -- **even where it named
+        a lean tree**, since the lean one cannot answer. It costs a render
+        pass rather than a parse, the parse being shared, and the scratch tree
+        goes the way the other one does.
+
         Returns:
             The report, also written to the ``report`` path when one was
             asked for.
         """
-        if self._outputs.json or not self._needs_jsondoc():
+        staged = {}
+
+        if self._needs_jsondoc() and not self._jsondoc_tree:
+            staged["json"] = "json"
+
+        if self._needs_prose() and not self._outputs.json_texts:
+            staged["json_texts"] = "json-texts"
+
+        if not staged:
             return self._build()
 
         with tempfile.TemporaryDirectory(prefix="pysmi-corpus-") as scratch:
-            self._outputs.json = os.path.join(scratch, "json")
+            for attribute, name in staged.items():
+                setattr(self._outputs, attribute, os.path.join(scratch, name))
 
             try:
                 return self._build()
 
             finally:
                 # The caller handed us these outputs; they leave as they came.
-                self._outputs.json = None
+                for attribute in staged:
+                    setattr(self._outputs, attribute, None)
 
     def _build(self) -> CorpusReport:
         """One build, with every output path already decided."""
@@ -1018,6 +1548,17 @@ class CorpusDriver:
         self.write_standard(published)
         self.write_index(report, published)
         self.write_db(report, published)
+        self.write_entities(report, published)
+        self.write_arcs(report, published)
+        self.write_closure(report, published)
+        self.write_site(report, published)
+
+        # Whatever answered provenance -- staging, or the database asking for
+        # it -- the report carries it. A build that asked for neither says
+        # nothing rather than paying a pass to fill in a field.
+        report.provenance = self._provenance.get(
+            self._selector(published), report.provenance
+        )
 
         report.seconds["total"] = time.time() - started
 

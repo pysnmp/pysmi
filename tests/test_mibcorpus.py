@@ -111,6 +111,60 @@ class ArgumentTestCase(unittest.TestCase):
         self.assertEqual(os.path.join("out", "index.csv"), outputs.index)
         self.assertEqual(os.path.join("out", "index-v2.csv"), outputs.ranked_index)
         self.assertEqual(os.path.join("out", "standard.txt"), outputs.standard)
+        self.assertEqual(os.path.join("out", "closure.json"), outputs.closure)
+
+    def testJsonTextsAloneIsTheJsonTreeWithProseInIt(self):
+        """The common case: one tree, and it carries the texts.
+
+        pysnmp/pysmi#277.
+        """
+        outputs = mibcorpus._outputs_for("out", ["json-texts"])
+
+        self.assertIsNone(outputs.json)
+        self.assertEqual(os.path.join("out", "json"), outputs.json_texts)
+
+    def testJsonTextsTakesAPathOfItsOwn(self):
+        outputs = mibcorpus._outputs_for("out", ["json-texts:/elsewhere/json"])
+
+        self.assertEqual("/elsewhere/json", outputs.json_texts)
+
+    def testBothMayBeNamedAtDifferentPaths(self):
+        """A build publishing a lean tree and rendering from a complete one.
+
+        The issue asks for both options, so neither may exclude the other.
+        """
+        outputs = mibcorpus._outputs_for("out", ["json", "json-texts:/elsewhere/full"])
+
+        self.assertEqual(os.path.join("out", "json"), outputs.json)
+        self.assertEqual("/elsewhere/full", outputs.json_texts)
+
+    def testPlainJsonCarriesNoProse(self):
+        """What the tree has always held, and what it holds unless asked."""
+        outputs = mibcorpus._outputs_for("out", ["json"])
+
+        self.assertIsNone(outputs.json_texts)
+
+    def testTheDefaultLayoutCarriesNoProse(self):
+        """Turning it on by default would add roughly 70% to a published tree."""
+        self.assertIsNone(mibcorpus._outputs_for("out", None).json_texts)
+
+    def testNamingBothAtOnePathIsRefused(self):
+        """The second pass would overwrite the first, and which survived would
+        depend on the order the emit list happened to be read in."""
+        with self.assertRaises(error.PySmiError) as caught:
+            mibcorpus._outputs_for("out", ["json", "json-texts"])
+
+        self.assertIn("path of its own", str(caught.exception))
+
+    def testArcsIsNotInTheDefaultLayout(self):
+        """It is only worth having with a registry to name its arcs, and that
+        is an input the caller supplies. pysnmp/pysmi#288."""
+        self.assertIsNone(mibcorpus._outputs_for("out", None).arcs)
+
+        self.assertEqual(
+            os.path.join("out", "arcs.json"),
+            mibcorpus._outputs_for("out", ["arcs"]).arcs,
+        )
 
     def testEmitNarrowsToWhatWasAsked(self):
         outputs = mibcorpus._outputs_for("out", ["json"])
@@ -126,6 +180,69 @@ class ArgumentTestCase(unittest.TestCase):
 
     def testAnUnknownArtifactIsRefused(self):
         self.assertRaises(error.PySmiError, mibcorpus._outputs_for, "out", ["sqlite"])
+
+
+class RegistryTestCase(unittest.TestCase):
+    """Which registry a --oid-registry file is, read from the file.
+
+    A snapshot a repository commits is named whatever that repository calls
+    it, so asking the caller to say which is which is asking them to repeat
+    something the file already states. pysnmp/pysmi#288.
+    """
+
+    PEN = "PRIVATE ENTERPRISE NUMBERS\n\n9\n  Cisco Systems, Inc.\n    A\n      a&b\n"
+
+    SMI = (
+        '<?xml version="1.0"?>\n'
+        '<registry xmlns="http://www.iana.org/assignments" id="smi-numbers">'
+        "<description>iso (1)</description></registry>"
+    )
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def write(self, name, text):
+        path = os.path.join(self.tmp, name)
+
+        with open(path, "w", encoding="utf-8") as fileObj:
+            fileObj.write(text)
+
+        return path
+
+    def testThePublishedEnterpriseRegistryIsRecognised(self):
+        enterprises, smi = mibcorpus._registries([self.write("anything.txt", self.PEN)])
+
+        self.assertEqual("Cisco Systems, Inc.", enterprises[9].organization)
+        self.assertEqual({}, smi)
+
+    def testAReducedSnapshotIsRecognised(self):
+        enterprises, _smi = mibcorpus._registries(
+            [self.write("pen.csv", "number,organization\n9,Cisco\n")]
+        )
+
+        self.assertEqual("Cisco", enterprises[9].organization)
+
+    def testSmiNumbersIsRecognised(self):
+        _enterprises, smi = mibcorpus._registries([self.write("x.xml", self.SMI)])
+
+        self.assertEqual("iso", smi["1"].name)
+
+    def testBothMayBeGiven(self):
+        """--oid-registry is repeatable, and the two name different arcs."""
+        enterprises, smi = mibcorpus._registries(
+            [self.write("pen.txt", self.PEN), self.write("smi.xml", self.SMI)]
+        )
+
+        self.assertEqual("Cisco Systems, Inc.", enterprises[9].organization)
+        self.assertEqual("iso", smi["1"].name)
+
+    def testSomethingThatIsNeitherIsRefused(self):
+        """A build pointed at the wrong file should say so rather than emit an
+        index naming nobody, which reads as a corpus registering under arcs
+        nobody allocated."""
+        with self.assertRaises(error.PySmiError):
+            mibcorpus._registries([self.write("notes.txt", "just some text\n")])
 
 
 class RunTestCase(unittest.TestCase):
@@ -157,6 +274,228 @@ class RunTestCase(unittest.TestCase):
 
         return None
 
+    def testTwoPublicationsComeOutOfOneBuild(self):
+        """One build, two trees, each carrying what it declared.
+
+        The corpus goes out as the data a runtime fetches and as the pages a
+        reader browses, and building it twice parses every module twice to
+        reach the same answer.
+        """
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "publications": [
+                        {"name": "data", "emit": ["asn1", "json"], "output": "data"},
+                        {"name": "pages", "emit": ["site"], "output": "pages"},
+                    ],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+
+        self.assertTrue(os.path.isdir(os.path.join(self.out, "data", "asn1")))
+        self.assertTrue(os.path.isdir(os.path.join(self.out, "data", "json")))
+        self.assertTrue(
+            os.path.isfile(os.path.join(self.out, "pages", "browse", "index.html"))
+        )
+
+        # Each tree carries its own and not the other's.
+        self.assertFalse(os.path.exists(os.path.join(self.out, "data", "browse")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "pages", "asn1")))
+
+    def testTheTwoOriginFlagsReachTheCrawlSurface(self):
+        """--base-url and --data-url, driven through the command line.
+
+        Neither had a test that ran them, and both decide URLs written into
+        7,430 pages: --base-url is what makes a build a distribution site at
+        all, and --data-url is what keeps the bulk links off the pages host.
+        """
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "emit": ["site"],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+                "--base-url=https://pages.example",
+                "--data-url=https://data.example",
+                "--site-description=A corpus of MIB modules.",
+            ),
+        )
+
+        with open(os.path.join(self.out, "llms.txt"), encoding="utf-8") as fileObj:
+            written = fileObj.read()
+
+        self.assertIn("https://data.example/asn1/", written)
+        self.assertIn("https://data.example/json/", written)
+        self.assertIn("https://data.example/index-v2.csv", written)
+        # A page is on the pages host, the sitemap included.
+        self.assertIn("https://pages.example/browse/", written)
+        self.assertIn("https://pages.example/sitemap.xml", written)
+        self.assertNotIn("https://pages.example/asn1/", written)
+
+        with open(os.path.join(self.out, "robots.txt"), encoding="utf-8") as fileObj:
+            self.assertIn("https://pages.example/sitemap.xml", fileObj.read())
+
+        with open(
+            os.path.join(self.out, "mib", "A-MIB", "index.html"), encoding="utf-8"
+        ) as fileObj:
+            page = fileObj.read()
+
+        self.assertIn('rel="canonical" href="https://pages.example/mib/A-MIB/"', page)
+        self.assertNotIn("data.example", page)
+
+    def testAFlagCollapsesThePublicationsToTheOneAsked(self):
+        """--emit names one tree, as flags override files everywhere here."""
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "publications": [
+                        {"name": "data", "emit": ["asn1"], "output": "data"},
+                        {"name": "pages", "emit": ["site"], "output": "pages"},
+                    ],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--manifest={manifest}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+            ),
+        )
+
+        self.assertTrue(os.path.isdir(os.path.join(self.out, "json")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "data")))
+        self.assertFalse(os.path.exists(os.path.join(self.out, "pages")))
+
+    def testAPublicationArtifactStaysInsideIt(self):
+        """A publication is one tree, and an artifact naming its own path
+        cannot be the exception that leaves it.
+
+        --emit deliberately allows a path anywhere, which is how a build sends
+        its JSON to a scratch disk. A publication is the case where that would
+        quietly undo the containment the manifest just declared.
+        """
+        manifest = os.path.join(self.root, "corpus.json")
+        escape = os.path.join(self.root, "elsewhere", "report.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "publications": [
+                        {
+                            "name": "data",
+                            "emit": ["asn1", f"report:{escape}"],
+                            "output": "data",
+                        }
+                    ],
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+        self.assertFalse(os.path.exists(escape))
+
+    def testAnEmitFlagMayStillNameAnyPath(self):
+        """The confinement is the publication's, not a new rule for --emit."""
+        elsewhere = os.path.join(self.root, "elsewhere")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                f"--emit=json:{elsewhere}",
+            ),
+        )
+
+        self.assertTrue(os.path.isdir(elsewhere))
+
+    def testASiteTemplateThatIsNotThereIsRefused(self):
+        """Named and unreadable is a typo in a manifest, not a reason to
+        publish a whole site in the wrong skin and say nothing."""
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "emit": ["site"],
+                    "site": {"template": os.path.join(self.root, "absent.html")},
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+
+    def testAnUnusableParseCacheDirectoryIsRefused(self):
+        """Not a traceback out of a build that had already started."""
+        # A file where the directory should be: makedirs cannot have it.
+        blocker = os.path.join(self.root, "blocker")
+
+        with open(blocker, "w") as fileObj:
+            fileObj.write("")
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+                f"--parse-cache={blocker}",
+            ),
+        )
+
+    def testAParseCacheDirectoryOutlivesTheBuild(self):
+        """--parse-cache is what makes a rebuild skip what did not change."""
+        cache = os.path.join(self.root, "trees")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                f"--namespace=vendor:cisco:{self.src}",
+                f"--output-directory={self.out}",
+                "--emit=json",
+                f"--parse-cache={cache}",
+            ),
+        )
+
+        self.assertTrue(os.listdir(cache), "the build cached nothing it parsed")
+
     def testAManifestBuildProducesThePublishedLayout(self):
         manifest = os.path.join(self.root, "corpus.json")
 
@@ -179,7 +518,13 @@ class RunTestCase(unittest.TestCase):
         for artifact in ("asn1", "notexts", "texts", "json"):
             self.assertTrue(os.path.isdir(os.path.join(self.out, artifact)), artifact)
 
-        for artifact in ("index.csv", "index-v2.csv", "standard.txt", "report.json"):
+        for artifact in (
+            "index.csv",
+            "index-v2.csv",
+            "standard.txt",
+            "closure.json",
+            "report.json",
+        ):
             self.assertTrue(os.path.isfile(os.path.join(self.out, artifact)), artifact)
 
     def testANamespaceOnTheCommandLineIsEnough(self):
@@ -266,6 +611,7 @@ class RunTestCase(unittest.TestCase):
             ("core-db", "core.db"),
             ("index", "index.csv"),
             ("index-v2", "index-v2.csv"),
+            ("closure", "closure.json"),
         ):
             with self.subTest(artifact=artifact):
                 shutil.rmtree(self.out, ignore_errors=True)

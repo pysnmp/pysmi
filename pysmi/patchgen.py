@@ -20,6 +20,12 @@ module's *text* rather than into a symbol table -- so it can be handed to
 the repair is in version control, visible before anything runs, and the compiler
 can be told to stop repairing anything at all.
 
+A derived repair can say why it exists, and does: the defect is known exactly
+-- this symbol, undefined and unimported, exported by that module -- so
+:py:func:`repair_defects` names it in the patch's header, as the identifier
+:py:mod:`pysmi.defects` documents, rather than leaving the next reader to work
+it out from the diff.
+
 What can be generated is exactly what can be *decided*. A missing base-SMI
 import can be: the symbol is undefined, unimported, and exactly one base module
 exports it, so there is nothing to guess at. A MIB that does not parse cannot
@@ -31,9 +37,10 @@ import logging
 import re
 from typing import NamedTuple
 
-from pysmi import error
+from pysmi import defects, error
 from pysmi.codegen.base import REPAIRED_IMPORTS_KEY
 from pysmi.codegen.symtable import SymtableCodeGen
+from pysmi.defects import DefectRef
 from pysmi.parser.smi import parserFactory
 from pysmi.patches import make_patch
 
@@ -79,7 +86,8 @@ class Defect(NamedTuple):
     #: :py:data:`UNPARSEABLE`. Empty otherwise.
     reason: str
 
-    #: The diff that repairs it, or ``""`` when there is nothing to write.
+    #: The patch file that repairs it -- a header naming the defect it repairs,
+    #: then the diff -- or ``""`` when there is nothing to write.
     patch: str
 
 
@@ -197,6 +205,27 @@ def _open_clause(lines: list[str], missing: dict[str, str]) -> bool:
         return True
 
     return False
+
+
+#: The one defect a repair can be derived for. A module using a base-SMI symbol
+#: it does not import is the case where the correction can be *decided* rather
+#: than guessed at, so it is the only identifier this module ever writes.
+REPAIR_DEFECT = "SMI-MISSING-IMPORT"
+
+
+def repair_defects(missing: dict[str, str]) -> tuple[DefectRef, ...]:
+    """The defect a derived imports repair repairs.
+
+    Args:
+        missing: base-SMI symbols the module omits, mapped to the module
+            exporting each -- the same mapping :py:func:`repair_imports` writes
+            into the text.
+
+    Returns:
+        The reference to write into the patch, or empty when nothing is
+        missing, there being no repair to name a defect for.
+    """
+    return (defects.ref(REPAIR_DEFECT),) if missing else ()
 
 
 def _grouped(missing: dict[str, str]) -> dict[str, list[str]]:
@@ -320,4 +349,10 @@ def inspect(text: str, mibname: str = "") -> Defect:
             "",
         )
 
-    return Defect(name, REPAIRABLE, missing, "", make_patch(name, text, repaired))
+    return Defect(
+        name,
+        REPAIRABLE,
+        missing,
+        "",
+        make_patch(name, text, repaired, defects=repair_defects(missing)),
+    )

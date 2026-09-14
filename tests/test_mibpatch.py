@@ -26,6 +26,8 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
+from pysmi.defects import DefectRef, ref
+from pysmi.patches import format_header, split_patch
 from pysmi.scripts import mibdump, mibpatch
 from tests import mibs
 from tests.test_repair_imports import BROKEN, NO_IMPORTS_CLAUSE
@@ -143,9 +145,46 @@ class GenerateTestCase(PatchTreeTestCase):
         self.assertIn("GARBAGE-MIB", output)
 
     def testTheReportNamesWhatEachRepairSupplies(self):
+        """The defect it is, then what this module in particular was missing."""
         _, output = self.patch()
 
-        self.assertIn("REPAIR-TC-MIB (TruthValue from SNMPv2-TC)", output)
+        self.assertIn(
+            "REPAIR-TC-MIB (SMI-MISSING-IMPORT: TruthValue from SNMPv2-TC)", output
+        )
+
+    def testEveryWrittenPatchNamesTheDefectItRepairs(self):
+        """pysnmp/pysmi#279: a derived repair writes its own identifier down."""
+        self.patch("--quiet")
+
+        for path in self.patches.glob("*.patch"):
+            with self.subTest(patch=path.name):
+                self.assertEqual(
+                    (ref("SMI-MISSING-IMPORT"),),
+                    split_patch(path.read_text())[0].defects,
+                )
+
+    def testAHeaderWrittenByHandSurvivesRegeneration(self):
+        """The derived header is a default, not the last word on the defect.
+
+        Somebody who has added the defects it could not classify, or a note on
+        what was reported upstream, has written the better one; regenerating
+        the diff must not spend it.
+        """
+        self.patch("--quiet")
+
+        target = self.patches / "REPAIR-TC-MIB.patch"
+        mine = format_header([DefectRef("ACME-0001", "https://acme.example/")], "Mine.")
+        target.write_text(mine + split_patch(target.read_text())[1])
+
+        self.patch("--quiet")
+
+        header, diff = split_patch(target.read_text())
+
+        self.assertEqual(
+            (DefectRef("ACME-0001", "https://acme.example/"),), header.defects
+        )
+        self.assertEqual("Mine.", header.body)
+        self.assertIn("+++ b/REPAIR-TC-MIB", diff)
 
     def testTheSourcesAreNotTouchedWithoutApply(self):
         before = (self.src / "REPAIR-TC-MIB").read_text()

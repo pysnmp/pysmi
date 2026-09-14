@@ -1,3 +1,5 @@
+Defect: SMI-RANGE-OUTSIDE-TYPE https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-range-outside-type
+
 --- a/UPS-MIB
 +++ b/UPS-MIB
 @@ -1008,7 +1008,7 @@

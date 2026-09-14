@@ -3,6 +3,104 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.0.0-rc.9](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.8...v5.0.0-rc.9) (2026-09-13)
+
+### Features
+
+* **corpus:** reach the file parse cache, and write more than one tree ([e34a703](https://github.com/pysnmp/pysmi/commit/e34a70327f7ba567f8a18e81840ef9322b281581)), closes [pysnmp/mibs#405](https://github.com/pysnmp/mibs/issues/405)
+
+### Bug Fixes
+
+* **corpus:** hold a publication to its own tree on every platform ([37da581](https://github.com/pysnmp/pysmi/commit/37da5818cd4231f34b06d9f67451268a39512c1e))
+
+## [5.0.0-rc.8](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.7...v5.0.0-rc.8) (2026-09-13)
+
+### Bug Fixes
+
+* **corpus:** scroll every table, not the long ones ([223f987](https://github.com/pysnmp/pysmi/commit/223f987e453e1cc2715efbd88d12f559d874d426)), closes [pysnmp/pysmi#310](https://github.com/pysnmp/pysmi/issues/310) [#310](https://github.com/pysnmp/pysmi/issues/310) [pysnmp/mibs#413](https://github.com/pysnmp/mibs/issues/413) [pysnmp/mibs#406](https://github.com/pysnmp/mibs/issues/406)
+
+## [5.0.0-rc.7](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.6...v5.0.0-rc.7) (2026-09-12)
+
+### Bug Fixes
+
+* **corpus:** give the projections that render prose a tree that has it ([dfd5d8b](https://github.com/pysnmp/pysmi/commit/dfd5d8b394163653bbf42bcca5cd99a66b6fc9ef)), closes [pysnmp/mibs#405](https://github.com/pysnmp/mibs/issues/405) [pysnmp/pysmi#262](https://github.com/pysnmp/pysmi/issues/262) [pysnmp/mibs#405](https://github.com/pysnmp/mibs/issues/405)
+
+## [5.0.0-rc.6](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.5...v5.0.0-rc.6) (2026-09-12)
+
+### Features
+
+* **corpus:** drop the wrapper elements from definition cells ([d812e6f](https://github.com/pysnmp/pysmi/commit/d812e6f80843f93b7cc40ef4ba16ec12a9e5d97c)), closes [pysnmp/pysmi#284](https://github.com/pysnmp/pysmi/issues/284)
+* **corpus:** write a search profile of the corpus database ([20941a1](https://github.com/pysnmp/pysmi/commit/20941a1baadaee24df059cc7163597d1ae5ab96b)), closes [pysnmp/pysmi#293](https://github.com/pysnmp/pysmi/issues/293)
+
+### Bug Fixes
+
+* **corpus:** refuse a table profile validate does not recognize ([99b646b](https://github.com/pysnmp/pysmi/commit/99b646bdb008471ad01d80489d9ce1a7fed848fd)), closes [pysnmp/pysmi#309](https://github.com/pysnmp/pysmi/issues/309) [pysnmp/pysmi#262](https://github.com/pysnmp/pysmi/issues/262)
+
+## [5.0.0-rc.5](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.4...v5.0.0-rc.5) (2026-09-12)
+
+### Bug Fixes
+
+* **corpus:** write the registrant list's own page when it buckets ([95ad5f9](https://github.com/pysnmp/pysmi/commit/95ad5f9139545b62140a29e5728e95b19b506316))
+
+## [5.0.0-rc.4](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.3...v5.0.0-rc.4) (2026-09-12)
+
+### Features
+
+* **corpus:** generate the site's crawl surface ([cb22315](https://github.com/pysnmp/pysmi/commit/cb22315ea14fbc1846d8d031286d14f93f4e73e1))
+* **corpus:** render the corpus as a browsable site (--emit site) ([f163e8f](https://github.com/pysnmp/pysmi/commit/f163e8f72da4590885c85812e6fc6efa9ff18c87)), closes [#284](https://github.com/pysnmp/pysmi/issues/284) [#292](https://github.com/pysnmp/pysmi/issues/292) [#287](https://github.com/pysnmp/pysmi/issues/287)
+* **corpus:** size each list, and emit the site beside the corpus ([cad38fa](https://github.com/pysnmp/pysmi/commit/cad38fa89709b09cbfa0501e9b7e713f26309c9c)), closes [pysnmp/mibs#406](https://github.com/pysnmp/mibs/issues/406) [#305](https://github.com/pysnmp/pysmi/issues/305) [pysnmp/mibs#409](https://github.com/pysnmp/mibs/issues/409)
+
+## [5.0.0-rc.3](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.2...v5.0.0-rc.3) (2026-09-12)
+
+### Features
+
+* **corpus:** bucket a long list page by the range it covers ([915ee9b](https://github.com/pysnmp/pysmi/commit/915ee9bf60fe658c2504a949ffc7b1c12ccf93eb)), closes [#284](https://github.com/pysnmp/pysmi/issues/284) [#293](https://github.com/pysnmp/pysmi/issues/293) [#276](https://github.com/pysnmp/pysmi/issues/276)
+
+### Bug Fixes
+
+* **corpus:** build the arc index from registrations, not from every arc ([8a6c0a0](https://github.com/pysnmp/pysmi/commit/8a6c0a08cc6db9ef4c8bc6edf9822af96fe4b231))
+
+## [5.0.0-rc.2](https://github.com/pysnmp/pysmi/compare/v5.0.0-rc.1...v5.0.0-rc.2) (2026-09-11)
+
+### Features
+
+* **corpus:** bound the OID tree's page inventory at module anchors ([ff2b6ef](https://github.com/pysnmp/pysmi/commit/ff2b6ef9dfc929c2ee072f9b7df4c51cd3f5423f)), closes [#276](https://github.com/pysnmp/pysmi/issues/276)
+* **corpus:** report the enterprise arcs no PEN registrant names ([c9a1a57](https://github.com/pysnmp/pysmi/commit/c9a1a5736145d0dc02f506f7cf00fd5603d7aba4)), closes [pysnmp/mibs#407](https://github.com/pysnmp/mibs/issues/407)
+* **defects:** catalogue a symbol imported from a module that does not export it ([0fd6201](https://github.com/pysnmp/pysmi/commit/0fd620124484392002530bad3387fd5b843b482e))
+* **registry:** let a corpus reduce the PEN snapshot to the arcs it uses ([eac5cc5](https://github.com/pysnmp/pysmi/commit/eac5cc5ad825bfcbed2c52d3f1ea8832e48e9da1))
+
+### Bug Fixes
+
+* **corpus:** name the namespace behind a package-sourced module ([0a52303](https://github.com/pysnmp/pysmi/commit/0a5230382b372921d9e35abc08e655f47994943b))
+
+## [5.0.0-rc.1](https://github.com/pysnmp/pysmi/compare/v4.1.1...v5.0.0-rc.1) (2026-09-11)
+
+### ⚠ BREAKING CHANGES
+
+* **corpus:** core.db schema version 2. open_db refuses a version it
+does not write, so a reader and a corpus move together. Conformance
+vectors for the new table are in pysmi.corpus.conformance, as the
+schema-bump gate requires, and a consumer runs them against its own
+reader.
+
+Closes #278.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01UfaAJMxsnQZoKJVkc4rg1K
+
+### Features
+
+* **corpus:** let the JSON destination carry DESCRIPTION and the other texts ([65c290d](https://github.com/pysnmp/pysmi/commit/65c290d9aec3a0d65c37c90baec0314c6e2a7fef))
+* **corpus:** name OID arcs from the numbering authorities ([8c498ba](https://github.com/pysnmp/pysmi/commit/8c498ba647c57f852ac6ab2216fd59759557fb11))
+* **corpus:** publish the transitive import closure per module ([eb3c03f](https://github.com/pysnmp/pysmi/commit/eb3c03f495b21167ab1696963ad5ee831ea0ffe8))
+* **corpus:** record where each published module came from ([3fb8ab3](https://github.com/pysnmp/pysmi/commit/3fb8ab35f99cc3c87321e53d12a1096a7381246b))
+* **patches:** name the defect a patch repairs, from a documented catalogue ([9c87158](https://github.com/pysnmp/pysmi/commit/9c8715885df84a2331b68f621ae904848a4c86da))
+* **registry:** annotate enterprise arcs and their owner contact from IANA ([79b703d](https://github.com/pysnmp/pysmi/commit/79b703d33f79cbd09208b47c0a4c3711e605dc8a)), closes [#277](https://github.com/pysnmp/pysmi/issues/277)
+
+### Performance Improvements
+
+* **jsondoc:** write the corpus JSON compactly, and allow a faster encoder ([b7bf6f4](https://github.com/pysnmp/pysmi/commit/b7bf6f487b7d13497566facc542bf152cfb3e276))
+
 ## [4.1.1](https://github.com/pysnmp/pysmi/compare/v4.1.0...v4.1.1) (2026-09-11)
 
 ### Bug Fixes

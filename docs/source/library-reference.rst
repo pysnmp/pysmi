@@ -19,7 +19,7 @@ This example showcases some of its features:
 
    inputMibs = ['IF-MIB', 'IP-MIB']
 
-   httpSources = ['https://pysnmp.github.io/mibs/asn1/@mib@']
+   httpSources = ['https://data.mibsdepot.com/asn1/@mib@']
 
    # store compiled MIBs by calling this function
    def store_mibs(mibName, jsonDoc, cbCtx):
@@ -49,6 +49,13 @@ This example showcases some of its features:
    /pysmi/corpus/driver
    /pysmi/corpus/index
    /pysmi/corpus/db
+   /pysmi/corpus/closure
+   /pysmi/corpus/entity
+   /pysmi/corpus/arcs
+   /pysmi/corpus/pages
+   /pysmi/corpus/buckets
+   /pysmi/corpus/site
+   /pysmi/registry
    /pysmi/patches
 
 .. _camel-case-deprecation:

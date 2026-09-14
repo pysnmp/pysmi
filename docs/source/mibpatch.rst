@@ -56,14 +56,60 @@ parses each one, and writes ``<MODULE>.patch`` for every module it can repair:
     $ mibpatch --source ./mibs --output-directory ./mib-patches
     Read 214 modules, 209 needing nothing
     Repairs derived for 4 modules:
-     ACME-CHASSIS-MIB (TruthValue from SNMPv2-TC)
-     ACME-POWER-MIB (enterprises from SNMPv2-SMI)
+     ACME-CHASSIS-MIB (uses base-SMI symbols it does not import: TruthValue from SNMPv2-TC)
+     ACME-POWER-MIB (uses base-SMI symbols it does not import: enterprises from SNMPv2-SMI)
      ...
     No repair could be derived for 1 modules, so a patch for each has to be written by hand:
      ACME-LEGACY-MIB (Bad grammar near token type STRING, value "x", line 84)
 
 A patch is named after the module rather than the file it was found in, because
 that is what it is keyed by everywhere else. The sources are not touched.
+
+Why a patch exists
+------------------
+
+A diff carries the correction. It does not name the defect -- and the defect is
+what decides whether the patch should still be there, because a repair to text
+the publisher has since fixed should go, and a local preference dressed as a
+repair should never have been written. So every patch opens with the defect it
+repairs:
+
+.. code-block:: diff
+
+    Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
+
+    --- a/ACME-CHASSIS-MIB
+    +++ b/ACME-CHASSIS-MIB
+    @@ -8,7 +8,7 @@
+
+An identifier and the page documenting it, one ``Defect:`` line each -- a patch
+may repair more than one. The explanation lives once, on :ref:`mib-defects`,
+rather than being written out again in every patch that repairs the same kind of
+thing.
+
+This is a convention over the format rather than a change to it:
+:py:func:`~pysmi.patches.parse_patch` ignores everything above the first ``@@``,
+and so does GNU ``patch``, so a headed patch is readable by every tool that
+reads a diff and a patch written without a header stays valid. An identifier
+PySMI does not know is read the same way, so a tree with its own catalogue
+points at its own page.
+
+The tool writes the identifier for a repair it derived, since a derived repair
+knows its own defect exactly -- always ``SMI-MISSING-IMPORT``, that being the
+one defect a correction can be decided for. A header edited by hand is kept when
+the patch is regenerated, and ``--check`` compares diffs rather than headers for
+the same reason: classifying a defect better does not make a patch stale.
+
+Reading one back:
+
+.. code-block:: python
+
+   from pysmi.patches import PatchSet
+
+   patches = PatchSet.from_directory("./mib-patches")
+
+   for defect in patches.defects_for("ACME-CHASSIS-MIB"):
+       print(defect.id, defect.url)
 
 What can and cannot be derived
 ------------------------------

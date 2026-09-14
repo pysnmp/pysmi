@@ -20,7 +20,7 @@ from pysmi import debug, error
 from pysmi.codegen import JsonCodeGen
 from pysmi.compiler import MibCompiler
 from pysmi.parser import SmiV1CompatParser
-from pysmi.reader import FileReader, getReadersFromUrls
+from pysmi.reader import DEFAULT_MIB_SOURCES, FileReader, getReadersFromUrls
 from pysmi.writer import CallbackWriter
 
 
@@ -134,7 +134,7 @@ def start() -> None:
     if not mibSources:
         mibSources = [
             "file:///usr/share/snmp/mibs",
-            "https://pysnmp.github.io:443/mibs/asn1/@mib@",
+            *DEFAULT_MIB_SOURCES,
         ]
 
     if len(inputMibs) < 2:

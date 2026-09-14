@@ -105,7 +105,7 @@ into various formats.
 
 When JSON destination format is requested, for each MIB module *mibdump*
 will produce a JSON document containing all MIB objects. For example,
-`IF-MIB <https://pysnmp.github.io/mibs/asn1/IF-MIB>`_ module in JSON form
+`IF-MIB <https://mibsdepot.com/mib/IF-MIB/>`_ module in JSON form
 would look like:
 
 .. code-block:: python
@@ -155,8 +155,16 @@ would look like:
 
 In general, JSON MIB captures all aspects of original (ASN.1) MIB contents
 and layout. The snippet above is just an example, here is the complete
-`IF-MIB.json <https://pysnmp.github.io/mibs/json/IF-MIB.json>`_
+`IF-MIB.json <https://data.mibsdepot.com/json/IF-MIB.json>`_
 file.
+
+.. note::
+
+   The document is written on one line, with no space after a separator --
+   it is a generated artifact, and indenting a corpus of them costs about 30%
+   of the tree on disk. The snippets on this page are re-indented so they can
+   be read. Pipe a document through ``python -m json.tool`` to do the same.
+   See :ref:`corpus-json-encoding`.
 
 Specifying MIB source
 ---------------------
@@ -175,7 +183,7 @@ methods are supported -- a URL of any other scheme is rejected:
 * HTTP/HTTPS. A fully specified URL where MIB module name is specified by
   a @mib@ placeholder. When specific MIB is looked up, PySMI will replace
   that placeholder with MIB module name it is looking for. 
-  Example: `https://pysnmp.github.io/mibs/asn1/@mib@ <https://pysnmp.github.io/mibs/asn1>`_
+  Example: ``https://data.mibsdepot.com/asn1/@mib@``
 
 When trying to fetch a MIB module, the *mibdump* tool will try each of
 configured --mib-source transports in order of specification. For most
@@ -186,7 +194,8 @@ compiled`_ states the whole rule.
 With no --mib-source given, *mibdump* searches:
 
 * pysmi's own bundled base MIBs (unless --no-bundled-mibs is given)
-* https://pysnmp.github.io/mibs/asn1/@mib@
+* https://data.mibsdepot.com/asn1/@mib@
+* https://pysnmp.github.io/mibs/asn1/@mib@, if the first does not answer
 
 Once a --mib-source option is given, that mirror is not searched and should be
 given explicitly if it is still wanted. The bundled base MIBs are not a
@@ -295,7 +304,7 @@ first one it would have to go over the network for. A remote --mib-source --
 http or https -- is therefore never fetched merely to compare revisions, and
 neither is anything listed after it: whatever revision that copy carries, it
 is not considered. This is why the default
-https://pysnmp.github.io/mibs/asn1/@mib@ mirror does not override a bundled
+https://data.mibsdepot.com/asn1/@mib@ mirror does not override a bundled
 base MIB, and why a local --mib-source meant to override one should be given
 ahead of any remote source.
 
@@ -624,9 +633,9 @@ MIB information in a form that is convenient for querying cornerstone
 properties of MIB files.
 
 For example, building JSON index for
-`IP-MIB.json <https://pysnmp.github.io/mibs/json/IP-MIB.json>`_,
-`TCP-MIB.json <https://pysnmp.github.io/mibs/json/TCP-MIB.json>`_ and
-`UDP-MIB.json <https://pysnmp.github.io/mibs/json/UDP-MIB.json>`_
+`IP-MIB.json <https://data.mibsdepot.com/json/IP-MIB.json>`_,
+`TCP-MIB.json <https://data.mibsdepot.com/json/TCP-MIB.json>`_ and
+`UDP-MIB.json <https://data.mibsdepot.com/json/UDP-MIB.json>`_
 MIB modules would emit something like this:
 
 .. code-block:: json
@@ -705,7 +714,7 @@ whatever index is already in the destination directory, rather than
 replacing it. A collection may therefore be built up over many runs.
 
 The published distribution no longer carries a JSON index of its own: what
-it publishes is `index-v2.csv <https://pysnmp.github.io/mibs/index-v2.csv>`_,
+it publishes is `index-v2.csv <https://data.mibsdepot.com/index-v2.csv>`_,
 OID to module, and ``core.db``, which answers per node rather than per
 module. See the `MIB distribution <https://pysnmp.github.io/mibs/channels.html>`_.
 

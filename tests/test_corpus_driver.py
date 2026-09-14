@@ -29,8 +29,13 @@ import unittest
 from unittest import mock
 
 from pysmi import error
+from pysmi.cache.file import FileParseCache
+from pysmi.cache.memory import InMemoryParseCache
 from pysmi.corpus import CorpusDriver, CorpusOutputs, Namespace, check_disjoint
 from pysmi.corpus.driver import STANDARD_TXT_EXCLUDED_PREFIXES, CorpusReport
+from pysmi.mibinfo import source_digest
+from pysmi.registry.pen import Registrant
+from pysmi.registry.smi import ArcName
 
 
 def module(name, oid, *, revision="202401010000Z", description="a module"):
@@ -57,6 +62,45 @@ def module(name, oid, *, revision="202401010000Z", description="a module"):
             STATUS      current
             DESCRIPTION "{description}"
             ::= {{ {symbol}MI 1 }}
+        END
+        """
+    )
+
+
+def grouped():
+    """A module that declares an OBJECT-IDENTITY group under its own anchor.
+
+    The ordinary shape of a vendor MIB, and what makes the OID index far
+    larger than the registration tree: over pysnmp/mibs, 5,438 modules
+    contribute 98,867 indexed arcs between them, nearly all of them group
+    nodes like this one.
+    """
+    return textwrap.dedent(
+        """\
+        GROUPED-MIB DEFINITIONS ::= BEGIN
+        IMPORTS
+            MODULE-IDENTITY, OBJECT-IDENTITY, OBJECT-TYPE, Integer32,
+            enterprises
+                FROM SNMPv2-SMI;
+
+        groupedMI MODULE-IDENTITY
+            LAST-UPDATED "202401010000Z"
+            ORGANIZATION "test"
+            CONTACT-INFO "test"
+            DESCRIPTION  "a module with a group node"
+            ::= { enterprises 77 }
+
+        groupedObjects OBJECT-IDENTITY
+            STATUS      current
+            DESCRIPTION "the group everything hangs off"
+            ::= { groupedMI 1 }
+
+        groupedThing OBJECT-TYPE
+            SYNTAX      Integer32
+            MAX-ACCESS  read-only
+            STATUS      current
+            DESCRIPTION "a thing"
+            ::= { groupedObjects 1 }
         END
         """
     )
@@ -133,6 +177,7 @@ class CorpusTestCase(unittest.TestCase):
             "index": os.path.join(out, "index.csv"),
             "ranked_index": os.path.join(out, "index-v2.csv"),
             "standard": os.path.join(out, "standard.txt"),
+            "closure": os.path.join(out, "closure.json"),
             "report": os.path.join(out, "report.json"),
         }
         layout.update(kwargs)
@@ -160,6 +205,542 @@ class CorpusTestCase(unittest.TestCase):
                     found[os.path.relpath(path, base)] = fileObj.read()
 
         return found
+
+
+class ParseCacheTestCase(CorpusTestCase):
+    """A build may keep its parse trees somewhere that outlives it.
+
+    Parsing is about three quarters of a pass, and a corpus rebuilt nightly
+    reparses 5,510 modules to find that almost none of them changed.
+    :py:class:`~pysmi.cache.file.FileParseCache` has always been able to hold
+    them; nothing could ask the driver to use it.
+    """
+
+    def testTheDriverKeepsItsOwnCacheByDefault(self):
+        outputs = self.outputs()
+        driver = CorpusDriver(self.namespaces(), outputs)
+
+        self.assertIsInstance(driver._parseCache, InMemoryParseCache)
+
+    def testAHandedCacheIsTheOneUsed(self):
+        cache = FileParseCache(os.path.join(self.root, "trees"))
+        outputs = self.outputs()
+
+        CorpusDriver(self.namespaces(), outputs, parseCache=cache).run()
+
+        self.assertTrue(
+            os.listdir(os.path.join(self.root, "trees")),
+            "the build parsed modules and cached none of them",
+        )
+
+    def testTheCorpusIsTheSameEitherWay(self):
+        """A cache is an optimisation, so it may not change what is written."""
+        CorpusDriver(self.namespaces(), self.outputs("cold")).run()
+
+        cache = FileParseCache(os.path.join(self.root, "trees"))
+        CorpusDriver(self.namespaces(), self.outputs("warm"), parseCache=cache).run()
+        # Again, now that the cache has something in it to serve.
+        CorpusDriver(self.namespaces(), self.outputs("hot"), parseCache=cache).run()
+
+        cold = self.tree("cold")
+        self.assertEqual(cold, self.tree("warm"))
+        self.assertEqual(cold, self.tree("hot"))
+
+
+class ProseTestCase(CorpusTestCase):
+    """The projections that render prose read a tree that carries it.
+
+    ``JsonCodeGen`` gates DESCRIPTION, ORGANIZATION and CONTACT-INFO behind
+    one switch, so a lean jsondoc tree does not hold any of them. The site
+    puts a description under every definition and the entity index reads a
+    module's own contact to say who holds an arc -- and both were being handed
+    the lean tree, which costs a read and answers nothing.
+
+    Nothing here failed loudly. Over pysnmp/mibs it was 85% of 785,252
+    definitions rendering with no description, and every registrant falling
+    back to the registry because no module appeared to name a contact. These
+    tests are what notices.
+    """
+
+    def site_outputs(self, where="output", **kwargs):
+        out = os.path.join(self.root, where)
+        layout = {"site": os.path.join(out, "site")}
+        layout.update(kwargs)
+
+        return CorpusOutputs(**layout)
+
+    def page(self, where="output", name="ALPHA-MIB"):
+        path = os.path.join(self.root, where, "site", "mib", name, "index.html")
+
+        with open(path, encoding="utf-8") as fileObj:
+            return fileObj.read()
+
+    def testTheSiteAloneBuilds(self):
+        # site was absent from _needs_jsondoc, so a build asking for the site
+        # and nothing else staged no tree and raised on the read.
+        outputs = self.site_outputs()
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertIn("ALPHA-MIB", self.page())
+
+    def testTheModulePageCarriesTheDescription(self):
+        outputs = self.site_outputs(json=os.path.join(self.root, "output", "json"))
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertIn("a module", self.page())
+
+    def testThePublishedTreeStaysLean(self):
+        # The prose reaches the page without reaching the artifact the caller
+        # asked for: a publisher who wanted a lean json/ still has one.
+        outputs = self.site_outputs(json=os.path.join(self.root, "output", "json"))
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        with open(
+            os.path.join(self.root, "output", "json", "ALPHA-MIB.json"),
+            encoding="utf-8",
+        ) as fileObj:
+            self.assertNotIn("a module", fileObj.read())
+
+    def testTheEntityIndexCarriesTheModulesOwnContact(self):
+        outputs = self.outputs(entity=os.path.join(self.root, "output", "entity.json"))
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        with open(
+            os.path.join(self.root, "output", "entity.json"), encoding="utf-8"
+        ) as fileObj:
+            written = json.load(fileObj)
+
+        contacts = [
+            contact
+            for arc in written["entity"].values()
+            for contact in arc.get("contacts", ())
+            if contact.get("source") == "module"
+        ]
+
+        self.assertTrue(contacts, "no arc carries a contact from a module")
+        self.assertEqual(contacts[0]["organization"], "test")
+        self.assertEqual(contacts[0]["contact"], "test")
+
+    def testTheSiteIsNotHandedTheLeanDocumentsTheIndexesCached(self):
+        # The read is cached, and the indexes run first. Keyed by the module
+        # selection alone, the site was served whatever the index had already
+        # read -- which is exactly the tree it must not read.
+        outputs = self.outputs(site=os.path.join(self.root, "output", "site"))
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertIn("a module", self.page())
+
+
+class JsonTextsTestCase(CorpusTestCase):
+    """Prose in the jsondoc tree, when a build asks for it (pysnmp/pysmi#277).
+
+    A published jsondoc carries names, OIDs, syntax, access and status and no
+    prose, though the texts are 38% of a MIB. A consumer that wants a
+    DESCRIPTION has to fetch and parse the ASN.1, which means a second SMI
+    parser for prose the compiler already read.
+    """
+
+    def rendered(self, where="output"):
+        with open(
+            os.path.join(self.root, where, "json", "ALPHA-MIB.json"), encoding="utf-8"
+        ) as fileObj:
+            return json.load(fileObj)
+
+    def outputs_json(self, where="output", **kwargs):
+        out = os.path.join(self.root, where)
+        layout = {"json": os.path.join(out, "json")}
+        layout.update(kwargs)
+
+        return CorpusOutputs(**layout)
+
+    def testTheTreeCarriesNoProseByDefault(self):
+        """What it has always held, and what it holds unless asked."""
+        CorpusDriver(self.namespaces(), self.outputs_json()).run()
+
+        self.assertNotIn("description", self.rendered()["alphamibObject"])
+
+    def testAskingForTextsPutsThemInTheTree(self):
+        out = os.path.join(self.root, "output")
+
+        CorpusDriver(
+            self.namespaces(),
+            CorpusOutputs(json_texts=os.path.join(out, "json")),
+        ).run()
+
+        self.assertEqual("a module", self.rendered()["alphamibObject"]["description"])
+
+    def testAskingForTextsAloneIsOneCompilePass(self):
+        """Prose without a second pass over the corpus, which is the point."""
+        driver = CorpusDriver(
+            self.namespaces(),
+            CorpusOutputs(json_texts=os.path.join(self.root, "output", "json")),
+        )
+
+        self.assertEqual(["json-texts"], [x.name for x in driver._destinations()])
+
+    def testBothTreesCanBeBuiltAtOnce(self):
+        """A build publishing a lean tree and rendering from a complete one.
+
+        The issue asks for both options, so neither may exclude the other.
+        """
+        driver = CorpusDriver(
+            self.namespaces(),
+            self.outputs_json(json_texts=os.path.join(self.root, "output", "full")),
+        )
+
+        self.assertEqual(
+            ["json", "json-texts"], [x.name for x in driver._destinations()]
+        )
+
+    def testTheProjectionsReadTheTreeTheBuildHas(self):
+        """A build that asked only for the tree with texts in it still gets an
+        index, from that tree rather than from a second pass."""
+        out = os.path.join(self.root, "output")
+        outputs = CorpusOutputs(
+            json_texts=os.path.join(out, "json"),
+            ranked_index=os.path.join(out, "index-v2.csv"),
+        )
+
+        CorpusDriver(self.namespaces(), outputs).run()
+
+        with open(outputs.ranked_index, encoding="utf-8") as fileObj:
+            self.assertIn("ALPHA-MIB", fileObj.read())
+
+    def testTheLayoutIsNotKept(self):
+        """genTexts and keepTextsLayout stay separate: a JSON consumer wants
+        the text normalised rather than the publisher's line breaks."""
+        driver = CorpusDriver(
+            self.namespaces(),
+            CorpusOutputs(json_texts=os.path.join(self.root, "output", "json")),
+        )
+        destination = driver._destinations()[0]
+
+        self.assertTrue(destination.genTexts)
+        self.assertFalse(destination.keepTextsLayout)
+
+
+class ProvenanceTestCase(CorpusTestCase):
+    """Where each published module came from (pysnmp/pysmi#278).
+
+    The build resolves every module in order to stage it, so it knows which
+    namespace supplied the copy that won, which file it read and what that
+    file's digest was. None of it used to survive the build.
+    """
+
+    def testEveryStagedModuleHasAnOrigin(self):
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual(["ALPHA-MIB", "BETA-MIB"], sorted(report.provenance))
+
+    def testTheOriginNamesTheNamespaceThatSuppliedIt(self):
+        """Two namespaces are two directories under one root here, which is why
+        the path alone cannot answer it."""
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual("alpha", report.provenance["ALPHA-MIB"]["namespace"])
+        self.assertEqual("beta", report.provenance["BETA-MIB"]["namespace"])
+
+    def testTheFileIsRelativeToItsNamespace(self):
+        """An absolute path would carry the directory this build ran in, which
+        differs between two builds of one source tree."""
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual("ALPHA-MIB", report.provenance["ALPHA-MIB"]["file"])
+        self.assertNotIn(self.root, report.provenance["ALPHA-MIB"]["file"])
+
+    def testTheDigestIsOfTheTextThatWasStaged(self):
+        """The provenance has to be true of the ASN.1 published beside it."""
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        with open(
+            os.path.join(self.root, "output", "asn1", "ALPHA-MIB"),
+            encoding="utf-8",
+            newline="",
+        ) as fileObj:
+            staged = fileObj.read()
+
+        self.assertEqual(
+            source_digest(staged), report.provenance["ALPHA-MIB"]["digest"]
+        )
+
+    def testTheShadowedModuleIsRecordedAsComingFromTheWinner(self):
+        """Shadowing says which copies lost; provenance says which one won."""
+        self.write("beta", "ALPHA-MIB", module("ALPHA-MIB", 41, description="other"))
+
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertIn("ALPHA-MIB", report.shadowed)
+        self.assertEqual("alpha", report.provenance["ALPHA-MIB"]["namespace"])
+
+    def testItReachesTheDatabase(self):
+        outputs = self.outputs(core_db=os.path.join(self.root, "output", "core.db"))
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual(2, report.db["provenance"])
+
+        connection = sqlite3.connect(outputs.core_db)
+
+        try:
+            rows = dict(connection.execute("SELECT module, namespace FROM provenance"))
+
+        finally:
+            connection.close()
+
+        self.assertEqual({"ALPHA-MIB": "alpha", "BETA-MIB": "beta"}, rows)
+
+    def testTheDatabaseGetsItWithoutTheAsn1Tree(self):
+        """Staging answers provenance for free; a build that did not stage
+        pays one resolution pass for it rather than going without."""
+        outputs = self.outputs(
+            asn1=None, core_db=os.path.join(self.root, "output", "core.db")
+        )
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual(0, report.staged)
+        self.assertEqual(2, report.db["provenance"])
+        self.assertEqual(["ALPHA-MIB", "BETA-MIB"], sorted(report.provenance))
+
+    def testAPackageNamespaceIsNamedRatherThanLeftBlank(self):
+        """A namespace over ``pysmi.mibs.asn1`` is served by the compiler's
+        own priority reader, not by the one this driver built for it, so the
+        reader that answers is a different object with the same job.
+        Identifying the namespace by object identity alone reported nothing
+        for all 210 bundled modules -- found building pysnmp/mibs against
+        5.0.0-rc.1, where every standard-tier row carried an empty namespace.
+        """
+        namespaces = [
+            Namespace("standard", "package:pysmi.mibs.asn1", "standard"),
+            *self.namespaces(),
+        ]
+
+        report = CorpusDriver(namespaces, self.outputs()).run()
+
+        self.assertEqual("standard", report.provenance["SNMPv2-SMI"]["namespace"])
+        self.assertEqual("alpha", report.provenance["ALPHA-MIB"]["namespace"])
+
+    def testEveryModuleGetsANamespace(self):
+        """The weaker statement the one above is an instance of: a module in
+        the corpus came from one of its namespaces, and provenance that
+        cannot say which is provenance that answers nothing."""
+        namespaces = [
+            Namespace("standard", "package:pysmi.mibs.asn1", "standard"),
+            *self.namespaces(),
+        ]
+
+        report = CorpusDriver(namespaces, self.outputs()).run()
+        declared = {x.name for x in namespaces}
+
+        self.assertNotEqual({}, report.provenance)
+
+        for name, origin in report.provenance.items():
+            with self.subTest(module=name):
+                self.assertIn(origin["namespace"], declared)
+
+    def testABuildThatAsksForNeitherRecordsNothing(self):
+        """Provenance costs a resolution pass. A build wanting neither the
+        tree nor the database does not pay it to fill in a report field."""
+        outputs = CorpusOutputs(
+            json=os.path.join(self.root, "output", "json"),
+            report=os.path.join(self.root, "output", "report.json"),
+        )
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual({}, report.provenance)
+
+
+class ImportClosureTestCase(CorpusTestCase):
+    """The files a consumer needs in order to load a module (pysnmp/pysmi#280).
+
+    The build resolves every import edge in order to compile, so it is the
+    build that writes the closure down rather than every reader re-walking a
+    table for it.
+    """
+
+    def closure(self, where="output"):
+        """The artifact this build wrote."""
+        with open(
+            os.path.join(self.root, where, "closure.json"), encoding="utf-8"
+        ) as fileObj:
+            return json.load(fileObj)["closure"]
+
+    def testItIsPartOfThePublishedLayout(self):
+        """No --emit needed: it is a projection of a tree the build reads anyway."""
+        CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertIn("ALPHA-MIB", self.closure())
+
+    def testAModuleIsInItsOwnClosure(self):
+        """Which makes the artifact directly usable as a file list."""
+        CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertIn("ALPHA-MIB", self.closure()["ALPHA-MIB"]["files"])
+
+    def testTheClosureIsEveryFileTheModuleNeeds(self):
+        """These modules import SNMPv2-SMI, which imports two more.
+
+        The closure is the file list, so it carries what the edges reach and
+        not only the edges themselves.
+        """
+        CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual(
+            ["ALPHA-MIB", "SNMPv2-CONF", "SNMPv2-SMI", "SNMPv2-TC"],
+            self.closure()["ALPHA-MIB"]["files"],
+        )
+
+    def testACompleteCorpusReportsNothingMissing(self):
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual(0, report.closure["incomplete"])
+        self.assertEqual([], self.closure()["ALPHA-MIB"]["missing"])
+
+    def testItIsNotWrittenUnlessAskedFor(self):
+        outputs = self.outputs()
+        outputs.closure = None
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual({}, report.closure)
+        self.assertFalse(
+            os.path.exists(os.path.join(self.root, "output", "closure.json"))
+        )
+
+
+class ArcNamesTestCase(CorpusTestCase):
+    """What every arc the corpus reaches is called (pysnmp/pysmi#288).
+
+    These modules register under ``enterprises`` -- 1.3.6.1.4.1 -- so the path
+    to them runs through arcs no module registers and the OID index attributes
+    to whichever module mentioned them.
+    """
+
+    def outputs_arcs(self, **kwargs):
+        out = os.path.join(self.root, "output")
+        layout = {
+            "json": os.path.join(out, "json"),
+            "arcs": os.path.join(out, "arcs.json"),
+        }
+        layout.update(kwargs)
+
+        return CorpusOutputs(**layout)
+
+    def written(self):
+        with open(
+            os.path.join(self.root, "output", "arcs.json"), encoding="utf-8"
+        ) as fileObj:
+            return json.load(fileObj)["arc"]
+
+    def testAnArcInsideAModuleIsNotANodeOfTheTree(self):
+        """pysnmp/pysmi#301: the driver handed the whole OID index here, and
+        a module's OBJECT-IDENTITY group nodes are in it -- so the arc index
+        carried every group every module declares. Over pysnmp/mibs that was
+        98,903 arcs and an 11 MB artifact against 14,752 and about 1.6 MB.
+
+        A group node under a module's own registration is a thing inside that
+        module, which the module page renders in context.
+        """
+        self.write("alpha", "GROUPED-MIB", grouped())
+
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        written = self.written()
+
+        self.assertIn("1.3.6.1.4.1.77", written)
+        self.assertNotIn("1.3.6.1.4.1.77.1", written)
+
+    def testEveryArcIsARegistrationOrAboveOne(self):
+        self.write("alpha", "GROUPED-MIB", grouped())
+
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        for arc in self.written():
+            with self.subTest(arc=arc):
+                self.assertNotRegex(arc, r"^1\.3\.6\.1\.4\.1\.\d+\.\d")
+
+    def testThePathToAModuleIsNamed(self):
+        CorpusDriver(
+            self.namespaces(),
+            self.outputs_arcs(),
+            smiRegistry={"1.3": ArcName("1.3", "org", "https://iana/smi")},
+        ).run()
+
+        found = self.written()
+
+        self.assertEqual("org", found["1.3"]["name"])
+        self.assertEqual("registry", found["1.3"]["source"])
+
+    def testAnArcAStandardNamesIsCitedRatherThanRegistered(self):
+        """A cited name and a registered one are different kinds of fact, and
+        a page has to be able to render them differently."""
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        self.assertEqual("standard", self.written()["1.3"]["source"])
+
+    def testAModuleDescriptorIsLabelledAsOne(self):
+        """SNMPv2-SMI defines "private" at 1.3.6.1.4 and the corpus compiles
+        it, so a descriptor names the arc. That is a weaker fact than a
+        registration and the artifact says which it is -- which is the whole
+        point: the index used to present the two identically."""
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        found = self.written()["1.3.6.1.4"]
+
+        self.assertEqual("private", found["name"])
+        self.assertEqual("module", found["source"])
+
+    def testTheRegistryDisplacesTheDescriptor(self):
+        """The defect this exists to fix: a name read off whichever module
+        mentioned an arc, standing where the authority's name should."""
+        CorpusDriver(
+            self.namespaces(),
+            self.outputs_arcs(),
+            smiRegistry={
+                "1.3.6.1.4": ArcName("1.3.6.1.4", "private", "https://iana/smi")
+            },
+        ).run()
+
+        self.assertEqual("registry", self.written()["1.3.6.1.4"]["source"])
+
+    def testAModuleDescriptorNamesAnArcNothingElseDoes(self):
+        """The weakest source, and now labelled as what it is rather than
+        standing in the index as though it were a registration."""
+        CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        found = self.written()["1.3.6.1.4.1.41"]
+
+        self.assertEqual("alphamibMI", found["name"])
+        self.assertEqual("module", found["source"])
+        self.assertEqual("ALPHA-MIB", found["reference"])
+
+    def testTheEnterpriseRegistryNamesTheBareArc(self):
+        """No module registers a vendor's bare arc, only what hangs beneath."""
+        CorpusDriver(
+            self.namespaces(),
+            self.outputs_arcs(),
+            oidRegistry={41: Registrant(41, "Acme Networks")},
+        ).run()
+
+        found = self.written()
+
+        self.assertEqual("Acme Networks", found["1.3.6.1.4.1.41"]["name"])
+        self.assertEqual("registry", found["1.3.6.1.4.1.41"]["source"])
+
+    def testTheReportCountsBySource(self):
+        report = CorpusDriver(self.namespaces(), self.outputs_arcs()).run()
+
+        self.assertEqual(report.arcs["arcs"], len(self.written()))
+        self.assertIn("standard", report.arcs)
+
+    def testItIsNotWrittenUnlessAskedFor(self):
+        outputs = self.outputs_arcs()
+        outputs.arcs = None
+
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertEqual({}, report.arcs)
 
 
 class RepeatabilityTestCase(CorpusTestCase):
@@ -703,6 +1284,49 @@ class InputSetTestCase(CorpusTestCase):
 
         self.assertIsNone(outputs.core_db)
         self.assertEqual(report.db, {})
+
+    def testTheSearchDatabaseIsBuiltWhenAskedFor(self):
+        outputs = self.outputs(search_db=os.path.join(self.root, "output", "search.db"))
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        self.assertTrue(os.path.exists(outputs.search_db))
+
+        # Its own report key, and the full database's stays empty: report.json
+        # is published and a consumer reads the shape, so the two must not
+        # share one slot.
+        self.assertGreater(report.searchDb["module"], 0)
+        self.assertEqual(report.searchDb["node"], 0)
+        self.assertEqual(report.db, {})
+
+        connection = sqlite3.connect(outputs.search_db)
+
+        try:
+            meta = dict(connection.execute("SELECT key, value FROM meta"))
+            nodes = connection.execute("SELECT count(*) FROM node").fetchone()[0]
+
+        finally:
+            connection.close()
+
+        self.assertEqual(meta["tables"], "search")
+        self.assertEqual(nodes, 0)
+        # The corpus still says what it defines; only the table is empty.
+        self.assertGreater(int(meta["nodes"]), 0)
+
+    def testBothDatabasesCanBeBuiltInOneRun(self):
+        outputs = self.outputs(
+            core_db=os.path.join(self.root, "output", "core.db"),
+            search_db=os.path.join(self.root, "output", "search.db"),
+        )
+        report = CorpusDriver(self.namespaces(), outputs).run()
+
+        for path in (outputs.core_db, outputs.search_db):
+            self.assertTrue(os.path.exists(path))
+
+        self.assertGreater(report.db["node"], 0)
+        self.assertEqual(report.searchDb["node"], 0)
+        # One corpus, so the two agree on everything but the tables dropped.
+        self.assertEqual(report.db["module"], report.searchDb["module"])
+        self.assertEqual(report.db["oid_index"], report.searchDb["oid_index"])
 
     def testTheBuildIsStampedWithWhatTheCallerGaveIt(self):
         # write_db has taken these since it was written, and until now nothing
