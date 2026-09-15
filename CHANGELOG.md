@@ -3,6 +3,16 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.2.0](https://github.com/pysnmp/pysmi/compare/v5.1.0...v5.2.0) (2026-09-15)
+
+### Features
+
+* **mibcontribute:** offer the MIBs in a directory to the distribution ([aef85dc](https://github.com/pysnmp/pysmi/commit/aef85dc424a8b87af799c23b3ccadc44a8325642))
+
+### Bug Fixes
+
+* **mibcontribute:** rank duplicate copies, and fit the issue GitHub accepts ([0ca7169](https://github.com/pysnmp/pysmi/commit/0ca7169e46c2a591c3114463b692a3c3bdbbed1e))
+
 ## [5.1.0](https://github.com/pysnmp/pysmi/compare/v5.0.0...v5.1.0) (2026-09-15)
 
 ### Features
