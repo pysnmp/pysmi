@@ -8,7 +8,7 @@
         <link rel="prefetch" href="../_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="../_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>MIB patches - SNMP SMI compiler 5.0.0 documentation</title>
+        <title>MIB patches - SNMP SMI compiler 5.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../contents.html"><div class="brand">SNMP SMI compiler 5.0.0 documentation</div></a>
+      <a href="../contents.html"><div class="brand">SNMP SMI compiler 5.1.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="../_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.0.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.1.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -581,16 +581,32 @@ convention and names none. A caller telling those apart wants
 
 <dl class="py method">
 <dt class="sig sig-object py" id="pysmi.patches.PatchSet.from_directory">
-<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.patches.PatchSet" title="pysmi.patches.PatchSet"><span class="pre">PatchSet</span></a></span></span><a class="headerlink" href="#pysmi.patches.PatchSet.from_directory" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_directory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#pysmi.patches.PatchSet" title="pysmi.patches.PatchSet"><span class="pre">PatchSet</span></a></span></span><a class="headerlink" href="#pysmi.patches.PatchSet.from_directory" title="Link to this definition">¶</a></dt>
 <dd><p>Read every <code class="docutils literal notranslate"><span class="pre">&lt;MODULE&gt;.patch</span></code> in a directory.</p>
 <p>The file name before <code class="docutils literal notranslate"><span class="pre">.patch</span></code> is the module name, so the set can be
 looked up without opening anything.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>path</strong> – the directory to read.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – the directory to read.</p></li>
+<li><p><strong>recursive</strong> – also read patches in subdirectories. Off by default,
+which is pysmi’s own <code class="docutils literal notranslate"><span class="pre">scripts/mib-patches</span></code>: one flat
+directory. A downstream corpus large enough to file its
+repairs per vendor – pysnmp/mibs keeps 24 of them under
+<code class="docutils literal notranslate"><span class="pre">scripts/mib-patches/cisco</span></code> – reads its tree with this on.
+The module name is still the file name, so where in the tree
+a patch sits says nothing about which module it repairs.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The patches it holds. Empty when the directory does not exist.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="error.html#pysmi.error.PySmiPatchError" title="pysmi.error.PySmiPatchError"><strong>PySmiPatchError</strong></a> – two files in the tree name the same module. Only
+    reachable with <em>recursive</em> on, and left an error rather than
+    resolved by walk order: two patches for one module are two
+    different repairs, and silently applying whichever was found
+    second is how a corpus comes to publish text nobody chose.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1211,7 +1227,7 @@ missing, there being no repair to name a defect for.</p>
       
     </aside>
   </div>
-</div><script src="../_static/documentation_options.js?v=b1b76d9c"></script>
+</div><script src="../_static/documentation_options.js?v=a3715186"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>

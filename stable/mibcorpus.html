@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The mibcorpus tool - SNMP SMI compiler 5.0.0 documentation</title>
+        <title>The mibcorpus tool - SNMP SMI compiler 5.1.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.0.0 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.1.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.0.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.1.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -393,6 +393,64 @@ command line that is <code class="docutils literal notranslate"><span class="pre
 exactly one copy of it can be published; the newest MODULE-IDENTITY revision
 wins and source order breaks the tie, which is the rule
 <a class="reference internal" href="pysmi/compiler/mibcompiler.html#pysmi.compiler.MibCompiler.compile" title="pysmi.compiler.MibCompiler.compile"><code class="xref py py-meth docutils literal notranslate"><span class="pre">compile()</span></code></a> documents and applies.</p>
+</section>
+<section id="a-corpus-of-a-few-modules">
+<h2>A corpus of a few modules<a class="headerlink" href="#a-corpus-of-a-few-modules" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">&quot;publish&quot;:</span> <span class="pre">false</span></code> narrows a build by namespace. <code class="docutils literal notranslate"><span class="pre">--publish-only</span></code> narrows
+it by module, and everything outside the selection becomes a resolution source
+in exactly the same sense: read, available to resolve an import, and carried
+nowhere.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span>--output-directory<span class="o">=</span>preview<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--emit<span class="o">=</span>site<span class="w"> </span>--emit<span class="o">=</span>report<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--publish-only<span class="o">=</span>CISCO-IPMCAST-MIB<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--publish-only<span class="o">=</span>TEL2N-MIB
+</pre></div>
+</div>
+<p>This exists for a question a namespace cannot express: <em>what do the modules
+this change touched look like?</em> Neither obvious answer works. A build over the
+changed files alone fails on every import they make – a vendor module that
+imports <code class="docutils literal notranslate"><span class="pre">SNMPv2-TC</span></code> needs <code class="docutils literal notranslate"><span class="pre">SNMPv2-TC</span></code> to be there. A build over the whole
+corpus answers in five minutes and buries the two pages that were asked about
+in seven thousand that were not. So the input set stays whole and the output
+set narrows.</p>
+<p>What makes the result worth looking at is that it is the same corpus:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>module built narrowed  ==  module built whole
+</pre></div>
+</div>
+<p>byte for byte, in the ASN.1 and in the JSON, because it is the same compile
+over the same resolved sources. This is the property <code class="docutils literal notranslate"><span class="pre">&quot;publish&quot;:</span> <span class="pre">false</span></code>
+rests on as well, and <code class="docutils literal notranslate"><span class="pre">tests/test_corpus_select.py</span></code> holds the narrowed build
+to it.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--publish-only-from=FILE</span></code> reads the same names from a file, one per line,
+blanks and <code class="docutils literal notranslate"><span class="pre">#</span></code> comments ignored, for a caller that computes the set rather
+than typing it.</p>
+<p>Two refusals, both because the quiet alternative is worse:</p>
+<ul class="simple">
+<li><p>A selected module no publishing namespace holds is an error naming every one
+that missed. A caller that named three modules wants three, and a preview
+that silently publishes two has answered a question nobody asked. A
+namespace holds what its files <em>declare</em>, not what they are named, so a file
+too damaged to lex a module header out of holds no module and is reported
+here rather than as an empty page.</p></li>
+<li><p>An <strong>empty</strong> selection is an error rather than a whole corpus. Naming no
+selection at all is a distribution build; computing one and computing it
+empty is a request for a corpus of nothing, and the two must not collapse
+into each other – a pull request that changed no MIB would otherwise
+publish all 5,510.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">report.json</span></code> records what was asked for under <code class="docutils literal notranslate"><span class="pre">selected</span></code>:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"selected"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"requested"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"CISCO-IPMCAST-MIB"</span><span class="p">,</span><span class="w"> </span><span class="s2">"TEL2N-MIB"</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"published"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"TEL2N-MIB"</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">"failed"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"CISCO-IPMCAST-MIB"</span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>which is what tells a check that a module was asked for and did not compile,
+as against never having been asked for. <code class="docutils literal notranslate"><span class="pre">--fail-on-errors</span></code> turns that into a
+non-zero exit.</p>
 </section>
 <section id="what-the-corpus-is">
 <h2>What the corpus is<a class="headerlink" href="#what-the-corpus-is" title="Link to this heading">¶</a></h2>
@@ -1022,6 +1080,31 @@ children</p></td>
 </div>
 <p>Over pysnmp/mibs’ 5,510 modules that is <strong>7,346 pages and 220 MB in 18
 seconds</strong>, on top of the build that produced the corpus.</p>
+<section id="where-the-repairs-come-from">
+<h3>Where the repairs come from<a class="headerlink" href="#where-the-repairs-come-from" title="Link to this heading">¶</a></h3>
+<p>A module page says whether the text served here differs from the publisher’s,
+and why. That panel is filled by <code class="docutils literal notranslate"><span class="pre">--patch-directory</span></code>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mibcorpus<span class="w"> </span>--manifest<span class="o">=</span>corpus.json<span class="w"> </span>--output-directory<span class="o">=</span>output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--emit<span class="o">=</span>site<span class="w"> </span>--patch-directory<span class="o">=</span>scripts/mib-patches
+</pre></div>
+</div>
+<p>The directory is read recursively and the file name before <code class="docutils literal notranslate"><span class="pre">.patch</span></code> is the
+module, wherever in the tree it sits – a corpus large enough to file its
+repairs per vendor keeps <code class="docutils literal notranslate"><span class="pre">scripts/mib-patches/cisco/CISCO-IPMCAST-MIB.patch</span></code>
+and this reads it. Two files naming one module is an error: two repairs for
+one module are two different opinions, and applying whichever the filesystem
+offered second is how a corpus comes to publish text nobody chose.</p>
+<p>Nothing is applied. The sources are read exactly as they stand; this is a
+<em>description</em> of a repair already in them, which is the arrangement
+<a class="reference internal" href="mibpatch.html"><span class="doc">The mibpatch tool</span></a> describes – the checked-in text is the publisher’s text plus
+the patch, so the patch is the record of the difference rather than a step in
+the build.</p>
+<p>Both halves of the header reach the page. The <code class="docutils literal notranslate"><span class="pre">Defect:</span></code> lines become links
+into whichever catalogue the patch cites – <a class="reference internal" href="mib-defects.html"><span class="doc">Defects a patch repairs</span></a> for pysmi’s own
+identifiers, a downstream catalogue for a downstream corpus’s – and the note
+under them stays with the diff, because the catalogue says what the defect is
+and only the note says why <em>this</em> module has it.</p>
+</section>
 <section id="why-the-generator-is-here">
 <h3>Why the generator is here<a class="headerlink" href="#why-the-generator-is-here" title="Link to this heading">¶</a></h3>
 <p>The site is a function of a corpus, so an enterprise pointing <code class="docutils literal notranslate"><span class="pre">mibcorpus</span></code> at
@@ -1499,6 +1582,7 @@ snapshot never had. Corrections land in <code class="docutils literal notranslat
             <ul>
 <li><a class="reference internal" href="#">The <em>mibcorpus</em> tool</a><ul>
 <li><a class="reference internal" href="#the-input-set">The input set</a></li>
+<li><a class="reference internal" href="#a-corpus-of-a-few-modules">A corpus of a few modules</a></li>
 <li><a class="reference internal" href="#what-the-corpus-is">What the corpus is</a></li>
 <li><a class="reference internal" href="#what-it-produces">What it produces</a></li>
 <li><a class="reference internal" href="#one-build-more-than-one-tree">One build, more than one tree</a></li>
@@ -1518,6 +1602,7 @@ snapshot never had. Corrections land in <code class="docutils literal notranslat
 </ul>
 </li>
 <li><a class="reference internal" href="#the-browsable-site">The browsable site</a><ul>
+<li><a class="reference internal" href="#where-the-repairs-come-from">Where the repairs come from</a></li>
 <li><a class="reference internal" href="#why-the-generator-is-here">Why the generator is here</a></li>
 <li><a class="reference internal" href="#the-module-set-is-the-corpus">The module set is the corpus</a></li>
 <li><a class="reference internal" href="#everything-is-in-the-bytes">Everything is in the bytes</a></li>
@@ -1550,7 +1635,7 @@ snapshot never had. Corrections land in <code class="docutils literal notranslat
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=b1b76d9c"></script>
+</div><script src="_static/documentation_options.js?v=a3715186"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
