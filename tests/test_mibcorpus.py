@@ -311,6 +311,120 @@ class RunTestCase(unittest.TestCase):
         self.assertFalse(os.path.exists(os.path.join(self.out, "data", "browse")))
         self.assertFalse(os.path.exists(os.path.join(self.out, "pages", "asn1")))
 
+    def testPublishOnlyCarriesTheModuleAndResolvesTheRest(self):
+        """The pull request build: one module out of a corpus of many.
+
+        The tree carries what was asked for; the rest of the input set is
+        still read, which is what lets the selected module's imports resolve.
+        """
+        with open(os.path.join(self.src, "B-MIB"), "w") as fileObj:
+            fileObj.write(module("B-MIB", 42))
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                "--namespace=vendor:cisco:" + self.src,
+                f"--output-directory={self.out}",
+                "--emit=asn1",
+                "--emit=report",
+                "--publish-only=A-MIB",
+            ),
+        )
+
+        self.assertEqual(["A-MIB"], sorted(os.listdir(os.path.join(self.out, "asn1"))))
+
+        with open(os.path.join(self.out, "report.json")) as fileObj:
+            report = json.load(fileObj)
+
+        self.assertEqual(["A-MIB"], report["selected"]["published"])
+
+    def testPublishOnlyFromReadsTheSameNamesOutOfAFile(self):
+        """For a caller that computes the set rather than typing it."""
+        with open(os.path.join(self.src, "B-MIB"), "w") as fileObj:
+            fileObj.write(module("B-MIB", 42))
+
+        listing = os.path.join(self.root, "changed.txt")
+
+        with open(listing, "w") as fileObj:
+            fileObj.write("# the modules this pull request touched\n\nB-MIB\n")
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                "--namespace=vendor:cisco:" + self.src,
+                f"--output-directory={self.out}",
+                "--emit=asn1",
+                f"--publish-only-from={listing}",
+            ),
+        )
+
+        self.assertEqual(["B-MIB"], sorted(os.listdir(os.path.join(self.out, "asn1"))))
+
+    def testAnEmptySelectionFileIsRefusedRatherThanPublishingEverything(self):
+        """The failure that would make the check useless without saying so.
+
+        A caller whose selection came out empty asked for a corpus of
+        nothing. Treating that as "no selection given" publishes the whole
+        corpus, which for a pull request preview is the one answer nobody
+        can read.
+        """
+        listing = os.path.join(self.root, "changed.txt")
+
+        with open(listing, "w") as fileObj:
+            fileObj.write("# nothing changed\n")
+
+        self.assertEqual(
+            mibcorpus.EX_SOFTWARE,
+            self.run_with(
+                "--namespace=vendor:cisco:" + self.src,
+                f"--output-directory={self.out}",
+                "--emit=asn1",
+                f"--publish-only-from={listing}",
+            ),
+        )
+
+    def testAPatchDirectoryPutsTheRepairOnThePage(self):
+        """The site has rendered repairs since pysnmp/pysmi#279 and nothing
+        could reach it: the driver took a patch set and the command line had
+        no way to name one. A distribution that repairs its publishers'
+        text serves pages that do not say so.
+        """
+        patches = os.path.join(self.root, "patches", "cisco")
+        os.makedirs(patches)
+
+        with open(os.path.join(patches, "A-MIB.patch"), "w") as fileObj:
+            fileObj.write(
+                "Defect: SMI-EXAMPLE https://example.invalid/defects#smi-example\n"
+                "\n"
+                "What is particular to this module.\n"
+                "\n"
+                "--- a/A-MIB\n"
+                "+++ b/A-MIB\n"
+                "@@ -1,1 +1,1 @@\n"
+                "-was\n"
+                "+is\n"
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_OK,
+            self.run_with(
+                "--namespace=vendor:cisco:" + self.src,
+                f"--output-directory={self.out}",
+                "--emit=site",
+                f"--patch-directory={os.path.join(self.root, 'patches')}",
+            ),
+        )
+
+        with open(os.path.join(self.out, "mib", "A-MIB", "index.html")) as fileObj:
+            page = fileObj.read()
+
+        self.assertIn("https://example.invalid/defects#smi-example", page)
+        self.assertIn("SMI-EXAMPLE", page)
+        # The note under the defect line, which is the half the catalogue
+        # cannot give: what is wrong with *this* module.
+        self.assertIn("What is particular to this module.", page)
+        self.assertIn("+is", page)
+
     def testTheTwoOriginFlagsReachTheCrawlSurface(self):
         """--base-url and --data-url, driven through the command line.
 

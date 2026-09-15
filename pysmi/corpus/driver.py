@@ -248,6 +248,14 @@ class CorpusReport:
     modules: int = 0
     #: Modules staged into the published ASN.1 tree.
     staged: int = 0
+    #: What a narrowed build was asked for and what became of it:
+    #: ``requested``, and the ``published`` and ``failed`` halves of it.
+    #: Empty for a distribution build, which publishes whatever its
+    #: namespaces hold and was asked for no particular module. A caller that
+    #: named three modules reads this to find out whether it got three, and
+    #: which of them the corpus could not compile. See
+    #: :py:class:`CorpusDriver`'s ``select``.
+    selected: dict[str, list[str]] = field(default_factory=dict)
     #: Nodes the corpus defines, before and after resolving the OIDs more
     #: than one module defines. pysnmp/pysnmp#196 and pysnmp/pysmi#183 both
     #: want the second number.
@@ -291,6 +299,7 @@ class CorpusReport:
             "provenance": self.provenance,
             "modules": self.modules,
             "staged": self.staged,
+            "selected": self.selected,
             "nodes": self.nodes,
             "index": self.index,
             "db": self.db,
@@ -372,6 +381,20 @@ class CorpusDriver:
             wants a narrower list, since most of those modules generate
             perfectly well and only a few genuinely cannot; see
             ``hatch_build.py``, which is that caller.
+        select: publish only these modules, resolving against everything
+            else the namespaces hold. ``None`` -- the default -- publishes
+            every module a publishing namespace holds, which is what a
+            distribution build is.
+
+            This is the same narrowing ``publish: false`` does, moved from
+            the namespace to the module: a namespace declared unpublished
+            supplies imports and reaches no output tree, and so does every
+            module outside this set. What it buys is a corpus of a *few*
+            modules that is still built against all of them -- the pull
+            request case, where the question is what the three modules a
+            change touches look like, and the answer has to come from a
+            compile that resolved their imports against the whole corpus
+            rather than against the three files. See pysnmp/pysmi#316.
     """
 
     def __init__(
@@ -382,6 +405,7 @@ class CorpusDriver:
         useBundledMibs: bool = True,
         rebuild: bool = True,
         stubs: "Mapping[str, Iterable[str]] | None" = None,
+        select: "Iterable[str] | None" = None,
         corpusVersion: str | None = None,
         corpusId: str | None = None,
         oidRegistry: "dict[int, Registrant] | None" = None,
@@ -408,6 +432,20 @@ class CorpusDriver:
             raise error.PySmiError(
                 "every namespace is declared unpublished; a corpus built from "
                 "resolution sources alone would carry nothing"
+            )
+
+        #: The modules this corpus carries, or None for all of them. Held as
+        #: a frozenset because every use is a membership test, and sorted
+        #: wherever it is reported.
+        self._select: frozenset[str] | None = (
+            None if select is None else frozenset(select)
+        )
+
+        if self._select is not None and not self._select:
+            raise error.PySmiError(
+                "the published set is empty; a corpus selecting no module at "
+                "all would carry nothing. Leave the selection out to publish "
+                "every module the namespaces hold"
             )
 
         check_disjoint(namespaces, outputs)
@@ -517,16 +555,20 @@ class CorpusDriver:
         return [x for x in self._namespaces if x.publish]
 
     def _resolve_only_modules(self) -> list[str]:
-        """Every module held only by a namespace the corpus does not publish.
+        """Every module the corpus resolves against and does not carry.
 
         Stubbed in every output format, which is what keeps such a module out
         of the corpus when something published imports it -- the compiler
         compiles and writes a dependency like anything else, so declining to
         ask for it is not enough.
 
-        A module a published namespace also holds is not stubbed: the corpus
-        carries it, and where it came from is the precedence rule's business
-        rather than this one's.
+        Two things put a module here. It may be held only by a namespace
+        declared unpublished; a module a published namespace also holds is
+        not stubbed, since the corpus carries it and where it came from is
+        the precedence rule's business rather than this one's. Or the build
+        may carry a selection, in which case everything outside it resolves
+        and nothing outside it is written -- including modules a publishing
+        namespace holds, which is the whole point of narrowing.
         """
         published: set[str] = set()
         resolveOnly: set[str] = set()
@@ -536,7 +578,58 @@ class CorpusDriver:
 
             (published if namespace.publish else resolveOnly).update(names)
 
+        if self._select is not None:
+            resolveOnly |= published - self._select
+            published &= self._select
+
         return sorted(resolveOnly - published)
+
+    def _check_selection(self, moduleSets: dict[str, list[str]]) -> None:
+        """Refuse a selection naming a module no publishing namespace holds.
+
+        Silence here would be the worst answer available. A build narrowed to
+        the three modules a change touches, handed a fourth name that is not
+        in the corpus, would publish three pages and exit zero -- and the
+        caller's whole reason for naming them is that it wants to see what
+        became of each. So the name is checked against the input set before
+        anything is compiled, and the error names every one that missed
+        rather than the first.
+        """
+        if self._select is None:
+            return
+
+        held = {x for ns in self._published for x in moduleSets[ns.name]}
+        missing = sorted(self._select - held)
+
+        if missing:
+            raise error.PySmiError(
+                f"the published set names {len(missing)} module(s) no "
+                f"publishing namespace holds: {', '.join(missing)}. A "
+                f"namespace holds what its files declare, not what they are "
+                f"named: a module is missing here when no file in the input "
+                f"set opens with that name, which includes a file so damaged "
+                f"that its header cannot be read at all"
+            )
+
+    def _report_selection(
+        self, report: CorpusReport, published: "list[str] | None"
+    ) -> None:
+        """Record what a narrowed build was asked for, and what it got."""
+        if self._select is None:
+            return
+
+        # Subtracted as well as intersected. Where the build compiled JSON,
+        # *published* already excludes what failed; where it did not, the
+        # selection comes back whole and the per-destination failures are the
+        # only record of what did not compile.
+        failed = {x for d in report.failed.values() for x in d} & self._select
+        carried = (self._select & set(published or ())) - failed
+
+        report.selected = {
+            "requested": sorted(self._select),
+            "published": sorted(carried),
+            "failed": sorted(failed),
+        }
 
     def _destinations(self) -> list[Destination]:
         """The output formats this build was asked for, in a fixed order."""
@@ -619,8 +712,19 @@ class CorpusDriver:
             )
 
             if self._useBundledMibs:
-                eligibleBaseMibs = [x for x in stubs if x in bundled]
-                stubs = [x for x in stubs if x not in bundled]
+                # A narrowed build promotes nothing it did not select. The
+                # bundle is a source rather than a namespace, so a base MIB
+                # it supplies is in no namespace's module set and the
+                # resolve-only pass below cannot reach it -- left promoted,
+                # SNMPv2-SMI, -TC and -CONF turn up in the JSON tree of a
+                # corpus that asked for one vendor module.
+                eligibleBaseMibs = [
+                    x
+                    for x in stubs
+                    if x in bundled and (self._select is None or x in self._select)
+                ]
+                promoted = set(eligibleBaseMibs)
+                stubs = [x for x in stubs if x not in promoted]
 
             codegen = JsonCodeGen()
             writer = FileWriter(destination.directory).set_options(suffix=_JSON_EXT)
@@ -705,17 +809,30 @@ class CorpusDriver:
 
         ``None`` where the build compiled no JSON at all, which means
         "everything the namespaces hold" to each writer.
+
+        A narrowed build answers with its selection either way. The compile
+        result names every module the pass *touched*, dependencies included,
+        and a stubbed dependency comes back ``untouched`` -- which is a
+        published status, because for a distribution build it means the
+        corpus already holds that module. Under a selection it does not: the
+        module resolved something and is not being carried. Left unfiltered,
+        a two-module preview staged fourteen files.
         """
         written = results.get("json")
 
         if written is None:
-            return None
+            return None if self._select is None else sorted(self._select)
 
-        return sorted(
+        published = sorted(
             name
             for name, status in written.items()
             if str(status) in PUBLISHED_STATUSES
         )
+
+        if self._select is None:
+            return published
+
+        return [x for x in published if x in self._select]
 
     def compile(self, report: CorpusReport) -> dict[str, dict[str, Any]]:
         """Compile every namespace into every destination.
@@ -746,6 +863,9 @@ class CorpusDriver:
 
             for namespace in self._published:
                 wanted = [x for x in moduleSets[namespace.name] if x not in processed]
+
+                if self._select is not None:
+                    wanted = [x for x in wanted if x in self._select]
 
                 if not wanted:
                     continue
@@ -1518,6 +1638,7 @@ class CorpusDriver:
         report = CorpusReport()
 
         moduleSets = self._module_sets()
+        self._check_selection(moduleSets)
         report.namespaces = [
             {
                 "name": x.name,
@@ -1540,9 +1661,16 @@ class CorpusDriver:
 
         # What the corpus holds, that compiled. A resolve-only module is
         # stubbed and comes back "untouched", so the compile result alone
-        # would count modules the corpus does not carry.
+        # would count modules the corpus does not carry. A narrowed build
+        # holds only what it selected, for the same reason: everything else
+        # is stubbed and reaches no tree.
         held = {x for ns in self._published for x in moduleSets[ns.name]}
+
+        if self._select is not None:
+            held &= self._select
+
         report.modules = len(held if published is None else held & set(published))
+        self._report_selection(report, published)
 
         self.stage(report, published)
         self.write_standard(published)
