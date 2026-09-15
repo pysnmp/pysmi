@@ -196,8 +196,11 @@ class SeveralCopiesTestCase(unittest.TestCase):
         both = module("FIRST-MIB", "202106020000Z") + module(
             "SECOND-MIB", "202106020000Z"
         )
-        (self.offered / "vendor.my").write_text(both)
-        (self.corpus / "FIRST-MIB").write_text(both)
+        # newline="" so that the bytes on disk are the bytes written, on a
+        # platform whose text mode would otherwise turn them into CRLF. The
+        # finding carries the file as it is, which is what is asserted below.
+        (self.offered / "vendor.my").write_text(both, newline="")
+        (self.corpus / "FIRST-MIB").write_text(both, newline="")
 
         found = self.scan()
 
