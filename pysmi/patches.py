@@ -524,7 +524,9 @@ class PatchSet:
             return text, UNPATCHED
 
     @classmethod
-    def from_directory(cls, path: "str | Path") -> "PatchSet":
+    def from_directory(
+        cls, path: "str | Path", *, recursive: bool = False
+    ) -> "PatchSet":
         """Read every ``<MODULE>.patch`` in a directory.
 
         The file name before ``.patch`` is the module name, so the set can be
@@ -532,18 +534,42 @@ class PatchSet:
 
         Args:
             path: the directory to read.
+            recursive: also read patches in subdirectories. Off by default,
+                which is pysmi's own ``scripts/mib-patches``: one flat
+                directory. A downstream corpus large enough to file its
+                repairs per vendor -- pysnmp/mibs keeps 24 of them under
+                ``scripts/mib-patches/cisco`` -- reads its tree with this on.
+                The module name is still the file name, so where in the tree
+                a patch sits says nothing about which module it repairs.
 
         Returns:
             The patches it holds. Empty when the directory does not exist.
+
+        Raises:
+            PySmiPatchError: two files in the tree name the same module. Only
+                reachable with *recursive* on, and left an error rather than
+                resolved by walk order: two patches for one module are two
+                different repairs, and silently applying whichever was found
+                second is how a corpus comes to publish text nobody chose.
         """
         directory = Path(path)
 
         if not directory.is_dir():
             return cls()
 
-        return cls(
-            {
-                entry.stem: entry.read_text(encoding="utf-8")
-                for entry in sorted(directory.glob("*.patch"))
-            }
-        )
+        found: dict[str, str] = {}
+        source: dict[str, Path] = {}
+
+        for entry in sorted(
+            directory.rglob("*.patch") if recursive else directory.glob("*.patch")
+        ):
+            if entry.stem in found:
+                raise PySmiPatchError(
+                    f"{entry} and {source[entry.stem]} both patch "
+                    f"{entry.stem}; a module has one repair or none"
+                )
+
+            found[entry.stem] = entry.read_text(encoding="utf-8")
+            source[entry.stem] = entry
+
+        return cls(found)

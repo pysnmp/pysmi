@@ -322,6 +322,47 @@ class PatchSetSourceTestCase(unittest.TestCase):
         """Naming a directory that is not there gets no patches."""
         self.assertEqual(0, len(PatchSet.from_directory(Path(self.tmp) / "nope")))
 
+    def testASubdirectoryIsNotReadByDefault(self):
+        """pysmi's own set is one flat directory, and stays read as one."""
+        nested = Path(self.tmp) / "cisco"
+        nested.mkdir()
+        (nested / "TEST-MIB.patch").write_text(SAMPLE_PATCH)
+
+        self.assertEqual((), PatchSet.from_directory(self.tmp).modules())
+
+    def testATreeOfPatchesIsReadWholeWhenAskedFor(self):
+        """A corpus large enough to file its repairs per vendor.
+
+        pysnmp/mibs keeps 24 of them under ``scripts/mib-patches/cisco``.
+        Where a patch sits says nothing about which module it repairs -- the
+        file name does, here as in a flat directory.
+        """
+        nested = Path(self.tmp) / "cisco"
+        nested.mkdir()
+        (nested / "TEST-MIB.patch").write_text(SAMPLE_PATCH)
+        (Path(self.tmp) / "OTHER-MIB.patch").write_text(SAMPLE_PATCH)
+
+        found = PatchSet.from_directory(self.tmp, recursive=True)
+
+        self.assertEqual(("OTHER-MIB", "TEST-MIB"), found.modules())
+        self.assertEqual(SAMPLE_PATCH, found.patch_for("TEST-MIB"))
+
+    def testTwoPatchesForOneModuleAreRefused(self):
+        """Two repairs for one module are two different opinions.
+
+        Resolved by walk order, the corpus would publish whichever the
+        filesystem handed over second and say nothing about the other.
+        """
+        for vendor in ("cisco", "acme"):
+            nested = Path(self.tmp) / vendor
+            nested.mkdir()
+            (nested / "TEST-MIB.patch").write_text(SAMPLE_PATCH)
+
+        with self.assertRaises(PySmiPatchError) as caught:
+            PatchSet.from_directory(self.tmp, recursive=True)
+
+        self.assertIn("TEST-MIB", str(caught.exception))
+
     def testBundledSetIsSharedRatherThanReread(self):
         """The set does not change while a build runs."""
         self.assertIs(bundled_patches(), bundled_patches())

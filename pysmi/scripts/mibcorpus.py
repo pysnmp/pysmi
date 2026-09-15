@@ -40,6 +40,8 @@ from pysmi.corpus.namespace import (
 )
 from pysmi.corpus.site.crawl import Crawl
 from pysmi.corpus.site.theme import load_theme
+from pysmi.defects import DefectRef
+from pysmi.patches import PatchSet, split_patch
 from pysmi.registry.pen import Registrant, is_pen_registry, load_registry
 from pysmi.registry.smi import ArcName, parse_smi_numbers
 
@@ -60,6 +62,9 @@ def start() -> None:
     verboseFlag = True
     failOnErrorsFlag = False
     namespaceArgs: list[tuple[str, bool]] = []
+    selected: list[str] = []
+    selectionFiles: list[str] = []
+    patchDirectory = ""
     explicitOutputs = False
     corpusVersion = ""
     corpusId = ""
@@ -73,6 +78,9 @@ def start() -> None:
         [--manifest=<FILE>]
         [--namespace=<TIER>:<NAME>:<SOURCE>]
         [--resolve-namespace=<TIER>:<NAME>:<SOURCE>]
+        [--publish-only=<MODULE>]
+        [--publish-only-from=<FILE>]
+        [--patch-directory=<DIRECTORY>]
         [--output-directory=<DIRECTORY>]
         [--frozen-index=<FILE>]
         [--parse-cache=<DIRECTORY>]
@@ -110,6 +118,31 @@ def start() -> None:
                 standard modules -- pysmi bundles 210 of them -- without
                 every vendor module that imports SNMPv2-SMI failing.
                 Same in a manifest as "publish": false.
+        --publish-only - carry only this module, repeatable. The rest of
+                the input set is still read and still resolves what these
+                import; nothing else reaches an output tree. This is
+                --resolve-namespace moved from the namespace to the module,
+                and it is what builds a corpus of the three modules a
+                change touched out of a corpus of 5,510 -- the compile
+                still resolves their imports against all of them, which a
+                build over the three files alone could not do. A named
+                module no publishing namespace holds is an error, so a
+                caller that asked for three gets three or gets told which
+                one missed.
+        --publish-only-from - read the same names from a file, one per
+                line, blanks and # comments ignored. For a caller that
+                computes the set -- the modules a pull request changed --
+                and would otherwise build a command line out of it.
+        --patch-directory - a directory of <MODULE>.patch files, read
+                recursively, naming what this distribution repairs in the
+                text its publishers ship. Nothing is applied here: the
+                sources are read as they are, and this is what puts the
+                diff and the defect it cites on the module's page, so a
+                reader sees that the module was repaired and what the
+                repair was. A corpus filing its patches per vendor --
+                scripts/mib-patches/cisco/CISCO-IPMCAST-MIB.patch -- is
+                read whole; the file name before .patch is the module,
+                wherever in the tree it sits.
         --output-directory - where the artifacts go, laid out as the
                 published corpus is: asn1/, notexts/, texts/, json/,
                 index.csv, index-v2.csv, standard.txt, closure.json and
@@ -227,6 +260,9 @@ def start() -> None:
                 "manifest=",
                 "namespace=",
                 "resolve-namespace=",
+                "publish-only=",
+                "publish-only-from=",
+                "patch-directory=",
                 "output-directory=",
                 "frozen-index=",
                 "emit=",
@@ -296,6 +332,15 @@ def start() -> None:
 
         if opt[0] == "--resolve-namespace":
             namespaceArgs.append((opt[1], False))
+
+        if opt[0] == "--publish-only":
+            selected.append(opt[1])
+
+        if opt[0] == "--publish-only-from":
+            selectionFiles.append(opt[1])
+
+        if opt[0] == "--patch-directory":
+            patchDirectory = opt[1]
 
         if opt[0] == "--output-directory":
             outputDirectory = opt[1]
@@ -380,6 +425,37 @@ def start() -> None:
             f"ERROR: no source namespaces; pass --manifest or --namespace\r\n{helpMessage}\r\n"
         )
         sys.exit(EX_USAGE)
+
+    try:
+        for path in selectionFiles:
+            selected.extend(_read_selection(path))
+
+    except OSError as exc:
+        sys.stderr.write(f"ERROR: cannot read --publish-only-from: {exc}\r\n")
+        sys.exit(EX_USAGE)
+
+    # An empty file is not the same argument as no argument. A caller that
+    # computed a selection and computed it empty asked for a corpus of
+    # nothing, and the driver refuses that; a caller that named no selection
+    # at all is building a distribution. Told apart here, because after the
+    # list is flattened they look alike.
+    selection = sorted(set(selected)) if (selected or selectionFiles) else None
+
+    patches: dict[str, tuple[tuple[DefectRef, ...], str]] = {}
+
+    if patchDirectory:
+        try:
+            patchSet = PatchSet.from_directory(patchDirectory, recursive=True)
+
+        except (OSError, error.PySmiError) as exc:
+            # Named and unreadable is a typo in a build script, not a reason
+            # to publish a site quietly claiming this corpus repairs nothing.
+            sys.stderr.write(
+                f"ERROR: cannot read --patch-directory {patchDirectory}: {exc}\r\n"
+            )
+            sys.exit(EX_USAGE)
+
+        patches = {name: _repair(patchSet, name) for name in patchSet.modules()}
 
     # A flag overrides a file, here as everywhere: --emit names one tree, so
     # it collapses a manifest's publications to the one the caller asked for.
@@ -485,6 +561,8 @@ def start() -> None:
                 namespaces,
                 publicationOutputs,
                 useBundledMibs=bundledMibsFlag,
+                select=selection,
+                patches=patches,
                 corpusVersion=corpusVersion or None,
                 corpusId=corpusId or None,
                 oidRegistry=oidRegistry,
@@ -531,6 +609,35 @@ def start() -> None:
         sys.exit(EX_MIB_FAILED)
 
     sys.exit(EX_OK)
+
+
+def _repair(patches: PatchSet, mibname: str) -> tuple[tuple[DefectRef, ...], str]:
+    """One module's repair, in the shape the site renders.
+
+    The defect references go out on their own, because the page renders them
+    as links into whichever catalogue the patch cites. What is left of the
+    header is the note saying what is particular to *this* module -- the
+    catalogue says what the defect is, and the note says why this module has
+    it -- so it stays with the diff rather than being dropped: a reader
+    looking at text that differs from the publisher's is owed both halves.
+    """
+    header, diff = split_patch(patches.patch_for(mibname) or "")
+
+    return header.defects, f"{header.body}\n\n{diff}" if header.body else diff
+
+
+def _read_selection(path: str) -> list[str]:
+    """Module names from a file, one per line.
+
+    Blank lines and ``#`` comments are skipped, so the file a build script
+    generates can say what it is and where it came from.
+    """
+    with open(path, encoding="utf-8") as fileObj:
+        return [
+            line.strip()
+            for line in fileObj
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
 
 
 def _parse_namespace(spec: str, *, publish: bool = True) -> Namespace:
@@ -722,6 +829,16 @@ def _summarize(report: "CorpusReport") -> None:
     sys.stdout.write(
         f"{len(report.namespaces)} namespaces, {report.staged} modules staged\r\n"
     )
+
+    if report.selected:
+        asked = report.selected["requested"]
+        missed = report.selected["failed"]
+        sys.stdout.write(
+            f"published set: {len(asked)} asked for, "
+            f"{len(report.selected['published'])} carried"
+            + (f", {len(missed)} failed: {', '.join(missed)}" if missed else "")
+            + "\r\n"
+        )
 
     for destination, statuses in sorted(report.statuses.items()):
         counts = ", ".join(f"{k} {v}" for k, v in sorted(statuses.items()))

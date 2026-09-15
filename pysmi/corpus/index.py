@@ -460,8 +460,18 @@ def read_documents(
 
     Yields:
         ``(module, jsondoc, tier, rfc)`` per file, in sorted file order.
+
+        Nothing at all when the directory is not there. A compile that
+        produced no document never made one, and that is a corpus of no
+        modules rather than a misconfiguration: the narrower the build, the
+        likelier it is -- a preview of one module that does not compile
+        writes no JSON, and every projection of the tree used to end in a
+        traceback rather than in the report naming the module that failed.
     """
     wanted = None if modules is None else set(modules)
+
+    if not os.path.isdir(directory):
+        return
 
     for filename in sorted(os.listdir(directory)):
         if not filename.endswith(".json"):

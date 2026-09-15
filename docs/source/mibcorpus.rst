@@ -78,6 +78,75 @@ wins and source order breaks the tie, which is the rule
 :py:meth:`~pysmi.compiler.MibCompiler.compile` documents and applies.
 
 
+A corpus of a few modules
+-------------------------
+
+``"publish": false`` narrows a build by namespace. ``--publish-only`` narrows
+it by module, and everything outside the selection becomes a resolution source
+in exactly the same sense: read, available to resolve an import, and carried
+nowhere.
+
+.. code-block:: bash
+
+   mibcorpus --manifest=corpus.json --output-directory=preview \
+     --emit=site --emit=report \
+     --publish-only=CISCO-IPMCAST-MIB \
+     --publish-only=TEL2N-MIB
+
+This exists for a question a namespace cannot express: *what do the modules
+this change touched look like?* Neither obvious answer works. A build over the
+changed files alone fails on every import they make -- a vendor module that
+imports ``SNMPv2-TC`` needs ``SNMPv2-TC`` to be there. A build over the whole
+corpus answers in five minutes and buries the two pages that were asked about
+in seven thousand that were not. So the input set stays whole and the output
+set narrows.
+
+What makes the result worth looking at is that it is the same corpus:
+
+.. code-block:: text
+
+   module built narrowed  ==  module built whole
+
+byte for byte, in the ASN.1 and in the JSON, because it is the same compile
+over the same resolved sources. This is the property ``"publish": false``
+rests on as well, and ``tests/test_corpus_select.py`` holds the narrowed build
+to it.
+
+``--publish-only-from=FILE`` reads the same names from a file, one per line,
+blanks and ``#`` comments ignored, for a caller that computes the set rather
+than typing it.
+
+Two refusals, both because the quiet alternative is worse:
+
+* A selected module no publishing namespace holds is an error naming every one
+  that missed. A caller that named three modules wants three, and a preview
+  that silently publishes two has answered a question nobody asked. A
+  namespace holds what its files *declare*, not what they are named, so a file
+  too damaged to lex a module header out of holds no module and is reported
+  here rather than as an empty page.
+* An **empty** selection is an error rather than a whole corpus. Naming no
+  selection at all is a distribution build; computing one and computing it
+  empty is a request for a corpus of nothing, and the two must not collapse
+  into each other -- a pull request that changed no MIB would otherwise
+  publish all 5,510.
+
+``report.json`` records what was asked for under ``selected``:
+
+.. code-block:: json
+
+   {
+     "selected": {
+       "requested": ["CISCO-IPMCAST-MIB", "TEL2N-MIB"],
+       "published": ["TEL2N-MIB"],
+       "failed": ["CISCO-IPMCAST-MIB"]
+     }
+   }
+
+which is what tells a check that a module was asked for and did not compile,
+as against never having been asked for. ``--fail-on-errors`` turns that into a
+non-zero exit.
+
+
 What the corpus is
 ------------------
 
@@ -730,6 +799,36 @@ named so that nothing collides with a corpus path:
 
 Over pysnmp/mibs' 5,510 modules that is **7,346 pages and 220 MB in 18
 seconds**, on top of the build that produced the corpus.
+
+Where the repairs come from
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A module page says whether the text served here differs from the publisher's,
+and why. That panel is filled by ``--patch-directory``:
+
+.. code-block:: sh
+
+   mibcorpus --manifest=corpus.json --output-directory=output \
+       --emit=site --patch-directory=scripts/mib-patches
+
+The directory is read recursively and the file name before ``.patch`` is the
+module, wherever in the tree it sits -- a corpus large enough to file its
+repairs per vendor keeps ``scripts/mib-patches/cisco/CISCO-IPMCAST-MIB.patch``
+and this reads it. Two files naming one module is an error: two repairs for
+one module are two different opinions, and applying whichever the filesystem
+offered second is how a corpus comes to publish text nobody chose.
+
+Nothing is applied. The sources are read exactly as they stand; this is a
+*description* of a repair already in them, which is the arrangement
+:doc:`mibpatch` describes -- the checked-in text is the publisher's text plus
+the patch, so the patch is the record of the difference rather than a step in
+the build.
+
+Both halves of the header reach the page. The ``Defect:`` lines become links
+into whichever catalogue the patch cites -- :doc:`mib-defects` for pysmi's own
+identifiers, a downstream catalogue for a downstream corpus's -- and the note
+under them stays with the diff, because the catalogue says what the defect is
+and only the note says why *this* module has it.
 
 Why the generator is here
 ~~~~~~~~~~~~~~~~~~~~~~~~~
