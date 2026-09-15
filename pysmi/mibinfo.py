@@ -100,6 +100,79 @@ def module_names(text: str) -> list[str]:
     return found
 
 
+def _module_spans(text: str) -> "list[tuple[str, int, int]]":
+    """Where each module *text* declares begins and ends.
+
+    The boundaries come from the same lexer :py:func:`module_names` reads, so
+    a DESCRIPTION containing the word ``END`` is text rather than a boundary
+    and a header broken across lines is still a header.
+
+    Args:
+        text: MIB source.
+
+    Returns:
+        One ``(name, start, end)`` per module, in the order written, with
+        *end* just past the module's ``END``.
+    """
+    found: list[tuple[str, int, int]] = []
+    previous, start, name = None, None, ""
+
+    for token in _module_name_tokens(text):
+        if token.type == "DEFINITIONS" and previous is not None:
+            name, start = previous.value, previous.lexpos
+
+        if token.type == "END" and start is not None:
+            found.append((name, start, token.lexpos + len("END")))
+            start = None
+
+        previous = token if token.type in _NAME_TOKENS else None
+
+    return found
+
+
+def module_text(text: str, mibname: str) -> str:
+    """The text of one module, out of a file that may hold several.
+
+    A vendor publishing a product line as one file is an ordinary shape --
+    Extreme's ``extreme.mib`` holds thirty-four modules -- and a corpus keyed
+    by module name has nowhere to put such a file but under each of the names
+    in it. Storing the whole file under each is what that costs: in
+    pysnmp/mibs it turned 758 KB of ASN.1 into 26 MB of published tree, and
+    left every one of those modules recording a source it did not come from.
+
+    This is the text to publish for one of them. The file's leading comment is
+    kept, because that is where a vendor puts its copyright, and so is the
+    comment introducing the module, so the result is the input rearranged
+    rather than rewritten.
+
+    A file declaring one module, which is nearly all of them, is returned
+    unchanged and byte for byte.
+
+    Args:
+        text: MIB source, holding one module or several.
+        mibname: the module wanted.
+
+    Returns:
+        That module's text, or *text* unchanged when it holds one module, or
+        when *mibname* is not one of the modules it declares.
+    """
+    spans = _module_spans(text)
+
+    if len(spans) < 2:
+        return text
+
+    wanted = next((i for i, (name, _, _) in enumerate(spans) if name == mibname), None)
+
+    if wanted is None:
+        return text
+
+    _, start, end = spans[wanted]
+    preamble = text[: spans[0][1]]
+    lead = "" if wanted == 0 else text[spans[wanted - 1][2] : start].lstrip("\n")
+
+    return (preamble + lead + text[start:end]).rstrip() + "\n"
+
+
 def strip_comments(text: str) -> str:
     """Remove ASN.1 comments from *text*, leaving quoted strings intact.
 

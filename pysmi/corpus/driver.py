@@ -60,6 +60,7 @@ from pysmi.corpus.namespace import DEFAULT_TIER, TIERS, Namespace
 from pysmi.corpus.site import build_site
 from pysmi.corpus.site.crawl import Crawl
 from pysmi.corpus.site.theme import Theme
+from pysmi.mibinfo import module_text
 from pysmi.parser import SmiV1CompatParser
 from pysmi.reader.base import AbstractReader
 from pysmi.reader.localfile import FileReader
@@ -118,8 +119,10 @@ class CorpusOutputs:
     """
 
     #: The published ASN.1 tree: one file per module name, flat, named for
-    #: the module. Staged from what the compile resolved, so the ASN.1 beside
-    #: a compiled module is the text it was compiled from.
+    #: the module, holding that module and nothing else. Staged from what the
+    #: compile resolved, so the ASN.1 beside a compiled module is the text it
+    #: was compiled from -- the whole of it for a source declaring one module,
+    #: and that module's own text where the source declared several.
     asn1: str | None = None
     #: pysnmp modules without texts.
     notexts: str | None = None
@@ -1075,6 +1078,14 @@ class CorpusDriver:
         published ``.py`` and ``.json`` beside it were generated from,
         rather than whichever copy a parallel job happened to copy last.
 
+        A source declaring several modules is published as several files, one
+        per module, each holding its own text
+        (:py:func:`~pysmi.mibinfo.module_text`). The tree is keyed by module
+        name and nothing asks it for a file name, so the alternative is a copy
+        of the whole source under every name in it -- which for one 758 KB
+        vendor file of 34 modules was 26 MB of tree. A source declaring one
+        module, which is nearly all of them, is written byte for byte.
+
         Args:
             report: filled in with what was staged, what was shadowed, and
                 where each module came from
@@ -1107,7 +1118,12 @@ class CorpusDriver:
                 encoding="utf-8",
                 newline="",
             ) as fileObj:
-                fileObj.write(resolution.data)
+                # One module per file, even where the source held several.
+                # This tree is keyed by module name, so a file declaring
+                # thirty-four of them would otherwise be published thirty-four
+                # times over. A single-module source, which is nearly all of
+                # them, is written byte for byte.
+                fileObj.write(module_text(resolution.data, resolution.name))
 
             staged[resolution.name] = resolution.path
             provenance[resolution.name] = self._origin(resolution)
