@@ -241,11 +241,20 @@ def mib_files(source: Path) -> Iterator[Path]:
     if not source.is_dir():
         raise error.PySmiError(f"{source} is neither a file nor a directory")
 
+    root = source.resolve()
+
     for found in sorted(source.rglob("*")):
         if not found.is_file() or found.name.startswith("."):
             continue
 
         if _SKIP & set(found.relative_to(source).parts):
+            continue
+
+        # A symlink pointing out of the tree is not part of the directory the
+        # caller named, and what this reads it may go on to publish. Resolved
+        # on both sides, so a scan of a path that is itself reached through a
+        # link still sees its own files.
+        if not found.resolve().is_relative_to(root):
             continue
 
         if found.stat().st_size > _LARGEST:
@@ -343,6 +352,97 @@ def compare(
     )
 
 
+@dataclass
+class Candidate:
+    """One copy of one module, as a scan found it on disk."""
+
+    #: The module's declared name.
+    module: str
+    #: Its ASN.1 source.
+    text: str
+    #: The same source as bytes.
+    raw: bytes
+    #: The file it was read from, relative to the directory scanned.
+    file: str
+
+
+def candidates(
+    sources: "list[Path]", on_skip: "Callable[[Path, str], None] | None" = None
+) -> dict[str, list[Candidate]]:
+    """Every module declared under *sources*, mapped to the copies of it found.
+
+    A module can be found more than once in one collection -- a tree that
+    carries a vendor's releases side by side has a copy per release -- so the
+    copies are collected before any of them is compared with anything. Which
+    one is offered is then the same decision the compiler makes between two
+    sources, rather than whichever the directory walk reached first.
+
+    One file can also declare more than one module, which is why the key is the
+    module and not the file. Each declared module is a candidate in its own
+    right, carrying the whole file as its text, since the file is what would be
+    contributed.
+
+    Args:
+        sources: directories to scan, or files.
+        on_skip: called with a path and a reason for each file that is not a
+            MIB, when the caller wants to say so.
+
+    Returns:
+        Module name to its copies, in the order they were found.
+    """
+    found: dict[str, list[Candidate]] = {}
+
+    for source in sources:
+        for path in mib_files(source):
+            text, raw = read_source(path)
+            declared = module_names(text)
+            file = (
+                path.name
+                if path.is_file() and source.is_file()
+                else str(path.relative_to(source))
+            )
+
+            if not declared:
+                if on_skip:
+                    on_skip(path, "declares no MIB module")
+                continue
+
+            if len(declared) > 1 and on_skip:
+                on_skip(
+                    path,
+                    f"declares {len(declared)} modules: {', '.join(declared)}",
+                )
+
+            for mibname in declared:
+                found.setdefault(mibname, []).append(
+                    Candidate(mibname, text, raw, file)
+                )
+
+    return found
+
+
+def best_of(copies: list[Candidate]) -> Candidate:
+    """Which copy of one module a scan offers, when it found several.
+
+    :py:func:`~pysmi.compiler.rank_by_revision`, the same rule that decides
+    between two configured sources, with the order they were found in breaking
+    a tie. Offering the copy the walk happened to reach first would mean
+    offering an older revision than the collection holds.
+
+    Args:
+        copies: the copies found, in the order they were found.
+
+    Returns:
+        The one to offer.
+    """
+    if len(copies) == 1:
+        return copies[0]
+
+    order, _ = rank_by_revision([revision_of(x.text) for x in copies])
+
+    return copies[order[0]]
+
+
 def scan(
     sources: "list[Path]",
     corpus: AbstractReader,
@@ -366,59 +466,36 @@ def scan(
             MIB, when the caller wants to say so.
 
     Returns:
-        One finding per module, in module name order. A file holding several
-        modules is offered under the first name it declares, since the file is
-        what would be contributed.
+        One finding per module, in module name order. Where one file declares
+        several modules it can appear in several findings, because each of them
+        is a module this distribution either has or has not, and the file is
+        what answers for all of them.
     """
-    found: dict[str, Finding] = {}
+    found = []
 
-    for source in sources:
-        for path in mib_files(source):
-            text, raw = read_source(path)
-            declared = module_names(text)
-            file = (
-                path.name
-                if path.is_file() and source.is_file()
-                else str(path.relative_to(source))
-            )
+    for mibname, copies in candidates(sources, on_skip).items():
+        if only and mibname not in only:
+            continue
 
-            if not declared:
-                if on_skip:
-                    on_skip(path, "declares no MIB module")
-                continue
+        best = best_of(copies)
+        finding = compare(mibname, best.text, best.raw, best.file, corpus)
 
-            if len(declared) > 1 and on_skip:
-                on_skip(
-                    path,
-                    f"declares {len(declared)} modules and is offered as {declared[0]}",
-                )
+        if finding is None:
+            continue
 
-            mibname = declared[0]
+        if finding.verdict == NOT_CARRIED and skip_new:
+            continue
 
-            if only and mibname not in only:
-                continue
+        if (
+            finding.verdict != NOT_CARRIED
+            and finding.precedence != PRECEDENCE_NEWEST_REVISION
+            and not include_differing
+        ):
+            continue
 
-            if mibname in found:
-                continue
+        found.append(finding)
 
-            finding = compare(mibname, text, raw, file, corpus)
-
-            if finding is None:
-                continue
-
-            if finding.verdict == NOT_CARRIED and skip_new:
-                continue
-
-            if (
-                finding.verdict != NOT_CARRIED
-                and finding.precedence != PRECEDENCE_NEWEST_REVISION
-                and not include_differing
-            ):
-                continue
-
-            found[mibname] = finding
-
-    return [found[x] for x in sorted(found)]
+    return sorted(found, key=lambda x: x.module)
 
 
 def title_for(findings: list[Finding]) -> str:
@@ -487,6 +564,8 @@ def render(
     archive: str,
     gist: str = "",
     sources: bool = True,
+    detail: bool = True,
+    data: bool = True,
 ) -> str:
     """The issue, in Markdown.
 
@@ -499,6 +578,11 @@ def render(
         gist: URL the MIB sources were uploaded to, when they were.
         sources: whether the body accounts for the ASN.1 at all. A pull request
             carries it in the diff, where it can be reviewed line by line.
+        detail: whether the body carries a section per module. An offer of a
+            thousand modules does not fit in an issue with one, and the table
+            above says the same thing in a line each.
+        data: whether the body carries the findings as JSON. It is the largest
+            part of a long offer, and the same document is in the archive.
 
     Returns:
         The body.
@@ -573,7 +657,7 @@ def render(
             "",
         ]
 
-    for one in findings:
+    for one in findings if detail else ():
         out += [
             f"#### {one.module}",
             "",
@@ -605,9 +689,18 @@ def render(
     out += [
         "#### Report data",
         "",
-        "```json",
-        json.dumps(payload(findings, inline, archive), indent=2),
-        "```",
+        *(
+            [
+                "```json",
+                json.dumps(payload(findings, inline, archive), indent=2),
+                "```",
+            ]
+            if data
+            else [
+                f"Too long for this body. `findings.json` in `{archive}` carries "
+                "the same document: every module, both revisions and both digests.",
+            ]
+        ),
         "",
         "<sub>Written by `mibcontribute`. Revisions and digests are pysmi's, read",
         "from the files themselves.</sub>",
@@ -645,6 +738,27 @@ def choose_inline(findings: list[Finding], overhead: int) -> "set[str]":
     return inline
 
 
+def inline_choice(findings: list[Finding], archive: str, gist: str = "") -> "set[str]":
+    """Which modules a composed body would carry in full.
+
+    The same answer :py:func:`compose` acts on, so that a caller can find out
+    what an issue will leave out before it writes one -- which is what decides
+    whether the sources have to reach the issue some other way.
+
+    Args:
+        findings: the modules the issue offers.
+        archive: the file name the archive was written under.
+        gist: URL the MIB sources were uploaded to, when they were.
+
+    Returns:
+        The module names that fit.
+    """
+    empty: set[str] = set()
+    overhead = len(render(findings, inline=empty, archive=archive, gist=gist))
+
+    return choose_inline(findings, overhead)
+
+
 def compose(
     findings: list[Finding],
     archive: str,
@@ -652,7 +766,13 @@ def compose(
     *,
     sources: bool = True,
 ) -> str:
-    """The issue body, with as many modules inlined as it holds.
+    """The issue body, with as much of the offer in it as GitHub will take.
+
+    Four renderings, each smaller than the last: every module's ASN.1 that
+    fits, then none of it, then no section per module, then the table alone
+    with the findings left in the archive. An offer that does not fit even
+    then is refused rather than submitted, since `gh issue create` would
+    refuse it too, and says which flag splits it up.
 
     Args:
         findings: the modules the issue offers.
@@ -662,20 +782,48 @@ def compose(
 
     Returns:
         The body, never longer than :py:data:`BODY_LIMIT`.
+
+    Raises:
+        PySmiError: the offer does not fit in an issue at all.
     """
     empty: set[str] = set()
+    attempts = []
 
-    if not sources:
-        return render(findings, inline=empty, archive=archive, gist=gist, sources=False)
+    if sources:
+        attempts.append(
+            {
+                "inline": inline_choice(findings, archive, gist),
+                "detail": True,
+                "data": True,
+            }
+        )
 
-    overhead = len(render(findings, inline=empty, archive=archive, gist=gist))
-    inline = choose_inline(findings, overhead)
-    body = render(findings, inline=inline, archive=archive, gist=gist)
+    attempts += [
+        {"inline": empty, "detail": True, "data": True},
+        {"inline": empty, "detail": False, "data": True},
+        {"inline": empty, "detail": False, "data": False},
+    ]
 
-    if len(body) <= BODY_LIMIT:
-        return body
+    for attempt in attempts:
+        body = render(
+            findings,
+            inline=attempt["inline"],  # type: ignore[arg-type]
+            archive=archive,
+            gist=gist,
+            sources=sources,
+            detail=bool(attempt["detail"]),
+            data=bool(attempt.get("data", True)),
+        )
 
-    return render(findings, inline=empty, archive=archive, gist=gist)
+        if len(body) <= BODY_LIMIT:
+            return body
+
+    raise error.PySmiError(
+        f"{len(findings)} modules do not fit in one issue body, which GitHub "
+        f"holds to {BODY_LIMIT:,} characters, even with the sources left out. "
+        "Offer them as separate issues with --per-module, or narrow the scan "
+        "with --module."
+    )
 
 
 def write_bundle(directory: Path, slug: str, findings: list[Finding]) -> Path:

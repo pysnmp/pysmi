@@ -145,8 +145,25 @@ def _submit_gh(
     *,
     gist: bool,
 ) -> str:
-    """File the issue with the GitHub CLI, under the account it is signed in as."""
+    """File the issue with the GitHub CLI, under the account it is signed in as.
+
+    Where the body cannot hold every module's ASN.1, the sources go to a gist
+    whether or not one was asked for. A browser can attach the archive to the
+    issue it is posting and the API cannot, so the alternative is an issue that
+    names an attachment nobody attached.
+    """
     contribute.run_gh(["auth", "status"])
+    left_out = {x.module for x in findings} - contribute.inline_choice(
+        findings, f"{directory.name}.zip"
+    )
+
+    if left_out and not gist:
+        sys.stderr.write(
+            f"{len(left_out)} module(s) are too long for an issue body, and "
+            "`gh` cannot attach the archive. Uploading the sources as a secret "
+            "gist instead.\r\n"
+        )
+        gist = True
 
     if gist:
         url = contribute.run_gh(

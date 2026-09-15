@@ -27,7 +27,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from pysmi import contribute
+from pysmi import contribute, error
 from pysmi.reader import FileReader
 
 
@@ -149,6 +149,101 @@ class ScanTestCase(unittest.TestCase):
         self.assertEqual(["B-MIB"], [x.module for x in self.scan(only=("B-MIB",))])
 
 
+class SeveralCopiesTestCase(unittest.TestCase):
+    """A collection holding one module more than once, or several in one file."""
+
+    def setUp(self):
+        """A directory to offer and a corpus to offer it to."""
+        self.directory = tempfile.mkdtemp()
+        self.offered = Path(self.directory) / "mine"
+        self.corpus = Path(self.directory) / "corpus"
+        (self.offered / "old").mkdir(parents=True)
+        (self.offered / "new").mkdir(parents=True)
+        self.corpus.mkdir()
+
+    def tearDown(self):
+        """Take the directories away again."""
+        shutil.rmtree(self.directory, ignore_errors=True)
+
+    def scan(self, **options):
+        """Scan the offered directory against the corpus."""
+        return contribute.scan([self.offered], FileReader(str(self.corpus)), **options)
+
+    def test_the_newest_copy_in_the_tree_is_the_one_offered(self):
+        """A tree with a copy per release must not offer whichever sorts first."""
+        (self.offered / "old" / "A-MIB").write_text(module("A-MIB", "201103040000Z"))
+        (self.offered / "new" / "A-MIB").write_text(module("A-MIB", "202106020000Z"))
+
+        found = self.scan()
+
+        self.assertEqual(["A-MIB"], [x.module for x in found])
+        self.assertEqual("202106020000Z", found[0].offered.revision)
+        self.assertEqual(f"new{os.sep}A-MIB", found[0].offered.file)
+
+    def test_an_older_copy_beside_a_newer_one_does_not_hide_it(self):
+        """The corpus comparison must see the best copy, not the first."""
+        (self.corpus / "A-MIB").write_text(module("A-MIB", "201506010000Z"))
+        (self.offered / "old" / "A-MIB").write_text(module("A-MIB", "201103040000Z"))
+        (self.offered / "new" / "A-MIB").write_text(module("A-MIB", "202106020000Z"))
+
+        found = self.scan()
+
+        self.assertEqual([contribute.NEWER], [x.verdict for x in found])
+        self.assertEqual("202106020000Z", found[0].offered.revision)
+
+    def test_every_module_in_a_file_is_considered(self):
+        """A second module in a file is a module this distribution may lack."""
+        both = module("FIRST-MIB", "202106020000Z") + module(
+            "SECOND-MIB", "202106020000Z"
+        )
+        (self.offered / "vendor.my").write_text(both)
+        (self.corpus / "FIRST-MIB").write_text(both)
+
+        found = self.scan()
+
+        self.assertEqual(["SECOND-MIB"], [x.module for x in found])
+        self.assertEqual(contribute.NOT_CARRIED, found[0].verdict)
+        self.assertEqual(both, found[0].text)
+
+    def test_only_matches_any_module_the_file_declares(self):
+        """--module names a module, and a module is not always first in its file."""
+        both = module("FIRST-MIB", "202106020000Z") + module(
+            "SECOND-MIB", "202106020000Z"
+        )
+        (self.offered / "vendor.my").write_text(both)
+
+        self.assertEqual(
+            ["SECOND-MIB"],
+            [x.module for x in self.scan(only=("SECOND-MIB",))],
+        )
+
+    def test_a_symlink_out_of_the_tree_is_not_scanned(self):
+        """What a scan reads it may publish, so it reads what it was pointed at."""
+        outside = Path(self.directory) / "elsewhere"
+        outside.mkdir()
+        (outside / "OUTSIDE-MIB").write_text(module("OUTSIDE-MIB", "202106020000Z"))
+
+        try:
+            (self.offered / "OUTSIDE-MIB").symlink_to(outside / "OUTSIDE-MIB")
+        except (OSError, NotImplementedError):
+            self.skipTest("this platform does not make symlinks")
+
+        (self.offered / "A-MIB").write_text(module("A-MIB", "202106020000Z"))
+
+        self.assertEqual(["A-MIB"], [x.module for x in self.scan()])
+
+    def test_a_symlink_within_the_tree_is_scanned(self):
+        """A collection that links its own files together is still one directory."""
+        (self.offered / "old" / "A-MIB").write_text(module("A-MIB", "202106020000Z"))
+
+        try:
+            (self.offered / "new" / "A-MIB").symlink_to(self.offered / "old" / "A-MIB")
+        except (OSError, NotImplementedError):
+            self.skipTest("this platform does not make symlinks")
+
+        self.assertEqual(["A-MIB"], [x.module for x in self.scan()])
+
+
 class IssueTestCase(unittest.TestCase):
     """What the issue says, and what it must not say."""
 
@@ -236,6 +331,64 @@ class IssueTestCase(unittest.TestCase):
         self.assertTrue(url.startswith("https://github.com/pysnmp/mibs/issues/new?"))
         self.assertIn("A-MIB", url)
         self.assertIn("body+text", url)
+
+    def test_an_offer_that_does_not_fit_at_all_is_refused(self):
+        """`gh issue create` refuses a body over the limit, so this refuses first."""
+        many = [
+            contribute.Finding(
+                module=f"BIG-{x:05}-MIB",
+                verdict=contribute.NOT_CARRIED,
+                precedence="",
+                offered=contribute.Copy(
+                    "mine", f"BIG-{x:05}-MIB", "202402010000Z", "sha256:" + "c" * 64, 40
+                ),
+                published=None,
+                text="-- text\n",
+                raw=b"-- text\n",
+            )
+            for x in range(3000)
+        ]
+
+        with self.assertRaises(error.PySmiError) as refused:
+            contribute.compose(many, "contribution.zip")
+
+        self.assertIn("--per-module", str(refused.exception))
+
+    def test_a_long_offer_drops_the_per_module_sections_first(self):
+        """Between everything and nothing there is the table and the data."""
+        many = [
+            contribute.Finding(
+                module=f"MID-{x:04}-MIB",
+                verdict=contribute.NOT_CARRIED,
+                precedence="",
+                offered=contribute.Copy(
+                    "mine", f"MID-{x:04}-MIB", "202402010000Z", "sha256:d", 40
+                ),
+                published=None,
+                text="-- text\n",
+                raw=b"-- text\n",
+            )
+            for x in range(300)
+        ]
+
+        body = contribute.compose(many, "contribution.zip")
+
+        self.assertLessEqual(len(body), contribute.BODY_LIMIT)
+        self.assertIn("| `MID-0000-MIB` |", body)
+        self.assertNotIn("#### MID-0000-MIB", body)
+
+    def test_what_the_body_leaves_out_can_be_asked_for_in_advance(self):
+        """A caller that cannot attach an archive has to know before it submits."""
+        self.better.text = "-- " + "x" * contribute.BODY_LIMIT
+
+        self.assertEqual(
+            set(),
+            contribute.inline_choice([self.better], "contribution.zip"),
+        )
+        self.assertEqual(
+            {"NEW-MIB"},
+            contribute.inline_choice([self.new], "contribution.zip"),
+        )
 
     def test_the_title_says_which_kind(self):
         """A reader scanning the tracker should not have to open the issue."""
