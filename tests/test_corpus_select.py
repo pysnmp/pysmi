@@ -312,6 +312,45 @@ class SelectionReportTestCase(SelectionTestCase):
         self.assertIn("DELTA-MIB", str(caught.exception))
 
 
+class NothingCompiledTestCase(SelectionTestCase):
+    """A build whose whole selection failed still reports.
+
+    The narrower the build, the likelier this is: a preview of the one module
+    a pull request added, where that module does not compile, produces no
+    jsondoc at all. Every artifact is a projection of that tree, and each of
+    them used to end in a traceback out of ``os.listdir`` -- so the one case
+    the check exists to catch was the one case it could not report.
+    """
+
+    def setUp(self):
+        super().setUp()
+
+        self.write("delta", "BROKEN-MIB", BROKEN)
+
+    def testTheBuildFinishesAndNamesTheFailure(self):
+        report = CorpusDriver(
+            self.namespaces("alpha", "delta"),
+            self.outputs(),
+            select=["BROKEN-MIB"],
+        ).run()
+
+        self.assertEqual(0, report.modules)
+        self.assertEqual(["BROKEN-MIB"], report.selected["failed"])
+        self.assertEqual([], report.selected["published"])
+        self.assertIn("BROKEN-MIB", report.failed["json"])
+
+    def testTheSiteIsEmptyRatherThanATraceback(self):
+        out = os.path.join(self.root, "site")
+
+        CorpusDriver(
+            self.namespaces("alpha", "delta"),
+            self.outputs("site", asn1=None, notexts=None, texts=None, site=out),
+            select=["BROKEN-MIB"],
+        ).run()
+
+        self.assertFalse(os.path.exists(os.path.join(out, "mib", "BROKEN-MIB")))
+
+
 class SelectedSiteTestCase(SelectionTestCase):
     """The browse site of a narrowed build browses the narrowed set."""
 
