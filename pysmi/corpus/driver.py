@@ -1079,8 +1079,8 @@ class CorpusDriver:
         rather than whichever copy a parallel job happened to copy last.
 
         A source declaring several modules is published as several files, one
-        per module, each holding its own text
-        (:py:func:`~pysmi.mibinfo.module_text`). The tree is keyed by module
+        per module, each holding its own text, which is what
+        ``pysmi.mibinfo.module_text()`` takes out of it. The tree is keyed by module
         name and nothing asks it for a file name, so the alternative is a copy
         of the whole source under every name in it -- which for one 758 KB
         vendor file of 34 modules was 26 MB of tree. A source declaring one
