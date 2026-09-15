@@ -3,6 +3,16 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.1.0](https://github.com/pysnmp/pysmi/compare/v5.0.0...v5.1.0) (2026-09-15)
+
+### Features
+
+* **mibcorpus:** build a corpus of the modules a change touched ([26d1251](https://github.com/pysnmp/pysmi/commit/26d12516efbfb241ba849fe947ed3cdcd5531c2c)), closes [#279](https://github.com/pysnmp/pysmi/issues/279)
+
+### Bug Fixes
+
+* **corpus:** report the build whose every module failed ([2978db7](https://github.com/pysnmp/pysmi/commit/2978db7b82ab9231738dfbb6dd9d87ff3be5147a))
+
 ## [5.0.0](https://github.com/pysnmp/pysmi/compare/v4.1.1...v5.0.0) (2026-09-14)
 
 ### ⚠ BREAKING CHANGES
