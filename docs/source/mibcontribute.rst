@@ -53,7 +53,7 @@ Four outcomes, of which two are worth sending:
      - no. There is nothing to offer
    * - your copy is newer
      - **yes**, as a better copy
-   * - the distribution has no copy
+   * - no source has a copy
      - **yes**, as a module it does not carry
 
 A copy that wins on source order rather than on revision is not reported as
@@ -69,9 +69,27 @@ left in the directory -- is passed over and named in the log.
 What it compares against
 ------------------------
 
-``--corpus`` takes a directory, a ``.zip``, or a URL with ``@mib@`` where the
-module name goes. It defaults to the published pysnmp distribution, which
-costs one request per module:
+Left alone, three sources in order:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - source
+     - why it is there
+   * - the modules PySMI bundles
+     - the standard MIBs the distribution publishes, each pinned to the RFC or
+       IANA registry that publishes it. Local, so no request and no network
+   * - ``data.mibsdepot.com``
+     - the published corpus, one request per module
+   * - ``pysnmp.github.io/mibs``
+     - the same corpus again, as an availability fallback
+
+The first source holding a module answers for it, which is the rule a compile
+follows. A module none of them has is a module the distribution does not carry.
+
+``--corpus`` names a different distribution: a directory, a ``.zip``, or a URL
+with ``@mib@`` where the module name goes.
 
 .. code-block:: bash
 
@@ -80,6 +98,14 @@ costs one request per module:
 
 A scan of a large collection should use a local copy. A release archive
 unpacked, or an OCI image mounted, is a directory like any other.
+
+What ``--corpus`` may not be is anything that is not a distribution, and that
+is checked before a single module is read. A path that is not there, a
+directory holding no files, a file that is not an archive, and a URL with no
+``@mib@`` in it are each refused by name. The failure this prevents is quiet:
+every lookup against such a source misses, every module reads as one the
+distribution does not carry, and the result is an offer of somebody's whole
+collection arrived at without a single error.
 
 Filing it
 ---------
