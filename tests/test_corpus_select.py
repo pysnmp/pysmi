@@ -209,6 +209,7 @@ class SameCorpusTestCase(SelectionTestCase):
 
         whole = self.tree("whole")
         narrow = self.tree("narrow")
+        compared = 0
 
         for path, data in narrow.items():
             if not path.startswith(("asn1/", "json/", "notexts/", "texts/")):
@@ -216,6 +217,12 @@ class SameCorpusTestCase(SelectionTestCase):
 
             self.assertIn(path, whole)
             self.assertEqual(whole[path], data, path)
+            compared += 1
+
+        # The prefixes above are a filter, and a filter that matches nothing
+        # leaves this test passing while asserting nothing at all -- which is
+        # what it did on Windows, where the tree was keyed with backslashes.
+        self.assertGreater(compared, 0)
 
 
 class SelectionIsCheckedTestCase(SelectionTestCase):

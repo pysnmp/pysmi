@@ -190,6 +190,14 @@ class CorpusTestCase(unittest.TestCase):
         ``report.json`` is left out: it is the build's log, and it records
         how long each phase took. Every artifact the corpus publishes is
         here.
+
+        Keyed with "/" whatever the platform separates paths with, because a
+        corpus path is one the published tree carries rather than one this
+        filesystem spells. A test naming ``asn1/IF-MIB`` reads the same entry
+        on Windows, where ``os.path.relpath`` would otherwise have spelled it
+        ``asn1\\IF-MIB`` -- which is a KeyError for a test that indexes and,
+        worse, silently no matching files at all for one that filters on a
+        prefix.
         """
         base = os.path.join(self.root, where)
         found = {}
@@ -202,7 +210,8 @@ class CorpusTestCase(unittest.TestCase):
                 path = os.path.join(root, name)
 
                 with open(path, "rb") as fileObj:
-                    found[os.path.relpath(path, base)] = fileObj.read()
+                    relative = os.path.relpath(path, base)
+                    found[relative.replace(os.sep, "/")] = fileObj.read()
 
         return found
 
