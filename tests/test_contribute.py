@@ -28,7 +28,11 @@ import zipfile
 from pathlib import Path
 
 from pysmi import contribute, error
-from pysmi.reader import FileReader
+from pysmi.reader import (
+    DEFAULT_MIB_SOURCES,
+    FileReader,
+    PackageReader,
+)
 
 
 def module(name, revision, description="a module"):
@@ -70,7 +74,9 @@ class ScanTestCase(unittest.TestCase):
 
     def scan(self, **options):
         """Scan the offered directory against the corpus."""
-        return contribute.scan([self.offered], FileReader(str(self.corpus)), **options)
+        return contribute.scan(
+            [self.offered], [FileReader(str(self.corpus))], **options
+        )
 
     def test_a_newer_copy_is_offered(self):
         """The finding the tool exists for: the corpus is behind."""
@@ -167,7 +173,9 @@ class SeveralCopiesTestCase(unittest.TestCase):
 
     def scan(self, **options):
         """Scan the offered directory against the corpus."""
-        return contribute.scan([self.offered], FileReader(str(self.corpus)), **options)
+        return contribute.scan(
+            [self.offered], [FileReader(str(self.corpus))], **options
+        )
 
     def test_the_newest_copy_in_the_tree_is_the_one_offered(self):
         """A tree with a copy per release must not offer whichever sorts first."""
@@ -245,6 +253,105 @@ class SeveralCopiesTestCase(unittest.TestCase):
             self.skipTest("this platform does not make symlinks")
 
         self.assertEqual(["A-MIB"], [x.module for x in self.scan()])
+
+
+class CorpusTestCase(unittest.TestCase):
+    """What a module is compared against, and what is refused as a comparison."""
+
+    def setUp(self):
+        """A directory to name as a corpus."""
+        self.directory = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Take it away again."""
+        shutil.rmtree(self.directory, ignore_errors=True)
+
+    def test_the_default_is_the_bundle_then_the_published_sources(self):
+        """No --corpus reads pysmi's own modules first, then the remote tree."""
+        readers = contribute.default_corpus()
+
+        self.assertEqual(len(DEFAULT_MIB_SOURCES) + 1, len(readers))
+        self.assertIsInstance(readers[0], PackageReader)
+        self.assertIn(contribute.BUNDLED_PACKAGE, str(readers[0]))
+
+        for source, reader in zip(DEFAULT_MIB_SOURCES, readers[1:]):
+            self.assertIn(source, str(reader))
+
+    def test_the_bundled_modules_answer_without_a_request(self):
+        """A standard module is settled locally, so a scan of one needs no network."""
+        found = contribute.published_copy(
+            [contribute.default_corpus()[0]], "SNMPv2-MIB"
+        )
+
+        self.assertIsNotNone(found)
+        self.assertIn("SNMPv2-MIB DEFINITIONS", found[0])
+
+    def test_the_sources_are_tried_in_order(self):
+        """The first source holding a module answers for it, as a compile would."""
+        first = Path(self.directory) / "first"
+        second = Path(self.directory) / "second"
+        first.mkdir()
+        second.mkdir()
+        (first / "A-MIB").write_text(module("A-MIB", "202106020000Z"), newline="")
+        (second / "A-MIB").write_text(module("A-MIB", "201103040000Z"), newline="")
+        (second / "B-MIB").write_text(module("B-MIB", "201103040000Z"), newline="")
+        corpus = [FileReader(str(first)), FileReader(str(second))]
+
+        self.assertIn("202106020000Z", contribute.published_copy(corpus, "A-MIB")[0])
+        self.assertIn("201103040000Z", contribute.published_copy(corpus, "B-MIB")[0])
+        self.assertIsNone(contribute.published_copy(corpus, "C-MIB"))
+
+    def test_a_corpus_that_is_not_there_is_refused(self):
+        """Every lookup would miss, and a whole collection would read as missing."""
+        with self.assertRaises(error.PySmiError) as refused:
+            contribute.require_corpus(str(Path(self.directory) / "typo"))
+
+        self.assertIn("is not there", str(refused.exception))
+
+    def test_an_empty_corpus_directory_is_refused(self):
+        """A directory holding nothing is not a distribution carrying nothing."""
+        empty = Path(self.directory) / "empty"
+        empty.mkdir()
+
+        with self.assertRaises(error.PySmiError) as refused:
+            contribute.require_corpus(str(empty))
+
+        self.assertIn("holds no files", str(refused.exception))
+
+    def test_a_remote_corpus_without_the_placeholder_is_refused(self):
+        """Without @mib@ every module is looked up at one URL."""
+        with self.assertRaises(error.PySmiError) as refused:
+            contribute.require_corpus("https://data.mibsdepot.com/asn1/")
+
+        self.assertIn("@mib@", str(refused.exception))
+
+    def test_a_file_that_is_not_an_archive_is_refused(self):
+        """--corpus takes the tree a distribution publishes, not one of its files."""
+        loose = Path(self.directory) / "IF-MIB"
+        loose.write_text(module("IF-MIB", "202106020000Z"), newline="")
+
+        with self.assertRaises(error.PySmiError) as refused:
+            contribute.require_corpus(str(loose))
+
+        self.assertIn("not a .zip", str(refused.exception))
+
+    def test_a_corpus_that_is_a_distribution_is_accepted(self):
+        """The directory and archive cases a caller actually uses."""
+        tree = Path(self.directory) / "asn1"
+        tree.mkdir()
+        (tree / "A-MIB").write_text(module("A-MIB", "202106020000Z"), newline="")
+
+        self.assertEqual(1, len(contribute.require_corpus(str(tree))))
+
+        archive = Path(self.directory) / "mibs-asn1.zip"
+
+        with zipfile.ZipFile(archive, "w") as bundle:
+            bundle.writestr("A-MIB", module("A-MIB", "202106020000Z"))
+
+        self.assertEqual(1, len(contribute.require_corpus(str(archive))))
+        self.assertEqual(
+            1, len(contribute.require_corpus("https://example.net/asn1/@mib@"))
+        )
 
 
 class IssueTestCase(unittest.TestCase):

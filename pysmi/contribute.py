@@ -52,11 +52,15 @@ from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi.compiler import PRECEDENCE_NEWEST_REVISION, rank_by_revision, revision_of
 from pysmi.mibinfo import module_names, source_digest
+from pysmi.reader import DEFAULT_MIB_SOURCES, PackageReader, getReadersFromUrls
 from pysmi.reader.base import AbstractReader
+from pysmi.reader.httpclient import HttpReader
 
-#: Where a distribution's published ASN.1 lives when nothing says otherwise.
-#: pysmi substitutes ``@mib@`` with the module name it is asking for.
-PUBLISHED_CORPUS: Final = "https://pysnmp.github.io/mibs/asn1/@mib@"
+#: The package whose MIB text pysmi ships, and the copy of a standard module a
+#: compile here would use. Read first when nothing names a corpus: the
+#: distribution publishes these same modules, and asking the local copy costs
+#: no request and works with the network unplugged.
+BUNDLED_PACKAGE: Final = "pysmi.mibs.asn1"
 
 #: The repository an offer is made to when nothing says otherwise.
 PUBLISHED_REPOSITORY: Final = "pysnmp/mibs"
@@ -263,23 +267,115 @@ def mib_files(source: Path) -> Iterator[Path]:
         yield found
 
 
-def published_copy(corpus: AbstractReader, mibname: str) -> "tuple[str, str] | None":
-    """What the distribution publishes for *mibname*.
+def default_corpus() -> "list[AbstractReader]":
+    """The distribution to compare against when the caller names none.
+
+    pysmi's own bundled modules first. They are the standard MIBs the
+    distribution publishes, each pinned to the RFC or IANA registry that
+    publishes it, and reading them costs no request and no network. Then the
+    remote sources :py:mod:`pysmi.reader` names by default, which
+    :py:mod:`~pysmi.scripts.mibdump` also reads when no source is given: the
+    depot, and the published tree behind it.
+
+    Returns:
+        Readers, in the order they are tried.
+    """
+    return [
+        PackageReader(BUNDLED_PACKAGE),
+        *getReadersFromUrls(*DEFAULT_MIB_SOURCES),
+    ]
+
+
+def require_corpus(source: str) -> "list[AbstractReader]":
+    """Readers over the distribution *source* names, or the reason there are none.
+
+    A ``--corpus`` that is not a distribution is the failure worth catching
+    before anything is scanned. Every lookup against it misses, every module
+    reads as one the distribution does not carry, and the result is an offer of
+    somebody's whole collection: the wrong answer, arrived at without a single
+    error. A misspelt path is the ordinary way in.
+
+    What can be established without fetching anything is: a local path exists
+    and holds files, an archive opens, and an HTTP source says where the module
+    name goes. A remote tree that answers 404 to everything cannot be told from
+    one that simply lacks the module, so that is left to the lookups.
 
     Args:
-        corpus: a reader over the published ASN.1.
+        source: a directory, a ``.zip``, or a URL with ``@mib@`` in it.
+
+    Returns:
+        Readers over it.
+
+    Raises:
+        PySmiError: it is not a distribution this can read.
+    """
+    parsed = urllib.parse.urlparse(source)
+
+    if parsed.scheme in ("http", "https"):
+        if HttpReader.MIB_MAGIC not in source:
+            raise error.PySmiError(
+                f"{source} has no {HttpReader.MIB_MAGIC} in it, so every module "
+                "would be looked up at the same URL. A remote corpus is named "
+                f"like https://data.mibsdepot.com/asn1/{HttpReader.MIB_MAGIC}."
+            )
+
+        return getReadersFromUrls(source)
+
+    path = Path(source)
+
+    if not path.exists():
+        raise error.PySmiError(
+            f"{path} is not there, so there is nothing to compare against. "
+            "--corpus takes a directory of MIB modules, a .zip of one, or a "
+            "URL; leave it out to compare against the published distribution."
+        )
+
+    if path.is_dir() and not any(x.is_file() for x in path.iterdir()):
+        raise error.PySmiError(
+            f"{path} holds no files, so every module would read as one the "
+            "distribution does not carry."
+        )
+
+    if path.is_file():
+        if not zipfile.is_zipfile(path):
+            raise error.PySmiError(
+                f"{path} is a file rather than a directory, and not a .zip "
+                "either. --corpus takes the tree a distribution publishes."
+            )
+
+        with zipfile.ZipFile(path) as archive:
+            if not archive.namelist():
+                raise error.PySmiError(f"{path} is an empty archive.")
+
+    return getReadersFromUrls(source)
+
+
+def published_copy(
+    corpus: "list[AbstractReader]", mibname: str
+) -> "tuple[str, str] | None":
+    """What the distribution publishes for *mibname*.
+
+    The sources are tried in order and the first that has the module answers,
+    which is the rule a compile follows. A module none of them has is one the
+    distribution does not carry.
+
+    Args:
+        corpus: readers over the published ASN.1, in precedence order.
         mibname: the module to ask for.
 
     Returns:
         The published text and the file name it came under, or ``None`` where
-        the distribution does not carry the module.
+        no source has the module.
     """
-    try:
-        info, text = corpus.get_data(mibname)
-    except error.PySmiReaderFileNotFoundError:
-        return None
+    for reader in corpus:
+        try:
+            info, text = reader.get_data(mibname)
+        except error.PySmiError:
+            continue
 
-    return text, info.file or mibname
+        return text, info.file or mibname
+
+    return None
 
 
 def compare(
@@ -287,7 +383,7 @@ def compare(
     text: str,
     raw: bytes,
     file: str,
-    corpus: AbstractReader,
+    corpus: "list[AbstractReader]",
     *,
     source: str = "the scanned set",
 ) -> "Finding | None":
@@ -303,7 +399,7 @@ def compare(
         text: its ASN.1 source.
         raw: the same source as bytes.
         file: the file it was read from, relative to the scanned directory.
-        corpus: a reader over the published ASN.1.
+        corpus: readers over the published ASN.1, in precedence order.
         source: what to call where the offered copy came from.
 
     Returns:
@@ -445,7 +541,7 @@ def best_of(copies: list[Candidate]) -> Candidate:
 
 def scan(
     sources: "list[Path]",
-    corpus: AbstractReader,
+    corpus: "list[AbstractReader]",
     *,
     include_differing: bool = False,
     skip_new: bool = False,
@@ -456,8 +552,8 @@ def scan(
 
     Args:
         sources: directories to scan, or files.
-        corpus: a reader over the published ASN.1, which is what each module is
-            compared against.
+        corpus: readers over the published ASN.1, in precedence order, which
+            is what each module is compared against.
         include_differing: also report a module the offered copy won on source
             order rather than on revision.
         skip_new: leave out the modules the distribution does not carry.

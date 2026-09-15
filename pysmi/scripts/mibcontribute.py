@@ -40,7 +40,7 @@ from pathlib import Path
 from typing import Final
 
 from pysmi import contribute, debug, error
-from pysmi.reader import getReadersFromUrls
+from pysmi.reader import DEFAULT_MIB_SOURCES
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +237,7 @@ def _submit_url(
 def start() -> None:
     """Scan the directories named by the command line and offer what is in them."""
     sourceDirectories: list[str] = []
-    corpus = contribute.PUBLISHED_CORPUS
+    corpus = ""
     repository = contribute.PUBLISHED_REPOSITORY
     outputDirectory = "mib-contribution"
     modules: list[str] = []
@@ -279,9 +279,13 @@ def start() -> None:
                 gives itself is what it is offered as, not the name of the
                 file it was found in.
         --corpus - what to compare against: a directory, a .zip, or a URL
-                with "@mib@" where the module name goes. Defaults to
-                "{}", which is one request per
-                module; a local copy is what a large scan should use.
+                with "@mib@" where the module name goes. It has to be a
+                distribution: a path that is not there, or holds nothing, is
+                refused rather than read as a distribution carrying no
+                modules. Left out, the modules pysmi bundles are read first
+                and then {}, which is one
+                request per module; a local copy is what a large scan should
+                use.
         --repository - where the issue is filed. Defaults to "{}".
         --module - offer only this module, repeatable. Without it every
                 module worth offering is.
@@ -315,7 +319,7 @@ def start() -> None:
     """.format(
         os.path.basename(sys.argv[0]),
         "|".join(sorted(debug.flagMap)),
-        contribute.PUBLISHED_CORPUS,
+        " and ".join(DEFAULT_MIB_SOURCES),
         contribute.PUBLISHED_REPOSITORY,
     )
 
@@ -438,10 +442,12 @@ def start() -> None:
         sys.exit(EX_USAGE)
 
     try:
-        reader = getReadersFromUrls(corpus)[0]
+        readers = (
+            contribute.require_corpus(corpus) if corpus else contribute.default_corpus()
+        )
         findings = contribute.scan(
             [Path(x) for x in sourceDirectories],
-            reader,
+            readers,
             include_differing=includeDifferingFlag,
             skip_new=skipNewFlag,
             only=tuple(modules),
