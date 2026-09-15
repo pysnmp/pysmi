@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.2.1](https://github.com/pysnmp/pysmi/compare/v5.2.0...v5.2.1) (2026-09-15)
+
+### Bug Fixes
+
+* **mibcontribute:** read the bundle and the depot, and refuse a corpus that is not one ([749861d](https://github.com/pysnmp/pysmi/commit/749861df03c263101d26ca8bd7e6f4ffb1407234))
+
 ## [5.2.0](https://github.com/pysnmp/pysmi/compare/v5.1.0...v5.2.0) (2026-09-15)
 
 ### Features
