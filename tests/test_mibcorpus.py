@@ -383,6 +383,50 @@ class RunTestCase(unittest.TestCase):
             ),
         )
 
+    def testAnUnreadableSelectionFileIsRefused(self):
+        """Named and not there.
+
+        The selection is how a build script says what changed, so a script
+        that names a file it did not write has not asked for a small corpus
+        -- it has misconfigured itself, and publishing the whole corpus in
+        answer would bury the point of the run.
+        """
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(
+                "--namespace=vendor:cisco:" + self.src,
+                f"--output-directory={self.out}",
+                "--emit=asn1",
+                f"--publish-only-from={os.path.join(self.root, 'nope.txt')}",
+            ),
+        )
+
+    def testTwoPatchesForOneModuleStopTheBuild(self):
+        """The duplicate refusal, driven through the command line.
+
+        Two repairs for one module are two different opinions, and the tree
+        is read recursively -- so this is reachable by adding a patch under
+        a second vendor directory, which is exactly how it would happen. A
+        build that resolved it by walk order would publish text nobody
+        chose and say nothing.
+        """
+        for vendor in ("cisco", "acme"):
+            directory = os.path.join(self.root, "patches", vendor)
+            os.makedirs(directory)
+
+            with open(os.path.join(directory, "A-MIB.patch"), "w") as fileObj:
+                fileObj.write("--- a/A-MIB\n+++ b/A-MIB\n")
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(
+                "--namespace=vendor:cisco:" + self.src,
+                f"--output-directory={self.out}",
+                "--emit=asn1",
+                f"--patch-directory={os.path.join(self.root, 'patches')}",
+            ),
+        )
+
     def testAPatchDirectoryPutsTheRepairOnThePage(self):
         """The site has rendered repairs since pysnmp/pysmi#279 and nothing
         could reach it: the driver took a patch set and the command line had
