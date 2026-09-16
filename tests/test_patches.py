@@ -425,10 +425,20 @@ class DistributionShipsRepairedTextTestCase(unittest.TestCase):
                 )
 
     def testHeldModulesAreNotStaged(self):
-        """``future/`` is not in the wheel, so nothing stages its patches."""
-        for mibname in ("CLNS-MIB", "Modem-MIB", "SMUX-MIB"):
+        """``future/`` is not in the wheel, so nothing stages its patches.
+
+        Over whatever is held rather than over three names: the tier is empty
+        today, and a test that pins its membership fails the next promotion
+        instead of checking the rule.
+        """
+        held = [
+            path.name
+            for path in BUNDLED_FUTURE.iterdir()
+            if path.is_file() and path.name != "README.md"
+        ]
+
+        for mibname in held:
             with self.subTest(mib=mibname):
-                self.assertTrue((BUNDLED_FUTURE / mibname).exists())
                 self.assertFalse((self.staged / mibname).exists())
 
     def testAPatchThatNoLongerAppliesFailsTheBuild(self):
