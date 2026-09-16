@@ -51,7 +51,7 @@ from typing import Any, Final
 from pysmi import __version__ as packageVersion
 from pysmi import error
 from pysmi.compiler import PRECEDENCE_NEWEST_REVISION, rank_by_revision, revision_of
-from pysmi.mibinfo import module_names, source_digest
+from pysmi.mibinfo import module_names, module_text, source_digest
 from pysmi.reader import DEFAULT_MIB_SOURCES, PackageReader, getReadersFromUrls
 from pysmi.reader.base import AbstractReader
 from pysmi.reader.httpclient import HttpReader
@@ -187,6 +187,24 @@ class Finding:
         }
 
 
+def codec_of(raw: bytes) -> str:
+    """Which codec *raw* is MIB text in: UTF-8, or Latin-1 as the fallback.
+
+    Args:
+        raw: the bytes read from a file.
+
+    Returns:
+        ``"utf-8"`` or ``"latin-1"``. Both round-trip, so text decoded with
+        what this returns and encoded with it again is the bytes it came from.
+    """
+    try:
+        raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return "latin-1"
+
+    return "utf-8"
+
+
 def read_source(path: Path) -> tuple[str, bytes]:
     """The MIB at *path*, as text to read and as the bytes to attach.
 
@@ -202,10 +220,7 @@ def read_source(path: Path) -> tuple[str, bytes]:
     """
     raw = path.read_bytes()
 
-    try:
-        return raw.decode("utf-8"), raw
-    except UnicodeDecodeError:
-        return raw.decode("latin-1"), raw
+    return raw.decode(codec_of(raw)), raw
 
 
 def describe_revision(revision: str) -> str:
@@ -475,13 +490,17 @@ def candidates(
 
     One file can also declare more than one module, which is why the key is the
     module and not the file. Each declared module is a candidate in its own
-    right, carrying the whole file as its text, since the file is what would be
-    contributed.
+    right, carrying its own part of the file rather than the whole of it, cut
+    by :py:func:`~pysmi.mibinfo.module_text` at the lexer's token boundaries.
+    A vendor bundle of thirty modules offered whole would be offered thirty
+    times over, and a repository that stored what it was given would hold
+    thirty copies of it, each filed under a name that is not its own.
 
     Args:
         sources: directories to scan, or files.
         on_skip: called with a path and a reason for each file that is not a
-            MIB, when the caller wants to say so.
+            MIB, and for each file holding several, when the caller wants to
+            say so.
 
     Returns:
         Module name to its copies, in the order they were found.
@@ -503,15 +522,25 @@ def candidates(
                     on_skip(path, "declares no MIB module")
                 continue
 
-            if len(declared) > 1 and on_skip:
+            if len(declared) == 1:
+                found.setdefault(declared[0], []).append(
+                    Candidate(declared[0], text, raw, file)
+                )
+                continue
+
+            if on_skip:
                 on_skip(
                     path,
-                    f"declares {len(declared)} modules: {', '.join(declared)}",
+                    f"declares {len(declared)} modules, offered one by one: "
+                    f"{', '.join(declared)}",
                 )
 
+            codec = codec_of(raw)
+
             for mibname in declared:
+                piece = module_text(text, mibname)
                 found.setdefault(mibname, []).append(
-                    Candidate(mibname, text, raw, file)
+                    Candidate(mibname, piece, piece.encode(codec), file)
                 )
 
     return found

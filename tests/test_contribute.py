@@ -27,7 +27,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from pysmi import contribute, error
+from pysmi import contribute, error, mibinfo
 from pysmi.reader import (
     DEFAULT_MIB_SOURCES,
     FileReader,
@@ -201,12 +201,11 @@ class SeveralCopiesTestCase(unittest.TestCase):
 
     def test_every_module_in_a_file_is_considered(self):
         """A second module in a file is a module this distribution may lack."""
-        both = module("FIRST-MIB", "202106020000Z") + module(
-            "SECOND-MIB", "202106020000Z"
-        )
+        second = module("SECOND-MIB", "202106020000Z")
+        both = module("FIRST-MIB", "202106020000Z") + second
         # newline="" so that the bytes on disk are the bytes written, on a
         # platform whose text mode would otherwise turn them into CRLF. The
-        # finding carries the file as it is, which is what is asserted below.
+        # finding carries text cut from those bytes, which is asserted below.
         (self.offered / "vendor.my").write_text(both, newline="")
         (self.corpus / "FIRST-MIB").write_text(both, newline="")
 
@@ -214,7 +213,56 @@ class SeveralCopiesTestCase(unittest.TestCase):
 
         self.assertEqual(["SECOND-MIB"], [x.module for x in found])
         self.assertEqual(contribute.NOT_CARRIED, found[0].verdict)
-        self.assertEqual(both, found[0].text)
+        self.assertEqual(second, found[0].text)
+
+    def test_a_module_is_offered_without_the_others_in_its_file(self):
+        """What is offered is committed, and a repository stores one per file.
+
+        A vendor bundle offered whole is offered once per module it declares,
+        so a distribution that stored what it was given would hold as many
+        copies of the bundle as it has modules, each under a name that is not
+        its own. Offering the module alone is what makes the offer storable.
+        """
+        both = module("FIRST-MIB", "202106020000Z") + module(
+            "SECOND-MIB", "202106020000Z"
+        )
+        (self.offered / "vendor.my").write_text(both, newline="")
+
+        found = sorted(self.scan(), key=lambda x: x.module)
+
+        self.assertEqual(["FIRST-MIB", "SECOND-MIB"], [x.module for x in found])
+
+        for one in found:
+            self.assertEqual([one.module], mibinfo.module_names(one.text))
+            self.assertEqual([one.module], mibinfo.module_names(one.raw.decode()))
+            self.assertLess(len(one.raw), len(both.encode()))
+
+    def test_a_file_holding_one_module_is_offered_byte_for_byte(self):
+        """Cutting a file into modules must not rewrite a file already one.
+
+        A MIB is bytes a publisher served, and a scan that re-encoded them
+        would offer something nobody published.
+        """
+        (self.offered / "A-MIB").write_bytes(
+            module("A-MIB", "202106020000Z").encode("utf-8").replace(b"\n", b"\r\n")
+        )
+
+        found = self.scan()
+
+        self.assertEqual((self.offered / "A-MIB").read_bytes(), found[0].raw)
+
+    def test_a_module_that_is_not_utf8_survives_being_cut_out(self):
+        """Vendors ship Latin-1, and the bytes offered are the bytes on disk."""
+        both = module("FIRST-MIB", "202106020000Z", "caf\xe9").encode(
+            "latin-1"
+        ) + module("SECOND-MIB", "202106020000Z").encode("latin-1")
+        (self.offered / "vendor.my").write_bytes(both)
+
+        found = sorted(self.scan(), key=lambda x: x.module)
+
+        self.assertEqual(["FIRST-MIB", "SECOND-MIB"], [x.module for x in found])
+        self.assertIn(b"caf\xe9", found[0].raw)
+        self.assertNotIn(b"caf\xe9", found[1].raw)
 
     def test_only_matches_any_module_the_file_declares(self):
         """--module names a module, and a module is not always first in its file."""
