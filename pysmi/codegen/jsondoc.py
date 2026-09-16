@@ -351,7 +351,9 @@ class JsonCodeGen(AbstractCodeGen):
             if outDict.get("class") == "notificationtype":
                 self._notificationOids.append(outDict["oid"])
 
-    def gen_numeric_oid(self, oid: tuple[Any, ...]) -> tuple[Any, ...]:
+    def gen_numeric_oid(
+        self, oid: tuple[Any, ...], _walking: frozenset[Any] = frozenset()
+    ) -> tuple[Any, ...]:
         """Resolve an OID to numbers, following names into other modules.
 
         Every name in the OID is looked up in the symbol table and replaced by
@@ -365,7 +367,7 @@ class JsonCodeGen(AbstractCodeGen):
 
         Raises:
             PySmiSemanticError: a name refers to a module or symbol that is not
-                in the symbol table.
+                in the symbol table, or to a chain that comes back to itself.
         """
         numericOid: tuple[Any, ...] = ()
 
@@ -386,8 +388,19 @@ class JsonCodeGen(AbstractCodeGen):
                     raise error.PySmiSemanticError(
                         f'no symbol "{parent}" in module "{module}"'
                     )
+
+                # A module that registers a name under itself -- RFC 1696 does
+                # it, spelling the root mdmMIB in one OID and mdmMib in the
+                # rest -- makes this walk endless. Without the guard it is a
+                # RecursionError thrown a long way from the MIB that caused
+                # it, or a hard interpreter crash on a deep enough stack.
+                if part in _walking:
+                    raise error.PySmiSemanticError(
+                        f'OID of "{parent}" in module "{module}" comes back to itself'
+                    )
+
                 numericOid += self.gen_numeric_oid(
-                    self.symbolTable[module][parent]["oid"]
+                    self.symbolTable[module][parent]["oid"], _walking | {part}
                 )
 
             else:
