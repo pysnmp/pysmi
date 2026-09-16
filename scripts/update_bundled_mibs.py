@@ -210,6 +210,7 @@ import re
 import sys
 import tempfile
 import textwrap
+import time
 import urllib.request
 from functools import cache
 from typing import Any
@@ -285,12 +286,50 @@ def directory(entry: dict[str, Any]) -> pathlib.Path:
     return FUTURE if deferred(entry) else DEST
 
 
-def download(url: str) -> bytes:
-    """Read one URL."""
-    with urllib.request.urlopen(url, timeout=60) as response:  # noqa: S310 - the URLs come from the manifest in this repository, not from a MIB
-        data: bytes = response.read()
+#: How many times to re-ask a publisher that answered with a transient status.
+#: Promoting the held tier is 274 fetches in a row, and rfc-editor.org answers
+#: one of them with a 503 often enough that a run without this rarely finishes.
+#: The status codes are the ones that mean "not now" rather than "not ever".
+RETRIES = 4
+TRANSIENT = frozenset({408, 425, 429, 500, 502, 503, 504})
 
-    return data
+
+def download(url: str) -> bytes:
+    """Read one URL, re-asking when the answer is "not now".
+
+    Args:
+        url: what to fetch.
+
+    Returns:
+        The body.
+
+    Raises:
+        urllib.error.HTTPError: the last attempt failed, or the status says
+            the URL is wrong rather than the moment.
+    """
+    for attempt in range(RETRIES):
+        try:
+            with urllib.request.urlopen(url, timeout=60) as response:  # noqa: S310 - the URLs come from the manifest in this repository, not from a MIB
+                data: bytes = response.read()
+
+        except urllib.error.HTTPError as failure:
+            if failure.code not in TRANSIENT or attempt == RETRIES - 1:
+                raise
+
+            # 1s, 2s, 4s. Enough for a rate limiter to forget us, and short
+            # enough that a whole-tier promotion still finishes in one sitting.
+            time.sleep(2**attempt)
+
+        except urllib.error.URLError:
+            if attempt == RETRIES - 1:
+                raise
+
+            time.sleep(2**attempt)
+
+        else:
+            return data
+
+    raise AssertionError("unreachable: the loop returns or raises")
 
 
 #: The line an RFC or Internet-Draft ends each page with.
