@@ -29,6 +29,7 @@ import unittest
 
 from pysmi.corpus.driver import CorpusDriver, CorpusOutputs
 from pysmi.corpus.namespace import Namespace
+from pysmi.mibinfo import module_names
 
 TC_MIB = """\
 TEST-TC-MIB DEFINITIONS ::= BEGIN
@@ -217,8 +218,7 @@ class Asn1TreeTestCase(unittest.TestCase):
 
     def testASourceFileHoldingTwoModulesIsPublishedUnderBothNames(self):
         # One file per module name, and each one resolves to text defining
-        # the module asked for -- which for a file holding two means the
-        # same text under two names, not one name for both modules.
+        # the module asked for.
         for module in ("PAIR-ONE-MIB", "PAIR-TWO-MIB"):
             with (
                 self.subTest(module=module),
@@ -226,7 +226,27 @@ class Asn1TreeTestCase(unittest.TestCase):
             ):
                 self.assertIn(f"{module} DEFINITIONS ::= BEGIN", fileObj.read())
 
+    def testEachOfThoseNamesCarriesOnlyItsOwnModule(self):
+        # And each carries that module alone. The tree is keyed by module
+        # name, so publishing the whole file under every name in it costs a
+        # copy per module: in pysnmp/mibs one 758 KB file declaring 34
+        # modules became 26 MB of tree, and nothing ever asks for the file.
+        for module, other in (
+            ("PAIR-ONE-MIB", "PAIR-TWO-MIB"),
+            ("PAIR-TWO-MIB", "PAIR-ONE-MIB"),
+        ):
+            with (
+                self.subTest(module=module),
+                open(os.path.join(self.tree, module), encoding="utf-8") as fileObj,
+            ):
+                published = fileObj.read()
+
+            self.assertEqual([module], module_names(published))
+            self.assertNotIn(f"{other} DEFINITIONS ::= BEGIN", published)
+
     def testTheTreeCarriesTheTextTheModuleWasCompiledFrom(self):
+        # A source holding one module -- nearly all of them -- is published
+        # byte for byte, splitting or no splitting.
         with open(os.path.join(self.tree, "VENDOR-A-MIB"), encoding="utf-8") as fileObj:
             self.assertEqual(VENDOR_A_MIB, fileObj.read())
 
