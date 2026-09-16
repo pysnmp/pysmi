@@ -66,7 +66,7 @@ def _ungeneratable():
 # "Too few arguments" there, while ``[Any, Any]`` would raise "Too many" on
 # 1.32.0 and earlier. A bare generic base is valid on both, and this hook uses
 # neither parameter: what it reads off self is root, target_name and app.
-class PrecompiledMibsHook(BuildHookInterface):
+class PrecompiledMibsHook(BuildHookInterface):  # type: ignore[type-arg]
     """Render ``pysmi/mibs/asn1`` into ``pysmi/mibs/pysnmp`` for the wheel."""
 
     PLUGIN_NAME = "precompiled-mibs"
