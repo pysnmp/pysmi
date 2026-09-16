@@ -3,6 +3,13 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.3.2](https://github.com/pysnmp/pysmi/compare/v5.3.1...v5.3.2) (2026-09-16)
+
+### Bug Fixes
+
+* **build:** do not subscript BuildHookInterface ([5255e23](https://github.com/pysnmp/pysmi/commit/5255e232ecba7a68f4e8953d36bb53129008ed43))
+* **bundle:** verify what ships, and promote SNMP-SSH-TM-MIB ([cbb92ce](https://github.com/pysnmp/pysmi/commit/cbb92ce96a5d51b24303b0e2d6b5e0c6637cbb73))
+
 ## [5.3.1](https://github.com/pysnmp/pysmi/compare/v5.3.0...v5.3.1) (2026-09-16)
 
 ### Bug Fixes
