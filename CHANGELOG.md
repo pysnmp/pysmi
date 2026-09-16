@@ -3,6 +3,17 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.4.0](https://github.com/pysnmp/pysmi/compare/v5.3.2...v5.4.0) (2026-09-16)
+
+### Features
+
+* **mibs:** carry all 485 bundled modules, emptying the held tier ([8e8cea2](https://github.com/pysnmp/pysmi/commit/8e8cea20dfbfcd3f117191772954d38266952ae8)), closes [#351](https://github.com/pysnmp/pysmi/issues/351) [#375](https://github.com/pysnmp/pysmi/issues/375) [#384](https://github.com/pysnmp/pysmi/issues/384)
+
+### Bug Fixes
+
+* **codegen:** refuse an OID that comes back to itself ([00a44fb](https://github.com/pysnmp/pysmi/commit/00a44fb53c0a72989eef1a5549e68a8f649bcb31))
+* **scripts:** re-ask a publisher that answers "not now" ([f613fbd](https://github.com/pysnmp/pysmi/commit/f613fbd4e9069f132f7e749d3e097521b9eac84f))
+
 ## [5.3.2](https://github.com/pysnmp/pysmi/compare/v5.3.1...v5.3.2) (2026-09-16)
 
 ### Bug Fixes
