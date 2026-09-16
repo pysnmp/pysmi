@@ -203,6 +203,7 @@ revises would shadow a caller's better copy for good; there is no such module
 here, and ``tests/test_compiler_bundled_mibs.py`` is what keeps it that way.
 """
 
+import datetime
 import json
 import pathlib
 import re
@@ -224,7 +225,7 @@ ROOT = HERE.parent
 # way, without scripts/ having to become a package.
 sys.path.insert(0, str(ROOT))
 
-from scripts.patches import APPLIED, apply_patch
+from scripts.patches import APPLIED, apply_patch, bundled_patches
 
 DEST = ROOT / "pysmi" / "mibs" / "asn1"
 FUTURE = ROOT / "pysmi" / "mibs" / "future"
@@ -586,6 +587,36 @@ def obsoleted_by(rfc: int) -> list[str]:
     return metadata.get("obsoleted_by") or []
 
 
+def _century(stamp: str) -> str:
+    """A revision stamp with a four-digit year, so two can be compared.
+
+    SMIv1 writes ``YYMMDDHHMMZ`` and SMIv2 ``YYYYMMDDHHMMZ``, and a module
+    revised across the change carries both. Expanding after the comparison
+    rather than before it lets the two-digit form win on its first character
+    -- ``9912090000`` sorts above ``202008210000`` -- and dates the module to
+    the older revision.
+
+    The century is whichever one puts the date in the past. RFC 2578 allows
+    two digits only for 1900-1999, so by the specification a two-digit year is
+    always nineteen-hundreds; vendors write ``05`` for 2005 anyway, and
+    reading that as 1905 mis-dates a module that a reader is comparing their
+    own copy against. A revision cannot have been made in the future, and that
+    is enough to decide it without a pivot year to keep updated.
+
+    Args:
+        stamp: the digits of a stamp, without its trailing ``Z``.
+
+    Returns:
+        The stamp with its century.
+    """
+    if len(stamp) >= 12:
+        return stamp
+
+    century = "20" if int(stamp[:2]) <= datetime.date.today().year % 100 else "19"
+
+    return century + stamp
+
+
 def revision_of(data: bytes) -> str:
     """The newest MODULE-IDENTITY revision in *data*, for the inventory page.
 
@@ -599,10 +630,7 @@ def revision_of(data: bytes) -> str:
     if not found:
         return "--"
 
-    newest = max(stamp.rstrip("Z") for stamp in found)
-    if len(newest) < 12:
-        century = "19" if int(newest[:2]) >= 70 else "20"
-        newest = century + newest
+    newest = max(_century(stamp.rstrip("Z")) for stamp in found)
 
     return f"{newest[:4]}-{newest[4:6]}-{newest[6:8]}"
 
@@ -879,6 +907,53 @@ def record_ieee_revisions(modules: dict[str, dict[str, Any]]) -> None:
         MANIFEST.write_text(json.dumps(stored, indent=2, sort_keys=True) + "\n")
 
 
+def _as_shipped(source: pathlib.Path, names: list[str]) -> pathlib.Path:
+    """Stage *source* with its repairs applied, the way a distribution is built.
+
+    ``scripts/mib-patches`` is what turns the published text this repository
+    stores into the text a consumer compiles. Verification that skips it
+    reports four modules broken that ship working, and -- worse for a gate --
+    says nothing about whether the patched form still compiles.
+
+    Args:
+        source: a directory holding one file per module being verified.
+        names: the modules to stage. A patch for anything else is left alone,
+            since ``promote`` verifies a tier plus its additions rather than
+            the whole bundle.
+
+    Returns:
+        A staging directory holding the same modules, repaired. The caller
+        does not clean it up: it is a few megabytes in the temporary
+        directory and the process is about to end.
+
+    Raises:
+        SystemExit: a patch did not apply, which means the text and the repair
+            have moved apart and the verification would be of neither.
+    """
+    patches = bundled_patches()
+    staged = pathlib.Path(tempfile.mkdtemp(prefix="pysmi-verify-asn1-"))
+
+    for path in sorted(source.iterdir()):
+        if not path.is_file():
+            continue
+
+        text = path.read_text(encoding="utf-8", errors="replace")
+
+        if path.name in names and path.name in set(patches.modules()):
+            text, status = patches.apply(path.name, text)
+
+            if status != APPLIED:
+                raise SystemExit(
+                    f"{path.name}: its patch did not apply to the text being "
+                    f"verified ({status or 'no patch found'}) -- see "
+                    f"{PATCHES / (path.name + '.patch')}"
+                )
+
+        (staged / path.name).write_text(text, encoding="utf-8", newline="")
+
+    return staged
+
+
 def verify(source: pathlib.Path | None = None, names: list[str] | None = None) -> int:
     """Compile every bundled MIB against a directory containing the bundle,
     nothing else.
@@ -905,6 +980,13 @@ def verify(source: pathlib.Path | None = None, names: list[str] | None = None) -
 
     if names is None:
         names = sorted(bundled())
+
+    # The tree holds the publisher's text and the repairs live beside it, so
+    # compiling the tree verifies bytes no consumer ever gets: the modules
+    # whose patch fixes a broken IMPORTS cannot compile until it is applied.
+    # hatch_build.py applies them as the wheel is built; this stages the same
+    # thing, so what is verified here is what ships.
+    source = _as_shipped(source if source is not None else DEST, names)
 
     # One malformed OID can make the code generator walk a cycle, and the
     # default limit turns that into a bare RecursionError a long way from the
@@ -1008,6 +1090,46 @@ def promote(names: list[str]) -> int:
     return docs()
 
 
+#: Small counts read as words in the page's prose, the way the rest of it is
+#: written. Above this the digits are clearer anyway.
+SPELLED = {
+    1: "One",
+    2: "Two",
+    3: "Three",
+    4: "Four",
+    5: "Five",
+    6: "Six",
+    7: "Seven",
+    8: "Eight",
+    9: "Nine",
+}
+
+
+def _patch_entry(name: str, reason: str) -> str:
+    """One patched module for the inventory: what it repairs, and what kind.
+
+    The defect identifiers come from the ``Defect:`` lines in the patch file
+    itself, so the page cannot disagree with the diff about what is wrong --
+    which is the whole reason the classification lives in the patch header
+    rather than only in the pull request that added it.
+
+    Args:
+        name: the module.
+        reason: the manifest's prose for it.
+
+    Returns:
+        The reStructuredText for that entry.
+    """
+    defects = bundled_patches().defects_for(name)
+
+    if not defects:
+        return f"``{name}``\n    {reason}\n"
+
+    named = ", ".join(f":ref:`{defect.id} <{defect.id.lower()}>`" for defect in defects)
+
+    return f"``{name}``\n    {reason}\n\n    Defects: {named}\n"
+
+
 def docs() -> int:
     """Rewrite the inventory page from the manifest and the bundled files.
 
@@ -1048,6 +1170,13 @@ def docs() -> int:
         # register a duplicate target name.
         return f"`{publisher} <{entry['url']}>`__"
 
+    # The repaired text, not the published text the tree stores: the revision
+    # a reader compares their own copy against is the one an install carries,
+    # and two of the patches repair the very clause this column reads. HPR-MIB
+    # is the case -- RFC 2238 gives LAST-UPDATED twelve digits in neither form
+    # RFC 2578 allows, and only the repair makes it a date.
+    shipped = _as_shipped(DEST, sorted(modules))
+
     # A csv-table rather than an aligned one: the cells hold URLs, and padding
     # every row out to the longest of those would make the source unreadable
     # for no gain in what Sphinx renders.
@@ -1055,13 +1184,29 @@ def docs() -> int:
         '   "{}", "{}", "{}", "{}"'.format(
             mibname,
             source_of(mibname, entry),
-            revision_of((DEST / mibname).read_bytes()),
+            revision_of((shipped / mibname).read_bytes()),
             "yes" if "patch" in entry else "",
         )
         for mibname, entry in sorted(modules.items())
     ]
 
     patched = sorted(name for name, entry in modules.items() if "patch" in entry)
+    # Patches for modules in future/: a wheel never sees them, and the diffs
+    # are in the repository either way, so leaving them off the page would
+    # make scripts/mib-patches hold files nothing accounts for.
+    deferred = sorted(name for name, entry in held.items() if "patch" in entry)
+    held_patches = (
+        [
+            HELD_PATCHES.format(
+                count=f"{SPELLED.get(len(deferred), len(deferred))} more patches"
+                if len(deferred) != 1
+                else "One more patch"
+            ),
+            *(_patch_entry(name, held[name]["reason"]) for name in deferred),
+        ]
+        if deferred
+        else []
+    )
     local = sorted(
         name for name, entry in modules.items() if entry["source"] == "local"
     )
@@ -1071,7 +1216,9 @@ def docs() -> int:
     # Counted rather than stated: these are the entries the compiler cannot
     # adjudicate on revision, so the page must not understate how many.
     unstamped = sum(
-        1 for mibname in modules if revision_of((DEST / mibname).read_bytes()) == "--"
+        1
+        for mibname in modules
+        if revision_of((shipped / mibname).read_bytes()) == "--"
     )
 
     text = [
@@ -1088,7 +1235,8 @@ def docs() -> int:
         *rows,
         "",
         PAGE_PATCHES,
-        *(f"``{name}``\n    {modules[name]['reason']}\n" for name in patched),
+        *(_patch_entry(name, modules[name]["reason"]) for name in patched),
+        *held_patches,
         PAGE_LOCAL,
         *(f"``{name}``\n    {modules[name]['reason']}\n" for name in local),
         PAGE_HISTORICAL,
@@ -1316,8 +1464,19 @@ pointing ``--mib-source`` at their own copy of one of these compiles the defect
 along with it. Patch your own copies before PySMI sees them, or rebuild PySMI
 from source with your own diffs in that directory -- the distribution is the
 opinion, and a different opinion is a different build. A patch whose context has
-moved makes the refresh fail rather than silently fuzzing. The defect each one
-repairs:
+moved makes the refresh fail rather than silently fuzzing.
+
+Each patch file names the defect it repairs, as a ``Defect:`` line above the
+diff carrying an identifier from :ref:`mib-defects` and a link to it -- so the
+classification travels with the repair rather than living only in the pull
+request that added it. The identifiers below link there; the prose is what this
+module's text in particular says.
+"""
+
+HELD_PATCHES = """\
+{count} in that directory repair modules held in
+``pysmi/mibs/future/`` rather than carried, so a wheel never sees them. They
+are listed here because the diffs are in the repository either way:
 """
 
 PAGE_HISTORICAL = """\

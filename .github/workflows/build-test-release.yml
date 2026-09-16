@@ -71,6 +71,15 @@ jobs:
         run: uv run ruff format --check .
       - name: Run mypy
         run: uv run mypy
+      # Offline, about four seconds: compile the bundle as a consumer gets it,
+      # repairs applied, against itself and nothing else. What it catches is a
+      # bundled module that stops compiling -- a patch that stopped applying,
+      # or an IMPORTS naming something the bundle does not carry, which is how
+      # GBOND-MIB once shipped needing an IANA-GBOND-TC-MIB nothing provided.
+      # Until this ran here the only thing that compiled the bundle was the
+      # wheel build, which does not say which module broke.
+      - name: Compile the bundled MIBs
+        run: uv run python scripts/update_bundled_mibs.py --verify
 
   # Every supported Python on Linux, plus the edge versions on Windows, on
   # every run -- pull requests included. Windows is where this package's
