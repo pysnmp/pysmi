@@ -3,6 +3,12 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.3.0](https://github.com/pysnmp/pysmi/compare/v5.2.1...v5.3.0) (2026-09-16)
+
+### Features
+
+* **corpus:** publish one module per file, not one file per module name ([bf93bc6](https://github.com/pysnmp/pysmi/commit/bf93bc60bbc5ee535903d808fa046a8dfd6fffee))
+
 ## [5.2.1](https://github.com/pysnmp/pysmi/compare/v5.2.0...v5.2.1) (2026-09-15)
 
 ### Bug Fixes
