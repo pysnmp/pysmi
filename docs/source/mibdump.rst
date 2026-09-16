@@ -71,8 +71,8 @@ into various formats.
        --no-bundled-mibs - do not use pysmi's own bundled copies of the
                   bundled base MIBs (SNMPv2-SMI and similar) at all. The
                   bundle is not a last-resort fallback: it is consulted
-                  ahead of --mib-source, and where both have one of the
-                  bundled module the newer MODULE-IDENTITY
+                  ahead of --mib-source, and where both have a bundled
+                  module the newer MODULE-IDENTITY
                   LAST-UPDATED supplies it -- so a --mib-source carrying a
                   newer revision still wins, and one carrying an older or
                   undated copy does not. Revisions are only compared across
@@ -293,10 +293,10 @@ wanted. To use your own copy of a bundled module anyway, there are three
 ways, in increasing order of bluntness: ship a newer MODULE-IDENTITY revision
 of it, so rule 1 picks it; pass --prefer-mib-source, so --mib-source outranks
 the bundle wherever rule 1 cannot decide -- which is the only way to override
-the 37 undated modules short of the third; or pass --no-bundled-mibs to drop
-the bundle entirely, after which nothing but --mib-source is searched and a
-base MIB missing there fails the compile rather than resolving to a bundled
-copy.
+the undated modules short of the third, and which ones those are is in
+:ref:`bundled-mibs`; or pass --no-bundled-mibs to drop the bundle entirely,
+after which nothing but --mib-source is searched and a base MIB missing there
+fails the compile rather than resolving to a bundled copy.
 
 Rule 1 compares only the copies pysmi actually reads. Once some source has
 the module, pysmi keeps reading further sources just to compare revisions
