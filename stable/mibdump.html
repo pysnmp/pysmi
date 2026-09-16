@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The mibdump tool - SNMP SMI compiler 5.3.1 documentation</title>
+        <title>The mibdump tool - SNMP SMI compiler 5.3.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.3.1 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.3.2 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.3.1 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.3.2 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -400,7 +400,7 @@ Where:
                bundled base MIBs (SNMPv2-SMI and similar) at all. The
                bundle is not a last-resort fallback: it is consulted
                ahead of --mib-source, and where both have one of the
-               210 bundled modules the newer MODULE-IDENTITY
+               bundled module the newer MODULE-IDENTITY
                LAST-UPDATED supplies it -- so a --mib-source carrying a
                newer revision still wins, and one carrying an older or
                undated copy does not. Revisions are only compared across
@@ -413,10 +413,10 @@ Where:
                --mib-source supply one wherever the revisions do not
                decide: a module with no MODULE-IDENTITY to compare, or two
                copies carrying the same one. The newest revision still
-               wins when every copy found has one. 32 of the 210 bundled
-               modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
-               SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
-               all, so this is what decides them.
+               wins when every copy found has one. SNMPv2-SMI,
+               SNMPv2-TC, SNMPv2-CONF and the other SMI and RFC-numbered
+               modules have no MODULE-IDENTITY at all, so this is what
+               decides them.
     --strict-imports - fail a MIB that uses an SNMPv2-SMI, SNMPv2-TC or
                SNMPv2-CONF symbol without naming it in IMPORTS, which RFC
                2578 Section 3.2 does not allow. Without this the import is
@@ -557,8 +557,9 @@ would overwrite the other.</p>
 </section>
 <section id="which-copy-of-a-mib-gets-compiled">
 <h2>Which copy of a MIB gets compiled<a class="headerlink" href="#which-copy-of-a-mib-gets-compiled" title="Link to this heading">¶</a></h2>
-<p>pysmi ships its own copies of 210 base MIBs (SNMPv2-SMI and similar; see
-<a class="reference internal" href="bundled-mibs.html#bundled-mibs"><span class="std std-ref">Bundled base MIBs</span></a>) and searches them alongside –mib-source, so more than one source can
+<p>pysmi ships its own copies of the base MIBs (SNMPv2-SMI and similar; see
+<a class="reference internal" href="bundled-mibs.html#bundled-mibs"><span class="std std-ref">Bundled base MIBs</span></a> for the inventory and its counts) and searches them
+alongside –mib-source, so more than one source can
 have the same MIB module – two –mib-source options, or a –mib-source and
 the bundle. Which copy is used is decided by these rules, in order:</p>
 <ol class="arabic simple">
@@ -587,7 +588,7 @@ that into an error instead.</p>
 <p>Rule 1 needs a LAST-UPDATED on <em>every</em> copy: an undated copy cannot be placed
 against a dated one, so a single undated copy drops the whole module to rule 2
 whatever the others carry.</p>
-<p>That case is not a corner: <strong>32 of the 210 bundled modules carry no
+<p>That case is not a corner: <strong>a good many bundled modules carry no
 MODULE-IDENTITY at all</strong> – SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF, RFC1155-SMI,
 RFC1213-MIB, RFC-1212, RFC-1215, IPV6-TC, TOKEN-RING-RMON-MIB, the PPP and
 RFC1xxx-MIB modules, and the rest of the pre-SMIv2 set;
@@ -1072,7 +1073,7 @@ or to do that later, use the –no-python-compile option.</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=e232f9f6"></script>
+</div><script src="_static/documentation_options.js?v=4f62893a"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
