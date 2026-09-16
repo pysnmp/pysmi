@@ -446,7 +446,7 @@ def _compile_to(
                     )
                     # Telling someone to ship a newer revision is no help for
                     # a module that has none to carry, which is the case for
-                    # 32 of the 210 bundled ones.
+                    # the SMI and RFC-numbered modules in the bundle.
                     remedy = (
                         "pass --prefer-mib-source, or --no-bundled-mibs"
                         if precedence == PRECEDENCE_NO_REVISION
@@ -611,8 +611,8 @@ def start() -> None:
         --no-bundled-mibs - do not use pysmi's own bundled copies of the
                 bundled base MIBs (SNMPv2-SMI and similar) at all. The
                 bundle is not a last-resort fallback: it is consulted
-                ahead of --mib-source, and where both have one of the
-                210 bundled modules the newer MODULE-IDENTITY
+                ahead of --mib-source, and where both have a bundled
+                module the newer MODULE-IDENTITY
                 LAST-UPDATED supplies it -- so a --mib-source carrying a
                 newer revision still wins, and one carrying an older or
                 undated copy does not. Revisions are only compared across
@@ -625,10 +625,10 @@ def start() -> None:
                 --mib-source supply one wherever the revisions do not
                 decide: a module with no MODULE-IDENTITY to compare, or two
                 copies carrying the same one. The newest revision still
-                wins when every copy found has one. 32 of the 210 bundled
-                modules -- SNMPv2-SMI, SNMPv2-TC, SNMPv2-CONF and the other
-                SMI and RFC-numbered ones -- have no MODULE-IDENTITY at
-                all, so this is what decides them.
+                wins when every copy found has one. SNMPv2-SMI,
+                SNMPv2-TC, SNMPv2-CONF and the other SMI and RFC-numbered
+                modules have no MODULE-IDENTITY at all, so this is what
+                decides them.
         --no-base-mibs - do not write out the base MIBs (SNMPv2-SMI,
                 SNMPv2-TC and the rest) that the compiled modules import.
                 Only --destination-format=json writes them, and only from

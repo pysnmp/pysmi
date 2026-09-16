@@ -1982,8 +1982,7 @@
     },
     "SNMP-SSH-TM-MIB": {
       "rfc": 5592,
-      "source": "rfc",
-      "tier": "future"
+      "source": "rfc"
     },
     "SNMP-TARGET-MIB": {
       "rfc": 3413,

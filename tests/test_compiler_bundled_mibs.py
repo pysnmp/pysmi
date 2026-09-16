@@ -477,17 +477,18 @@ class PreferConfiguredSourcesTestCase(unittest.TestCase):
 
 
 class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
-    """The counts stated in mibdump's --help and guide, checked against the
-    bundle itself.
+    """Which bundled modules carry no MODULE-IDENTITY, checked by name.
 
-    "32 of the 210 bundled modules carry no MODULE-IDENTITY" is load-bearing
-    prose: it is why --prefer-mib-source exists. Adding to the bundle without
-    updating pysmi/scripts/mibdump.py, docs/source/mibdump.rst and
-    docs/source/bundled-mibs.rst would leave them quietly wrong, so the numbers
-    are asserted rather than trusted.
+    That some of them do not is load-bearing: it is why --prefer-mib-source
+    exists, since rule 1 can never fire for a module with no revision to
+    compare. Which ones is the part worth pinning. The count is not: it was
+    asserted here once, to keep the numbers quoted in mibdump's --help and
+    guide honest, and the cost was a test and three files to edit every time
+    the bundle gained a module. The prose no longer quotes a number, and
+    docs/source/bundled-mibs.rst is generated, so the inventory counts itself.
     """
 
-    def testTheBundleIsTwoHundredAndTenModulesThirtyTwoOfThemUndated(self):
+    def testTheUndatedBundledModulesAreTheOnesTheDocsName(self):
         names = bundled_mib_names(BUNDLED_PACKAGE)
         patches = bundled_patches()
         # Through the patch set, because that is what a reader gives the
@@ -506,13 +507,11 @@ class BundleShapeIsWhatTheDocsSayTestCase(unittest.TestCase):
             is None
         }
 
-        self.assertEqual(210, len(names))
-        # 32, not 28: ATM-FORUM-MIB and the three LAN-EMULATION modules ship
-        # their MODULE-IDENTITY commented out. `revision_of` used to match
-        # inside the comment and report a revision for a module that declares
-        # none. Named rather than only counted, so a regression that swaps one
-        # undated module for another cannot hold the count at 32.
-        self.assertEqual(32, len(undated))
+        # ATM-FORUM-MIB and the three LAN-EMULATION modules ship their
+        # MODULE-IDENTITY commented out. `revision_of` used to match inside the
+        # comment and report a revision for a module that declares none, which
+        # is what naming them here catches -- a count would not, since a
+        # regression that swaps one undated module for another holds it.
         self.assertIn("SNMPv2-SMI", undated)
         self.assertLessEqual(
             {
