@@ -66,6 +66,12 @@ was found in, since that is the name the distribution would publish it as. A
 file that declares no module at all -- a README, a licence, a tarball somebody
 left in the directory -- is passed over and named in the log.
 
+A file declaring several modules, which is how some vendors ship them, is
+offered as several modules. Each carries its own part of the file, cut at the
+lexer's token boundaries with its preamble and introducing comment, so a
+thirty-module bundle becomes thirty offers of one module rather than thirty
+offers of the bundle. The log names the file and what it declared.
+
 What it compares against
 ------------------------
 
