@@ -56,24 +56,24 @@ Scope
 -----
 
 The arc set comes from the corpus's own index rather than from a prefix
-filter. Of pysnmp/mibs' 95,462 index rows, 97.0% sit under ``1.3.6.1.4.1`` and
-2.3% under ``1.3.6.1.2.1`` -- but IEEE publishes its 802.1 MIBs under
-``1.3.111.2.802.1`` and ``LLDP-MIB`` registers under ``1.0.8802.1.1.2``. A
-``1.3.6.1`` filter drops both, and LLDP is among the most widely polled MIBs
-there is.
+filter. Nearly every index row of a vendor corpus sits under ``1.3.6.1.4.1``
+and most of the rest under ``1.3.6.1.2.1`` -- but IEEE publishes its 802.1
+MIBs under ``1.3.111.2.802.1`` and ``LLDP-MIB`` registers under
+``1.0.8802.1.1.2``. A ``1.3.6.1`` filter drops both, and LLDP is among the
+most widely polled MIBs there is.
 
 The set is the **registration tree** rather than every OID a module defines:
 the arcs modules register at, as
 :py:func:`pysmi.corpus.index.anchor_index` picks them out, and every prefix of
-those. Over pysnmp/mibs that is 14,752 arcs instead of 98,903, and the
-difference is objects -- an object's arc is a thing inside a module, which the
-module already renders in context, not a node anybody navigates to. Every
-prefix is named too, since a tree renders the path down to a node and not only
-the node. Arc depth in that corpus runs from 2 to 20, so nothing here assumes
-a fixed one.
+those. That is most of an order of magnitude fewer arcs, and the difference is
+objects -- an object's arc is a thing inside a module, which the module already
+renders in context, not a node anybody navigates to. Every prefix is named too,
+since a tree renders the path down to a node and not only the node. Arc depth
+in pysnmp/mibs runs from 2 to 20, so nothing here assumes a fixed one.
 
-Passing the whole OID index here instead is what pysnmp/pysmi#301 was: 98,903
-arcs and an 11 MB artifact, the bulk of it group nodes inside modules.
+Passing the whole OID index here instead is what pysnmp/pysmi#301 was: an
+artifact most of an order of magnitude larger, the bulk of it group nodes
+inside modules.
 """
 
 import json
@@ -188,10 +188,10 @@ def arcs(
             :py:func:`pysmi.corpus.index.anchor_index` returns them. The arc
             set comes from here and from every prefix of it, which is the
             registration tree rather than every object a module defines --
-            over pysnmp/mibs that is 14,752 arcs instead of 98,903, and an
-            object's own arc is a thing inside a module rather than a node of
-            the tree. The whole OID index is accepted and gives the object
-            tree, which is not what any consumer of this wants.
+            most of an order of magnitude fewer arcs, since an object's own
+            arc is a thing inside a module rather than a node of the tree. The
+            whole OID index is accepted and gives the object tree, which is
+            not what any consumer of this wants.
         smi: arc name per arc, as
             :py:func:`pysmi.registry.smi.parse_smi_numbers` returns. Omitted
             leaves the ``1.3.6.1`` subtree to the weaker sources.
@@ -264,9 +264,10 @@ def unregistered(found: dict[str, Arc]) -> tuple[int, ...]:
     """The enterprise numbers no registrant in the PEN registry named.
 
     A corpus that commits a *reduced* PEN snapshot -- the registrants its own
-    arcs use, rather than all 66,807 -- names every enterprise arc it has
-    until it gains a module under an arc the snapshot predates. Then one
-    registrant page goes nameless, and nothing about the build says so: the
+    arcs use, rather than every registration IANA holds -- names every
+    enterprise arc it has until it gains a module under an arc the snapshot
+    predates. Then one registrant page goes nameless, and nothing about the
+    build says so: the
     arc is still in the index, still reachable, still rendered, just blank.
 
     This is the build saying so. It is not a failure -- an arc can be

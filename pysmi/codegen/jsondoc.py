@@ -173,8 +173,8 @@ class JsonCodeGen(AbstractCodeGen):
         spelling it does not use. A module defining ``global``, ``if``,
         ``in``, ``as`` or ``continue`` then failed here while compiling
         cleanly to pysnmp, and the two output trees described different sets
-        of modules: 13 modules and 212 dependents of them across the corpus
-        at pysnmp/pysmi#182.
+        of modules -- the modules themselves and everything importing them,
+        which pysnmp/pysmi#182 measured over a vendor corpus.
 
         Which name a document should be keyed by is a fair question, and it
         is not this one: a hyphenated descriptor is already renamed the same

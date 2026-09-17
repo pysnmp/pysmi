@@ -200,7 +200,7 @@ class Publication:
 
     A distribution is not always one tree. The same corpus may go out as the
     data a runtime fetches and as the pages a reader browses, to two hosts with
-    different limits, and building it twice parses 5,510 modules twice to reach
+    different limits, and building it twice parses every module twice to reach
     the same answer.
 
     Attributes:

@@ -26,9 +26,9 @@ why this file exists:
 
 **What is the node at this OID?** The CSV is ``MODULE,OID`` and carries a
 module's *anchors* only, so a leaf like ``ifDescr`` is not in it. Answering
-from the ``json/`` tree means parsing a whole module -- 11 ms and 9,773 symbols
-of ``CISCO-ENTITY-VENDORTYPE-OID-MIB`` to reach one of them. Here it is one
-row, in microseconds.
+from the ``json/`` tree means parsing a whole module, and
+``CISCO-ENTITY-VENDORTYPE-OID-MIB`` is thousands of symbols and milliseconds
+of parsing to reach one of them. Here it is one row, in microseconds.
 
 **What comes after this OID?** Nothing published answers it at all. An anchor
 index has no per-node ordering, so a GETNEXT walk cannot be served from one.
@@ -455,8 +455,8 @@ arcs do.
 
 It returns a list rather than raising, because a build wants to see every
 problem it has rather than one per round trip. An empty list is a sound
-corpus. Over pysnmp/mibs' 5,510 modules and 767,450 nodes it is one indexed
-pass, measured at 17 seconds.
+corpus. Over |corpus_modules| modules and |corpus_nodes| nodes it is one
+indexed pass, measured in seconds.
 
 
 Proving a reader conforms
@@ -587,25 +587,30 @@ parsed nothing. Two consequences for a reader:
   table it references is empty. A NULL there means "not carried", not "this
   symbol has no type".
 
-Why the split is worth having, measured over pysnmp/mibs with ``dbstat``:
+Why the split is worth having, as the share of the file each part takes.
+``dbstat`` over any corpus gives the absolute figures; these are the
+proportions, which is what the argument rests on:
 
-====================================  ==========  ==========
-                                      ``full``    ``search``
-====================================  ==========  ==========
-``node``                              124.2 MB    --
-``node_by_name``, ``node_by_module``  98.4 MB     --
-``type`` and its unique index         17.7 MB     --
-everything else                       15.4 MB     15.4 MB
-**file**                              **256 MB**  **15 MB**
-====================================  ==========  ==========
+====================================  ===========  ===========
+                                      ``full``     ``search``
+====================================  ===========  ===========
+``node``                              a half       --
+``node_by_name``, ``node_by_module``  a third      --
+``type`` and its unique index         a fifteenth  --
+everything else                       a sixteenth  all of it
+====================================  ===========  ===========
+
+``search`` is what is left when the first three rows go, which is more than an
+order of magnitude off the file.
 
 Dropping the descriptive columns instead would not have done it: of ``node``'s
-108.5 MB of payload the identity columns -- ``oid_key``, ``module``, ``name``,
-``oid``, ``class`` -- are 84.5 MB and everything describing the object is
-24.1. The cost is a row per definition, not what each row says.
+payload the identity columns -- ``oid_key``, ``module``, ``name``, ``oid``,
+``class`` -- are three quarters and everything describing the object is the
+rest. The cost is a row per definition, not what each row says.
 
-Nor does ``search`` carry an index of every definition's name, which would be
-780,000 rows and 47 MB. A browser searches in order to **navigate** -- to a
+Nor does ``search`` carry an index of every definition's name, which is a row
+per definition again and tens of megabytes. A browser searches in order to
+**navigate** -- to a
 module, or to whatever owns an OID -- and then displays the module it landed
 on. Searching the corpus for a single field is not a thing a browser does, and
 the module's own page answers it by being a page.

@@ -259,9 +259,10 @@ The base-MIB shape has three copies
 -----------------------------------
 
 pysmi produces and distributes the pysnmp artifact shape. ``hatch_build.py``
-runs ``PySnmpCodeGen`` over all 210 bundled ASN.1 modules during the wheel build
-and force-includes the output as ``pysmi/mibs/pysnmp/``. Its docstring states
-the rationale: a consumer that needs to load one of the 210 standard modules
+runs ``PySnmpCodeGen`` over all |bundled| bundled ASN.1 modules during the
+wheel build and force-includes the output as ``pysmi/mibs/pysnmp/``. Its
+docstring states the rationale: a consumer that needs to load one of the
+standard modules
 rather than compile it should not have to run the compiler first. Generating
 rather than committing the modules makes their correspondence to the ASN.1
 verifiable by construction.
@@ -594,9 +595,9 @@ Raised by this proposal:
   a manifest of source namespaces rather than a module list, and it produces
   every artifact at once; the *formats* remain ``mibdump`` destinations. See
   :ref:`mibcorpus`.
-* Whether pysmi bundling 210 modules changes the purpose of ``src/standard`` in
-  the mibs repository. The two now overlap, and one of them must be
-  authoritative for a given module. Narrowing the bundle to what the corpus
-  needs sharpens rather than settles this: the 275 modules now held in
-  ``pysmi/mibs/future/`` are not published by either project, and whether
-  ``src/standard`` should carry the ones a user might still poll is open.
+* Whether pysmi bundling |bundled| modules changes the purpose of
+  ``src/standard`` in the mibs repository. The two now overlap, and one of
+  them must be authoritative for a given module. The held tier no longer
+  bears on it -- ``pysmi/mibs/future/`` holds |held| modules since
+  pysnmp/pysmi#323 promoted the whole of it -- so what is left open is
+  whether ``src/standard`` should carry anything the bundle already does.

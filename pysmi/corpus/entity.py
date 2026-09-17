@@ -15,15 +15,14 @@ Cisco modules, and ``src/vendor/cisco/ALTIGA-*`` registering under Altiga's arc
 a fact.
 
 The registration is a fact, and it is published.
-:py:mod:`pysmi.registry.pen` reads it; this projects the corpus onto it.
-Measured over pysnmp/mibs: 351 distinct enterprise arcs, 350 of them named by
-the registry, against 290 vendor directories. Those two numbers are the whole
+:py:mod:`pysmi.registry.pen` reads it; this projects the corpus onto it. Over
+pysnmp/mibs the distinct enterprise arcs outnumber the vendor directories by a
+fifth, and the registry names all but a handful of them. That gap is the whole
 argument for driving navigation from the registry rather than from the tree.
 
 **An arc the registry does not name is reported as unregistered, never
-guessed at.** pysnmp/mibs has exactly one -- ``1.3.6.1.4.1.1004849``, above
-anything IANA has allocated -- and the honest rendering of it is that nobody
-registered it.
+guessed at.** A corpus picks up arcs above anything IANA has allocated, and the
+honest rendering of one is that nobody registered it.
 
 This groups by **arc**, not by company. The registry maps arcs to registrants
 and a company can hold several: pysnmp/mibs carries Cisco modules under

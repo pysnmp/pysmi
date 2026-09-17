@@ -7,13 +7,14 @@
 """Which arcs of the registration tree get a page, and where the rest resolve.
 
 A site rendering ``oid/<arc>/`` as a page per node, taken literally, is a page
-per OID any module defines. Over pysnmp/mibs' corpus that is **98,903 pages**
-and roughly 654 MB, against a GitHub Pages limit of 1 GB -- the OID tree alone
-seventeen times the module pages it exists to lead to.
+per OID any module defines. Over a corpus the size of pysnmp/mibs' that is
+hundreds of thousands of pages and most of a GitHub Pages site's 1 GB, with the
+OID tree an order of magnitude larger than the module pages it exists to lead
+to.
 
-Crawl budget is the worse half of it. A hundred thousand URLs on a static site
-means the pages that matter compete with 85,644 leaf-arc pages that each state
-one object's syntax, which the module page already states in context.
+Crawl budget is the worse half of it. At that scale the pages that matter
+compete with a leaf-arc page per object, each stating one object's syntax,
+which the module page already states in context.
 
 The rule
 --------
@@ -28,10 +29,10 @@ the module: ``oid/1.3.6.1.4.1.9.9.138/`` resolves to
 ``mib/CISCO-ENTITY-ALARM-MIB/``.
 
 **What remains is the structural tree** -- the arcs from the root down to each
-module's anchor, exclusive. Over pysnmp/mibs that is 14,752 arcs counted with
-the anchors and **1,493 without**, which is the set that actually gets pages,
-and the whole site becomes about 7,200 pages rather than 100,000. A crawler
-can finish that.
+module's anchor, exclusive. That is the set which gets pages, and it is two
+orders of magnitude smaller than the arcs a corpus defines: a page per module,
+a page per registrant and a few thousand for the tree, rather than one per OID.
+A crawler can finish that.
 
 Why this is the right cut rather than the cheap one
 ---------------------------------------------------
@@ -47,10 +48,11 @@ Resolving an arc that has no page
 
 The tree still has to answer for any OID a reader pastes from a trap, which is
 the main way in. :py:func:`resolve` is that answer, as a longest-prefix lookup
-rather than a table: emitting a stub page per unpaged arc would cost 85,644
-files and put every one of them back in the crawlable surface, which is the
-thing this exists to avoid. A site renders the lookup in the browser from the
-published index and leaves the unpaged arcs out of ``sitemap.xml``.
+rather than a table: emitting a stub page per unpaged arc would cost a file
+per object the corpus defines and put every one of them back in the crawlable
+surface, which is the thing this exists to avoid. A site renders the lookup in
+the browser from the published index and leaves the unpaged arcs out of
+``sitemap.xml``.
 
 See pysnmp/pysmi#292. Consumed by the site generator in pysnmp/pysmi#276.
 """
@@ -126,7 +128,8 @@ def resolve(
 
     A longest-prefix lookup, which is the same shape a trap receiver already
     runs against the published index -- so a site can do it in the browser
-    from ``index-v2.csv`` rather than being handed a table of 85,644 entries.
+    from ``index-v2.csv`` rather than being handed a table of every leaf arc
+    the corpus defines.
 
     Args:
         oid: the arc asked for, dotted decimal.

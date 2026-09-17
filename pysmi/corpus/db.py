@@ -16,8 +16,8 @@ rather not parse a second file.
 *What is the node at this OID?* The CSV cannot say -- it is ``MODULE,OID`` and
 nothing else, and it indexes a module's *anchors*, so ``ifDescr`` is not in it
 at all. Answering from the published ``json/`` tree means parsing the whole
-module: 11 ms and 9,773 symbols of ``CISCO-ENTITY-VENDORTYPE-OID-MIB`` to reach
-one of them. Here it is one row.
+module, and ``CISCO-ENTITY-VENDORTYPE-OID-MIB`` is thousands of symbols and
+milliseconds of parsing to reach one of them. Here it is one row.
 
 *What comes after this OID?* Nothing published answers it. An anchor index has
 no per-node ordering, so a GETNEXT walk cannot be served from one at all.
@@ -95,25 +95,24 @@ FULL: Final = "full"
 #: Everything but ``node`` and the ``type`` table it references -- the tables
 #: that answer *which module* rather than *what the object is*.
 #:
-#: Over pysnmp/mibs the full database is 256 MB, and measured per table
-#: ``node`` is 124.2 MB with 58.9 of ``node_by_name`` and 39.5 of
-#: ``node_by_module``, plus 17.7 for ``type`` and its unique index -- 240.2
-#: MB, 94% of the file. What is left answers the two questions a browser
-#: asks: ``oid_index`` 7.7 MB, ``import`` 5.0, ``symbol`` 1.1, ``module``
-#: 0.8, ``provenance`` 0.7. **15 MB against 256**, which is the difference
-#: between a database a site can publish and one that spends a quarter of the
-#: whole Pages budget.
+#: ``node``, its two indexes, and ``type`` with its own are almost the whole
+#: file -- a row per definition and an index row per definition per lookup,
+#: against a table of modules and a table of arcs. Leaving them out takes the
+#: database down by more than an order of magnitude, which is the difference
+#: between one a site can publish and one that spends a large part of the
+#: whole Pages budget. ``mibcorpus --emit=report`` states the row counts a
+#: given corpus produces, under ``db`` and ``search_db``.
 #:
 #: Dropping the descriptive columns instead would not have done it. Of
-#: ``node``'s 108.5 MB of payload the identity columns -- ``oid_key``,
-#: ``module``, ``name``, ``oid``, ``class`` -- are 84.5 MB and everything
-#: describing the object is 24.1. The cost is a row per definition, 764,353 of
-#: them, not what each row says.
+#: ``node``'s payload the identity columns -- ``oid_key``, ``module``,
+#: ``name``, ``oid``, ``class`` -- are three quarters of it and everything
+#: describing the object is the rest. The cost is a row per definition, and a
+#: corpus has one per definition it holds, not what each row says.
 #:
 #: What it deliberately does not carry is an index of every definition's
 #: name. A browser searches to *navigate* -- to a module, or to whatever owns
 #: an OID -- and then displays the module it landed on. Nobody searches the
-#: corpus for a field, so the 780,000-row index that would answer it is 47 MB
+#: corpus for a field, so a row per definition of index is tens of megabytes
 #: spent on a question the page already answers by being a page.
 #:
 #: The schema is the same either way, so a reader uses one set of queries and
@@ -580,8 +579,8 @@ def write_db(
             act on, and a row of empty strings would not.
         tables: :py:data:`FULL` or :py:data:`SEARCH`. The schema is the same
             either way; ``SEARCH`` leaves ``node`` and ``type`` empty, which
-            takes pysnmp/mibs' database from 256 MB to 15 and is what a client
-            resolving OIDs and finding modules actually needs.
+            takes more than an order of magnitude off the file and is what a
+            client resolving OIDs and finding modules actually needs.
 
     Returns:
         How many rows each table received, keyed by table name.
@@ -622,7 +621,7 @@ def write_db(
         # A search database carries no node rows, so the specs those rows
         # point at have nothing referring to them -- and symbol.type, which
         # also references them, is left NULL rather than dangling. type and
-        # its unique index are 17.7 MB of the 256.
+        # its unique index are a sizeable share of the full database.
         specs = (
             sorted({spec for _, doc, _, _ in corpus for spec in _type_specs(doc)})
             if bulk
@@ -905,7 +904,7 @@ def validate(path: str) -> list[str]:
     Every check here is a universal over a whole build rather than a property
     of one row, which is why they live here and not in the unit tests: the
     writer's tests assert that one module round-trips, and none of them can
-    say that no module in a 5,510-module corpus lost its content hash. A
+    say that no module in a corpus of thousands lost its content hash. A
     publisher runs this before it ships the file.
 
     Nothing here is expensive except the ordering scan, which is one indexed

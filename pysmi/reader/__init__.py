@@ -17,9 +17,9 @@ from pysmi.reader.zipreader import ZipReader
 #: is given, in the order they are tried.
 #:
 #: Both entries are written by the same build of the pysnmp MIB distribution and
-#: carry the same 5,510 modules, so the second is an availability fallback rather
-#: than a wider corpus. A module absent from the first is absent from both, and
-#: costs one extra request to establish that.
+#: carry the same modules, so the second is an availability fallback rather than
+#: a wider corpus. A module absent from the first is absent from both, and costs
+#: one extra request to establish that.
 #:
 #: ``data.mibsdepot.com`` is object storage addressed by exact key, with no
 #: listing: a reader has to know the module name, which is what ``@mib@``

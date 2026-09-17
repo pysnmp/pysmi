@@ -14,20 +14,17 @@ Why not first letters
 ---------------------
 
 A to Z is the obvious index and it fails on MIB names, which are dominated by
-vendor prefixes rather than spread across the alphabet. Measured over
-pysnmp/mibs' corpus:
+vendor prefixes rather than spread across the alphabet. Over a vendor corpus
+the letter ``C`` takes a third of the modules by itself, on the strength of
+``CISCO-`` alone, and most letters take almost none. Lengthening the prefix
+does not rescue it: inside a registrant essentially every name shares one, so
+no fixed length gives even buckets, and the length that would work differs
+between the global list and one registrant.
 
-======================================  =======  ==================
-list                                    buckets  largest
-======================================  =======  ==================
-all 5,510 modules, by first letter      25       ``C`` at 1,708
-Cisco's 1,353 modules, by first letter  7        ``C`` at 1,280
-Cisco's, by first seven characters      38       ``CISCO-I`` at 166
-======================================  =======  ==================
-
-Inside a registrant essentially every name shares a prefix: 1,224 of Cisco's
-1,353 modules begin ``CISCO-``. No fixed prefix length gives even buckets, and
-the length that would work differs between the global list and one registrant.
+``mibcorpus --emit=report`` states what a given corpus actually splits into.
+The figures are not repeated here, because they change with every module
+added and a comment restating them is a comment to review on every
+contribution.
 
 Why not page numbers
 --------------------
@@ -49,16 +46,18 @@ long labels and sparse ones get two characters:
 
 .. code-block:: text
 
-   AT..CISCO-DIAMETER-SG-C            200
-   CISCO-DIAMETER-SG-M..CISCO-HC      200
-   CISCO-HE..CISCO-LICENSE-MG         200
-   CISCO-LICENSE-MI..CISCO-PRI        200
-   CISCO-PRO..CISCO-TM                200
-   CISCO-TN..CISCO-WDS-IDS-C          200
-   CISCO-WDS-IDS-M..RP                153
+   AT..CISCO-DIAMETER-SG-C
+   CISCO-DIAMETER-SG-M..CISCO-HC
+   CISCO-HE..CISCO-LICENSE-MG
+   CISCO-LICENSE-MI..CISCO-PRI
+   CISCO-PRO..CISCO-TM
+   CISCO-TN..CISCO-WDS-IDS-C
+   CISCO-WDS-IDS-M..RP
 
-That is Cisco's 1,353 modules at 200 per page. The whole corpus at 500 gives
-twelve buckets, ``A1..BASIS-R`` through ``ZYXEL-ES-R..ZYXEL-Z``.
+Every bucket but the last holds the page size exactly; the last holds the
+remainder. Those keys are one vendor's modules, where the shared ``CISCO-``
+prefix forces long labels. A whole corpus keyed the same way gets short ones,
+because its boundaries fall between unrelated vendors.
 
 The separator is ASCII
 ----------------------

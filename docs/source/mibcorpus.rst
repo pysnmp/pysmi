@@ -128,7 +128,7 @@ Two refusals, both because the quiet alternative is worse:
   selection at all is a distribution build; computing one and computing it
   empty is a request for a corpus of nothing, and the two must not collapse
   into each other -- a pull request that changed no MIB would otherwise
-  publish all 5,510.
+  publish the whole corpus.
 
 ``report.json`` records what was asked for under ``selected``:
 
@@ -488,10 +488,10 @@ trees. Naming both at one path is refused: the second pass would overwrite the
 first, and which of them survived would depend on the order the emit list was
 read in.
 
-The texts cost roughly 70% more on disk: over pysnmp/mibs' corpus ``json/``
-goes from about 170 MB to about 290 MB. That is a decision for the build, which
-is the argument for asking rather than assuming, and ``json-texts`` is not in
-the default layout.
+The texts cost roughly 70% more on disk, which over a corpus is a tree half
+again as large. That is a decision for the build, which is the argument for
+asking rather than assuming, and ``json-texts`` is not in the default
+layout.
 
 What ``genTexts`` gates is more than descriptions:
 ``JsonCodeGen.gen_module_identity`` puts ``organization`` and ``contactinfo``
@@ -548,9 +548,10 @@ The registration is a published fact. ``--oid-registry`` supplies it and
      }
    }
 
-Measured over pysnmp/mibs: 351 distinct enterprise arcs, 350 of them named by
-the registry, against 290 vendor directories. Those two numbers are the
-argument for driving navigation from the registry rather than from the tree.
+Over pysnmp/mibs the distinct enterprise arcs outnumber the vendor
+directories by a fifth, and the registry names all but a handful of them. That
+gap is the argument for driving navigation from the registry rather than from
+the tree; ``report.json`` carries the run's own counts under ``entity``.
 
 **An arc the registry does not name is reported as unregistered, never guessed
 at.** pysnmp/mibs has exactly one, ``1.3.6.1.4.1.1004849``, above anything IANA
@@ -621,10 +622,11 @@ PySMI's, so both are arguments rather than a hard-coded projection. Nothing is
 normalised: the output is a rendering of IANA's record rather than a corrected
 version of it.
 
-The registry is 66,807 registrations and IANA revises it daily, so a repository
-committing all of it commits a large file and re-diffs the whole of it every
-month. The other choice is a snapshot of the registrants this corpus's own arcs
-use -- for pysnmp/mibs, 351 rows rather than 66,807:
+The registry runs to tens of thousands of registrations and IANA revises it
+daily, so a repository committing all of it commits a large file and re-diffs
+the whole of it every month. The other choice is a snapshot of the registrants
+this corpus's own arcs use, which is |corpus_registrants| rows rather than the
+whole registry:
 
 .. code-block:: sh
 
@@ -719,9 +721,10 @@ When a committed PEN snapshot has gone stale
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A repository that commits the whole Private Enterprise Numbers registry
-commits 66,807 registrants and re-diffs all of them every time IANA moves,
-which is daily. Committing only the registrants its own arcs use is a far
-smaller file and a far smaller monthly diff, at the cost of going stale: the
+commits tens of thousands of registrants and re-diffs all of them every time
+IANA moves, which is daily. Committing only the registrants its own arcs use
+is a far smaller file and a far smaller monthly diff, at the cost of going
+stale: the
 first module the corpus gains under a newer enterprise arc has no registrant
 in the snapshot, and that registrant's page renders nameless.
 
@@ -748,23 +751,23 @@ What is in the inventory
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 The arc set comes from the OID index and every prefix of it -- the
-registration tree -- rather than from every OID a module defines. Over
-pysnmp/mibs that is 14,752 arcs instead of 98,903; the difference is
-objects, and an object's arc is a thing inside a module rather than a node
-anybody navigates to.
+registration tree -- rather than from every OID a module defines, which is
+|corpus_arcs| arcs against one per defined OID. The difference is objects, and
+an object's arc is a thing inside a module rather than a node anybody
+navigates to.
 
-It is not filtered to one subtree. 97.0% of pysnmp/mibs' index rows sit under
-``1.3.6.1.4.1`` and 2.3% under ``1.3.6.1.2.1``, but IEEE publishes its 802.1
-MIBs under ``1.3.111.2.802.1`` and ``LLDP-MIB`` registers under
-``1.0.8802.1.1.2``. A ``1.3.6.1`` filter drops both, and LLDP is among the most
-widely polled MIBs there is. Arc depth runs from 2 to 20.
+It is not filtered to one subtree. Nearly every index row of a vendor corpus
+sits under ``1.3.6.1.4.1`` and most of the rest under ``1.3.6.1.2.1``, but
+IEEE publishes its 802.1 MIBs under ``1.3.111.2.802.1`` and ``LLDP-MIB``
+registers under ``1.0.8802.1.1.2``. A ``1.3.6.1`` filter drops both, and LLDP
+is among the most widely polled MIBs there is. Arc depth runs from 2 to 20.
 
 That inventory counts an arc whether or not anything would render a page for
 it. Which of them a *site* gives a page to is a narrower question, and
-:py:mod:`pysmi.corpus.pages` answers it: the arcs above the modules, which
-over pysnmp/mibs is 1,493 of the 14,752 rather than the 98,903 a page per
-defined OID would be. An arc at a module's anchor is the module, and an arc
-below one is an object the module page already renders.
+:py:mod:`pysmi.corpus.pages` answers it: the arcs above the modules, which is
+a small fraction of the arc index and two orders of magnitude below a page per
+defined OID. An arc at a module's anchor is the module, and an arc below one
+is an object the module page already renders.
 
 .. _site:
 
@@ -787,7 +790,9 @@ named so that nothing collides with a corpus path:
                       the corpus holds under it
 ``oid/<arc>/``        one node of the registration tree, and its
                       children
-``browse/``           the entry point, and the module list
+``browse/``           the entry point: what the corpus holds in figures,
+                      the most recently revised modules of each tier, and
+                      the module list
 ====================  ==================================================
 
 .. code-block:: sh
@@ -797,8 +802,32 @@ named so that nothing collides with a corpus path:
        --oid-registry=smi-numbers.xml --oid-registry=pen-snapshot.csv \
        --site-name="pysnmp/mibs"
 
-Over pysnmp/mibs' 5,510 modules that is **7,346 pages and 220 MB in 18
-seconds**, on top of the build that produced the corpus.
+Over a corpus of |corpus_modules| modules that is |corpus_pages| pages and a
+few hundred megabytes, in **seconds rather than minutes** on top of the build
+that produced the corpus.
+
+What the entry point states
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``browse/`` leads with the module count, then a tile per figure the build
+already computed: modules per tier, enterprise arcs registered under, nodes in
+the arc index, objects, notifications and textual conventions defined, modules
+served with a patch applied to the publisher's text, and modules whose import
+closure names something the corpus does not hold. A figure of zero gets no
+tile, so a build given no arc registry states nothing about arcs rather than
+stating none.
+
+Under the figures, one table per tier -- standard, Internet-Draft, vendor --
+gives the most recently revised modules of that tier, by the LAST-UPDATED or
+REVISION date the module itself carries. Split by tier because a corpus of
+thousands of vendor modules and a few hundred standard ones has no recent
+standard revision in a single list, and the standard modules are what a reader
+resolving an OID is looking at.
+
+Every figure is a sum over the module pages the build renders, taken as it
+renders them, so the entry point costs no second pass over the corpus. The
+figures are in the bytes like everything else here: the front page is the
+first thing a crawler reads.
 
 Where the repairs come from
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -877,11 +906,13 @@ Three rules keep it that way, and each is its own module:
   after it. ``page-size`` sets how long a list gets first, as one number for
   every list or as an object naming them -- ``{"browse": 500, "entity": 200}``.
   The module list is the site's front door and wants few pages; a registrant's
-  list is reached by somebody already narrowed to one vendor, and Cisco's
-  1,341 modules at the same size would be three pages of 500 links each.
+  list is reached by somebody already narrowed to one vendor, and the largest
+  vendors hold enough modules that the same size gives them several pages of
+  500 links each.
 - the list of modules importing a given one is capped. It is the one list on a
-  module page with no natural bound: 1,461 modules in pysnmp/mibs import
-  ``IF-MIB``. The count is the fact worth stating.
+  module page with no natural bound: a large fraction of a corpus imports
+  ``IF-MIB``, and nearly all of it imports ``SNMPv2-SMI``. The count is the
+  fact worth stating.
 
 **No page is an orphan.** The case that breaks this is a structural arc whose
 parent is a module anchor: the parent has no arc page, so only the module page
@@ -912,7 +943,7 @@ always on ``base-url``. Omitted, one origin serves both.
        "base-url": "https://mibsdepot.com",
        "data-url": "https://data.mibsdepot.com",
        "name": "MIBs Depot",
-       "description": "5,500 SNMP MIB modules from their publishers.",
+       "description": "SNMP MIB modules from their publishers.",
        "crawl": {
          "*": {"disallow": ["asn1", "json", "index-v2", "core-db"]},
          "ClaudeBot": {"allow": ["asn1", "json", "index-v2"]}
@@ -927,9 +958,10 @@ names that the build did not produce is skipped rather than written: a rule
 about a tree that is not there would read as though the tree existed.
 
 The policy is per-agent because a search engine and an agent want opposite
-things from the same tree. To the first, 460 MB of ``asn1/`` and ``json/``
-across 11,000 files is crawl budget spent on files with no indexing value; to
-the second they are the point, and ``llms.txt`` sends it there deliberately.
+things from the same tree. To the first, the hundreds of megabytes of
+``asn1/`` and ``json/`` are crawl budget spent on files with no indexing
+value; to the second they are the point, and ``llms.txt`` sends it there
+deliberately.
 The agent list is configuration because crawler names change faster than
 releases.
 
@@ -952,8 +984,8 @@ module's own newest ``REVISION`` or ``LAST-UPDATED``, which is the date its
 content last changed; a page listing modules takes the newest among them.
 
 So **no build clock reaches a sitemap**, and two builds of one corpus produce
-the same one. Over pysnmp/mibs that is 2,635 distinct dates across 7,350 URLs,
-and today's date is not among them. A page describing something with no
+the same one. Over |corpus_pages| URLs the dates are the publishers' own, and
+today's is not among them. A page describing something with no
 readable date is listed without a ``lastmod`` at all -- which says "I do not
 know", where the build date would say something false.
 
@@ -970,9 +1002,10 @@ crossed with ``Dataset``. **The identifiers are the OIDs**, which is the
 point: an OID is a globally unique identifier that already exists, and a
 consumer holding one should be able to match it without reading prose.
 
-It is not free. Enumerating 98,000 definitions adds 40% to the site: 220 MB
-becomes 309 MB. A first cut also carried each term's description and an
-``inDefinedTermSet`` back-reference, which took it to 360 MB; both are gone,
+It is not free. Enumerating every definition a corpus holds adds about 40% to
+the site. A first cut also carried each term's description and an
+``inDefinedTermSet`` back-reference, which took it half again beyond that;
+both are gone,
 the descriptions because they are already in the HTML the JSON-LD sits in, and
 the back-reference because nesting under ``hasDefinedTerm`` already says a term
 belongs to the set.
@@ -984,8 +1017,8 @@ Theming
 stylesheet, so a distribution publishing this beside its own documentation
 makes it look like the rest of that documentation without forking the
 generator. ``$name`` substitution, and an unknown placeholder renders as
-itself rather than raising in the middle of a 5,500-page build -- a page with
-``$oops`` on it is something somebody sees.
+itself rather than raising partway through a build of |corpus_pages| pages --
+a page with ``$oops`` on it is something somebody sees.
 
 A named file that cannot be read is refused rather than ignored: falling back
 would publish a whole site in the wrong skin and say nothing.
@@ -993,10 +1026,10 @@ would publish a whole site in the wrong skin and say nothing.
 What a replacement stylesheet reaches
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The definition tables carry **no element inside a cell**. At 764,000
-definitions over pysnmp/mibs a wrapper per cell was 61 bytes a row -- 47 MB of
-module pages -- so the cells hold their text and the stylesheet reaches them by
-position:
+The definition tables carry **no element inside a cell**. A corpus holds
+|corpus_nodes| definitions, and a wrapper per cell was 61 bytes a row over
+them -- a quarter of the module pages -- so the cells hold their text and the
+stylesheet reaches them by position:
 
 ====================  ================================================
 selector              the column
@@ -1027,19 +1060,13 @@ holds, every module one registrant published, the children of a wide OID node.
 :py:mod:`pysmi.corpus.buckets` decides what the pieces are called.
 
 **Not first letters.** A to Z is the obvious index and it fails on MIB names,
-which are dominated by vendor prefixes rather than spread across the alphabet:
-
-======================================  =======  ==================
-list                                    buckets  largest
-======================================  =======  ==================
-all 5,510 modules, by first letter      25       ``C`` at 1,708
-Cisco's 1,353 modules, by first letter  7        ``C`` at 1,280
-Cisco's, by first seven characters      38       ``CISCO-I`` at 166
-======================================  =======  ==================
-
-1,224 of Cisco's 1,353 modules begin ``CISCO-``. No fixed prefix length gives
-even buckets, and the length that would work differs between the global list
-and one registrant.
+which are dominated by vendor prefixes rather than spread across the alphabet.
+Over a vendor corpus the letter ``C`` takes a third of the modules by itself,
+on the strength of ``CISCO-`` alone, and most letters take almost none.
+Lengthening the prefix does not rescue it: inside a registrant essentially
+every name shares one, so no fixed length gives even buckets, and the length
+that would work differs between the global list and one registrant.
+``--emit=report`` states what a given corpus splits into.
 
 **Not page numbers.** ``page/4/`` is stable only while the list is. Adding one
 module shifts the contents of every later page, so every already-crawled URL
@@ -1249,7 +1276,7 @@ One driver, both corpora
 ------------------------
 
 pysmi's own wheel is built with this driver. ``hatch_build.py`` compiles the
-210 bundled ASN.1 modules into ``pysmi/mibs/pysnmp/`` while the wheel is
+|bundled| bundled ASN.1 modules into ``pysmi/mibs/pysnmp/`` while the wheel is
 built, and it does that by running :py:class:`~pysmi.corpus.driver.CorpusDriver`
 over a corpus of one namespace -- the bundle -- rather than by keeping a
 compile loop of its own. A difference between how pysmi builds the base layer

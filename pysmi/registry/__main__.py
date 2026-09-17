@@ -18,8 +18,8 @@ repository's decision. The default is the whole registry, whole records --
 number, organization, contact and email -- and ``--fields`` narrows the record
 while ``--only`` and ``--only-from`` narrow the rows.
 
-The registry is 66,807 registrations that IANA revises daily, so committing
-all of it means a large file and a large monthly diff. ``--only-from`` reads
+The registry runs to tens of thousands of registrations that IANA revises
+daily, so committing all of it means a large file and a large monthly diff. ``--only-from`` reads
 enterprise numbers one per line, which is what a corpus can produce from its
 own arcs, and is the usual way to write the second form: a snapshot of the
 registrants this corpus actually uses.

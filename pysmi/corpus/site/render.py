@@ -35,7 +35,14 @@ from pysmi.corpus.site.html import (
     tag,
     text,
 )
-from pysmi.corpus.site.model import ArcPage, Definition, EntityPage, ModulePage
+from pysmi.corpus.site.model import (
+    ArcPage,
+    Definition,
+    EntityPage,
+    ModulePage,
+    Overview,
+    Recent,
+)
 from pysmi.corpus.site.theme import Theme
 
 #: Where each kind of page lives, under the site root.
@@ -50,12 +57,27 @@ BROWSE: Final = "browse"
 #: How many reverse dependencies a module page lists before it stops and gives
 #: a count instead.
 #:
-#: This is the one list on a module page with no natural bound. 1,461 modules
-#: in pysnmp/mibs import ``IF-MIB`` and 5,400 import ``SNMPv2-SMI``, which is
-#: 400 KB of links on a page whose own content is 40 KB -- a page about a
-#: base module that is mostly a list of everything else. The count is the fact
-#: worth stating; the names past the first few are not.
+#: This is the one list on a module page with no natural bound. Nearly every
+#: module in a corpus imports ``SNMPv2-SMI``, and a large fraction import
+#: ``IF-MIB``, so an unbounded list runs to an order of magnitude more bytes
+#: than the page's own content -- a page about a base module that is mostly a
+#: list of everything else. The count is the fact worth stating; the names past
+#: the first few are not.
 REVERSE: Final = 50
+
+#: What a tier's module-count tile is called.
+TIER_TILE: Final[dict[str, str]] = {
+    "standard": "Standard modules",
+    "draft": "Internet-Draft modules",
+    "vendor": "Vendor modules",
+}
+
+#: What a tier is called inside the heading of its recent-revisions table.
+TIER_RECENT: Final[dict[str, str]] = {
+    "standard": "standard",
+    "draft": "Internet-Draft",
+    "vendor": "vendor",
+}
 
 
 def root_for(depth: int) -> str:
@@ -117,10 +139,10 @@ def _defs(found: "Sequence[Definition]", *, syntax: bool = True) -> str:
 
     The cells carry no wrapping ``code`` or ``span``: the columns are fixed,
     so the stylesheet reaches them by position and the markup says only what
-    is in them. It reads the same and it is 61 bytes a row smaller, which over
-    a corpus of 764,000 definitions is the difference between 206 MB of module
-    pages and 159. Measured on pysnmp/mibs: mean row 254 bytes, of which 160
-    were markup and 94 the definition.
+    is in them. It reads the same and it is 61 bytes a row smaller, which is a
+    quarter off the module pages of a corpus whose definitions run to the
+    hundreds of thousands. Measured on pysnmp/mibs, the markup around a
+    definition came to more bytes than the definition.
 
     A theme replacing :py:data:`~pysmi.corpus.site.theme.STYLESHEET` styles
     ``.defs td`` by position, and ``.defs.typed`` is the five-column shape --
@@ -546,12 +568,36 @@ def listing_html(
     here: str = "",
     depth: int = 1,
     head: str = "",
+    summary: str = "",
+    listing: str = "",
 ) -> str:
-    """A list page: the browse index, the registrant list, or one bucket of either."""
+    """A list page: the browse index, the registrant list, or one bucket of either.
+
+    Args:
+        theme: the frame to render into.
+        heading: the page's own heading, which is also its breadcrumb.
+        intro: one line saying what the list holds, or ``""``.
+        entries: the list itself, already rendered.
+        base: where this list lives under the site root, for the key strip.
+        buckets: every bucket of the list, so any one is one hop from any
+            other.
+        here: the bucket this page is, or ``""`` for the list's own root.
+        depth: how many directories down the page sits, for relative URLs.
+        head: extra ``<head>`` markup.
+        summary: markup between the intro and the list -- what
+            :py:func:`overview_html` renders for the entry point. Empty on a
+            bucket page, which is a slice of a list rather than a front page.
+        listing: a heading over the list itself. A page carrying a *summary*
+            needs one: the list is then the last of several sections rather
+            than the whole page, and without a heading it reads as a
+            continuation of the section above it.
+    """
     root = root_for(depth)
 
     content = [
         element("p", intro, class_="note") if intro else "",
+        summary,
+        element("h2", listing) if listing else "",
         key_strip(root, buckets, here, base),
         entries,
     ]
@@ -565,6 +611,149 @@ def listing_html(
         breadcrumb=_crumbs(root, ((heading, ""),)),
         content=join(content),
         generator="PySMI",
+    )
+
+
+def figure(count: int) -> str:
+    """A count as a page writes it, grouped so the magnitude is readable."""
+    return f"{count:,}"
+
+
+def _tile(label: str, count: int) -> str:
+    """One figure and what it counts.
+
+    The figure first in the markup as well as on the page: it is what the
+    reader is here for, and a screen reader announcing the label first would
+    read the row as a sentence with the number at the end of it.
+    """
+    return tag(
+        "li",
+        join(
+            (
+                element("span", figure(count), class_="figure"),
+                element("span", label, class_="label"),
+            )
+        ),
+    )
+
+
+def kpis(overview: Overview) -> str:
+    """The corpus in figures.
+
+    Each tile is a count the build already had. A tile whose count is zero is
+    left out rather than rendered as ``0``: a build given no arc names holds
+    no opinion about how many arcs there are, and "0 registrants" states one.
+    """
+    tiles = [
+        (TIER_TILE.get(tier, f"{tier} modules"), count)
+        for tier, count in overview.tiers.items()
+    ]
+
+    tiles += [
+        ("Registrants", overview.registrants),
+        # "OID arcs" rather than "named OID arcs": the arc index carries every
+        # arc the corpus registers at and every prefix of one, and an arc no
+        # registry and no MIB names is in it with an empty name.
+        ("OID arcs", overview.arcs),
+        ("Objects", overview.objects),
+        ("Notifications", overview.notifications),
+        ("Textual conventions", overview.types),
+        ("Repaired modules", overview.repaired),
+        ("Incomplete closures", overview.incomplete),
+    ]
+
+    written = join(_tile(label, count) for label, count in tiles if count)
+
+    return tag("ul", written, class_="kpis") if written else ""
+
+
+def _hero(overview: Overview) -> str:
+    """The one figure the page leads with, and what dates the corpus.
+
+    The module count rather than any of the others, because it is the figure
+    a reader arrives holding a question about, and one per page -- a second
+    number at the same size is two headlines and no lead.
+    """
+    if not overview.modules:
+        return ""
+
+    said = f"module{'' if overview.modules == 1 else 's'} in this corpus"
+
+    if overview.revised:
+        said += f", most recently revised {overview.revised}"
+
+    return tag(
+        "p",
+        join(
+            (
+                element("span", figure(overview.modules), class_="figure"),
+                element("span", said, class_="label"),
+            )
+        ),
+        class_="hero",
+    )
+
+
+def recent_list(root: str, found: "Sequence[Recent]") -> str:
+    """The recently revised modules of one tier, newest first."""
+    rows = [
+        [
+            link(module_url(root, x.module), x.module),
+            text(x.revised),
+            text(x.organization),
+            text(figure(x.definitions)),
+        ]
+        for x in found
+    ]
+
+    return table(
+        ["Module", "Revised", "Organization", "Definitions"],
+        rows,
+        class_="recent",
+    )
+
+
+def overview_html(root: str, overview: Overview) -> str:
+    """The entry point's figures, and what each tier revised most recently.
+
+    Args:
+        root: the prefix that reaches the site root, since the module links
+            in the recent tables are relative like every other link here.
+        overview: the figures, as
+            :py:meth:`pysmi.corpus.site.model.Tally.overview` totalled them.
+
+    Returns:
+        Markup for the entry point, or ``""`` for a corpus of no modules.
+    """
+    if not overview.modules:
+        return ""
+
+    sections = []
+
+    for tier, found in overview.latest.items():
+        named = TIER_RECENT.get(tier, tier)
+        held = overview.tiers.get(tier, 0)
+
+        note = (
+            f"The {figure(held)} {named} module(s) this corpus holds, "
+            f"newest revision first."
+            if len(found) >= held
+            else f"The {figure(len(found))} most recently revised of the "
+            f"{figure(held)} {named} module(s) this corpus holds. The date is "
+            f"the one the module itself carries."
+        )
+
+        sections.append(
+            _section(
+                f"Recently revised {named} modules", recent_list(root, found), note=note
+            )
+        )
+
+    return join(
+        (
+            tag("section", join((_hero(overview), kpis(overview))), class_="overview"),
+            *sections,
+        )
     )
 
 

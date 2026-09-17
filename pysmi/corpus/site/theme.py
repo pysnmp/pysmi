@@ -16,7 +16,8 @@ names files that replace either.
 runtime dependencies are ``ply`` and ``requests`` and a page frame is not a
 reason for a third. ``$name`` substitution is all a frame needs, and
 ``safe_substitute`` means an unknown placeholder in an overridden template
-renders as itself rather than raising in the middle of a 5,500-page build.
+renders as itself rather than raising in the middle of a build of thousands of
+pages.
 
 See pysnmp/pysmi#276.
 """
@@ -173,6 +174,38 @@ ul.keys .here { font-weight: 600; }
 section > :last-child { margin-bottom: 0; }
 .note { color: var(--dim); font-size: 0.9375rem; }
 
+/* The entry point's figures. One hero number, then a tile per count: no
+   chart, because none of these is a series -- they are eight unrelated
+   totals, and a bar chart of unrelated totals invites a comparison that
+   means nothing. */
+.hero { margin: 0.5rem 0 1rem; }
+.hero .figure { display: block; font-size: 3rem; font-weight: 600; line-height: 1.1; }
+.hero .label { color: var(--dim); }
+
+ul.kpis {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+}
+
+ul.kpis li {
+  padding: 0.6rem 0.75rem;
+  background: var(--raised);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+ul.kpis .figure { display: block; font-size: 1.5rem; font-weight: 600; line-height: 1.2; }
+ul.kpis .label { display: block; color: var(--dim); font-size: 0.8125rem; }
+
+/* Dates and counts in a column, so the eye compares them down the column
+   rather than reading each row's digits as a word. */
+.recent td:nth-child(2), .recent td:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.recent td:last-child, .recent th:last-child { text-align: right; }
+
 .defs td { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
 .defs td:first-child { white-space: nowrap; }
 .defs td:last-child, .defs.typed td:nth-child(4) { font-family: inherit; font-size: inherit; }
@@ -183,6 +216,7 @@ section > :last-child { margin-bottom: 0; }
 @media (max-width: 32rem) {
   dl.facts { grid-template-columns: 1fr; gap: 0.1rem; }
   dl.facts dt { margin-top: 0.5rem; }
+  .hero .figure { font-size: 2.25rem; }
 }
 """
 
@@ -205,7 +239,8 @@ class Theme(NamedTuple):
 
         Unknown placeholders survive rather than raising: an overridden
         template with a typo in it should produce a page with ``$oops`` on it,
-        which somebody will see, rather than stopping a build 3,000 pages in.
+        which somebody will see, rather than stopping a build partway through
+        the corpus.
         """
         return string.Template(self.page).safe_substitute(
             {"corpus": self.corpus, **fields}

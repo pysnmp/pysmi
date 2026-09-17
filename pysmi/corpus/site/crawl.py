@@ -121,11 +121,11 @@ class Crawl(NamedTuple):
     #: the catch-all agent.
     #:
     #: A search engine and an agent want opposite policies over the same
-    #: tree: to the first, 460 MB of ``asn1/`` and ``json/`` across 11,000
-    #: files is crawl budget spent on files with no indexing value; to the
-    #: second they are the point. One policy cannot serve both, which is why
-    #: this is per-agent and why the agent list is configuration -- crawler
-    #: names change faster than releases.
+    #: tree: to the first, the hundreds of megabytes of ``asn1/`` and
+    #: ``json/`` are crawl budget spent on files with no indexing value; to
+    #: the second they are the point. One policy cannot serve both, which is
+    #: why this is per-agent and why the agent list is configuration --
+    #: crawler names change faster than releases.
     policy: Mapping[str, Mapping[str, Sequence[str]]] = {}
 
     def url(self, path: str) -> str:
@@ -254,8 +254,8 @@ def module_jsonld(
             nesting under ``hasDefinedTerm`` already says a term belongs to
             this set, and the descriptions are in the HTML this sits in. Both
             were in the first cut and between them they were 148 bytes per
-            term, which over a corpus of 98,000 definitions is 132 MB of
-            duplication.
+            term, which over a corpus's definitions is hundreds of megabytes
+            of duplication.
         corpus: what the corpus is called, as the containing collection.
 
     Returns:

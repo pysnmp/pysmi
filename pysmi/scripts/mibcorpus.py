@@ -123,7 +123,7 @@ def start() -> None:
                 import; nothing else reaches an output tree. This is
                 --resolve-namespace moved from the namespace to the module,
                 and it is what builds a corpus of the three modules a
-                change touched out of a corpus of 5,510 -- the compile
+                change touched out of a corpus of thousands -- the compile
                 still resolves their imports against all of them, which a
                 build over the three files alone could not do. A named
                 module no publishing namespace holds is an error, so a
@@ -172,7 +172,7 @@ def start() -> None:
                 standard, closure, core-db, search-db, entity, arcs,
                 site, report. search-db is the lookup half of core-db --
                 the tables that answer which module rather than what the
-                object is -- which over pysnmp/mibs is 15 MB against 256,
+                object is -- more than an order of magnitude smaller,
                 and is what a site can publish.
                 json-texts is a jsondoc tree with DESCRIPTION and the
                 other texts in it, which costs roughly 70% more on disk

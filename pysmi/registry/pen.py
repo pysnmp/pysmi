@@ -11,21 +11,19 @@ A corpus knows that ``CISCO-ENTITY-ALARM-MIB`` registers under
 the MIB text says so in a form anything can rely on, and the directory a file
 sits in is a filing convention rather than a registration.
 
-The registration is a published fact. Measured against pysnmp/mibs'
-``index-frozen.csv`` (5,347 modules, 95,462 rows) and a registry snapshot of
-2026-09-10 (66,807 entries):
+The registration is a published fact, and nearly every module in a vendor
+corpus registers under ``1.3.6.1.4.1``. The registry names all but a handful
+of the enterprise arcs such a corpus reaches, and most of those it names carry
+a contact email as well.
 
-=========================================  =======
-measured over pysnmp/mibs                    count
-=========================================  =======
-modules registering under ``1.3.6.1.4.1``    5,015
-distinct enterprise arcs                       351
-arcs the registry names                    **350**
-of those, carrying a contact email         **345**
-=========================================  =======
+An arc it does not name is reported as unregistered rather than guessed at. A
+corpus picks up arcs above anything IANA has allocated, and the honest
+rendering of one is that nobody registered it.
 
-One arc does not resolve -- ``1.3.6.1.4.1.1004849``, above anything IANA has
-allocated -- and is reported as unregistered rather than guessed at.
+The build states the figures for the corpus in front of it --
+``mibcorpus --emit=report`` writes them under ``entity`` -- so they are not
+repeated here. A count in a comment is wrong the next time a module is added,
+and a comment to review on every contribution.
 
 Taken as an input. Never bundled, never fetched
 -----------------------------------------------
@@ -144,7 +142,8 @@ class Registrant(NamedTuple):
     contact: str = ""
 
     #: That contact's email, in the registry's own obfuscated form. ``""``
-    #: where there is none: 345 of the 350 arcs pysnmp/mibs uses carry one.
+    #: where there is none, which is the exception -- nearly every arc a
+    #: corpus registers under carries one.
     email: str = ""
 
     @property
@@ -238,10 +237,11 @@ def reduce_registry(
     that repository's decision rather than this function's. The default is the
     whole registry, whole records; a corpus wanting less names less.
 
-    The registry is 66,807 registrations and IANA revises it daily, so a
-    repository committing all of it commits a large file and re-diffs the whole
-    of it every month. *only* is the other choice: keep the registrants this
-    corpus's own arcs use, and accept that a module arriving later under an
+    The registry runs to tens of thousands of registrations and IANA revises
+    it daily, so a repository committing all of it commits a large file and
+    re-diffs the whole of it every month. *only* is the other choice: keep
+    the registrants this corpus's own arcs use, and accept that a module
+    arriving later under an
     arc the snapshot predates goes nameless until the next refresh, which a
     build reports rather than leaving to be found on a rendered page.
 

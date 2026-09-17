@@ -13,14 +13,17 @@ path -- ``asn1/``, ``json/`` and the indexes are published beside these:
 ``mib/<MODULE>/``             one module, everything the corpus holds
 ``entity/<PEN>/``             one registrant, and its modules
 ``oid/<arc>/``                one node of the registration tree
-``browse/``                   the entry point, and the module list
+``browse/``                   the entry point: the corpus in figures, what
+                              each tier revised most recently, and the
+                              module list
 ============================  =========================================
 
-**The page inventory is bounded.** A page per OID would be 98,903 of them over
-pysnmp/mibs; :py:mod:`pysmi.corpus.pages` cuts the OID tree to the arcs above
+**The page inventory is bounded.** A page per OID would be one per definition
+in the corpus; :py:mod:`pysmi.corpus.pages` cuts the OID tree to the arcs above
 the modules, and :py:mod:`pysmi.corpus.buckets` splits the long lists by range
-key rather than by page number, so an added module does not renumber every
-page after it. What is left is about 7,200 pages, which a crawler can finish.
+key rather than by page number, so an added module does not renumber every page
+after it. What is left is a page per module, a page per registrant and a few
+thousand for the tree, which a crawler can finish.
 
 See pysnmp/pysmi#276.
 """
@@ -53,9 +56,9 @@ class PageSizes(NamedTuple):
     One number would do if the lists were alike, and they are not. The module
     list is the site's front door and a reader scrolling it wants few pages;
     a registrant's list is reached by someone already narrowed to one vendor,
-    and Cisco's 1,341 modules at the same size would be three pages of 500
-    links each. Measured over pysnmp/mibs, 500 and 200 are the sizes that
-    fall out. See pysnmp/pysmi#287.
+    and the largest vendors hold enough modules that the same size would give
+    them a handful of pages of 500 links each. Measured over pysnmp/mibs, 500
+    and 200 are the sizes that fall out. See pysnmp/pysmi#287.
     """
 
     #: ``browse/``, the module list.
@@ -237,14 +240,14 @@ def build_site(
     writer.write(STYLESHEET, theme.stylesheet)
 
     held = []
-    models: list[tuple[str, Mapping[str, Any]]] = []
+    models: list[tuple[str, Mapping[str, Any], int]] = []
 
-    for module, document, *_ in documents:
+    for module, document, *rest in documents:
         held.append(module)
-        models.append((module, document))
+        models.append((module, document, _tier(rest[0]) if rest else 0))
 
     held.sort()
-    reverse = model.imported_by(models)
+    reverse = model.imported_by((x[0], x[1]) for x in models)
     registered = dict(anchors or {})
     byModule: dict[str, list[str]] = {}
 
@@ -255,8 +258,9 @@ def build_site(
     dated: dict[str, str] = {}
     names = dict(arcs or {})
     below = model.children_of(names) if names else {}
+    tally = model.Tally()
 
-    for module, document in models:
+    for module, document, tier in models:
         origin = (provenance or {}).get(module) or {}
         needs = (closure or {}).get(module) or {}
         defects, diff = (patches or {}).get(module) or ((), "")
@@ -296,9 +300,13 @@ def build_site(
             revised,
         )
         dated[module] = revised
+        tally.add(page, tier=model.tier_name(tier), revised=revised)
         written += 1
 
-    listings = _write_browse(writer, theme, held, sizes.browse, dated, crawl)
+    overview = tally.overview(arcs=len(names), registrants=len(entities or {}))
+    listings = _write_browse(
+        writer, theme, held, sizes.browse, dated, crawl, overview=overview
+    )
     registrants = _write_entities(
         writer, theme, entities or {}, sizes.entity, dated, crawl
     )
@@ -330,6 +338,21 @@ def build_site(
     )
 
     return report
+
+
+def _tier(declared: Any) -> int:
+    """A document row's tier rank, for a row that may not carry a usable one.
+
+    ``read_documents`` yields the rank the namespace declared, and a caller
+    assembling rows by hand may leave it out. Anything that is not a rank
+    counts as tier 0, which is what a corpus of standard modules alone should
+    be -- the same reading :py:func:`pysmi.corpus.index.read_documents` gives
+    a module whose namespace declared none.
+    """
+    if isinstance(declared, bool) or not isinstance(declared, int):
+        return 0
+
+    return declared
 
 
 def _module_head(
@@ -411,9 +434,10 @@ def _write_crawl(
     the tree, so it cannot list a URL this build did not write -- which is the
     failure that makes a sitemap worse than none.
 
-    One file per tree, and the index emitted regardless. At 7,346 URLs one
-    file is well inside the protocol's 50,000 and 50 MB, but a downstream
-    corpus may not be and exceeding it fails silently.
+    One file per tree, and the index emitted regardless. A corpus the size of
+    pysnmp/mibs' is well inside the protocol's 50,000 URLs and 50 MB in one
+    file, but a downstream corpus may not be and exceeding it fails
+    silently.
     """
     trees: dict[str, list[tuple[str, str]]] = {}
 
@@ -485,9 +509,18 @@ def _write_browse(
     size: int,
     dated: "Mapping[str, str]",
     crawl: "site_crawl.Crawl | None" = None,
+    *,
+    overview: "model.Overview | None" = None,
 ) -> int:
-    """The entry point and the module list, bucketed where it is long."""
+    """The entry point and the module list, bucketed where it is long.
+
+    The figures and the recent revisions go on ``browse/`` alone. A bucket is
+    a slice of one list, reached by a reader already scanning module names,
+    and repeating the front page above each of twelve of them states the same
+    facts twelve times and moves the list below the fold.
+    """
     found = buckets(held, size)
+    summary = render.overview_html(render.root_for(1), overview) if overview else ""
     written = 0
 
     for bucket in found:
@@ -497,12 +530,19 @@ def _write_browse(
         page = render.listing_html(
             theme,
             heading="Modules",
-            intro=f"{len(held)} module(s) in this corpus.",
+            # The hero figure on the entry point says how many modules the
+            # corpus holds, so the intro would repeat it. A bucket page has
+            # no hero and the count is what says where the reader is.
+            intro=""
+            if not bucket.key and summary
+            else f"{len(held)} module(s) in this corpus.",
             entries=entries,
             base=render.BROWSE,
             buckets=found,
             here=bucket.key,
             depth=2 if bucket.key else 1,
+            summary="" if bucket.key else summary,
+            listing="" if bucket.key or not summary else "All modules",
             head=_listing_head(
                 crawl,
                 "Modules",
@@ -529,12 +569,16 @@ def _write_browse(
             render.listing_html(
                 theme,
                 heading="Modules",
-                intro=f"{len(held)} module(s) in this corpus, in {len(found)} ranges.",
+                intro=""
+                if summary
+                else f"{len(held)} module(s) in this corpus, in {len(found)} ranges.",
                 entries="",
                 base=render.BROWSE,
                 buckets=found,
                 here="",
                 depth=1,
+                summary=summary,
+                listing="All modules" if summary else "",
                 head=_listing_head(
                     crawl,
                     "Modules",
@@ -657,8 +701,9 @@ def _write_entities(
     # A bucketed list still needs something at entity/ itself: every
     # registrant page's breadcrumb points there, and so does llms.txt. The
     # module list has had this since it was written; this one did not, and the
-    # corpus it is built for buckets at 356 registrants where the fixtures did
-    # not bucket at all -- 369 breadcrumbs pointed at a page nothing wrote.
+    # corpus it is built for holds enough registrants to bucket where the
+    # fixtures did not bucket at all -- every breadcrumb pointed at a page
+    # nothing wrote.
     if len(listed) > 1:
         writer.page(
             render.ENTITY,

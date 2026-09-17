@@ -134,10 +134,10 @@ def module_text(text: str, mibname: str) -> str:
     """The text of one module, out of a file that may hold several.
 
     A vendor publishing a product line as one file is an ordinary shape --
-    Extreme's ``extreme.mib`` holds thirty-four modules -- and a corpus keyed
-    by module name has nowhere to put such a file but under each of the names
-    in it. Storing the whole file under each is what that costs: in
-    pysnmp/mibs it turned 758 KB of ASN.1 into 26 MB of published tree, and
+    Extreme's ``extreme.mib`` holds dozens of modules -- and a corpus keyed by
+    module name has nowhere to put such a file but under each of the names in
+    it. Storing the whole file under each is what that costs: in
+    pysnmp/mibs it squared the size of a vendor bundle's published tree, and
     left every one of those modules recording a source it did not come from.
 
     This is the text to publish for one of them. The file's leading comment is
