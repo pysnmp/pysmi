@@ -27,28 +27,37 @@ from pysmi.corpus.site.build import (
     build_site,
 )
 from pysmi.corpus.site.model import (
+    RECENT,
     ArcPage,
     Definition,
     EntityPage,
     ModulePage,
+    Overview,
+    Recent,
+    Tally,
     arc_pages,
     entity_page,
     imported_by,
     module_page,
+    tier_name,
 )
 from pysmi.corpus.site.theme import PAGE, PLACEHOLDERS, Theme, load_theme
 
 __all__ = [
     "PAGE",
     "PLACEHOLDERS",
+    "RECENT",
     "SCHEMA_VERSION",
     "STYLESHEET",
     "ArcPage",
     "Definition",
     "EntityPage",
     "ModulePage",
+    "Overview",
     "PageSizes",
+    "Recent",
     "SiteReport",
+    "Tally",
     "Theme",
     "arc_pages",
     "build_site",
@@ -56,4 +65,5 @@ __all__ = [
     "imported_by",
     "load_theme",
     "module_page",
+    "tier_name",
 ]

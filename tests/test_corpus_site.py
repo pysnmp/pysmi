@@ -28,8 +28,15 @@ from pysmi.corpus.site import Theme, build_site, load_theme, module_page
 from pysmi.corpus.site.build import PageSizes
 from pysmi.corpus.site.crawl import Crawl, clip, newest
 from pysmi.corpus.site.html import attributes, paragraphs, table, tag, text
-from pysmi.corpus.site.model import children_of, entity_page, imported_by
-from pysmi.corpus.site.render import module_html
+from pysmi.corpus.site.model import (
+    RECENT,
+    Tally,
+    children_of,
+    entity_page,
+    imported_by,
+    tier_name,
+)
+from pysmi.corpus.site.render import figure, kpis, module_html, overview_html
 from pysmi.corpus.site.theme import PAGE, PLACEHOLDERS
 
 #: A module as JsonCodeGen emits it, with prose, so a page has something to
@@ -1206,6 +1213,270 @@ class PageSizeTestCase(unittest.TestCase):
 
         self.assertEqual(4, sum(1 for x in written if x.startswith("browse/")))
         self.assertEqual(1, sum(1 for x in written if x.startswith("entity/41/")))
+
+
+class OverviewTestCase(unittest.TestCase):
+    """What the entry point states about the corpus as a whole.
+
+    Every figure is a sum over the module pages the build already rendered,
+    and every one of them is in the bytes -- the front page is the first thing
+    a crawler reads, and a figure it has to fetch is a figure it does not see.
+    """
+
+    def tally(self, *rows):
+        """A tally over ``(module, jsondoc, tier, revised)`` rows."""
+        found = Tally()
+
+        for name, document, tier, revised in rows:
+            found.add(
+                module_page(name, document), tier=tier_name(tier), revised=revised
+            )
+
+        return found
+
+    def testItCountsModulesByTier(self):
+        overview = self.tally(
+            ("ALPHA-MIB", ALPHA, 0, "2024-01-01"),
+            ("BETA-MIB", BETA, 2, "2024-02-02"),
+        ).overview()
+
+        self.assertEqual(2, overview.modules)
+        self.assertEqual({"standard": 1, "vendor": 1}, dict(overview.tiers))
+
+    def testTiersComeOutInRankOrder(self):
+        """Rather than in the order the modules happened to be read, so two
+        builds of one corpus state it the same way."""
+        overview = self.tally(
+            ("BETA-MIB", BETA, 2, "2024-02-02"),
+            ("ALPHA-MIB", ALPHA, 0, "2024-01-01"),
+        ).overview()
+
+        self.assertEqual(["standard", "vendor"], list(overview.tiers))
+
+    def testATierWithNoModulesIsNotNamed(self):
+        """A count of zero states an opinion about a tier the corpus does not
+        draw from."""
+        overview = self.tally(("ALPHA-MIB", ALPHA, 0, "2024-01-01")).overview()
+
+        self.assertNotIn("vendor", overview.tiers)
+        self.assertNotIn("draft", overview.tiers)
+
+    def testItSumsWhatTheCorpusDefines(self):
+        overview = self.tally(
+            ("ALPHA-MIB", ALPHA, 0, "2024-01-01"),
+            ("BETA-MIB", BETA, 2, "2024-02-02"),
+        ).overview()
+
+        self.assertEqual(
+            (
+                len(module_page("ALPHA-MIB", ALPHA).objects)
+                + len(module_page("BETA-MIB", BETA).objects)
+            ),
+            overview.objects,
+        )
+        self.assertEqual(1, overview.notifications)
+        self.assertEqual(1, overview.types)
+
+    def testARepairedModuleIsCounted(self):
+        found = Tally()
+        found.add(
+            module_page("ALPHA-MIB", ALPHA, defects=(("PATCH-1", ""),), patch="--- a\n")
+        )
+        found.add(module_page("BETA-MIB", BETA))
+
+        self.assertEqual(1, found.overview().repaired)
+
+    def testAnIncompleteClosureIsCounted(self):
+        found = Tally()
+        found.add(module_page("ALPHA-MIB", ALPHA, missing=("GAMMA-MIB",)))
+        found.add(module_page("BETA-MIB", BETA))
+
+        self.assertEqual(1, found.overview().incomplete)
+
+    def testTheLatestIsNewestFirstWithinItsTier(self):
+        overview = self.tally(
+            ("ALPHA-MIB", ALPHA, 2, "2024-01-01"),
+            ("BETA-MIB", BETA, 2, "2026-03-04"),
+            ("GAMMA-MIB", BETA, 2, "2025-02-03"),
+        ).overview()
+
+        self.assertEqual(
+            ["BETA-MIB", "GAMMA-MIB", "ALPHA-MIB"],
+            [x.module for x in overview.latest["vendor"]],
+        )
+
+    def testTheLatestIsBounded(self):
+        """The list answers what moved lately, which a handful of rows
+        answers. The whole corpus stays one hop away through the range
+        keys."""
+        overview = self.tally(
+            *(
+                (f"M{x:03}-MIB", BETA, 2, f"2024-01-{x + 1:02}")
+                for x in range(RECENT + 5)
+            )
+        ).overview()
+
+        self.assertEqual(RECENT, len(overview.latest["vendor"]))
+
+    def testEachTierHasItsOwnList(self):
+        """Which is the point of splitting them: a corpus of 5,000 vendor
+        modules and a few hundred standard ones has no recent standard
+        revision in a single list, and the standard modules are what a reader
+        resolving an OID is looking at."""
+        overview = self.tally(
+            ("ALPHA-MIB", ALPHA, 0, "2020-01-01"),
+            ("BETA-MIB", BETA, 2, "2026-03-04"),
+        ).overview()
+
+        self.assertEqual(["ALPHA-MIB"], [x.module for x in overview.latest["standard"]])
+        self.assertEqual(["BETA-MIB"], [x.module for x in overview.latest["vendor"]])
+
+    def testAModuleWithNoReadableDateIsCountedAndNotListed(self):
+        """HPR-MIB carries 970514000000Z -- year 9705, month 14 -- and a date
+        that cannot be placed cannot order a list."""
+        overview = self.tally(("ALPHA-MIB", ALPHA, 2, "")).overview()
+
+        self.assertEqual(1, overview.modules)
+        self.assertEqual({}, dict(overview.latest))
+        self.assertEqual("", overview.revised)
+
+    def testTheCorpusDateIsTheNewestAnyModuleCarries(self):
+        overview = self.tally(
+            ("ALPHA-MIB", ALPHA, 0, "2024-01-01"),
+            ("BETA-MIB", BETA, 2, "2026-03-04"),
+        ).overview()
+
+        self.assertEqual("2026-03-04", overview.revised)
+
+
+class OverviewRenderTestCase(unittest.TestCase):
+    """The figures as the entry point renders them."""
+
+    def overview(self, **kwargs):
+        found = Tally()
+        found.add(
+            module_page("ALPHA-MIB", ALPHA), tier="standard", revised="2024-01-01"
+        )
+        found.add(module_page("BETA-MIB", BETA), tier="vendor", revised="2026-03-04")
+
+        return found.overview(**kwargs)
+
+    def testTheFiguresAreGrouped(self):
+        """A reader scanning a headline reads 14,752 and not 14752."""
+        self.assertEqual("14,752", figure(14752))
+
+    def testThereIsOneHeroFigure(self):
+        """Two numbers at the same size are two headlines and no lead."""
+        written = overview_html("../", self.overview())
+
+        self.assertEqual(1, written.count('class="hero"'))
+
+    def testTheHeroIsTheModuleCount(self):
+        written = overview_html("../", self.overview())
+
+        self.assertIn('<span class="figure">2</span>', written)
+        self.assertIn("modules in this corpus", written)
+
+    def testAZeroCountIsNoTile(self):
+        """A build given no arc names holds no opinion about how many arcs
+        there are, and a tile reading 0 states one."""
+        self.assertNotIn("OID arcs", kpis(self.overview()))
+        self.assertIn("OID arcs", kpis(self.overview(arcs=7)))
+
+    def testEveryTierGetsASection(self):
+        written = overview_html("../", self.overview())
+
+        self.assertIn("Recently revised standard modules", written)
+        self.assertIn("Recently revised vendor modules", written)
+
+    def testTheModuleLinksAreRelativeToTheSiteRoot(self):
+        written = overview_html("../", self.overview())
+
+        self.assertIn('href="../mib/BETA-MIB/"', written)
+
+    def testACorpusOfNoModulesRendersNothing(self):
+        """A heading over an empty tile row reads as a fact the corpus holds
+        and is not showing."""
+        self.assertEqual("", overview_html("../", Tally().overview()))
+
+    def testTheOrganizationIsEscaped(self):
+        """It is whatever a vendor typed into ORGANIZATION."""
+        found = Tally()
+        found.add(module_page("ALPHA-MIB", ALPHA), tier="vendor", revised="2024-01-01")
+
+        self.assertNotIn("<Networks>", overview_html("../", found.overview()))
+
+
+class BrowseOverviewTestCase(unittest.TestCase):
+    """Where the figures land in a built tree."""
+
+    def setUp(self):
+        self.root = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.root, True)
+        self.out = os.path.join(self.root, "site")
+
+    def pages(self):
+        found = {}
+
+        for base, _dirs, files in os.walk(self.out):
+            for name in files:
+                if name.endswith(".html"):
+                    path = os.path.relpath(os.path.join(base, name), self.out)
+                    with open(os.path.join(base, name), encoding="utf-8") as fileObj:
+                        found[path.replace(os.sep, "/")] = fileObj.read()
+
+        return found
+
+    def testTheEntryPointCarriesThem(self):
+        build_site(self.out, corpus(**{"ALPHA-MIB": ALPHA, "BETA-MIB": BETA}))
+
+        self.assertIn('class="kpis"', self.pages()["browse/index.html"])
+
+    def testTheyAreInTheBytes(self):
+        """The front page is the first thing a crawler reads, and the crawlers
+        this exists to reach do not run JavaScript."""
+        build_site(self.out, corpus(**{"ALPHA-MIB": ALPHA, "BETA-MIB": BETA}))
+        written = self.pages()["browse/index.html"]
+
+        self.assertNotIn("<script", written)
+        self.assertIn("Recently revised", written)
+
+    def testABucketPageIsAListAndNotAFrontPage(self):
+        """Repeating the figures above each of twelve buckets states the same
+        facts twelve times and moves the list below the fold."""
+        names = {
+            f"M{x:03}-MIB": dict(BETA, meta={"module": f"M{x:03}-MIB"})
+            for x in range(7)
+        }
+
+        build_site(self.out, corpus(**names), size=3)
+        written = self.pages()
+        keys = [x.key for x in buckets(sorted(names), 3)]
+
+        self.assertIn('class="kpis"', written["browse/index.html"])
+
+        for key in keys:
+            with self.subTest(key=key):
+                self.assertNotIn('class="kpis"', written[f"browse/{key}/index.html"])
+
+    def testTheEntryPointStatesTheCountOnceRatherThanTwice(self):
+        build_site(self.out, corpus(**{"ALPHA-MIB": ALPHA, "BETA-MIB": BETA}))
+
+        self.assertNotIn(
+            "2 module(s) in this corpus", self.pages()["browse/index.html"]
+        )
+
+    def testTheTiersComeFromTheDocuments(self):
+        """``read_documents`` yields the tier rank its namespace declared, and
+        the page states the name."""
+        build_site(
+            self.out,
+            [("ALPHA-MIB", ALPHA, 0, 0), ("BETA-MIB", BETA, 2, 0)],
+        )
+        written = self.pages()["browse/index.html"]
+
+        self.assertIn("Standard modules", written)
+        self.assertIn("Vendor modules", written)
 
 
 class EmitPathTestCase(unittest.TestCase):

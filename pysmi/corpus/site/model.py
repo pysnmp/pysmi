@@ -21,6 +21,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any, Final, NamedTuple
 
 from pysmi.corpus.arcs import Arc, prefixes
+from pysmi.corpus.namespace import DEFAULT_TIER, TIERS
 
 #: jsondoc classes that are a module's own definitions rather than its
 #: structure, in the order a page renders them.
@@ -42,6 +43,14 @@ CONFORMANCE: Final[tuple[str, ...]] = (
 #: a TEXTUAL-CONVENTION comes out as; ``type`` is a plain type assignment,
 #: which is rarer and belongs in the same table.
 TYPES: Final[tuple[str, ...]] = ("textualconvention", "type")
+
+#: How many recently revised modules the front page lists per tier.
+#:
+#: The list answers "what moved lately", which a handful of rows answers and a
+#: longer one does not: past the first few the reader is reading an arbitrary
+#: slice of a corpus whose modules were nearly all revised on some date or
+#: other. The whole corpus stays one hop away through the range keys.
+RECENT: Final[int] = 10
 
 #: What a jsondoc class is called on a page.
 KIND: Final[dict[str, str]] = {
@@ -146,6 +155,184 @@ class ArcPage(NamedTuple):
     #: for arcs where none is -- an arc that *is* a module resolves to the
     #: module page instead -- so this is what the parent's child rows read.
     module: str = ""
+
+
+class Recent(NamedTuple):
+    """One module's row in a recently revised list."""
+
+    module: str
+
+    #: The newest date the module itself carries -- its LAST-UPDATED or the
+    #: latest REVISION -- as ``YYYY-MM-DD``.
+    revised: str
+
+    #: The ORGANIZATION the MODULE-IDENTITY names, or ``""``.
+    organization: str
+
+    #: How many OBJECT-TYPEs and NOTIFICATION-TYPEs it defines, so a row says
+    #: how much moved rather than only that something did.
+    definitions: int
+
+
+class Overview(NamedTuple):
+    """What the corpus holds, as the entry point states it.
+
+    Every figure is something the build computed while writing the pages. A
+    front page that asked a question the build had not already answered would
+    be a second pass over the corpus for the sake of a headline.
+    """
+
+    #: Modules published, which is the figure the page leads with.
+    modules: int
+
+    #: Modules per tier, in :py:data:`pysmi.corpus.namespace.TIERS` order and
+    #: holding only the tiers this corpus has modules in.
+    tiers: Mapping[str, int]
+
+    #: Enterprise arcs the corpus registers under, or 0 for a build that
+    #: wrote no registrant pages.
+    registrants: int
+
+    #: Nodes in the arc index, or 0 for a build given no arc names.
+    arcs: int
+
+    #: OBJECT-TYPEs and OBJECT-IDENTITYs across the corpus.
+    objects: int
+
+    #: NOTIFICATION-TYPEs across the corpus.
+    notifications: int
+
+    #: TEXTUAL-CONVENTIONs and type assignments across the corpus.
+    types: int
+
+    #: Modules served with a patch applied to the publisher's text.
+    repaired: int
+
+    #: Modules whose import closure names something the corpus does not hold.
+    incomplete: int
+
+    #: The newest date any module in the corpus carries, as ``YYYY-MM-DD``.
+    revised: str
+
+    #: Per tier, the most recently revised modules, newest first. Same keys
+    #: and same order as :py:attr:`tiers`, a tier none of whose modules
+    #: carries a readable date aside.
+    latest: Mapping[str, tuple[Recent, ...]]
+
+
+def tier_name(rank: int) -> str:
+    """What a tier rank is called, as a namespace declares it.
+
+    ``read_documents`` yields the rank rather than the name, since ranking is
+    what the index wants it for. A page states the name.
+    """
+    return TIERS[rank] if 0 <= rank < len(TIERS) else DEFAULT_TIER
+
+
+class Tally:
+    """Running counts over the module pages a build renders.
+
+    Accumulated as the pages are written rather than in a pass of its own: the
+    figures are sums over the models the build already built, and reading the
+    jsondoc tree again to total them is a second parse of the whole corpus for
+    numbers that were on hand.
+    """
+
+    def __init__(self) -> None:
+        """A tally holding nothing, which is a corpus of no modules."""
+        self.modules = 0
+        self.objects = 0
+        self.notifications = 0
+        self.types = 0
+        self.repaired = 0
+        self.incomplete = 0
+        self.tiers: dict[str, int] = {}
+        self.dated: dict[str, list[Recent]] = {}
+
+    def add(
+        self, page: ModulePage, *, tier: str = DEFAULT_TIER, revised: str = ""
+    ) -> None:
+        """One module's page, counted.
+
+        Args:
+            page: the model, as
+                :py:func:`~pysmi.corpus.site.model.module_page` built it.
+            tier: the tier its namespace declared, from
+                :py:func:`~pysmi.corpus.site.model.tier_name`.
+            revised: the newest date the module carries, as
+                :py:func:`pysmi.corpus.site.crawl.newest` read it. A module
+                carrying none is counted and is not listed as a recent
+                revision, since there is no date to place it by.
+        """
+        self.modules += 1
+        self.tiers[tier] = self.tiers.get(tier, 0) + 1
+        self.objects += len(page.objects)
+        self.notifications += len(page.notifications)
+        self.types += len(page.types)
+
+        if page.defects or page.patch:
+            self.repaired += 1
+
+        if page.missing:
+            self.incomplete += 1
+
+        if revised:
+            self.dated.setdefault(tier, []).append(
+                Recent(
+                    module=page.module,
+                    revised=revised,
+                    organization=page.organization,
+                    definitions=len(page.objects) + len(page.notifications),
+                )
+            )
+
+    def overview(
+        self, *, registrants: int = 0, arcs: int = 0, recent: int = RECENT
+    ) -> Overview:
+        """The figures as the entry point states them.
+
+        Args:
+            registrants: enterprise arcs the corpus registers under.
+            arcs: nodes in the arc index.
+            recent: how many modules each tier's recent list holds.
+
+        Returns:
+            The overview. Tiers come out in
+            :py:data:`pysmi.corpus.namespace.TIERS` order rather than in the
+            order the modules happened to be read, so two builds of one
+            corpus state it the same way.
+        """
+        ordered = [x for x in TIERS if self.tiers.get(x)]
+        ordered += [x for x in sorted(self.tiers) if x not in TIERS]
+
+        return Overview(
+            modules=self.modules,
+            tiers={x: self.tiers[x] for x in ordered},
+            registrants=registrants,
+            arcs=arcs,
+            objects=self.objects,
+            notifications=self.notifications,
+            types=self.types,
+            repaired=self.repaired,
+            incomplete=self.incomplete,
+            revised=max(
+                (y.revised for x in self.dated.values() for y in x), default=""
+            ),
+            latest={
+                x: tuple(
+                    sorted(
+                        self.dated[x], key=lambda y: (_descending(y.revised), y.module)
+                    )[:recent]
+                )
+                for x in ordered
+                if self.dated.get(x)
+            },
+        )
+
+
+def _descending(date: str) -> tuple[int, ...]:
+    """A ``YYYY-MM-DD`` as a sort key placing the latest date first."""
+    return tuple(-int(x) for x in date.split("-") if x.isdigit())
 
 
 def _flatten(syntax: Any) -> str:
@@ -387,8 +574,8 @@ def children_of(found: Mapping[str, Arc]) -> dict[str, tuple[Arc, ...]]:
     """The arcs directly below each arc, in tree order.
 
     One pass over the arc index, since both the OID tree's pages and the
-    module pages need it and walking 14,752 arcs twice to build the same map
-    is the kind of cost that only shows at corpus scale.
+    module pages need it and walking every arc twice to build the same map is
+    the kind of cost that only shows at corpus scale.
     """
     children: dict[str, list[Arc]] = {}
 

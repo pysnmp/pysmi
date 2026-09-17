@@ -787,7 +787,9 @@ named so that nothing collides with a corpus path:
                       the corpus holds under it
 ``oid/<arc>/``        one node of the registration tree, and its
                       children
-``browse/``           the entry point, and the module list
+``browse/``           the entry point: what the corpus holds in figures,
+                      the most recently revised modules of each tier, and
+                      the module list
 ====================  ==================================================
 
 .. code-block:: sh
@@ -799,6 +801,28 @@ named so that nothing collides with a corpus path:
 
 Over pysnmp/mibs' 5,510 modules that is **7,346 pages and 220 MB in 18
 seconds**, on top of the build that produced the corpus.
+
+What the entry point states
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``browse/`` leads with the module count, then a tile per figure the build
+already computed: modules per tier, enterprise arcs registered under, nodes in
+the arc index, objects, notifications and textual conventions defined, modules
+served with a patch applied to the publisher's text, and modules whose import
+closure names something the corpus does not hold. A figure of zero gets no tile, so a build given no
+arc registry states nothing about arcs rather than stating none.
+
+Under the figures, one table per tier -- standard, Internet-Draft, vendor --
+gives the most recently revised modules of that tier, by the LAST-UPDATED or
+REVISION date the module itself carries. Split by tier because a corpus of
+thousands of vendor modules and a few hundred standard ones has no recent
+standard revision in a single list, and the standard modules are what a reader
+resolving an OID is looking at.
+
+Every figure is a sum over the module pages the build renders, taken as it
+renders them, so the entry point costs no second pass over the corpus. The
+figures are in the bytes like everything else here: the front page is the
+first thing a crawler reads.
 
 Where the repairs come from
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
