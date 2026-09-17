@@ -3,6 +3,16 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.6.0](https://github.com/pysnmp/pysmi/compare/v5.5.0...v5.6.0) (2026-09-17)
+
+### Features
+
+* bundle four standard modules observium ships and we did not ([2d480e0](https://github.com/pysnmp/pysmi/commit/2d480e08ecf303859e0db60c74dce0663c9403b4))
+
+### Bug Fixes
+
+* keep only the module the exclusion policy does not cover ([47e90f5](https://github.com/pysnmp/pysmi/commit/47e90f589b79024de44ca307489f72866396a028))
+
 ## [5.5.0](https://github.com/pysnmp/pysmi/compare/v5.4.0...v5.5.0) (2026-09-17)
 
 ### Features
