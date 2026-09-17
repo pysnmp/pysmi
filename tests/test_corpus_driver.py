@@ -138,6 +138,35 @@ def squatter():
 BROKEN = "BROKEN-MIB DEFINITIONS ::= BEGIN this is not SMI at all\n"
 
 
+#: A module using TruthValue without importing it. It compiles, because the
+#: symbol is undefined, unimported and exported by exactly one base module, so
+#: the compiler supplies the import -- see ``repairImports``. The text still
+#: does not say what it means, which is why the report has to name it.
+UNIMPORTED = textwrap.dedent(
+    """\
+    UNIMPORTED-MIB DEFINITIONS ::= BEGIN
+    IMPORTS
+        MODULE-IDENTITY, OBJECT-TYPE, enterprises
+            FROM SNMPv2-SMI;
+
+    unimportedMI MODULE-IDENTITY
+        LAST-UPDATED "202401010000Z"
+        ORGANIZATION "test"
+        CONTACT-INFO "test"
+        DESCRIPTION  "uses TruthValue without importing it"
+        ::= { enterprises 78 }
+
+    unimportedThing OBJECT-TYPE
+        SYNTAX      TruthValue
+        MAX-ACCESS  read-only
+        STATUS      current
+        DESCRIPTION "a thing"
+        ::= { unimportedMI 1 }
+    END
+    """
+)
+
+
 class CorpusTestCase(unittest.TestCase):
     """A scratch corpus of two vendor namespaces, one of them defective."""
 
@@ -924,6 +953,57 @@ class ErrorPolicyTestCase(CorpusTestCase):
 
         self.assertIn("BROKEN-MIB", report["failed"]["json"])
         self.assertEqual(2, len(report["namespaces"]))
+
+
+class RepairTestCase(CorpusTestCase):
+    """A repair is neither a failure nor nothing, so the report names it.
+
+    The compiler supplies an import a module forgot when the symbol is
+    undefined, unimported and exported by exactly one base module. That is a
+    compile that succeeded on text which does not, strictly, say what it
+    means, and until this the only trace of one was a log line. A corpus that
+    would rather carry the fix in its MIBs than have it supplied every build
+    -- pysnmp/mibs is one -- needs to be able to read the answer back.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.write("alpha", "UNIMPORTED-MIB", UNIMPORTED)
+
+    def testTheRepairedModuleIsNamedWithWhatWasSupplied(self):
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        for destination in ("notexts", "texts", "json"):
+            self.assertEqual(
+                {"TruthValue": "SNMPv2-TC"},
+                report.repaired[destination]["UNIMPORTED-MIB"],
+            )
+
+    def testAModuleNeedingNoRepairIsNotNamed(self):
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertNotIn("ALPHA-MIB", report.repaired["json"])
+
+    def testItReachesTheWrittenReport(self):
+        CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        with open(os.path.join(self.root, "output", "report.json")) as fileObj:
+            report = json.load(fileObj)
+
+        self.assertEqual(
+            {"TruthValue": "SNMPv2-TC"},
+            report["repaired"]["json"]["UNIMPORTED-MIB"],
+        )
+
+    def testARepairedModuleStillCompiles(self):
+        report = CorpusDriver(self.namespaces(), self.outputs()).run()
+
+        self.assertEqual({}, report.failed["json"])
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(self.root, "output", "json", "UNIMPORTED-MIB.json")
+            )
+        )
 
 
 class PrecedenceTestCase(CorpusTestCase):
