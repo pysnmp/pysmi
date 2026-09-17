@@ -261,12 +261,40 @@ def _scan(directories: list[str]) -> dict[Path, Defect]:
     return found
 
 
+def _hunks(patch: str) -> frozenset[str]:
+    """The diff hunks in a patch, as a set.
+
+    Args:
+        patch: the contents of a ``.patch`` file.
+
+    Returns:
+        One entry per ``@@`` hunk, the header line and its body. The ``---``
+        and ``+++`` lines are left out: they name the file, which is the same
+        file either way here.
+    """
+    out: list[list[str]] = []
+
+    for line in split_patch(patch)[1].split("\n"):
+        if line.startswith("@@"):
+            out.append([line])
+        elif out and not line.startswith(("---", "+++", "diff ")):
+            out[-1].append(line)
+
+    return frozenset("\n".join(hunk).rstrip() for hunk in out)
+
+
 def _check(found: dict[Path, Defect], out: Path) -> list[str]:
     """Compare the patches a tree needs against the ones on disk.
 
-    The comparison is of the diffs. A patch's header is the thing a person
-    wrote about the repair, and a person who improved the wording of a reason
-    has not made the patch stale.
+    The comparison is of the diffs, and of containment rather than equality: a
+    module can need a derived repair *and* carry a hand-written one, and
+    UPS-MIB does -- a missing ``mib-2`` import this derives, and two ranges a
+    person narrowed to fit Integer32. Demanding the whole diff equal the
+    derived one made that module unpatchable for the defect this can see, so
+    the repair it needs has to be in the patch, not be the whole of it.
+
+    A patch's header is the thing a person wrote about the repair, and a
+    person who improved the wording of a reason has not made the patch stale.
 
     Returns:
         One line per disagreement, ready to print. Empty when the directory
@@ -286,7 +314,7 @@ def _check(found: dict[Path, Defect], out: Path) -> list[str]:
             if patch is None:
                 stale.append(f"{defect.mibname}: needs a patch, and none is written")
 
-            elif split_patch(patch)[1] != split_patch(defect.patch)[1]:
+            elif not _hunks(defect.patch) <= _hunks(patch):
                 stale.append(f"{defect.mibname}: its patch is not the repair it needs")
 
             continue
