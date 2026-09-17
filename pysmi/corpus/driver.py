@@ -1387,8 +1387,9 @@ class CorpusDriver:
 
         The arcs *below* a registration are objects, and are left out --
         :py:func:`~pysmi.corpus.index.anchor_index` is what draws the line.
-        Including them made this 98,903 arcs and an 11 MB artifact over
-        pysnmp/mibs, against 14,752 and about 1.6 MB. See pysnmp/pysmi#301.
+        Including them made this artifact most of an order of magnitude larger
+        over pysnmp/mibs, for arcs a module page already renders in context.
+        See pysnmp/pysmi#301.
 
         Args:
             report: filled in with the counts and how long it took

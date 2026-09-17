@@ -8,7 +8,8 @@
 
 PySMI's runtime dependencies are ``ply`` and ``requests``. A site generator is
 not a reason to add a third: everything here is a handful of stdlib string
-operations, and a corpus of 5,500 modules renders in seconds without one.
+operations, and a corpus of thousands of modules renders in seconds without
+one.
 
 What matters at corpus scale is that **nothing reaches a page unescaped**.
 Every MIB in the corpus is third-party text -- a DESCRIPTION is whatever a
@@ -138,10 +139,10 @@ def table(
     Rows past the end of it get none.
 
     Cells are joined with nothing between them. Every other builder here
-    writes one fragment per line, because a person reads the source; a
-    definition table is 764,000 rows over a corpus and a newline per cell is
-    4 MB of them. The rows stay one per line, which is the granularity anyone
-    reading the source is looking at anyway.
+    writes one fragment per line, because a person reads the source; the
+    definition tables of a corpus run to hundreds of thousands of rows, and a
+    newline per cell is megabytes of them. The rows stay one per line, which
+    is the granularity anyone reading the source is looking at anyway.
     """
     head = tag("tr", "".join(element("th", x, scope="col") for x in headings))
     keys = list(anchors)
@@ -167,7 +168,8 @@ def table(
     # not.
     #
     # 24 bytes a table rather than a row, which is the distinction
-    # pysnmp/pysmi#310 drew: it took the wrappers off cells, 764,000 of them.
+    # pysnmp/pysmi#310 drew: it took the wrappers off cells, of which a corpus
+    # has one per definition.
     return tag(
         "div",
         tag(

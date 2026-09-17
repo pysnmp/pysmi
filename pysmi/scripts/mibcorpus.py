@@ -123,7 +123,7 @@ def start() -> None:
                 import; nothing else reaches an output tree. This is
                 --resolve-namespace moved from the namespace to the module,
                 and it is what builds a corpus of the three modules a
-                change touched out of a corpus of 5,510 -- the compile
+                change touched out of a corpus of thousands -- the compile
                 still resolves their imports against all of them, which a
                 build over the three files alone could not do. A named
                 module no publishing namespace holds is an error, so a

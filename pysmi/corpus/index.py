@@ -295,20 +295,19 @@ def anchor_index(ranked: dict[str, str]) -> dict[str, str]:
     """The arcs modules *register at*, which is the OID index less its objects.
 
     :py:func:`rank_index` answers for every arc any module *anchors* at -- its
-    MODULE-IDENTITY and every OBJECT-IDENTITY -- which over pysnmp/mibs is
-    98,867 arcs from 5,438 modules, some eighteen apiece. Nearly all of them
-    are group nodes declared *under* the module's own registration, and a
-    group node is a thing inside a module rather than a node of the tree
-    anybody navigates.
+    MODULE-IDENTITY and every OBJECT-IDENTITY -- which over a corpus the size
+    of pysnmp/mibs' is some eighteen arcs per module. Nearly all of them are
+    group nodes declared *under* the module's own registration, and a group
+    node is a thing inside a module rather than a node of the tree anybody
+    navigates.
 
     An arc is a registration when the module that owns it owns no arc above
     it: that is where the module's subtree begins, and everything below is
     that module's to render.
 
-    Over pysnmp/mibs this is 13,259 arcs rather than 98,867, and with their
-    prefixes it comes to 14,752 rather than 98,903 -- which is what makes an
-    arc inventory something a browser can hold and a crawler can finish. See
-    pysnmp/pysmi#301.
+    That cuts the arc count by most of an order of magnitude, which is what
+    makes an arc inventory something a browser can hold and a crawler can
+    finish. See pysnmp/pysmi#301.
 
     A module keeps as many anchors as it has *disjoint* registrations, which is
     routinely more than one. Taking a single arc per module instead would be a

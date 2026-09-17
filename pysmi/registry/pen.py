@@ -11,9 +11,10 @@ A corpus knows that ``CISCO-ENTITY-ALARM-MIB`` registers under
 the MIB text says so in a form anything can rely on, and the directory a file
 sits in is a filing convention rather than a registration.
 
-The registration is a published fact. Measured against pysnmp/mibs'
-``index-frozen.csv`` (5,347 modules, 95,462 rows) and a registry snapshot of
-2026-09-10 (66,807 entries):
+The registration is a published fact. Measured once against a pysnmp/mibs
+``index-frozen.csv`` of 5,347 modules and 95,462 rows and a registry snapshot
+of 2026-09-10 holding 66,807 entries, and left as that measurement rather than
+restated on every build:
 
 =========================================  =======
 measured over pysnmp/mibs                    count
@@ -144,7 +145,8 @@ class Registrant(NamedTuple):
     contact: str = ""
 
     #: That contact's email, in the registry's own obfuscated form. ``""``
-    #: where there is none: 345 of the 350 arcs pysnmp/mibs uses carry one.
+    #: where there is none, which is the exception -- nearly every arc a
+    #: corpus registers under carries one.
     email: str = ""
 
     @property
@@ -238,10 +240,11 @@ def reduce_registry(
     that repository's decision rather than this function's. The default is the
     whole registry, whole records; a corpus wanting less names less.
 
-    The registry is 66,807 registrations and IANA revises it daily, so a
-    repository committing all of it commits a large file and re-diffs the whole
-    of it every month. *only* is the other choice: keep the registrants this
-    corpus's own arcs use, and accept that a module arriving later under an
+    The registry runs to tens of thousands of registrations and IANA revises
+    it daily, so a repository committing all of it commits a large file and
+    re-diffs the whole of it every month. *only* is the other choice: keep
+    the registrants this corpus's own arcs use, and accept that a module
+    arriving later under an
     arc the snapshot predates goes nameless until the next refresh, which a
     build reports rather than leaving to be found on a rendered page.
 

@@ -1559,7 +1559,7 @@ class UppercaseDescriptor:
 
     RFC 2578 Section 3.1 reserves an upper case initial for a type name and
     requires a descriptor -- the name of an object -- to begin lower case.
-    Vendors get this wrong often enough to matter: 26 modules across seven
+    Vendors get this wrong often enough to matter: modules from several
     vendors in the pysnmp/mibs corpus name an OBJECT-TYPE this way, and the
     lexer classifies the name as an ``UPPERCASE_IDENTIFIER`` that no
     production accepts, so the whole module is refused.

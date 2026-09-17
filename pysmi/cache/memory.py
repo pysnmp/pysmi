@@ -28,12 +28,13 @@ class InMemoryParseCache(AbstractParseCache):
     when the bound is smaller than that set, the entry a second pass asks for
     first is the one evicted first, and every miss evicts what the next lookup
     wanted: least-recently-used is the worst policy for a scan longer than the
-    cache, and the hit rate is zero rather than reduced. Measured over
-    ``pysnmp/mibs``, the largest namespace touches 1672 modules and holds
-    198 MiB of trees; a mid-sized one, 322 modules and 33 MiB. The default is
-    set above the largest of those. Nothing is preallocated -- a caller
-    compiling ten modules holds ten trees -- so the bound costs only what a
-    run actually reaches.
+    cache, and the hit rate is zero rather than reduced. Measured once over a
+    ``pysnmp/mibs`` corpus of 5,510 modules, the largest namespace touched
+    1,672 modules and held 198 MiB of trees, and a mid-sized one 322 modules
+    and 33 MiB. The default is set above the largest of those, and is left
+    as that measurement rather than restated on every build. Nothing is
+    preallocated -- a caller compiling ten modules holds ten trees -- so the
+    bound costs only what a run actually reaches.
 
     Args:
         maxEntries: how many trees to hold. A value of 0 or less means

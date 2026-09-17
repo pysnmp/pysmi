@@ -43,7 +43,7 @@ time, and re-fetched by ``--check``. ``"tier": "future"`` means the module is
 in ``pysmi/mibs/future/`` instead, and none of that is true of it.
 
 Held modules got there by being unused, not by being unfit. Nothing in the
-corpus pysmi is built against imports one: not a module in the ~5,500 at
+corpus pysmi is built against imports one: not a module at
 https://github.com/pysnmp/mibs, not pysnmp, not either project's own code,
 tests or documentation. They were added as parser pressure tests -- the point
 was to find modules the parser could not read, and it did -- and the bundle
@@ -1551,7 +1551,7 @@ These {held} modules sit in ``pysmi/mibs/future/`` in the repository. Their
 provenance is the same as any module above -- each has a manifest entry naming
 the publisher its text came from -- and they were fetched, patched where
 needed and compile-verified alongside the rest. What separates them is that
-nothing needs them: across the roughly 5,500 vendor modules at
+nothing needs them: across the vendor modules at
 https://github.com/pysnmp/mibs, not one imports any module below, pysnmp ships
 none of them, and neither project's own code, tests or documentation names
 one. They entered the bundle as parser pressure tests, which is work they did,

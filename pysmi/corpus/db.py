@@ -105,15 +105,15 @@ FULL: Final = "full"
 #: whole Pages budget.
 #:
 #: Dropping the descriptive columns instead would not have done it. Of
-#: ``node``'s 108.5 MB of payload the identity columns -- ``oid_key``,
-#: ``module``, ``name``, ``oid``, ``class`` -- are 84.5 MB and everything
-#: describing the object is 24.1. The cost is a row per definition, 764,353 of
-#: them, not what each row says.
+#: ``node``'s payload the identity columns -- ``oid_key``, ``module``,
+#: ``name``, ``oid``, ``class`` -- are three quarters of it and everything
+#: describing the object is the rest. The cost is a row per definition, and a
+#: corpus has one per definition it holds, not what each row says.
 #:
 #: What it deliberately does not carry is an index of every definition's
 #: name. A browser searches to *navigate* -- to a module, or to whatever owns
 #: an OID -- and then displays the module it landed on. Nobody searches the
-#: corpus for a field, so the 780,000-row index that would answer it is 47 MB
+#: corpus for a field, so a row per definition of index is tens of megabytes
 #: spent on a question the page already answers by being a page.
 #:
 #: The schema is the same either way, so a reader uses one set of queries and
@@ -905,7 +905,7 @@ def validate(path: str) -> list[str]:
     Every check here is a universal over a whole build rather than a property
     of one row, which is why they live here and not in the unit tests: the
     writer's tests assert that one module round-trips, and none of them can
-    say that no module in a 5,510-module corpus lost its content hash. A
+    say that no module in a corpus of thousands lost its content hash. A
     publisher runs this before it ships the file.
 
     Nothing here is expensive except the ordering scan, which is one indexed
