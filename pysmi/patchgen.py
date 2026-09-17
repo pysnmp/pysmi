@@ -156,20 +156,31 @@ def _add_new_group(
 
     The ``;`` that ended the clause moves onto the new group, which is what
     makes this a three-line diff rather than a rewrite of the whole clause.
+
+    The line to take it from is the last one in the clause, because that is
+    where the ``;`` is -- not the last line *starting* with ``FROM``. A group
+    written on one line, ``DisplayString FROM SNMPv2-TC;``, does not start
+    with it, and looking for one that does walked back past the ``;`` and
+    spliced the new group above it. KYOCERA-Private-MIB ends that way, and
+    the repair left the clause terminated early and the old last line
+    stranded outside it, so a module that had compiled stopped parsing.
     """
     symbol_indent, from_indent = _SYMBOL_INDENT, _FROM_INDENT
     terminator = end - 1
 
-    for index in range(end - 1, start - 1, -1):
+    for index in range(terminator, start - 1, -1):
         found = _FROM.match(lines[index])
 
         if found:
             from_indent = found[1]
-            terminator = index
             break
 
-    for index in range(terminator - 1, start - 1, -1):
-        if re.sub(r"--.*", "", lines[index]).strip():
+    # The indent symbols are written at, taken from a line that names some:
+    # anything up to the terminator that is not a bare FROM continuation.
+    for index in range(terminator, start, -1):
+        stripped = re.sub(r"--.*", "", lines[index]).strip()
+
+        if stripped and not _FROM.match(lines[index]):
             symbol_indent = lines[index][
                 : len(lines[index]) - len(lines[index].lstrip())
             ]
