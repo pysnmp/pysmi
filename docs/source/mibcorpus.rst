@@ -488,10 +488,10 @@ trees. Naming both at one path is refused: the second pass would overwrite the
 first, and which of them survived would depend on the order the emit list was
 read in.
 
-The texts cost roughly 70% more on disk: over pysnmp/mibs' corpus ``json/``
-goes from about 170 MB to about 290 MB. That is a decision for the build, which
-is the argument for asking rather than assuming, and ``json-texts`` is not in
-the default layout.
+The texts cost roughly 70% more on disk, which over a corpus is a tree half
+again as large. That is a decision for the build, which is the argument for
+asking rather than assuming, and ``json-texts`` is not in the default
+layout.
 
 What ``genTexts`` gates is more than descriptions:
 ``JsonCodeGen.gen_module_identity`` puts ``organization`` and ``contactinfo``
@@ -548,9 +548,10 @@ The registration is a published fact. ``--oid-registry`` supplies it and
      }
    }
 
-Measured over pysnmp/mibs: 351 distinct enterprise arcs, 350 of them named by
-the registry, against 290 vendor directories. Those two numbers are the
-argument for driving navigation from the registry rather than from the tree.
+Over pysnmp/mibs the distinct enterprise arcs outnumber the vendor
+directories by a fifth, and the registry names all but a handful of them. That
+gap is the argument for driving navigation from the registry rather than from
+the tree; ``report.json`` carries the run's own counts under ``entity``.
 
 **An arc the registry does not name is reported as unregistered, never guessed
 at.** pysnmp/mibs has exactly one, ``1.3.6.1.4.1.1004849``, above anything IANA
@@ -1003,7 +1004,8 @@ consumer holding one should be able to match it without reading prose.
 
 It is not free. Enumerating every definition a corpus holds adds about 40% to
 the site. A first cut also carried each term's description and an
-``inDefinedTermSet`` back-reference, which took it to 360 MB; both are gone,
+``inDefinedTermSet`` back-reference, which took it half again beyond that;
+both are gone,
 the descriptions because they are already in the HTML the JSON-LD sits in, and
 the back-reference because nesting under ``hasDefinedTerm`` already says a term
 belongs to the set.
@@ -1274,7 +1276,7 @@ One driver, both corpora
 ------------------------
 
 pysmi's own wheel is built with this driver. ``hatch_build.py`` compiles the
-210 bundled ASN.1 modules into ``pysmi/mibs/pysnmp/`` while the wheel is
+|bundled| bundled ASN.1 modules into ``pysmi/mibs/pysnmp/`` while the wheel is
 built, and it does that by running :py:class:`~pysmi.corpus.driver.CorpusDriver`
 over a corpus of one namespace -- the bundle -- rather than by keeping a
 compile loop of its own. A difference between how pysmi builds the base layer

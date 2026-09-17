@@ -95,14 +95,43 @@ def _grouped(count: int) -> str:
     return f"{count:,}"
 
 
-def _figure(count: int, scale: str) -> str:
+def _count(block: "dict[str, Any]", key: str) -> "int | None":
+    """One count out of a report block, or ``None`` where it has none.
+
+    ``None`` rather than zero, because a build that counted none of something
+    and a build that did not count it are different answers: a corpus with no
+    registrant pages reports ``0`` and a publication that emitted no entity
+    index reports nothing at all. Only the second wants a fallback.
+
+    A field that is present and is not a number is absent for this purpose.
+    ``report.json`` is an artifact read off disk, and a documentation build
+    that raised ``ValueError`` partway through substituting its figures would
+    fail over a field it could have ignored.
+    """
+    if not isinstance(block, dict) or key not in block:
+        return None
+
+    found = block[key]
+
+    if isinstance(found, bool) or not isinstance(found, (int, float, str)):
+        return None
+
+    try:
+        return int(found)
+
+    except (TypeError, ValueError):
+        return None
+
+
+def _figure(count: "int | None", scale: str) -> str:
     """*count* where a report supplied one, and *scale* where none did.
 
-    A phrase rather than a zero: a sentence reading "a corpus of 0 modules" is
-    false, and one reading "a corpus of thousands of modules" is true of every
-    corpus the sentence is about.
+    A phrase where the figure is missing, because "a corpus of 0 modules" is
+    false and "a corpus of thousands of modules" is true of every corpus the
+    sentence is about. A supplied zero is a measurement and is rendered as
+    ``0``: a build that resolved no arcs at all should say so.
     """
-    return _grouped(count) if count else scale
+    return scale if count is None else _grouped(count)
 
 
 def figures() -> "dict[str, str]":
@@ -124,15 +153,13 @@ def figures() -> "dict[str, str]":
         "bundled": _grouped(_modules(ROOT / BUNDLE)),
         "held": _grouped(_modules(ROOT / HELD)),
         # A corpus somebody built, which is not.
-        "corpus_modules": _figure(int(report.get("modules") or 0), "thousands of"),
-        "corpus_nodes": _figure(
-            int(nodes.get("defined") or 0), "hundreds of thousands of"
-        ),
-        "corpus_oids": _figure(int(nodes.get("distinct") or 0), "tens of thousands of"),
-        "corpus_arcs": _figure(int(arcs.get("arcs") or 0), "tens of thousands of"),
-        "corpus_registrants": _figure(int(entity.get("arcs") or 0), "a few hundred"),
-        "corpus_pages": _figure(int(site.get("pages") or 0), "thousands of"),
-        "corpus_rows": _figure(int(db.get("node") or 0), "hundreds of thousands of"),
+        "corpus_modules": _figure(_count(report, "modules"), "thousands of"),
+        "corpus_nodes": _figure(_count(nodes, "defined"), "hundreds of thousands of"),
+        "corpus_oids": _figure(_count(nodes, "distinct"), "tens of thousands of"),
+        "corpus_arcs": _figure(_count(arcs, "arcs"), "tens of thousands of"),
+        "corpus_registrants": _figure(_count(entity, "arcs"), "a few hundred"),
+        "corpus_pages": _figure(_count(site, "pages"), "thousands of"),
+        "corpus_rows": _figure(_count(db, "node"), "hundreds of thousands of"),
     }
 
 
@@ -143,8 +170,52 @@ ALLOWED: Final = frozenset(
         # A GitHub issue body's character limit, which is what makes a MIB
         # too big to paste. See mibcontribute.rst.
         "65,536",
+        # The sitemap protocol's own ceilings, per file. See mibcorpus.rst.
+        "50,000",
+        "50",
+        # GitHub Pages' own limits: a site, and a file in one.
+        "1",
+        "100",
+        # Not counts of anything this project measures: the markup a table
+        # cell used to carry, the width of the longest bucket label, and a
+        # year -- "the 2017 files" are the ones dated 2017.
+        "61",
+        "27",
+        "2017",
     }
 )
+
+#: Units that make a number a count of something this project measures. A
+#: figure followed by one of these is a corpus measurement whatever its
+#: magnitude, which is the half :py:data:`GROUPED` cannot see: "210 modules"
+#: has no comma in it and went stale for two releases.
+UNITS: Final = (
+    r"modules?|nodes?|arcs?|pages?|files?|rows?|definitions?|registrants?"
+    r"|objects?|notifications?|symbols?|descriptions?|dependents?|entries"
+    r"|URLs?|MB|MiB|GB|KB"
+)
+
+#: A comma-grouped number, which is a count whatever follows it. Nothing this
+#: project states in the thousands is a constant.
+GROUPED: Final = r"\d{1,3}(?:,\d{3})+"
+
+#: How many words may sit between a number and its unit. "210 bundled ASN.1
+#: modules" is the shape that went stale through two releases, so nothing
+#: short of two catches the cases worth catching; past two the matches stop
+#: being counts of anything.
+GAP: Final = 2
+
+#: What :py:func:`stated` looks for. The lookbehind keeps ``ASN.1 modules``
+#: from reading as "1 modules", which is the false positive that matters here:
+#: the pages say it constantly.
+COUNTS: Final = re.compile(
+    rf"(?<![\w.])({GROUPED}|\d[\d,]*(?:\s+[\w.`-]+){{0,{GAP}}}\s+(?:{UNITS}))\b"
+)
+
+#: A reStructuredText directive, which opens an indented block the way a
+#: literal one does. ``.. code-block:: text`` does not end in ``::``, so the
+#: end-of-line test alone leaves every sample transcript in the check.
+DIRECTIVE: Final = re.compile(r"^\s*\.\.\s+[\w-]+::")
 
 #: Pages a generator writes, where a count is the generator's output rather
 #: than somebody's prose. ``bundled-mibs.rst`` comes from
@@ -155,20 +226,32 @@ GENERATED: Final = frozenset(
 )
 
 
+def _number(match: str) -> str:
+    """The digits out of a match, for comparing against :py:data:`ALLOWED`."""
+    return match.split(maxsplit=1)[0] if " " in match else match
+
+
 def stated() -> "list[tuple[str, int, str]]":
-    """Comma-grouped numbers written into a page by hand.
+    """Counts written into a page by hand.
 
     A count typed into prose is wrong the next time the thing it counts
     changes, and keeping it right is a diff to review on every change after
     that -- which is what :py:func:`figures` exists to prevent, and this is
-    the check that it stays prevented. Generated pages are skipped: a count
-    there is what the generator measured.
+    the check that it stays prevented.
+
+    Two shapes count, per :py:data:`COUNTS`: anything comma-grouped, and any
+    number followed by a unit this project measures. The second is what a
+    grouped-only check misses, and it misses the ones that matter -- the
+    pages claimed "210 bundled ASN.1 modules" through two releases that
+    changed the number.
+
+    Generated pages are skipped, and so are literal blocks: a sample report or
+    a command's transcript states what it stated when it ran.
 
     Returns:
         ``(path, line number, the line)`` per finding, in file order.
     """
     where = pathlib.Path(__file__).resolve().parent
-    grouped = re.compile(r"\b\d{1,3}(?:,\d{3})+\b")
     found = []
 
     for page in sorted(where.glob("*.rst")) + sorted(where.glob("*.md")):
@@ -179,14 +262,20 @@ def stated() -> "list[tuple[str, int, str]]":
 
         with open(page, encoding="utf-8") as fileObj:
             for number, line in enumerate(fileObj, start=1):
-                # A literal block is a transcript -- a sample report, a
-                # command's output -- and states what it stated.
-                if literal and (not line.strip() or line.startswith((" ", "\t"))):
+                indented = line.startswith((" ", "\t"))
+
+                # A blank line neither opens nor closes a block, and an
+                # indented line inside one is the transcript. Anything flush
+                # left ends it.
+                if not line.strip():
                     continue
 
-                literal = line.rstrip().endswith("::")
+                if literal and indented:
+                    continue
 
-                if [x for x in grouped.findall(line) if x not in ALLOWED]:
+                literal = bool(DIRECTIVE.match(line)) or line.rstrip().endswith("::")
+
+                if [x for x in COUNTS.findall(line) if _number(x) not in ALLOWED]:
                     found.append((page.name, number, line.rstrip()))
 
     return found

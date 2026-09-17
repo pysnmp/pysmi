@@ -587,17 +587,21 @@ parsed nothing. Two consequences for a reader:
   table it references is empty. A NULL there means "not carried", not "this
   symbol has no type".
 
-Why the split is worth having, measured over pysnmp/mibs with ``dbstat``:
+Why the split is worth having, as the share of the file each part takes.
+``dbstat`` over any corpus gives the absolute figures; these are the
+proportions, which is what the argument rests on:
 
-====================================  ==========  ==========
-                                      ``full``    ``search``
-====================================  ==========  ==========
-``node``                              124.2 MB    --
-``node_by_name``, ``node_by_module``  98.4 MB     --
-``type`` and its unique index         17.7 MB     --
-everything else                       15.4 MB     15.4 MB
-**file**                              **256 MB**  **15 MB**
-====================================  ==========  ==========
+====================================  ===========  ===========
+                                      ``full``     ``search``
+====================================  ===========  ===========
+``node``                              a half       --
+``node_by_name``, ``node_by_module``  a third      --
+``type`` and its unique index         a fifteenth  --
+everything else                       a sixteenth  all of it
+====================================  ===========  ===========
+
+``search`` is what is left when the first three rows go, which is more than an
+order of magnitude off the file.
 
 Dropping the descriptive columns instead would not have done it: of ``node``'s
 payload the identity columns -- ``oid_key``, ``module``, ``name``, ``oid``,
