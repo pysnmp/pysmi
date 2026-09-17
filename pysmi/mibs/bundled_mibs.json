@@ -30,10 +30,6 @@
       "rfc": 2742,
       "source": "rfc"
     },
-    "AGGREGATE-MIB": {
-      "rfc": 4498,
-      "source": "rfc"
-    },
     "ALARM-MIB": {
       "rfc": 3877,
       "source": "rfc"
@@ -1657,10 +1653,6 @@
       "rfc": 1659,
       "source": "rfc"
     },
-    "RSERPOOL-MIB": {
-      "rfc": 5525,
-      "source": "rfc"
-    },
     "RSTP-MIB": {
       "rfc": 4318,
       "source": "rfc"
@@ -1953,10 +1945,6 @@
     },
     "TED-MIB": {
       "rfc": 6825,
-      "source": "rfc"
-    },
-    "TIME-AGGREGATE-MIB": {
-      "rfc": 4498,
       "source": "rfc"
     },
     "TN3270E-MIB": {
