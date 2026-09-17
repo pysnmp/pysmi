@@ -3,6 +3,17 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.7.0](https://github.com/pysnmp/pysmi/compare/v5.6.0...v5.7.0) (2026-09-17)
+
+### Features
+
+* **docs:** substitute the figures the prose states, and take the rest out ([b0a9298](https://github.com/pysnmp/pysmi/commit/b0a92982353245e4cc69c43d23c13d4b7b2be9f8))
+* **site:** state the corpus in figures on the browse entry point ([9f94a27](https://github.com/pysnmp/pysmi/commit/9f94a270df3a9a96de4b08f96eebd5dde889b796))
+
+### Bug Fixes
+
+* **docs:** keep a reported zero, survive a bad field, and catch ungrouped counts ([ac80a71](https://github.com/pysnmp/pysmi/commit/ac80a71b76c27bb0d77b88885c47d2455a3e0946))
+
 ## [5.6.0](https://github.com/pysnmp/pysmi/compare/v5.5.0...v5.6.0) (2026-09-17)
 
 ### Features
