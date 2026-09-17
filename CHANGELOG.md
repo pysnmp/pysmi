@@ -3,6 +3,19 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.5.0](https://github.com/pysnmp/pysmi/compare/v5.4.0...v5.5.0) (2026-09-17)
+
+### Features
+
+* name the repaired modules in the corpus report ([4a00cee](https://github.com/pysnmp/pysmi/commit/4a00ceec3d9b5e71b5abb13395b6a316c2ff2791))
+
+### Bug Fixes
+
+* let a module need both a derived repair and a hand-written one ([ca8133a](https://github.com/pysnmp/pysmi/commit/ca8133a3176080ea8aa6ff9e8d49532bbf2467ab))
+* put the new IMPORTS group before the semicolon, not after it ([a3e43a8](https://github.com/pysnmp/pysmi/commit/a3e43a842f1ea7a5cdcaa4e82299a3f05ee1f833))
+* require the whole patch to apply, not just to contain the repair ([e73fae0](https://github.com/pysnmp/pysmi/commit/e73fae084fa3d663ba0feb1261fe9a6ceca88772))
+* write down the ten repairs the bundle was having supplied ([687858f](https://github.com/pysnmp/pysmi/commit/687858fe85ab863842169367962eb0e6d0a0b177))
+
 ## [5.4.0](https://github.com/pysnmp/pysmi/compare/v5.3.2...v5.4.0) (2026-09-16)
 
 ### Features
