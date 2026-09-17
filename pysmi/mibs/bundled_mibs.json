@@ -638,6 +638,10 @@
       "source": "iana",
       "url": "https://www.iana.org/assignments/ianagmplstc-mib/ianagmplstc-mib"
     },
+    "IANA-IPPM-METRICS-REGISTRY-MIB": {
+      "rfc": 4148,
+      "source": "rfc"
+    },
     "IANA-ITU-ALARM-TC-MIB": {
       "source": "iana",
       "url": "https://www.iana.org/assignments/ianaitualarmtc-mib/ianaitualarmtc-mib"
