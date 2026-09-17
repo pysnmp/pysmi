@@ -81,6 +81,18 @@ jobs:
       - name: Compile the bundled MIBs
         run: uv run python scripts/update_bundled_mibs.py --verify
 
+      # A repair the compiler derives at build time is a compile that
+      # succeeded on text which does not say what it means, and the only
+      # trace of one was a log line nobody diffs. Ten bundled modules were
+      # being repaired this way -- DLSW-MIB, UPS-MIB and seven others missing
+      # mib-2, FDDI-SMT73-MIB missing transmission -- while mibpatch, which
+      # derives exactly that repair, was only ever run against test fixtures.
+      # This is that tool pointed at the bundle it was written for.
+      - name: Every bundled repair is written down
+        run: >
+          uv run mibpatch --quiet --source=pysmi/mibs/asn1
+          --output-directory=scripts/mib-patches --check
+
   # Every supported Python on Linux, plus the edge versions on Windows, on
   # every run -- pull requests included. Windows is where this package's
   # assumptions actually differ: line endings on checkout, path separators,

@@ -1,0 +1,13 @@
+Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
+
+--- a/SNA-NAU-MIB
++++ b/SNA-NAU-MIB
+@@ -20,7 +20,7 @@
+                 FROM SNMPv2-TC
+ 
+         Counter32, Gauge32, Integer32,
+-        OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE
++        OBJECT-TYPE, MODULE-IDENTITY, NOTIFICATION-TYPE, mib-2
+                 FROM SNMPv2-SMI
+ 
+         MODULE-COMPLIANCE, OBJECT-GROUP

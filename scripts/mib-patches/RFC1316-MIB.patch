@@ -1,0 +1,15 @@
+Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
+
+--- a/RFC1316-MIB
++++ b/RFC1316-MIB
+@@ -6,7 +6,9 @@
+                             DisplayString
+                                     FROM RFC1213-MIB
+                             OBJECT-TYPE
+-                                    FROM RFC-1212;
++                                    FROM RFC-1212
++                            mib-2
++                                    FROM SNMPv2-SMI;
+ 
+             -- this is the MIB module for character stream devices
+ 
