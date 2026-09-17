@@ -317,6 +317,21 @@ def _check(found: dict[Path, Defect], out: Path) -> list[str]:
             elif not _hunks(defect.patch) <= _hunks(patch):
                 stale.append(f"{defect.mibname}: its patch is not the repair it needs")
 
+            else:
+                # Containment says the derived repair is in there. It says
+                # nothing about the hand-written hunks beside it, and one cut
+                # against text the publisher has since moved under would pass
+                # the check and then fail the build that applies it. So the
+                # whole patch has to still apply, not just contain the part
+                # this tool wrote.
+                with path.open(encoding="utf-8", newline="") as source:
+                    _, status = apply_patch(source.read(), patch, defect.mibname)
+
+                if status != APPLIED:
+                    stale.append(
+                        f"{defect.mibname}: its patch no longer applies to this text"
+                    )
+
             continue
 
         if patch is None:
