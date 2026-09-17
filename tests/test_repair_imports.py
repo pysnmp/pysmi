@@ -283,6 +283,7 @@ class ClauseShapeTestCase(unittest.TestCase):
     """Where the new group goes, for clauses that are not laid out alike."""
 
     def testAOneLineLastGroupKeepsTheClauseTerminated(self):
+        """One ';', at the end, with nothing stranded below it."""
         repaired = repair_imports(
             ONE_LINE_LAST_GROUP,
             {
@@ -305,6 +306,7 @@ class ClauseShapeTestCase(unittest.TestCase):
         self.assertIn("enterprises", clause)
 
     def testTheRepairedOneLineClauseStillCompiles(self):
+        """And the result parses, which is what the shape broke."""
         doc = render_json(
             repair_imports(
                 ONE_LINE_LAST_GROUP,

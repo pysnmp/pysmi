@@ -967,10 +967,12 @@ class RepairTestCase(CorpusTestCase):
     """
 
     def setUp(self):
+        """A corpus with one module that forgets an import."""
         super().setUp()
         self.write("alpha", "UNIMPORTED-MIB", UNIMPORTED)
 
     def testTheRepairedModuleIsNamedWithWhatWasSupplied(self):
+        """Which symbol, and which module it was taken from."""
         report = CorpusDriver(self.namespaces(), self.outputs()).run()
 
         for destination in ("notexts", "texts", "json"):
@@ -980,11 +982,13 @@ class RepairTestCase(CorpusTestCase):
             )
 
     def testAModuleNeedingNoRepairIsNotNamed(self):
+        """The map holds the repaired, not every module compiled."""
         report = CorpusDriver(self.namespaces(), self.outputs()).run()
 
         self.assertNotIn("ALPHA-MIB", report.repaired["json"])
 
     def testItReachesTheWrittenReport(self):
+        """report.json is the published artifact a consumer reads."""
         CorpusDriver(self.namespaces(), self.outputs()).run()
 
         with open(os.path.join(self.root, "output", "report.json")) as fileObj:
@@ -996,6 +1000,7 @@ class RepairTestCase(CorpusTestCase):
         )
 
     def testARepairedModuleStillCompiles(self):
+        """A repair is not a failure: the module is published like any other."""
         report = CorpusDriver(self.namespaces(), self.outputs()).run()
 
         self.assertEqual({}, report.failed["json"])
