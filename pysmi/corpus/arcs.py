@@ -56,11 +56,11 @@ Scope
 -----
 
 The arc set comes from the corpus's own index rather than from a prefix
-filter. Of pysnmp/mibs' 95,462 index rows, 97.0% sit under ``1.3.6.1.4.1`` and
-2.3% under ``1.3.6.1.2.1`` -- but IEEE publishes its 802.1 MIBs under
-``1.3.111.2.802.1`` and ``LLDP-MIB`` registers under ``1.0.8802.1.1.2``. A
-``1.3.6.1`` filter drops both, and LLDP is among the most widely polled MIBs
-there is.
+filter. Nearly every index row of a vendor corpus sits under ``1.3.6.1.4.1``
+and most of the rest under ``1.3.6.1.2.1`` -- but IEEE publishes its 802.1
+MIBs under ``1.3.111.2.802.1`` and ``LLDP-MIB`` registers under
+``1.0.8802.1.1.2``. A ``1.3.6.1`` filter drops both, and LLDP is among the
+most widely polled MIBs there is.
 
 The set is the **registration tree** rather than every OID a module defines:
 the arcs modules register at, as

@@ -11,22 +11,19 @@ A corpus knows that ``CISCO-ENTITY-ALARM-MIB`` registers under
 the MIB text says so in a form anything can rely on, and the directory a file
 sits in is a filing convention rather than a registration.
 
-The registration is a published fact. Measured once against a pysnmp/mibs
-``index-frozen.csv`` of 5,347 modules and 95,462 rows and a registry snapshot
-of 2026-09-10 holding 66,807 entries, and left as that measurement rather than
-restated on every build:
+The registration is a published fact, and nearly every module in a vendor
+corpus registers under ``1.3.6.1.4.1``. The registry names all but a handful
+of the enterprise arcs such a corpus reaches, and most of those it names carry
+a contact email as well.
 
-=========================================  =======
-measured over pysnmp/mibs                    count
-=========================================  =======
-modules registering under ``1.3.6.1.4.1``    5,015
-distinct enterprise arcs                       351
-arcs the registry names                    **350**
-of those, carrying a contact email         **345**
-=========================================  =======
+An arc it does not name is reported as unregistered rather than guessed at. A
+corpus picks up arcs above anything IANA has allocated, and the honest
+rendering of one is that nobody registered it.
 
-One arc does not resolve -- ``1.3.6.1.4.1.1004849``, above anything IANA has
-allocated -- and is reported as unregistered rather than guessed at.
+The build states the figures for the corpus in front of it --
+``mibcorpus --emit=report`` writes them under ``entity`` -- so they are not
+repeated here. A count in a comment is wrong the next time a module is added,
+and a comment to review on every contribution.
 
 Taken as an input. Never bundled, never fetched
 -----------------------------------------------

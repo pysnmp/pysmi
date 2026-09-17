@@ -9,8 +9,9 @@
 Two decisions live here, and they are worth very different amounts.
 
 **The documents are written compactly.** ``json/`` is a generated tree that
-nobody reads by eye, and indenting it costs about 30% of its size on disk --
-roughly 50 MB over the corpus pysnmp/mibs publishes. It costs build time too:
+nobody reads by eye, and indenting it costs about 30% of its size on disk,
+which over a whole corpus is a tree of mostly whitespace. It costs build time
+too:
 pretty-printing is the expensive part of :py:func:`json.dumps`, about four
 times the cost of writing the same document compactly. Gzipped the difference
 is 8%, because gzip already eats indentation, so this is a saving on a

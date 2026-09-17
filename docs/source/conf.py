@@ -14,6 +14,8 @@
 # serve to show the default.
 
 import importlib.metadata
+import pathlib
+import sys
 
 _PROJECT_NAME = "SNMP SMI compiler"
 
@@ -48,6 +50,38 @@ source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 # headings ("### Bug Fixes"). The jump is inherent to the generated format, so
 # the docs build must not treat it as an error.
 suppress_warnings = ["myst.header"]
+
+# Substitution, so a page writes {{ bundled }} where a count belongs and
+# figures.py supplies it. See the block below.
+myst_enable_extensions = ["substitution"]
+
+# -- The figures the prose states --------------------------------------------
+#
+# A count written into prose is wrong the next time the thing it counts
+# changes, and keeping it right is a diff to review on every change after
+# that. These pages said 5,510 modules for the corpus pysnmp/mibs publishes
+# long after it passed 7,000.
+#
+# So no page states a count. A page names a figure -- {{ bundled }} or
+# |bundled| -- and figures.py supplies it: exactly, for what this checkout
+# holds, and from a `mibcorpus --emit=report` report for what a corpus holds.
+# A build given no report renders a phrase naming the scale instead, which is
+# what this project's own CI gets: a build here fetches nothing and compiles
+# no vendor's MIBs, so there is no corpus to measure. Point
+# PYSMI_CORPUS_REPORT at a report.json to render the figures exactly.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import figures
+
+myst_substitutions = figures.figures()
+
+# The same figures for the reStructuredText pages, which do not read
+# myst_substitutions. A prolog rather than a per-page block, so a figure is
+# defined once however many pages name it.
+rst_prolog = "\n".join(
+    f".. |{name}| replace:: {value}"
+    for name, value in sorted(myst_substitutions.items())
+)
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'

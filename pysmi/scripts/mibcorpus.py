@@ -172,7 +172,7 @@ def start() -> None:
                 standard, closure, core-db, search-db, entity, arcs,
                 site, report. search-db is the lookup half of core-db --
                 the tables that answer which module rather than what the
-                object is -- which over pysnmp/mibs is 15 MB against 256,
+                object is -- more than an order of magnitude smaller,
                 and is what a site can publish.
                 json-texts is a jsondoc tree with DESCRIPTION and the
                 other texts in it, which costs roughly 70% more on disk

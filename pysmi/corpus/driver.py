@@ -1096,9 +1096,10 @@ class CorpusDriver:
         per module, each holding its own text, which is what
         ``pysmi.mibinfo.module_text()`` takes out of it. The tree is keyed by module
         name and nothing asks it for a file name, so the alternative is a copy
-        of the whole source under every name in it -- which for one 758 KB
-        vendor file of 34 modules was 26 MB of tree. A source declaring one
-        module, which is nearly all of them, is written byte for byte.
+        of the whole source under every name in it -- which for a vendor
+        bundle of dozens of modules squares the file's size. A source
+        declaring one module, which is nearly all of them, is written byte for
+        byte.
 
         Args:
             report: filled in with what was staged, what was shadowed, and
@@ -1220,8 +1221,8 @@ class CorpusDriver:
         """The corpus this build produced, read once and ranked once.
 
         Both the index and the database are projections of the same jsondoc
-        tree, and reading a 5,000-module tree twice to make two projections of
-        it is the kind of cost that only shows up at corpus scale. Cached on
+        tree, and reading the whole tree twice to make two projections of it
+        is the kind of cost that only shows up at corpus scale. Cached on
         the instance because a driver builds one corpus.
 
         Args:
@@ -1587,8 +1588,9 @@ class CorpusDriver:
         because no module appeared to name a contact.
 
         The other way round is preferred for everything else: the indexes and
-        the database read the lean tree, because the texts change nothing they
-        carry and reading 317 MB where 225 will do is a cost for nothing.
+        the database read the lean tree, because the texts change nothing
+        they carry and reading the larger tree to ignore most of it is a cost
+        for nothing.
         """
         return self._outputs.json_texts or self._outputs.json
 

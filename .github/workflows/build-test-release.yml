@@ -195,10 +195,23 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+      - name: No page states a count outright
+        # A count typed into prose is wrong the next time the thing it counts
+        # changes, and keeping it right is a diff to review on every change
+        # after that. These pages said 5,510 modules for the corpus
+        # pysnmp/mibs publishes long after it passed 7,000. They name a figure
+        # now and docs/source/figures.py supplies it. Offline and instant.
+        run: uv run python docs/source/figures.py --check
       # -n reports cross-references that resolve to nothing, so a docstring or
       # page still pointing at a renamed API fails here rather than on Read the
       # Docs after merge. -W makes those warnings an error, --keep-going lists
       # all of them instead of stopping at the first.
+      #
+      # The figures in the prose come from docs/source/figures.py: exactly for
+      # what this checkout holds, and from a report a build was given for what
+      # a corpus holds. There is no corpus here -- a build fetches nothing and
+      # compiles no vendor's MIBs -- so those render as a phrase naming the
+      # scale. PYSMI_CORPUS_REPORT=path renders them exactly.
       - name: Build documentation
         run: uv run --locked --group dev sphinx-build -n -W --keep-going -b html docs/source docs/build
       - uses: actions/upload-artifact@v7
