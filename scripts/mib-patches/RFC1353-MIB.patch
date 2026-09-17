@@ -1,0 +1,15 @@
+Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
+
+--- a/RFC1353-MIB
++++ b/RFC1353-MIB
+@@ -2,7 +2,9 @@
+ 
+           IMPORTS
+                   system, mib, private, internet    FROM RFC1155-SMI
+-                  OBJECT-TYPE                       FROM RFC-1212;
++                  OBJECT-TYPE                       FROM RFC-1212
++                  mib-2
++        FROM SNMPv2-SMI;
+ 
+           snmpParties     OBJECT IDENTIFIER ::= { mib-2 20 }
+           partyAdmin      OBJECT IDENTIFIER ::= { snmpParties 1 }

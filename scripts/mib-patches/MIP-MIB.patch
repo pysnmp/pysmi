@@ -1,8 +1,18 @@
 Defect: SMI-MISDECLARED-ACCESS https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-misdeclared-access
 Defect: SMI-UNDEFINED-NAME https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-undefined-name
+Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
 
 --- a/MIP-MIB
 +++ b/MIP-MIB
+@@ -2,7 +2,7 @@
+ 
+     IMPORTS
+         Counter32, Gauge32, Integer32, IpAddress, experimental,
+-        MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE
++        MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE, mib-2
+                                         FROM SNMPv2-SMI
+         RowStatus, TruthValue, TimeStamp,
+         TEXTUAL-CONVENTION
 @@ -258,7 +258,7 @@
  
      mipSecViolatorAddress  OBJECT-TYPE

@@ -1,0 +1,15 @@
+Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
+
+--- a/RFC1414-MIB
++++ b/RFC1414-MIB
+@@ -5,7 +5,9 @@
+                   FROM RFC-1212
+               tcpConnLocalAddress, tcpConnLocalPort,
+               tcpConnRemAddress, tcpConnRemPort
+-                      FROM RFC1213-MIB;
++                      FROM RFC1213-MIB
++              mib-2
++                      FROM SNMPv2-SMI;
+ 
+ 
+           ident   OBJECT IDENTIFIER ::= { mib-2 24 }

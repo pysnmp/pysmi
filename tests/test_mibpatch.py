@@ -227,6 +227,26 @@ class CheckTestCase(PatchTreeTestCase):
         self.assertEqual(mibpatch.EX_STALE, code)
         self.assertIn("REPAIR-TC-MIB: its patch is not the repair it needs", output)
 
+    def testAHandHunkCutAgainstOtherTextIsStale(self):
+        """Containment covers the derived hunks; the rest still has to apply.
+
+        A module can need a repair this derives and one only a person can
+        write, and --check compares hunks as a set so the hand-written half is
+        allowed to be there. That alone would let a hand hunk whose context the
+        publisher has since moved under pass the gate and fail the build that
+        applies the patch, which is the one thing the gate exists to prevent.
+        """
+        self.patch("--quiet")
+        path = self.patches / "REPAIR-TC-MIB.patch"
+        path.write_text(
+            path.read_text()
+            + "@@ -99,3 +99,3 @@\n context that\n-is not\n+in this module\n at all\n"
+        )
+        code, output = self.patch("--check")
+
+        self.assertEqual(mibpatch.EX_STALE, code)
+        self.assertIn("REPAIR-TC-MIB: its patch no longer applies", output)
+
     def testAModuleThatGrewADefectIsStale(self):
         self.patch("--quiet")
         (self.src / "CLEAN-MIB").write_text(

@@ -28,6 +28,7 @@ import pysmi.mibs.asn1
 from pysmi import error
 from pysmi.codegen.base import SMI_BASE_EXPORTS
 from pysmi.codegen.symtable import SymtableCodeGen
+from pysmi.patchgen import repair_imports
 from pysmi.scripts import mibdump
 from tests import mibs
 from tests.harness import parse, render_json, render_source, symbol_table
@@ -92,6 +93,30 @@ BROKEN = {
         "snmpTrap 99999 1",
     ),
 }
+
+#: A module whose last FROM group is written on one line, so the ``;`` that
+#: ends the clause is not on a line beginning with FROM. Looking for the last
+#: such line walked back past the ``;`` and spliced the new group above it,
+#: which terminated the clause early and left the old last line outside it.
+#: KYOCERA-Private-MIB in pysnmp/mibs ends this way, and the repair stopped it
+#: parsing.
+ONE_LINE_LAST_GROUP = """REPAIR-ONE-LINE-MIB DEFINITIONS ::= BEGIN
+
+\tIMPORTS
+\t\tDisplayString, TruthValue
+\t\t\tFROM SNMPv2-TC
+\t\tsysUpTime FROM SNMPv2-MIB;
+
+brokenObject OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION
+        "An object under an arc the clause never imports."
+    ::= { enterprises 99999 3 }
+
+END
+"""
 
 #: A module with no IMPORTS clause at all -- the parse tree carries None there
 #: rather than an empty mapping, so the repair has nothing to append to.
@@ -252,6 +277,52 @@ class RepairedSourceTestCase(unittest.TestCase):
     def testTheJsonBackendResolvesTheRepairedSyntax(self):
         doc = render_json(BROKEN["TruthValue"], deps=DEPS, repairImports=True)
         self.assertEqual(doc["brokenObject"]["syntax"]["type"], "TruthValue")
+
+
+class ClauseShapeTestCase(unittest.TestCase):
+    """Where the new group goes, for clauses that are not laid out alike."""
+
+    def testAOneLineLastGroupKeepsTheClauseTerminated(self):
+        """One ';', at the end, with nothing stranded below it."""
+        repaired = repair_imports(
+            ONE_LINE_LAST_GROUP,
+            {
+                "enterprises": "SNMPv2-SMI",
+                "Integer32": "SNMPv2-SMI",
+                "OBJECT-TYPE": "SNMPv2-SMI",
+            },
+        )
+        clause = repaired[
+            repaired.index("IMPORTS") : repaired.index("brokenObject OBJECT-TYPE")
+        ]
+
+        # Exactly one ';', and it ends the clause rather than sitting in the
+        # middle of it with imports stranded below.
+        self.assertEqual(1, clause.count(";"))
+        self.assertTrue(clause.rstrip().endswith(";"), clause)
+        # The one-line group that used to carry the ';' is still a group, and
+        # still inside the clause.
+        self.assertIn("sysUpTime FROM SNMPv2-MIB", clause)
+        self.assertIn("enterprises", clause)
+
+    def testTheRepairedOneLineClauseStillCompiles(self):
+        """And the result parses, which is what the shape broke."""
+        doc = render_json(
+            repair_imports(
+                ONE_LINE_LAST_GROUP,
+                {
+                    "enterprises": "SNMPv2-SMI",
+                    "Integer32": "SNMPv2-SMI",
+                    "OBJECT-TYPE": "SNMPv2-SMI",
+                },
+            ),
+            deps=DEPS,
+            repairImports=False,
+        )
+
+        # Strictly, with nothing left for the compiler to supply: the arc
+        # resolves because the clause now imports it.
+        self.assertEqual("1.3.6.1.4.1.99999.3", doc["brokenObject"]["oid"])
 
 
 class SmiBaseExportsTestCase(unittest.TestCase):

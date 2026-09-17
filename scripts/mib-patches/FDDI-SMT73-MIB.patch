@@ -1,0 +1,15 @@
+Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
+
+--- a/FDDI-SMT73-MIB
++++ b/FDDI-SMT73-MIB
+@@ -4,7 +4,9 @@
+                   Counter
+                       FROM RFC1155-SMI
+                   OBJECT-TYPE
+-                      FROM RFC-1212;
++                      FROM RFC-1212
++                  transmission
++                      FROM SNMPv2-SMI;
+ 
+           --  This MIB module uses the extended OBJECT-TYPE macro as
+           --  defined in [7].

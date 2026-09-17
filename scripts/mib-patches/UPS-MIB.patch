@@ -1,7 +1,17 @@
 Defect: SMI-RANGE-OUTSIDE-TYPE https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-range-outside-type
+Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
 
 --- a/UPS-MIB
 +++ b/UPS-MIB
+@@ -2,7 +2,7 @@
+ 
+    IMPORTS
+        MODULE-IDENTITY, OBJECT-TYPE, NOTIFICATION-TYPE,
+-       OBJECT-IDENTITY, Counter32, Gauge32, Integer32
++       OBJECT-IDENTITY, Counter32, Gauge32, Integer32, mib-2
+            FROM SNMPv2-SMI
+        DisplayString, TimeStamp, TimeInterval, TestAndIncr,
+          AutonomousType
 @@ -1008,7 +1008,7 @@
         ::= { upsControl 1 }
  

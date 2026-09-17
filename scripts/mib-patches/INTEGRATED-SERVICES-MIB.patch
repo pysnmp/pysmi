@@ -1,8 +1,20 @@
 Defect: SMI-DISPLAY-HINT-MISMATCH https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-display-hint-mismatch
+Defect: SMI-MISSING-IMPORT https://pysnmp.github.io/pysmi/stable/mib-defects.html#smi-missing-import
 
 --- a/INTEGRATED-SERVICES-MIB
 +++ b/INTEGRATED-SERVICES-MIB
-@@ -84,7 +84,7 @@
+@@ -6,7 +6,9 @@
+             TimeInterval, TEXTUAL-CONVENTION, RowStatus,
+             TruthValue                               FROM SNMPv2-TC
+             MODULE-COMPLIANCE, OBJECT-GROUP          FROM SNMPv2-CONF
+-            ifIndex, InterfaceIndex                  FROM IF-MIB;
++            ifIndex, InterfaceIndex                  FROM IF-MIB
++            TestAndIncr
++        FROM SNMPv2-TC;
+ 
+ --  This MIB module uses the extended OBJECT-TYPE macro as
+ --  defined in [9].
+@@ -84,7 +86,7 @@
         SYNTAX   INTEGER (1..255)
  
      Port ::= TEXTUAL-CONVENTION

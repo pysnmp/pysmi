@@ -233,6 +233,14 @@ class CorpusReport:
     failed: dict[str, dict[str, str]] = field(default_factory=dict)
     #: Modules dropped because something they import failed, per destination.
     unprocessed: dict[str, list[str]] = field(default_factory=dict)
+    #: Modules the compiler supplied a missing import for, mapped to the
+    #: symbol and the module it was taken from, per destination. A repair is
+    #: a compile that succeeded on text that does not, strictly, say what it
+    #: means -- so it is neither a failure nor nothing, and until this was
+    #: here the only trace of one was a log line. A corpus that would rather
+    #: carry the fix in its MIBs than have it supplied at build time reads
+    #: this and fails on a non-empty answer. See ``mibpatch``.
+    repaired: dict[str, dict[str, dict[str, str]]] = field(default_factory=dict)
     #: Modules more than one namespace holds a differing copy of: which file
     #: was used, which were passed over, and which rule decided.
     shadowed: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -298,6 +306,7 @@ class CorpusReport:
             "statuses": self.statuses,
             "failed": self.failed,
             "unprocessed": self.unprocessed,
+            "repaired": self.repaired,
             "shadowed": self.shadowed,
             "provenance": self.provenance,
             "modules": self.modules,
@@ -903,6 +912,11 @@ class CorpusDriver:
             report.unprocessed[destination.name] = sorted(
                 name for name, status in processed.items() if status == "unprocessed"
             )
+            report.repaired[destination.name] = {
+                name: dict(getattr(status, "repaired", None) or {})
+                for name, status in sorted(processed.items())
+                if getattr(status, "repaired", None)
+            }
             report.seconds[destination.name] = time.time() - started
 
             logger.info(
