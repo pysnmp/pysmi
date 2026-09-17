@@ -8,7 +8,7 @@
         <link rel="prefetch" href="../../_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="../../_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Enterprise arcs and their registrants - SNMP SMI compiler 5.6.0 documentation</title>
+        <title>Enterprise arcs and their registrants - SNMP SMI compiler 5.7.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 5.6.0 documentation</div></a>
+      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 5.7.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="../../_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.6.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.7.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -347,14 +347,13 @@ Cisco modules, and <code class="docutils literal notranslate"><span class="pre">
 – so navigation built on the tree would publish a convention as though it were
 a fact.</p>
 <p>The registration is a fact, and it is published.
-<a class="reference internal" href="../registry.html#module-pysmi.registry.pen" title="pysmi.registry.pen"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.registry.pen</span></code></a> reads it; this projects the corpus onto it.
-Measured over pysnmp/mibs: 351 distinct enterprise arcs, 350 of them named by
-the registry, against 290 vendor directories. Those two numbers are the whole
+<a class="reference internal" href="../registry.html#module-pysmi.registry.pen" title="pysmi.registry.pen"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.registry.pen</span></code></a> reads it; this projects the corpus onto it. Over
+pysnmp/mibs the distinct enterprise arcs outnumber the vendor directories by a
+fifth, and the registry names all but a handful of them. That gap is the whole
 argument for driving navigation from the registry rather than from the tree.</p>
 <p><strong>An arc the registry does not name is reported as unregistered, never
-guessed at.</strong> pysnmp/mibs has exactly one – <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.1004849</span></code>, above
-anything IANA has allocated – and the honest rendering of it is that nobody
-registered it.</p>
+guessed at.</strong> A corpus picks up arcs above anything IANA has allocated, and the
+honest rendering of one is that nobody registered it.</p>
 <p>This groups by <strong>arc</strong>, not by company. The registry maps arcs to registrants
 and a company can hold several: pysnmp/mibs carries Cisco modules under
 <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code> and, from the Altiga acquisition, under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.3076</span></code>,
@@ -689,7 +688,7 @@ pysnmp/pysmi#283.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=df23e5c0"></script>
+</div><script src="../../_static/documentation_options.js?v=cde5d9da"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

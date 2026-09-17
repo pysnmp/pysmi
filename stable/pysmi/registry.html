@@ -8,7 +8,7 @@
         <link rel="prefetch" href="../_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="../_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Published registries - SNMP SMI compiler 5.6.0 documentation</title>
+        <title>Published registries - SNMP SMI compiler 5.7.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../contents.html"><div class="brand">SNMP SMI compiler 5.6.0 documentation</div></a>
+      <a href="../contents.html"><div class="brand">SNMP SMI compiler 5.7.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="../_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.6.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.7.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -355,34 +355,17 @@ one for the other.</p>
 <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code>. It does not know that <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.9</span></code> is Cisco: nothing in
 the MIB text says so in a form anything can rely on, and the directory a file
 sits in is a filing convention rather than a registration.</p>
-<p>The registration is a published fact. Measured against pysnmp/mibs’
-<code class="docutils literal notranslate"><span class="pre">index-frozen.csv</span></code> (5,347 modules, 95,462 rows) and a registry snapshot of
-2026-09-10 (66,807 entries):</p>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>measured over pysnmp/mibs</p></th>
-<th class="head"><p>count</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>modules registering under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1</span></code></p></td>
-<td><p>5,015</p></td>
-</tr>
-<tr class="row-odd"><td><p>distinct enterprise arcs</p></td>
-<td><p>351</p></td>
-</tr>
-<tr class="row-even"><td><p>arcs the registry names</p></td>
-<td><p><strong>350</strong></p></td>
-</tr>
-<tr class="row-odd"><td><p>of those, carrying a contact email</p></td>
-<td><p><strong>345</strong></p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>One arc does not resolve – <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.1004849</span></code>, above anything IANA has
-allocated – and is reported as unregistered rather than guessed at.</p>
+<p>The registration is a published fact, and nearly every module in a vendor
+corpus registers under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1</span></code>. The registry names all but a handful
+of the enterprise arcs such a corpus reaches, and most of those it names carry
+a contact email as well.</p>
+<p>An arc it does not name is reported as unregistered rather than guessed at. A
+corpus picks up arcs above anything IANA has allocated, and the honest
+rendering of one is that nobody registered it.</p>
+<p>The build states the figures for the corpus in front of it –
+<code class="docutils literal notranslate"><span class="pre">mibcorpus</span> <span class="pre">--emit=report</span></code> writes them under <code class="docutils literal notranslate"><span class="pre">entity</span></code> – so they are not
+repeated here. A count in a comment is wrong the next time a module is added,
+and a comment to review on every contribution.</p>
 <section id="taken-as-an-input-never-bundled-never-fetched">
 <h3>Taken as an input. Never bundled, never fetched<a class="headerlink" href="#taken-as-an-input-never-bundled-never-fetched" title="Link to this heading">¶</a></h3>
 <p><strong>Reproducibility.</strong> <a class="reference internal" href="corpus/driver.html#module-pysmi.corpus.driver" title="pysmi.corpus.driver"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.driver</span></code></a> opens on the property that
@@ -494,7 +477,8 @@ rendering of IANA’s record rather than a corrected version of it.</p>
 <dt class="sig sig-object py" id="pysmi.registry.pen.Registrant.email">
 <span class="sig-name descname"><span class="pre">email</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a></span><a class="headerlink" href="#pysmi.registry.pen.Registrant.email" title="Link to this definition">¶</a></dt>
 <dd><p>That contact’s email, in the registry’s own obfuscated form. <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>
-where there is none: 345 of the 350 arcs pysnmp/mibs uses carry one.</p>
+where there is none, which is the exception – nearly every arc a
+corpus registers under carries one.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -603,10 +587,11 @@ indented line, and nothing in the preamble is shaped that way.</p>
 <p>A downstream repository commits the result, so what leaves IANA’s copy is
 that repository’s decision rather than this function’s. The default is the
 whole registry, whole records; a corpus wanting less names less.</p>
-<p>The registry is 66,807 registrations and IANA revises it daily, so a
-repository committing all of it commits a large file and re-diffs the whole
-of it every month. <em>only</em> is the other choice: keep the registrants this
-corpus’s own arcs use, and accept that a module arriving later under an
+<p>The registry runs to tens of thousands of registrations and IANA revises
+it daily, so a repository committing all of it commits a large file and
+re-diffs the whole of it every month. <em>only</em> is the other choice: keep
+the registrants this corpus’s own arcs use, and accept that a module
+arriving later under an
 arc the snapshot predates goes nameless until the next refresh, which a
 build reports rather than leaving to be found on a rendered page.</p>
 <p>Nothing is normalised. An email comes out as <code class="docutils literal notranslate"><span class="pre">davej&amp;cisco.com</span></code> because
@@ -931,7 +916,7 @@ more specific citation.</p>
       
     </aside>
   </div>
-</div><script src="../_static/documentation_options.js?v=df23e5c0"></script>
+</div><script src="../_static/documentation_options.js?v=cde5d9da"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>

@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Corpus database schema - SNMP SMI compiler 5.6.0 documentation</title>
+        <title>Corpus database schema - SNMP SMI compiler 5.7.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.6.0 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.7.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.6.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.7.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -375,9 +375,9 @@ this package. A reader should be writable from this page alone.</p>
 why this file exists:</p>
 <p><strong>What is the node at this OID?</strong> The CSV is <code class="docutils literal notranslate"><span class="pre">MODULE,OID</span></code> and carries a
 module’s <em>anchors</em> only, so a leaf like <code class="docutils literal notranslate"><span class="pre">ifDescr</span></code> is not in it. Answering
-from the <code class="docutils literal notranslate"><span class="pre">json/</span></code> tree means parsing a whole module – 11 ms and 9,773 symbols
-of <code class="docutils literal notranslate"><span class="pre">CISCO-ENTITY-VENDORTYPE-OID-MIB</span></code> to reach one of them. Here it is one
-row, in microseconds.</p>
+from the <code class="docutils literal notranslate"><span class="pre">json/</span></code> tree means parsing a whole module, and
+<code class="docutils literal notranslate"><span class="pre">CISCO-ENTITY-VENDORTYPE-OID-MIB</span></code> is thousands of symbols and milliseconds
+of parsing to reach one of them. Here it is one row, in microseconds.</p>
 <p><strong>What comes after this OID?</strong> Nothing published answers it at all. An anchor
 index has no per-node ordering, so a GETNEXT walk cannot be served from one.</p>
 <p>What it deliberately does <strong>not</strong> carry is prose. DESCRIPTION and REFERENCE are
@@ -949,8 +949,8 @@ actually contributed, or that <code class="docutils literal notranslate"><span c
 arcs do.</p>
 <p>It returns a list rather than raising, because a build wants to see every
 problem it has rather than one per round trip. An empty list is a sound
-corpus. Over pysnmp/mibs’ 5,510 modules and 767,450 nodes it is one indexed
-pass, measured at 17 seconds.</p>
+corpus. Over thousands of modules and hundreds of thousands of nodes it is one
+indexed pass, measured in seconds.</p>
 </section>
 <section id="proving-a-reader-conforms">
 <h2><a class="toc-backref" href="#id17" role="doc-backlink">Proving a reader conforms</a><a class="headerlink" href="#proving-a-reader-conforms" title="Link to this heading">¶</a></h2>
@@ -1061,7 +1061,9 @@ way. They are not row counts of <code class="docutils literal notranslate"><span
 table it references is empty. A NULL there means “not carried”, not “this
 symbol has no type”.</p></li>
 </ul>
-<p>Why the split is worth having, measured over pysnmp/mibs with <code class="docutils literal notranslate"><span class="pre">dbstat</span></code>:</p>
+<p>Why the split is worth having, as the share of the file each part takes.
+<code class="docutils literal notranslate"><span class="pre">dbstat</span></code> over any corpus gives the absolute figures; these are the
+proportions, which is what the argument rests on:</p>
 <div class="table-wrapper docutils container">
 <table class="docutils align-default">
 <thead>
@@ -1072,34 +1074,33 @@ symbol has no type”.</p></li>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">node</span></code></p></td>
-<td><p>124.2 MB</p></td>
+<td><p>a half</p></td>
 <td><p>–</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">node_by_name</span></code>, <code class="docutils literal notranslate"><span class="pre">node_by_module</span></code></p></td>
-<td><p>98.4 MB</p></td>
+<td><p>a third</p></td>
 <td><p>–</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">type</span></code> and its unique index</p></td>
-<td><p>17.7 MB</p></td>
+<td><p>a fifteenth</p></td>
 <td><p>–</p></td>
 </tr>
 <tr class="row-odd"><td><p>everything else</p></td>
-<td><p>15.4 MB</p></td>
-<td><p>15.4 MB</p></td>
-</tr>
-<tr class="row-even"><td><p><strong>file</strong></p></td>
-<td><p><strong>256 MB</strong></p></td>
-<td><p><strong>15 MB</strong></p></td>
+<td><p>a sixteenth</p></td>
+<td><p>all of it</p></td>
 </tr>
 </tbody>
 </table>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">search</span></code> is what is left when the first three rows go, which is more than an
+order of magnitude off the file.</p>
 <p>Dropping the descriptive columns instead would not have done it: of <code class="docutils literal notranslate"><span class="pre">node</span></code>’s
-108.5 MB of payload the identity columns – <code class="docutils literal notranslate"><span class="pre">oid_key</span></code>, <code class="docutils literal notranslate"><span class="pre">module</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>,
-<code class="docutils literal notranslate"><span class="pre">oid</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code> – are 84.5 MB and everything describing the object is
-24.1. The cost is a row per definition, not what each row says.</p>
-<p>Nor does <code class="docutils literal notranslate"><span class="pre">search</span></code> carry an index of every definition’s name, which would be
-780,000 rows and 47 MB. A browser searches in order to <strong>navigate</strong> – to a
+payload the identity columns – <code class="docutils literal notranslate"><span class="pre">oid_key</span></code>, <code class="docutils literal notranslate"><span class="pre">module</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">oid</span></code>,
+<code class="docutils literal notranslate"><span class="pre">class</span></code> – are three quarters and everything describing the object is the
+rest. The cost is a row per definition, not what each row says.</p>
+<p>Nor does <code class="docutils literal notranslate"><span class="pre">search</span></code> carry an index of every definition’s name, which is a row
+per definition again and tens of megabytes. A browser searches in order to
+<strong>navigate</strong> – to a
 module, or to whatever owns an OID – and then displays the module it landed
 on. Searching the corpus for a single field is not a thing a browser does, and
 the module’s own page answers it by being a page.</p>
@@ -1222,7 +1223,7 @@ most of a build – happens once:</p>
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=df23e5c0"></script>
+</div><script src="_static/documentation_options.js?v=cde5d9da"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

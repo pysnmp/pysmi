@@ -8,7 +8,7 @@
         <link rel="prefetch" href="../../_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="../../_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The OID tree’s page inventory - SNMP SMI compiler 5.6.0 documentation</title>
+        <title>The OID tree’s page inventory - SNMP SMI compiler 5.7.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 5.6.0 documentation</div></a>
+      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 5.7.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="../../_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.6.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.7.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -340,12 +340,13 @@ pysnmp/mibs publishes; the arcs above the modules are about 1,347 of them, and
 that is the set worth rendering.</p>
 <p id="module-pysmi.corpus.pages">Which arcs of the registration tree get a page, and where the rest resolve.</p>
 <p>A site rendering <code class="docutils literal notranslate"><span class="pre">oid/&lt;arc&gt;/</span></code> as a page per node, taken literally, is a page
-per OID any module defines. Over pysnmp/mibs’ corpus that is <strong>98,903 pages</strong>
-and roughly 654 MB, against a GitHub Pages limit of 1 GB – the OID tree alone
-seventeen times the module pages it exists to lead to.</p>
-<p>Crawl budget is the worse half of it. A hundred thousand URLs on a static site
-means the pages that matter compete with 85,644 leaf-arc pages that each state
-one object’s syntax, which the module page already states in context.</p>
+per OID any module defines. Over a corpus the size of pysnmp/mibs’ that is
+hundreds of thousands of pages and most of a GitHub Pages site’s 1 GB, with the
+OID tree an order of magnitude larger than the module pages it exists to lead
+to.</p>
+<p>Crawl budget is the worse half of it. At that scale the pages that matter
+compete with a leaf-arc page per object, each stating one object’s syntax,
+which the module page already states in context.</p>
 <section id="the-rule">
 <h2>The rule<a class="headerlink" href="#the-rule" title="Link to this heading">¶</a></h2>
 <p><strong>A leaf arc gets no page.</strong> It is an object inside a module, and the module
@@ -356,10 +357,10 @@ page renders it with an anchor:
 the module: <code class="docutils literal notranslate"><span class="pre">oid/1.3.6.1.4.1.9.9.138/</span></code> resolves to
 <code class="docutils literal notranslate"><span class="pre">mib/CISCO-ENTITY-ALARM-MIB/</span></code>.</p>
 <p><strong>What remains is the structural tree</strong> – the arcs from the root down to each
-module’s anchor, exclusive. Over pysnmp/mibs that is 14,752 arcs counted with
-the anchors and <strong>1,493 without</strong>, which is the set that actually gets pages,
-and the whole site becomes about 7,200 pages rather than 100,000. A crawler
-can finish that.</p>
+module’s anchor, exclusive. That is the set which gets pages, and it is two
+orders of magnitude smaller than the arcs a corpus defines: a page per module,
+a page per registrant and a few thousand for the tree, rather than one per OID.
+A crawler can finish that.</p>
 </section>
 <section id="why-this-is-the-right-cut-rather-than-the-cheap-one">
 <h2>Why this is the right cut rather than the cheap one<a class="headerlink" href="#why-this-is-the-right-cut-rather-than-the-cheap-one" title="Link to this heading">¶</a></h2>
@@ -373,10 +374,11 @@ syntax and its description.</p>
 <h2>Resolving an arc that has no page<a class="headerlink" href="#resolving-an-arc-that-has-no-page" title="Link to this heading">¶</a></h2>
 <p>The tree still has to answer for any OID a reader pastes from a trap, which is
 the main way in. <a class="reference internal" href="#pysmi.corpus.pages.resolve" title="pysmi.corpus.pages.resolve"><code class="xref py py-func docutils literal notranslate"><span class="pre">resolve()</span></code></a> is that answer, as a longest-prefix lookup
-rather than a table: emitting a stub page per unpaged arc would cost 85,644
-files and put every one of them back in the crawlable surface, which is the
-thing this exists to avoid. A site renders the lookup in the browser from the
-published index and leaves the unpaged arcs out of <code class="docutils literal notranslate"><span class="pre">sitemap.xml</span></code>.</p>
+rather than a table: emitting a stub page per unpaged arc would cost a file
+per object the corpus defines and put every one of them back in the crawlable
+surface, which is the thing this exists to avoid. A site renders the lookup in
+the browser from the published index and leaves the unpaged arcs out of
+<code class="docutils literal notranslate"><span class="pre">sitemap.xml</span></code>.</p>
 <p>See pysnmp/pysmi#292. Consumed by the site generator in pysnmp/pysmi#276.</p>
 </section>
 <dl class="py data">
@@ -437,7 +439,8 @@ the module’s, and the two together are the arc inventory
 <dd><p>Where an arc with no page of its own resolves to.</p>
 <p>A longest-prefix lookup, which is the same shape a trap receiver already
 runs against the published index – so a site can do it in the browser
-from <code class="docutils literal notranslate"><span class="pre">index-v2.csv</span></code> rather than being handed a table of 85,644 entries.</p>
+from <code class="docutils literal notranslate"><span class="pre">index-v2.csv</span></code> rather than being handed a table of every leaf arc
+the corpus defines.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -560,7 +563,7 @@ module page answers for it.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=df23e5c0"></script>
+</div><script src="../../_static/documentation_options.js?v=cde5d9da"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

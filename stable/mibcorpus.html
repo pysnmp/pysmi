@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>The mibcorpus tool - SNMP SMI compiler 5.6.0 documentation</title>
+        <title>The mibcorpus tool - SNMP SMI compiler 5.7.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.6.0 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.7.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.6.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.7.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -439,7 +439,7 @@ here rather than as an empty page.</p></li>
 selection at all is a distribution build; computing one and computing it
 empty is a request for a corpus of nothing, and the two must not collapse
 into each other – a pull request that changed no MIB would otherwise
-publish all 5,510.</p></li>
+publish the whole corpus.</p></li>
 </ul>
 <p><code class="docutils literal notranslate"><span class="pre">report.json</span></code> records what was asked for under <code class="docutils literal notranslate"><span class="pre">selected</span></code>:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
@@ -782,10 +782,10 @@ without the published artifact growing. That is two passes, because it is two
 trees. Naming both at one path is refused: the second pass would overwrite the
 first, and which of them survived would depend on the order the emit list was
 read in.</p>
-<p>The texts cost roughly 70% more on disk: over pysnmp/mibs’ corpus <code class="docutils literal notranslate"><span class="pre">json/</span></code>
-goes from about 170 MB to about 290 MB. That is a decision for the build, which
-is the argument for asking rather than assuming, and <code class="docutils literal notranslate"><span class="pre">json-texts</span></code> is not in
-the default layout.</p>
+<p>The texts cost roughly 70% more on disk, which over a corpus is a tree half
+again as large. That is a decision for the build, which is the argument for
+asking rather than assuming, and <code class="docutils literal notranslate"><span class="pre">json-texts</span></code> is not in the default
+layout.</p>
 <p>What <code class="docutils literal notranslate"><span class="pre">genTexts</span></code> gates is more than descriptions:
 <code class="docutils literal notranslate"><span class="pre">JsonCodeGen.gen_module_identity</span></code> puts <code class="docutils literal notranslate"><span class="pre">organization</span></code> and <code class="docutils literal notranslate"><span class="pre">contactinfo</span></code>
 behind the same switch. <code class="docutils literal notranslate"><span class="pre">CISCO-ENTITY-ALARM-MIB</span></code> carries a full
@@ -833,9 +833,10 @@ two disagree in practice – the <code class="docutils literal notranslate"><spa
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>Measured over pysnmp/mibs: 351 distinct enterprise arcs, 350 of them named by
-the registry, against 290 vendor directories. Those two numbers are the
-argument for driving navigation from the registry rather than from the tree.</p>
+<p>Over pysnmp/mibs the distinct enterprise arcs outnumber the vendor
+directories by a fifth, and the registry names all but a handful of them. That
+gap is the argument for driving navigation from the registry rather than from
+the tree; <code class="docutils literal notranslate"><span class="pre">report.json</span></code> carries the run’s own counts under <code class="docutils literal notranslate"><span class="pre">entity</span></code>.</p>
 <p><strong>An arc the registry does not name is reported as unregistered, never guessed
 at.</strong> pysnmp/mibs has exactly one, <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1.1004849</span></code>, above anything IANA
 has allocated. The build report counts them, as <code class="docutils literal notranslate"><span class="pre">entity.unregistered</span></code>.</p>
@@ -894,10 +895,11 @@ What leaves IANA’s copy is the committing repository’s decision rather than
 PySMI’s, so both are arguments rather than a hard-coded projection. Nothing is
 normalised: the output is a rendering of IANA’s record rather than a corrected
 version of it.</p>
-<p>The registry is 66,807 registrations and IANA revises it daily, so a repository
-committing all of it commits a large file and re-diffs the whole of it every
-month. The other choice is a snapshot of the registrants this corpus’s own arcs
-use – for pysnmp/mibs, 351 rows rather than 66,807:</p>
+<p>The registry runs to tens of thousands of registrations and IANA revises it
+daily, so a repository committing all of it commits a large file and re-diffs
+the whole of it every month. The other choice is a snapshot of the registrants
+this corpus’s own arcs use, which is a few hundred rows rather than the
+whole registry:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pysmi.registry<span class="w"> </span>--only-from<span class="o">=</span>arcs.txt<span class="w"> </span>enterprise-numbers.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>&gt;<span class="w"> </span>pen-snapshot.csv
 </pre></div>
@@ -1004,9 +1006,10 @@ one. The build report counts them.</p>
 <section id="when-a-committed-pen-snapshot-has-gone-stale">
 <h3>When a committed PEN snapshot has gone stale<a class="headerlink" href="#when-a-committed-pen-snapshot-has-gone-stale" title="Link to this heading">¶</a></h3>
 <p>A repository that commits the whole Private Enterprise Numbers registry
-commits 66,807 registrants and re-diffs all of them every time IANA moves,
-which is daily. Committing only the registrants its own arcs use is a far
-smaller file and a far smaller monthly diff, at the cost of going stale: the
+commits tens of thousands of registrants and re-diffs all of them every time
+IANA moves, which is daily. Committing only the registrants its own arcs use
+is a far smaller file and a far smaller monthly diff, at the cost of going
+stale: the
 first module the corpus gains under a newer enterprise arc has no registrant
 in the snapshot, and that registrant’s page renders nameless.</p>
 <p>Nothing about the build would otherwise say so – the arc is still in the
@@ -1027,21 +1030,21 @@ build that wants to act on it.</p>
 <section id="what-is-in-the-inventory">
 <h3>What is in the inventory<a class="headerlink" href="#what-is-in-the-inventory" title="Link to this heading">¶</a></h3>
 <p>The arc set comes from the OID index and every prefix of it – the
-registration tree – rather than from every OID a module defines. Over
-pysnmp/mibs that is 14,752 arcs instead of 98,903; the difference is
-objects, and an object’s arc is a thing inside a module rather than a node
-anybody navigates to.</p>
-<p>It is not filtered to one subtree. 97.0% of pysnmp/mibs’ index rows sit under
-<code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1</span></code> and 2.3% under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.2.1</span></code>, but IEEE publishes its 802.1
-MIBs under <code class="docutils literal notranslate"><span class="pre">1.3.111.2.802.1</span></code> and <code class="docutils literal notranslate"><span class="pre">LLDP-MIB</span></code> registers under
-<code class="docutils literal notranslate"><span class="pre">1.0.8802.1.1.2</span></code>. A <code class="docutils literal notranslate"><span class="pre">1.3.6.1</span></code> filter drops both, and LLDP is among the most
-widely polled MIBs there is. Arc depth runs from 2 to 20.</p>
+registration tree – rather than from every OID a module defines, which is
+tens of thousands of arcs against one per defined OID. The difference is objects, and
+an object’s arc is a thing inside a module rather than a node anybody
+navigates to.</p>
+<p>It is not filtered to one subtree. Nearly every index row of a vendor corpus
+sits under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.4.1</span></code> and most of the rest under <code class="docutils literal notranslate"><span class="pre">1.3.6.1.2.1</span></code>, but
+IEEE publishes its 802.1 MIBs under <code class="docutils literal notranslate"><span class="pre">1.3.111.2.802.1</span></code> and <code class="docutils literal notranslate"><span class="pre">LLDP-MIB</span></code>
+registers under <code class="docutils literal notranslate"><span class="pre">1.0.8802.1.1.2</span></code>. A <code class="docutils literal notranslate"><span class="pre">1.3.6.1</span></code> filter drops both, and LLDP
+is among the most widely polled MIBs there is. Arc depth runs from 2 to 20.</p>
 <p>That inventory counts an arc whether or not anything would render a page for
 it. Which of them a <em>site</em> gives a page to is a narrower question, and
-<a class="reference internal" href="pysmi/corpus/pages.html#module-pysmi.corpus.pages" title="pysmi.corpus.pages"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.pages</span></code></a> answers it: the arcs above the modules, which
-over pysnmp/mibs is 1,493 of the 14,752 rather than the 98,903 a page per
-defined OID would be. An arc at a module’s anchor is the module, and an arc
-below one is an object the module page already renders.</p>
+<a class="reference internal" href="pysmi/corpus/pages.html#module-pysmi.corpus.pages" title="pysmi.corpus.pages"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.pages</span></code></a> answers it: the arcs above the modules, which is
+a small fraction of the arc index and two orders of magnitude below a page per
+defined OID. An arc at a module’s anchor is the module, and an arc below one
+is an object the module page already renders.</p>
 </section>
 </section>
 <section id="the-browsable-site">
@@ -1070,7 +1073,9 @@ the corpus holds under it</p></td>
 children</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">browse/</span></code></p></td>
-<td><p>the entry point, and the module list</p></td>
+<td><p>the entry point: what the corpus holds in figures,
+the most recently revised modules of each tier, and
+the module list</p></td>
 </tr>
 </tbody>
 </table>
@@ -1081,8 +1086,29 @@ children</p></td>
 <span class="w">    </span>--site-name<span class="o">=</span><span class="s2">"pysnmp/mibs"</span>
 </pre></div>
 </div>
-<p>Over pysnmp/mibs’ 5,510 modules that is <strong>7,346 pages and 220 MB in 18
-seconds</strong>, on top of the build that produced the corpus.</p>
+<p>Over a corpus of thousands of modules that is thousands of pages and a
+few hundred megabytes, in <strong>seconds rather than minutes</strong> on top of the build
+that produced the corpus.</p>
+<section id="what-the-entry-point-states">
+<h3>What the entry point states<a class="headerlink" href="#what-the-entry-point-states" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">browse/</span></code> leads with the module count, then a tile per figure the build
+already computed: modules per tier, enterprise arcs registered under, nodes in
+the arc index, objects, notifications and textual conventions defined, modules
+served with a patch applied to the publisher’s text, and modules whose import
+closure names something the corpus does not hold. A figure of zero gets no
+tile, so a build given no arc registry states nothing about arcs rather than
+stating none.</p>
+<p>Under the figures, one table per tier – standard, Internet-Draft, vendor –
+gives the most recently revised modules of that tier, by the LAST-UPDATED or
+REVISION date the module itself carries. Split by tier because a corpus of
+thousands of vendor modules and a few hundred standard ones has no recent
+standard revision in a single list, and the standard modules are what a reader
+resolving an OID is looking at.</p>
+<p>Every figure is a sum over the module pages the build renders, taken as it
+renders them, so the entry point costs no second pass over the corpus. The
+figures are in the bytes like everything else here: the front page is the
+first thing a crawler reads.</p>
+</section>
 <section id="where-the-repairs-come-from">
 <h3>Where the repairs come from<a class="headerlink" href="#where-the-repairs-come-from" title="Link to this heading">¶</a></h3>
 <p>A module page says whether the text served here differs from the publisher’s,
@@ -1150,11 +1176,13 @@ is an object the module page already renders in context.</p></li>
 after it. <code class="docutils literal notranslate"><span class="pre">page-size</span></code> sets how long a list gets first, as one number for
 every list or as an object naming them – <code class="docutils literal notranslate"><span class="pre">{&quot;browse&quot;:</span> <span class="pre">500,</span> <span class="pre">&quot;entity&quot;:</span> <span class="pre">200}</span></code>.
 The module list is the site’s front door and wants few pages; a registrant’s
-list is reached by somebody already narrowed to one vendor, and Cisco’s
-1,341 modules at the same size would be three pages of 500 links each.</p></li>
+list is reached by somebody already narrowed to one vendor, and the largest
+vendors hold enough modules that the same size gives them several pages of
+500 links each.</p></li>
 <li><p>the list of modules importing a given one is capped. It is the one list on a
-module page with no natural bound: 1,461 modules in pysnmp/mibs import
-<code class="docutils literal notranslate"><span class="pre">IF-MIB</span></code>. The count is the fact worth stating.</p></li>
+module page with no natural bound: a large fraction of a corpus imports
+<code class="docutils literal notranslate"><span class="pre">IF-MIB</span></code>, and nearly all of it imports <code class="docutils literal notranslate"><span class="pre">SNMPv2-SMI</span></code>. The count is the
+fact worth stating.</p></li>
 </ul>
 <p><strong>No page is an orphan.</strong> The case that breaks this is a structural arc whose
 parent is a module anchor: the parent has no arc page, so only the module page
@@ -1180,7 +1208,7 @@ always on <code class="docutils literal notranslate"><span class="pre">base-url<
 <span class="w">    </span><span class="nt">"base-url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://mibsdepot.com"</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"data-url"</span><span class="p">:</span><span class="w"> </span><span class="s2">"https://data.mibsdepot.com"</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"MIBs Depot"</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"5,500 SNMP MIB modules from their publishers."</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SNMP MIB modules from their publishers."</span><span class="p">,</span>
 <span class="w">    </span><span class="nt">"crawl"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">"*"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"disallow"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"asn1"</span><span class="p">,</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span><span class="w"> </span><span class="s2">"index-v2"</span><span class="p">,</span><span class="w"> </span><span class="s2">"core-db"</span><span class="p">]},</span>
 <span class="w">      </span><span class="nt">"ClaudeBot"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"allow"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"asn1"</span><span class="p">,</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span><span class="w"> </span><span class="s2">"index-v2"</span><span class="p">]}</span>
@@ -1195,9 +1223,10 @@ is called <code class="docutils literal notranslate"><span class="pre">json</spa
 names that the build did not produce is skipped rather than written: a rule
 about a tree that is not there would read as though the tree existed.</p>
 <p>The policy is per-agent because a search engine and an agent want opposite
-things from the same tree. To the first, 460 MB of <code class="docutils literal notranslate"><span class="pre">asn1/</span></code> and <code class="docutils literal notranslate"><span class="pre">json/</span></code>
-across 11,000 files is crawl budget spent on files with no indexing value; to
-the second they are the point, and <code class="docutils literal notranslate"><span class="pre">llms.txt</span></code> sends it there deliberately.
+things from the same tree. To the first, the hundreds of megabytes of
+<code class="docutils literal notranslate"><span class="pre">asn1/</span></code> and <code class="docutils literal notranslate"><span class="pre">json/</span></code> are crawl budget spent on files with no indexing
+value; to the second they are the point, and <code class="docutils literal notranslate"><span class="pre">llms.txt</span></code> sends it there
+deliberately.
 The agent list is configuration because crawler names change faster than
 releases.</p>
 <p><code class="docutils literal notranslate"><span class="pre">llms.txt</span></code> is a convention rather than a mechanism – no major AI crawler is
@@ -1215,8 +1244,8 @@ teaches a crawler the field is noise. A module page’s <code class="docutils li
 module’s own newest <code class="docutils literal notranslate"><span class="pre">REVISION</span></code> or <code class="docutils literal notranslate"><span class="pre">LAST-UPDATED</span></code>, which is the date its
 content last changed; a page listing modules takes the newest among them.</p>
 <p>So <strong>no build clock reaches a sitemap</strong>, and two builds of one corpus produce
-the same one. Over pysnmp/mibs that is 2,635 distinct dates across 7,350 URLs,
-and today’s date is not among them. A page describing something with no
+the same one. Over thousands of URLs the dates are the publishers’ own, and
+today’s is not among them. A page describing something with no
 readable date is listed without a <code class="docutils literal notranslate"><span class="pre">lastmod</span></code> at all – which says “I do not
 know”, where the build date would say something false.</p>
 <p>A stamp shaped like a date and not one is dropped rather than ranked, for the
@@ -1230,9 +1259,10 @@ revision date, which defines a vocabulary of named terms – <code class="docuti
 crossed with <code class="docutils literal notranslate"><span class="pre">Dataset</span></code>. <strong>The identifiers are the OIDs</strong>, which is the
 point: an OID is a globally unique identifier that already exists, and a
 consumer holding one should be able to match it without reading prose.</p>
-<p>It is not free. Enumerating 98,000 definitions adds 40% to the site: 220 MB
-becomes 309 MB. A first cut also carried each term’s description and an
-<code class="docutils literal notranslate"><span class="pre">inDefinedTermSet</span></code> back-reference, which took it to 360 MB; both are gone,
+<p>It is not free. Enumerating every definition a corpus holds adds about 40% to
+the site. A first cut also carried each term’s description and an
+<code class="docutils literal notranslate"><span class="pre">inDefinedTermSet</span></code> back-reference, which took it half again beyond that;
+both are gone,
 the descriptions because they are already in the HTML the JSON-LD sits in, and
 the back-reference because nesting under <code class="docutils literal notranslate"><span class="pre">hasDefinedTerm</span></code> already says a term
 belongs to the set.</p>
@@ -1244,16 +1274,16 @@ belongs to the set.</p>
 stylesheet, so a distribution publishing this beside its own documentation
 makes it look like the rest of that documentation without forking the
 generator. <code class="docutils literal notranslate"><span class="pre">$name</span></code> substitution, and an unknown placeholder renders as
-itself rather than raising in the middle of a 5,500-page build – a page with
-<code class="docutils literal notranslate"><span class="pre">$oops</span></code> on it is something somebody sees.</p>
+itself rather than raising partway through a build of thousands of pages –
+a page with <code class="docutils literal notranslate"><span class="pre">$oops</span></code> on it is something somebody sees.</p>
 <p>A named file that cannot be read is refused rather than ignored: falling back
 would publish a whole site in the wrong skin and say nothing.</p>
 <section id="what-a-replacement-stylesheet-reaches">
 <h4>What a replacement stylesheet reaches<a class="headerlink" href="#what-a-replacement-stylesheet-reaches" title="Link to this heading">¶</a></h4>
-<p>The definition tables carry <strong>no element inside a cell</strong>. At 764,000
-definitions over pysnmp/mibs a wrapper per cell was 61 bytes a row – 47 MB of
-module pages – so the cells hold their text and the stylesheet reaches them by
-position:</p>
+<p>The definition tables carry <strong>no element inside a cell</strong>. A corpus holds
+hundreds of thousands of definitions, and a wrapper per cell was 61 bytes a row over
+them – a quarter of the module pages – so the cells hold their text and the
+stylesheet reaches them by position:</p>
 <div class="table-wrapper docutils container">
 <table class="docutils align-default">
 <thead>
@@ -1299,34 +1329,13 @@ link to one definition. Style <code class="docutils literal notranslate"><span c
 holds, every module one registrant published, the children of a wide OID node.
 <a class="reference internal" href="pysmi/corpus/buckets.html#module-pysmi.corpus.buckets" title="pysmi.corpus.buckets"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pysmi.corpus.buckets</span></code></a> decides what the pieces are called.</p>
 <p><strong>Not first letters.</strong> A to Z is the obvious index and it fails on MIB names,
-which are dominated by vendor prefixes rather than spread across the alphabet:</p>
-<div class="table-wrapper docutils container">
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>list</p></th>
-<th class="head"><p>buckets</p></th>
-<th class="head"><p>largest</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>all 5,510 modules, by first letter</p></td>
-<td><p>25</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">C</span></code> at 1,708</p></td>
-</tr>
-<tr class="row-odd"><td><p>Cisco’s 1,353 modules, by first letter</p></td>
-<td><p>7</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">C</span></code> at 1,280</p></td>
-</tr>
-<tr class="row-even"><td><p>Cisco’s, by first seven characters</p></td>
-<td><p>38</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">CISCO-I</span></code> at 166</p></td>
-</tr>
-</tbody>
-</table>
-</div>
-<p>1,224 of Cisco’s 1,353 modules begin <code class="docutils literal notranslate"><span class="pre">CISCO-</span></code>. No fixed prefix length gives
-even buckets, and the length that would work differs between the global list
-and one registrant.</p>
+which are dominated by vendor prefixes rather than spread across the alphabet.
+Over a vendor corpus the letter <code class="docutils literal notranslate"><span class="pre">C</span></code> takes a third of the modules by itself,
+on the strength of <code class="docutils literal notranslate"><span class="pre">CISCO-</span></code> alone, and most letters take almost none.
+Lengthening the prefix does not rescue it: inside a registrant essentially
+every name shares one, so no fixed length gives even buckets, and the length
+that would work differs between the global list and one registrant.
+<code class="docutils literal notranslate"><span class="pre">--emit=report</span></code> states what a given corpus splits into.</p>
 <p><strong>Not page numbers.</strong> <code class="docutils literal notranslate"><span class="pre">page/4/</span></code> is stable only while the list is. Adding one
 module shifts the contents of every later page, so every already-crawled URL
 past the insertion point serves different content and reports a fresh
@@ -1506,7 +1515,7 @@ the same bytes every time, which is the property the tests above pin.</p>
 <section id="one-driver-both-corpora">
 <h2>One driver, both corpora<a class="headerlink" href="#one-driver-both-corpora" title="Link to this heading">¶</a></h2>
 <p>pysmi’s own wheel is built with this driver. <code class="docutils literal notranslate"><span class="pre">hatch_build.py</span></code> compiles the
-210 bundled ASN.1 modules into <code class="docutils literal notranslate"><span class="pre">pysmi/mibs/pysnmp/</span></code> while the wheel is
+486 bundled ASN.1 modules into <code class="docutils literal notranslate"><span class="pre">pysmi/mibs/pysnmp/</span></code> while the wheel is
 built, and it does that by running <a class="reference internal" href="pysmi/corpus/driver.html#pysmi.corpus.driver.CorpusDriver" title="pysmi.corpus.driver.CorpusDriver"><code class="xref py py-class docutils literal notranslate"><span class="pre">CorpusDriver</span></code></a>
 over a corpus of one namespace – the bundle – rather than by keeping a
 compile loop of its own. A difference between how pysmi builds the base layer
@@ -1605,6 +1614,7 @@ snapshot never had. Corrections land in <code class="docutils literal notranslat
 </ul>
 </li>
 <li><a class="reference internal" href="#the-browsable-site">The browsable site</a><ul>
+<li><a class="reference internal" href="#what-the-entry-point-states">What the entry point states</a></li>
 <li><a class="reference internal" href="#where-the-repairs-come-from">Where the repairs come from</a></li>
 <li><a class="reference internal" href="#why-the-generator-is-here">Why the generator is here</a></li>
 <li><a class="reference internal" href="#the-module-set-is-the-corpus">The module set is the corpus</a></li>
@@ -1638,7 +1648,7 @@ snapshot never had. Corrections land in <code class="docutils literal notranslat
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=df23e5c0"></script>
+</div><script src="_static/documentation_options.js?v=cde5d9da"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>

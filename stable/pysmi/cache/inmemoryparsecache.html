@@ -8,7 +8,7 @@
         <link rel="prefetch" href="../../_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="../../_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>In-memory parse cache - SNMP SMI compiler 5.6.0 documentation</title>
+        <title>In-memory parse cache - SNMP SMI compiler 5.7.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 5.6.0 documentation</div></a>
+      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 5.7.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="../../_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.6.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.7.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -349,12 +349,13 @@ cache returns nothing at all. A pass reads its modules once in order, so
 when the bound is smaller than that set, the entry a second pass asks for
 first is the one evicted first, and every miss evicts what the next lookup
 wanted: least-recently-used is the worst policy for a scan longer than the
-cache, and the hit rate is zero rather than reduced. Measured over
-<code class="docutils literal notranslate"><span class="pre">pysnmp/mibs</span></code>, the largest namespace touches 1672 modules and holds
-198 MiB of trees; a mid-sized one, 322 modules and 33 MiB. The default is
-set above the largest of those. Nothing is preallocated – a caller
-compiling ten modules holds ten trees – so the bound costs only what a
-run actually reaches.</p>
+cache, and the hit rate is zero rather than reduced. The default is set
+above what the largest namespace of a vendor corpus touches in one pass,
+with room over it; the figure a given corpus reaches is in the build
+report rather than here, because a comment restating it is wrong the next
+time a namespace grows. Nothing is preallocated – a caller compiling ten
+modules holds ten trees – so the bound costs only what a run actually
+reaches.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>maxEntries</strong> – how many trees to hold. A value of 0 or less means
@@ -464,7 +465,7 @@ re-parse.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=df23e5c0"></script>
+</div><script src="../../_static/documentation_options.js?v=cde5d9da"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

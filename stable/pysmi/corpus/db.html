@@ -8,7 +8,7 @@
         <link rel="prefetch" href="../../_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="../../_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>Corpus database - SNMP SMI compiler 5.6.0 documentation</title>
+        <title>Corpus database - SNMP SMI compiler 5.7.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 5.6.0 documentation</div></a>
+      <a href="../../contents.html"><div class="brand">SNMP SMI compiler 5.7.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="../../_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.6.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.7.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -349,8 +349,8 @@ rather not parse a second file.</p>
 <p><em>What is the node at this OID?</em> The CSV cannot say – it is <code class="docutils literal notranslate"><span class="pre">MODULE,OID</span></code> and
 nothing else, and it indexes a module’s <em>anchors</em>, so <code class="docutils literal notranslate"><span class="pre">ifDescr</span></code> is not in it
 at all. Answering from the published <code class="docutils literal notranslate"><span class="pre">json/</span></code> tree means parsing the whole
-module: 11 ms and 9,773 symbols of <code class="docutils literal notranslate"><span class="pre">CISCO-ENTITY-VENDORTYPE-OID-MIB</span></code> to reach
-one of them. Here it is one row.</p>
+module, and <code class="docutils literal notranslate"><span class="pre">CISCO-ENTITY-VENDORTYPE-OID-MIB</span></code> is thousands of symbols and
+milliseconds of parsing to reach one of them. Here it is one row.</p>
 <p><em>What comes after this OID?</em> Nothing published answers it. An anchor index has
 no per-node ordering, so a GETNEXT walk cannot be served from one at all.</p>
 <p>What this deliberately does not carry is prose. DESCRIPTION and REFERENCE are
@@ -455,23 +455,22 @@ corpus with no nodes, which is why it is never published under that name.</p>
 <span class="sig-prename descclassname"><span class="pre">pysmi.corpus.db.</span></span><span class="sig-name descname"><span class="pre">SEARCH</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Final" title="(in Python v3.14)"><span class="pre">Final</span></a></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'search'</span></span><a class="headerlink" href="#pysmi.corpus.db.SEARCH" title="Link to this definition">¶</a></dt>
 <dd><p>Everything but <code class="docutils literal notranslate"><span class="pre">node</span></code> and the <code class="docutils literal notranslate"><span class="pre">type</span></code> table it references – the tables
 that answer <em>which module</em> rather than <em>what the object is</em>.</p>
-<p>Over pysnmp/mibs the full database is 256 MB, and measured per table
-<code class="docutils literal notranslate"><span class="pre">node</span></code> is 124.2 MB with 58.9 of <code class="docutils literal notranslate"><span class="pre">node_by_name</span></code> and 39.5 of
-<code class="docutils literal notranslate"><span class="pre">node_by_module</span></code>, plus 17.7 for <code class="docutils literal notranslate"><span class="pre">type</span></code> and its unique index – 240.2
-MB, 94% of the file. What is left answers the two questions a browser
-asks: <code class="docutils literal notranslate"><span class="pre">oid_index</span></code> 7.7 MB, <code class="docutils literal notranslate"><span class="pre">import</span></code> 5.0, <code class="docutils literal notranslate"><span class="pre">symbol</span></code> 1.1, <code class="docutils literal notranslate"><span class="pre">module</span></code>
-0.8, <code class="docutils literal notranslate"><span class="pre">provenance</span></code> 0.7. <strong>15 MB against 256</strong>, which is the difference
-between a database a site can publish and one that spends a quarter of the
-whole Pages budget.</p>
+<p><code class="docutils literal notranslate"><span class="pre">node</span></code>, its two indexes, and <code class="docutils literal notranslate"><span class="pre">type</span></code> with its own are almost the whole
+file – a row per definition and an index row per definition per lookup,
+against a table of modules and a table of arcs. Leaving them out takes the
+database down by more than an order of magnitude, which is the difference
+between one a site can publish and one that spends a large part of the
+whole Pages budget. <code class="docutils literal notranslate"><span class="pre">mibcorpus</span> <span class="pre">--emit=report</span></code> states the row counts a
+given corpus produces, under <code class="docutils literal notranslate"><span class="pre">db</span></code> and <code class="docutils literal notranslate"><span class="pre">search_db</span></code>.</p>
 <p>Dropping the descriptive columns instead would not have done it. Of
-<code class="docutils literal notranslate"><span class="pre">node</span></code>’s 108.5 MB of payload the identity columns – <code class="docutils literal notranslate"><span class="pre">oid_key</span></code>,
-<code class="docutils literal notranslate"><span class="pre">module</span></code>, <code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">oid</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code> – are 84.5 MB and everything
-describing the object is 24.1. The cost is a row per definition, 764,353 of
-them, not what each row says.</p>
+<code class="docutils literal notranslate"><span class="pre">node</span></code>’s payload the identity columns – <code class="docutils literal notranslate"><span class="pre">oid_key</span></code>, <code class="docutils literal notranslate"><span class="pre">module</span></code>,
+<code class="docutils literal notranslate"><span class="pre">name</span></code>, <code class="docutils literal notranslate"><span class="pre">oid</span></code>, <code class="docutils literal notranslate"><span class="pre">class</span></code> – are three quarters of it and everything
+describing the object is the rest. The cost is a row per definition, and a
+corpus has one per definition it holds, not what each row says.</p>
 <p>What it deliberately does not carry is an index of every definition’s
 name. A browser searches to <em>navigate</em> – to a module, or to whatever owns
 an OID – and then displays the module it landed on. Nobody searches the
-corpus for a field, so the 780,000-row index that would answer it is 47 MB
+corpus for a field, so a row per definition of index is tens of megabytes
 spent on a question the page already answers by being a page.</p>
 <p>The schema is the same either way, so a reader uses one set of queries and
 <a class="reference internal" href="#pysmi.corpus.db.validate" title="pysmi.corpus.db.validate"><code class="xref py py-func docutils literal notranslate"><span class="pre">validate()</span></code></a> one set of checks. <code class="docutils literal notranslate"><span class="pre">meta.tables</span></code> says which profile
@@ -568,7 +567,7 @@ corpus, but is it a <em>sound</em> one.</p>
 <p>Every check here is a universal over a whole build rather than a property
 of one row, which is why they live here and not in the unit tests: the
 writer’s tests assert that one module round-trips, and none of them can
-say that no module in a 5,510-module corpus lost its content hash. A
+say that no module in a corpus of thousands lost its content hash. A
 publisher runs this before it ships the file.</p>
 <p>Nothing here is expensive except the ordering scan, which is one indexed
 pass.</p>
@@ -615,8 +614,8 @@ the absence says the build did not record one, which a reader can
 act on, and a row of empty strings would not.</p></li>
 <li><p><strong>tables</strong> – <a class="reference internal" href="#pysmi.corpus.db.FULL" title="pysmi.corpus.db.FULL"><code class="xref py py-data docutils literal notranslate"><span class="pre">FULL</span></code></a> or <a class="reference internal" href="#pysmi.corpus.db.SEARCH" title="pysmi.corpus.db.SEARCH"><code class="xref py py-data docutils literal notranslate"><span class="pre">SEARCH</span></code></a>. The schema is the same
 either way; <code class="docutils literal notranslate"><span class="pre">SEARCH</span></code> leaves <code class="docutils literal notranslate"><span class="pre">node</span></code> and <code class="docutils literal notranslate"><span class="pre">type</span></code> empty, which
-takes pysnmp/mibs’ database from 256 MB to 15 and is what a client
-resolving OIDs and finding modules actually needs.</p></li>
+takes more than an order of magnitude off the file and is what a
+client resolving OIDs and finding modules actually needs.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -900,7 +899,7 @@ Empty when the corpus conforms.</p>
       
     </aside>
   </div>
-</div><script src="../../_static/documentation_options.js?v=df23e5c0"></script>
+</div><script src="../../_static/documentation_options.js?v=cde5d9da"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>

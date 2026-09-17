@@ -8,7 +8,7 @@
         <link rel="prefetch" href="_static/logo.svg" as="image">
 
     <link rel="shortcut icon" href="_static/favicon.ico"><!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
-        <title>MIBs as data: layering review - SNMP SMI compiler 5.6.0 documentation</title>
+        <title>MIBs as data: layering review - SNMP SMI compiler 5.7.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
@@ -163,7 +163,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.6.0 documentation</div></a>
+      <a href="contents.html"><div class="brand">SNMP SMI compiler 5.7.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
     <img class="sidebar-logo only-dark" src="_static/logo.svg" alt="Dark Logo"/>
   </div>
   
-  <span class="sidebar-brand-text">SNMP SMI compiler 5.6.0 documentation</span>
+  <span class="sidebar-brand-text">SNMP SMI compiler 5.7.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -583,9 +583,10 @@ compilation path for splunk-connect-for-snmp.</p>
 <section id="the-base-mib-shape-has-three-copies">
 <span id="the-base-mib-shape"></span><h2><a class="toc-backref" href="#id6" role="doc-backlink">The base-MIB shape has three copies</a><a class="headerlink" href="#the-base-mib-shape-has-three-copies" title="Link to this heading">¶</a></h2>
 <p>pysmi produces and distributes the pysnmp artifact shape. <code class="docutils literal notranslate"><span class="pre">hatch_build.py</span></code>
-runs <code class="docutils literal notranslate"><span class="pre">PySnmpCodeGen</span></code> over all 210 bundled ASN.1 modules during the wheel build
-and force-includes the output as <code class="docutils literal notranslate"><span class="pre">pysmi/mibs/pysnmp/</span></code>. Its docstring states
-the rationale: a consumer that needs to load one of the 210 standard modules
+runs <code class="docutils literal notranslate"><span class="pre">PySnmpCodeGen</span></code> over all 486 bundled ASN.1 modules during the
+wheel build and force-includes the output as <code class="docutils literal notranslate"><span class="pre">pysmi/mibs/pysnmp/</span></code>. Its
+docstring states the rationale: a consumer that needs to load one of the
+standard modules
 rather than compile it should not have to run the compiler first. Generating
 rather than committing the modules makes their correspondence to the ASN.1
 verifiable by construction.</p>
@@ -941,12 +942,12 @@ console script. <strong>Settled</strong>: a separate console script. A corpus bu
 a manifest of source namespaces rather than a module list, and it produces
 every artifact at once; the <em>formats</em> remain <code class="docutils literal notranslate"><span class="pre">mibdump</span></code> destinations. See
 <a class="reference internal" href="mibcorpus.html#mibcorpus"><span class="std std-ref">The mibcorpus tool</span></a>.</p></li>
-<li><p>Whether pysmi bundling 210 modules changes the purpose of <code class="docutils literal notranslate"><span class="pre">src/standard</span></code> in
-the mibs repository. The two now overlap, and one of them must be
-authoritative for a given module. Narrowing the bundle to what the corpus
-needs sharpens rather than settles this: the 275 modules now held in
-<code class="docutils literal notranslate"><span class="pre">pysmi/mibs/future/</span></code> are not published by either project, and whether
-<code class="docutils literal notranslate"><span class="pre">src/standard</span></code> should carry the ones a user might still poll is open.</p></li>
+<li><p>Whether pysmi bundling 486 modules changes the purpose of
+<code class="docutils literal notranslate"><span class="pre">src/standard</span></code> in the mibs repository. The two now overlap, and one of
+them must be authoritative for a given module. The held tier no longer
+bears on it – <code class="docutils literal notranslate"><span class="pre">pysmi/mibs/future/</span></code> holds 0 modules since
+pysnmp/pysmi#323 promoted the whole of it – so what is left open is
+whether <code class="docutils literal notranslate"><span class="pre">src/standard</span></code> should carry anything the bundle already does.</p></li>
 </ul>
 </section>
 </section>
@@ -1028,7 +1029,7 @@ needs sharpens rather than settles this: the 275 modules now held in
       
     </aside>
   </div>
-</div><script src="_static/documentation_options.js?v=df23e5c0"></script>
+</div><script src="_static/documentation_options.js?v=cde5d9da"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
