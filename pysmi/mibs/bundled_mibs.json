@@ -30,6 +30,10 @@
       "rfc": 2742,
       "source": "rfc"
     },
+    "AGGREGATE-MIB": {
+      "rfc": 4498,
+      "source": "rfc"
+    },
     "ALARM-MIB": {
       "rfc": 3877,
       "source": "rfc"
@@ -637,6 +641,10 @@
     "IANA-GMPLS-TC-MIB": {
       "source": "iana",
       "url": "https://www.iana.org/assignments/ianagmplstc-mib/ianagmplstc-mib"
+    },
+    "IANA-IPPM-METRICS-REGISTRY-MIB": {
+      "rfc": 4148,
+      "source": "rfc"
     },
     "IANA-ITU-ALARM-TC-MIB": {
       "source": "iana",
@@ -1649,6 +1657,10 @@
       "rfc": 1659,
       "source": "rfc"
     },
+    "RSERPOOL-MIB": {
+      "rfc": 5525,
+      "source": "rfc"
+    },
     "RSTP-MIB": {
       "rfc": 4318,
       "source": "rfc"
@@ -1941,6 +1953,10 @@
     },
     "TED-MIB": {
       "rfc": 6825,
+      "source": "rfc"
+    },
+    "TIME-AGGREGATE-MIB": {
+      "rfc": 4498,
       "source": "rfc"
     },
     "TN3270E-MIB": {
