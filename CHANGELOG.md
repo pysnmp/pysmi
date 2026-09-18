@@ -3,6 +3,28 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [6.0.0](https://github.com/pysnmp/pysmi/compare/v5.8.0...v6.0.0) (2026-09-18)
+
+### ⚠ BREAKING CHANGES
+
+* **codegen:** generated SMIv1 modules that use NetworkAddress now
+import SNMPv2-SMI::NetworkAddress, which pysnmp does not yet export.
+Until a pysnmp carrying that export is released, loading a module
+compiled by this version -- including the RFC1213-MIB in this wheel --
+fails with "SmiError: No symbol SNMPv2-SMI::NetworkAddress". pysmi
+declares no pysnmp dependency to express the requirement, so the major
+version is the signal; pysnmp raises its pysnmp-pysmi floor to this
+release in turn. The JSON documents for such modules report
+"NetworkAddress" where they reported "IpAddress", and the affected
+modules' content and structure hashes move with it.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01F85ZEp2xjvTBVFfAKqK4Lq
+
+### Bug Fixes
+
+* **codegen:** keep NetworkAddress instead of resolving it to IpAddress ([a2f54c7](https://github.com/pysnmp/pysmi/commit/a2f54c7d204d6358d39acd5d00ade40212d0bf55))
+
 ## [5.8.0](https://github.com/pysnmp/pysmi/compare/v5.7.0...v5.8.0) (2026-09-18)
 
 ### Features
