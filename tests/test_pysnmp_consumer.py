@@ -45,6 +45,57 @@ from tests.test_standard_corpus import LOAD_ORDER, compiled, documents
 
 pytestmark = pytest.mark.pysnmp_consumer
 
+
+@functools.cache
+def _pysnmp_exports(module, symbol):
+    """Whether the installed pysnmp's own copy of *module* exports *symbol*.
+
+    pysmi declares no pysnmp dependency, so the version under test is whatever
+    the environment happens to carry. A symbol this generator emits an import
+    for may therefore be present or absent, and which it is decides whether a
+    test here is measuring pysmi or measuring the gap.
+    """
+    from pysnmp.smi.builder import MibBuilder
+    from pysnmp.smi.error import SmiError
+
+    try:
+        MibBuilder().importSymbols(module, symbol)
+    except SmiError:
+        return False
+
+    return True
+
+
+#: Symbols this generator emits imports for that a pysnmp base module must
+#: export, each with the change that will supply it.
+#:
+#: Distinct from ``KNOWN_FAILURES`` below, which names modules. A missing base
+#: symbol is reached transitively -- ``LLDP-MIB`` fails on
+#: ``SNMPv2-SMI::NetworkAddress`` because it imports from ``RFC1213-MIB``, not
+#: because it mentions the type -- so which modules fail depends on the corpus
+#: and listing them would be a list to re-derive on every bundle change. The
+#: cause is the durable fact, so the cause is what is recorded.
+#:
+#: ``SNMPv2-SMI::NetworkAddress``: SMIv2 dropped SMIv1's NetworkAddress, so RFC
+#: 2578 does not define it and the copy pysnmp ships does not export it. pysmi
+#: emits the import because the alternative -- resolving the CHOICE to its
+#: single ``IpAddress`` arm -- loses the address-family sub-identifier RFC 1212
+#: section 4.1.6 requires of a NetworkAddress-valued index, which left
+#: ``RFC1213-MIB::atEntry`` mis-indexed. pysnmp/pysnmp#310 exports it.
+BLOCKED_ON_MISSING_SYMBOL = {
+    "SNMPv2-SMI::NetworkAddress": "pysnmp/pysnmp#310",
+}
+
+
+def _blocked_symbols_absent():
+    """The blocked symbols the installed pysnmp genuinely still lacks."""
+    return {
+        marker
+        for marker in BLOCKED_ON_MISSING_SYMBOL
+        if not _pysnmp_exports(*marker.split("::"))
+    }
+
+
 MIB = """
 TEST-MIB DEFINITIONS ::= BEGIN
 IMPORTS
@@ -306,6 +357,26 @@ class CorpusLoadTestCase(unittest.TestCase):
     documents and the sources themselves.
     """
 
+    def setUp(self):
+        """Stand down while a base symbol the corpus needs is missing.
+
+        The corpus carries SMIv1 modules, so a symbol in
+        ``BLOCKED_ON_MISSING_SYMBOL`` takes this whole fixture down and the
+        result says nothing about whether the generated modules load. Checked
+        here rather than as a decorator so that importing this file does not
+        require pysnmp -- collection under ``-m "not pysnmp_consumer"`` must
+        still work.
+        """
+        blocked = _blocked_symbols_absent()
+        if blocked:
+            self.skipTest(
+                "the installed pysnmp does not export "
+                + ", ".join(sorted(blocked))
+                + " (supplied by "
+                + ", ".join(sorted(set(BLOCKED_ON_MISSING_SYMBOL.values())))
+                + ")"
+            )
+
     def testEveryGeneratedModuleLoadsIntoOneBuilder(self):
         from pysnmp.smi.builder import MibBuilder
 
@@ -477,7 +548,45 @@ class PrecompiledBundleLoadsTestCase(unittest.TestCase):
         self.assertGreater(len(self.modules), 200)
 
     def testEveryModuleLoadsExceptTheKnownFailures(self):
-        self.assertEqual(sorted(self.KNOWN_FAILURES), sorted(self.errors))
+        blocked = _blocked_symbols_absent()
+        unexplained = {
+            name: error
+            for name, error in self.errors.items()
+            if name not in self.KNOWN_FAILURES
+            and not any(marker in error for marker in blocked)
+        }
+
+        self.assertEqual({}, unexplained)
+
+    def testEveryKnownFailureStillFails(self):
+        """The per-module record does not outlive the thing it records.
+
+        ``KNOWN_FAILURES`` is asserted in both directions -- a module that
+        starts loading has to be taken out of it. The blocked-symbol set is not
+        asserted this way, because which modules a missing base symbol takes
+        down is a property of the corpus rather than of pysnmp.
+        """
+        self.assertEqual(
+            sorted(self.KNOWN_FAILURES),
+            sorted(set(self.KNOWN_FAILURES) & set(self.errors)),
+        )
+
+    def testABlockedSymbolIsStillMissingFromPysnmp(self):
+        """A supplied symbol has to be taken out of the blocked set.
+
+        This is what stops ``BLOCKED_ON_MISSING_SYMBOL`` becoming a place
+        failures go to be forgotten: the entry only holds while the installed
+        pysnmp really does lack the symbol. The release that supplies one turns
+        this red, and the fix is to delete the entry -- after which any module
+        still failing on it is unexplained and fails the test above.
+        """
+        supplied = {
+            marker: fix
+            for marker, fix in BLOCKED_ON_MISSING_SYMBOL.items()
+            if _pysnmp_exports(*marker.split("::"))
+        }
+
+        self.assertEqual({}, supplied)
 
     def testTheKnownFailuresStillFailForTheSameReason(self):
         """A changed reason means the diagnosis above is stale.
