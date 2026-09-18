@@ -59,6 +59,7 @@ from pysmi.corpus import index as corpus_index
 from pysmi.corpus.namespace import DEFAULT_TIER, TIERS, Namespace
 from pysmi.corpus.site import build_site
 from pysmi.corpus.site.crawl import Crawl
+from pysmi.corpus.site.dates import Changed
 from pysmi.corpus.site.theme import Theme
 from pysmi.mibinfo import module_text
 from pysmi.parser import SmiV1CompatParser
@@ -426,6 +427,7 @@ class CorpusDriver:
         patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
         pageSize: "int | Mapping[str, int] | None" = None,
         crawl: "Crawl | None" = None,
+        changed: "Changed | None" = None,
         parseCache: "AbstractParseCache | None" = None,
     ) -> None:
         """Create a driver over the given input set.
@@ -481,6 +483,10 @@ class CorpusDriver:
         self._theme = theme
         self._patches = dict(patches or {})
         self._pageSize = pageSize
+        #: The dates this distribution last changed each module, which the
+        #: corpus itself cannot know: every date in a MIB is its publisher's.
+        #: See :py:mod:`pysmi.corpus.site.dates`.
+        self._changed = changed
         #: What this build declares about the site it publishes, or None for
         #: a build producing a subtree somebody else will assemble.
         self._crawl = crawl
@@ -1493,6 +1499,7 @@ class CorpusDriver:
             patches=self._patches,
             size=self._pageSize,
             crawl=self._crawl,
+            changed=self._changed,
         )
 
         report.site = result.counts()

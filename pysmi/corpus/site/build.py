@@ -38,6 +38,7 @@ from pysmi.corpus import pages as corpus_pages
 from pysmi.corpus.arcs import Arc
 from pysmi.corpus.buckets import SIZE, Bucket, buckets
 from pysmi.corpus.site import crawl as site_crawl
+from pysmi.corpus.site import dates as site_dates
 from pysmi.corpus.site import model, render
 from pysmi.corpus.site.theme import Theme
 
@@ -197,6 +198,7 @@ def build_site(
     patches: "Mapping[str, tuple[tuple[tuple[str, str], ...], str]] | None" = None,
     size: "int | Mapping[str, int] | PageSizes | None" = None,
     crawl: "site_crawl.Crawl | None" = None,
+    changed: "site_dates.Changed | None" = None,
 ) -> SiteReport:
     """Render the corpus as a browsable site.
 
@@ -229,6 +231,13 @@ def build_site(
             pages are written without it, which is what a build producing a
             subtree somebody else will assemble wants. See
             pysnmp/pysmi#284.
+        changed: the dates this distribution last changed each module, as
+            :py:func:`pysmi.corpus.site.dates.read_changed` read them. Given,
+            the entry point offers them beside the publishers' own revision
+            dates; omitted, it shows the publishers' alone. A module the
+            mapping does not name keeps no such date, which is what lets a
+            distribution supply dates for the part of the corpus it tracks
+            and stay quiet about the rest.
 
     Returns:
         What was written.
@@ -287,6 +296,7 @@ def build_site(
 
         revised = site_crawl.newest((page.lastupdated, *page.revisions))
         path = f"{render.MIB}/{module}"
+        here = changed.dates.get(module, "") if changed else ""
 
         writer.page(
             path,
@@ -300,12 +310,19 @@ def build_site(
             revised,
         )
         dated[module] = revised
-        tally.add(page, tier=model.tier_name(tier), revised=revised)
+        tally.add(page, tier=model.tier_name(tier), revised=revised, changed=here)
         written += 1
 
     overview = tally.overview(arcs=len(names), registrants=len(entities or {}))
     listings = _write_browse(
-        writer, theme, held, sizes.browse, dated, crawl, overview=overview
+        writer,
+        theme,
+        held,
+        sizes.browse,
+        dated,
+        crawl,
+        overview=overview,
+        label=changed.label if changed else "",
     )
     registrants = _write_entities(
         writer, theme, entities or {}, sizes.entity, dated, crawl
@@ -511,6 +528,7 @@ def _write_browse(
     crawl: "site_crawl.Crawl | None" = None,
     *,
     overview: "model.Overview | None" = None,
+    label: str = "",
 ) -> int:
     """The entry point and the module list, bucketed where it is long.
 
@@ -520,7 +538,11 @@ def _write_browse(
     facts twelve times and moves the list below the fold.
     """
     found = buckets(held, size)
-    summary = render.overview_html(render.root_for(1), overview) if overview else ""
+    summary = (
+        render.overview_html(render.root_for(1), overview, label=label)
+        if overview
+        else ""
+    )
     written = 0
 
     for bucket in found:

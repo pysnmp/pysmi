@@ -269,7 +269,12 @@ SITE_SETTINGS: Final[dict[str, type | tuple[type, ...]]] = {
     "stylesheet": str,
     "page-size": (int, dict),
     "crawl": dict,
+    "changed": dict,
 }
+
+#: What ``site.changed`` declares: a label for the list, and the file the
+#: dates are read from.
+CHANGED_SETTINGS: Final[dict[str, type]] = {"label": str, "dates": str}
 
 
 def _read_site(manifest: dict[str, Any], path: str) -> dict[str, Any]:
@@ -320,6 +325,48 @@ def _read_site(manifest: dict[str, Any], path: str) -> dict[str, Any]:
     for name in ("template", "stylesheet"):
         if settings.get(name) and not os.path.isabs(settings[name]):
             settings[name] = os.path.normpath(os.path.join(where, settings[name]))
+
+    if "changed" in settings:
+        settings["changed"] = _read_changed(settings["changed"], where, path)
+
+    return settings
+
+
+def _read_changed(declared: dict[str, Any], where: str, path: str) -> "dict[str, Any]":
+    """The ``site.changed`` block, checked.
+
+    A second date per module, which the corpus itself does not hold: every
+    date in a MIB is the publisher's. What a distribution did with a module
+    -- took it, corrected it, replaced it with a newer copy -- is a fact about
+    the distribution, so it arrives from one rather than being derived here.
+    """
+    unknown = sorted(set(declared) - set(CHANGED_SETTINGS))
+
+    if unknown:
+        raise error.PySmiError(
+            f"corpus manifest {path}: site changed declares "
+            f"{', '.join(unknown)}; expected some of "
+            f"{', '.join(sorted(CHANGED_SETTINGS))}"
+        )
+
+    for name, value in declared.items():
+        if not isinstance(value, CHANGED_SETTINGS[name]):
+            raise error.PySmiError(
+                f"corpus manifest {path}: site changed {name} is "
+                f"{type(value).__name__}, expected "
+                f"{CHANGED_SETTINGS[name].__name__}"
+            )
+
+    if not declared.get("dates"):
+        raise error.PySmiError(
+            f"corpus manifest {path}: site changed names no dates file; "
+            f"a second date per module has to come from somewhere"
+        )
+
+    settings = dict(declared)
+
+    if not os.path.isabs(settings["dates"]):
+        settings["dates"] = os.path.normpath(os.path.join(where, settings["dates"]))
 
     return settings
 

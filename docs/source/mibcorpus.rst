@@ -824,6 +824,61 @@ thousands of vendor modules and a few hundred standard ones has no recent
 standard revision in a single list, and the standard modules are what a reader
 resolving an OID is looking at.
 
+.. _site-changed:
+
+What the distribution changed, beside what the publishers did
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Every date in a MIB is its publisher's, so those tables answer *what has the
+industry published lately* and cannot answer *what has this distribution done
+lately*. A module taken today may carry a revision from decades back, and a
+module corrected today carries whatever date its publisher last set.
+
+That second date is a fact about a distribution rather than about a MIB, so it
+arrives from one. ``site.changed`` names a JSON file of module to
+``YYYY-MM-DD`` and what to call it:
+
+.. code-block:: json
+
+   {
+     "site": {
+       "changed": {
+         "label": "Added or updated here",
+         "dates": "output/module-dates.json"
+       }
+     }
+   }
+
+.. code-block:: json
+
+   {"IF-MIB": "2026-09-17", "CISCO-IPMCAST-MIB": "2026-04-02"}
+
+Given one, the entry point offers both orderings as tabs -- the publishers'
+revision dates and the distribution's own -- and a reader switches between them
+without a fetch and without a script: each tab is a label pointing at a radio,
+and the stylesheet shows the panel whose radio is checked. Both panels are in
+the markup either way, so a crawler reads all of it and a reader with no CSS
+gets the two lists one after the other under their own headings.
+
+How a distribution knows the date is its own business. pysnmp/mibs reads the
+commit that last touched each module's file, which is close enough to "when we
+published it" for a repository that commits what it publishes.
+
+**A module the file does not name has no such date** and is listed under none,
+which is what lets a distribution date the part of the corpus it tracks and
+stay quiet about the rest -- pysnmp/mibs tracks the modules in its own tree and
+takes the standard ones from pysmi, so the standard tier has no such date and
+gets no such table. The note under each table counts the pool it came from for
+that reason -- "of the vendor modules this distribution tracks" rather than
+"of the ones this corpus holds", which over a corpus whose standard tier comes
+from elsewhere are different numbers and different claims.
+
+A date the lists cannot sort by -- anything but ``YYYY-MM-DD`` -- fails the
+build rather than reaching a page, and so does a named file that will not
+read. A site that quietly published an empty list here would state that the
+distribution has changed nothing, which is a different claim from "this build
+was not told".
+
 Every figure is a sum over the module pages the build renders, taken as it
 renders them, so the entry point costs no second pass over the corpus. The
 figures are in the bytes like everything else here: the front page is the

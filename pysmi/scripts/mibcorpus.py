@@ -39,6 +39,7 @@ from pysmi.corpus.namespace import (
     read_manifest,
 )
 from pysmi.corpus.site.crawl import Crawl
+from pysmi.corpus.site.dates import read_changed
 from pysmi.corpus.site.theme import load_theme
 from pysmi.defects import DefectRef
 from pysmi.patches import PatchSet, split_patch
@@ -512,6 +513,24 @@ def start() -> None:
     if pageSize is None:
         pageSize = declared.get("page-size")
 
+    # Read once for the whole plan rather than per publication: every
+    # publication of one build states the same thing about what this
+    # distribution changed, and a file that will not parse should stop the
+    # build before the first corpus is written rather than after.
+    try:
+        siteChanged = (
+            read_changed(
+                declared["changed"]["dates"],
+                declared["changed"].get("label", ""),
+            )
+            if declared.get("changed")
+            else None
+        )
+
+    except error.PySmiError as exc:
+        sys.stderr.write(f"ERROR: {exc}\r\n")
+        sys.exit(EX_USAGE)
+
     # One cache for every publication in the plan, which is the whole point:
     # two trees off one build parse the corpus once between them rather than
     # once each. Persistent when the caller named a directory, so a rebuild
@@ -570,6 +589,7 @@ def start() -> None:
                 theme=theme,
                 pageSize=pageSize,
                 crawl=crawl,
+                changed=siteChanged,
                 parseCache=parseCache,
             ).run()
 

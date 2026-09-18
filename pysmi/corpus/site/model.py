@@ -17,7 +17,7 @@ table. Nothing here re-reads a MIB or recompiles anything.
 See pysnmp/pysmi#276.
 """
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, Final, NamedTuple
 
 from pysmi.corpus.arcs import Arc, prefixes
@@ -173,6 +173,12 @@ class Recent(NamedTuple):
     #: how much moved rather than only that something did.
     definitions: int
 
+    #: The date the publishing distribution last changed it, as
+    #: :py:mod:`pysmi.corpus.site.dates` supplied it, or ``""`` where none
+    #: was supplied for this module. Independent of :py:attr:`revised`: a
+    #: module taken today carries whatever revision its publisher last set.
+    changed: str = ""
+
 
 class Overview(NamedTuple):
     """What the corpus holds, as the entry point states it.
@@ -219,6 +225,20 @@ class Overview(NamedTuple):
     #: carries a readable date aside.
     latest: Mapping[str, tuple[Recent, ...]]
 
+    #: Per tier, the modules the distribution changed most recently, newest
+    #: first. Empty for a build given no dates, and a tier whose modules were
+    #: all supplied without one is left out -- which is what makes this list
+    #: honest on a corpus whose standard tier comes from somewhere the
+    #: distribution does not track.
+    latestChanged: Mapping[str, tuple[Recent, ...]] = {}
+
+    #: Per tier, how many modules the distribution supplied a date for, which
+    #: is the pool :py:attr:`latestChanged` is the newest few of. Not
+    #: :py:attr:`tiers`: a distribution may date a fraction of a tier, and
+    #: "the ten most recent of the 6,982 it tracks" and "of the 6,982 this
+    #: corpus holds" are different claims.
+    datedChanged: Mapping[str, int] = {}
+
 
 def tier_name(rank: int) -> str:
     """What a tier rank is called, as a namespace declares it.
@@ -247,10 +267,19 @@ class Tally:
         self.repaired = 0
         self.incomplete = 0
         self.tiers: dict[str, int] = {}
+        #: Per tier, one row per module carrying a date of either kind. A
+        #: module with a publisher revision and no distribution date, or the
+        #: other way about, is in here once and reaches only the list it has
+        #: a date for.
         self.dated: dict[str, list[Recent]] = {}
 
     def add(
-        self, page: ModulePage, *, tier: str = DEFAULT_TIER, revised: str = ""
+        self,
+        page: ModulePage,
+        *,
+        tier: str = DEFAULT_TIER,
+        revised: str = "",
+        changed: str = "",
     ) -> None:
         """One module's page, counted.
 
@@ -263,6 +292,10 @@ class Tally:
                 :py:func:`pysmi.corpus.site.crawl.newest` read it. A module
                 carrying none is counted and is not listed as a recent
                 revision, since there is no date to place it by.
+            changed: the date the publishing distribution last changed it, as
+                :py:mod:`pysmi.corpus.site.dates` supplied it. Same rule: a
+                module supplied without one is counted and is not listed
+                under a date it does not have.
         """
         self.modules += 1
         self.tiers[tier] = self.tiers.get(tier, 0) + 1
@@ -276,13 +309,14 @@ class Tally:
         if page.missing:
             self.incomplete += 1
 
-        if revised:
+        if revised or changed:
             self.dated.setdefault(tier, []).append(
                 Recent(
                     module=page.module,
                     revised=revised,
                     organization=page.organization,
                     definitions=len(page.objects) + len(page.notifications),
+                    changed=changed,
                 )
             )
 
@@ -304,6 +338,9 @@ class Tally:
         """
         ordered = [x for x in TIERS if self.tiers.get(x)]
         ordered += [x for x in sorted(self.tiers) if x not in TIERS]
+        rows = [y for x in self.dated.values() for y in x]
+        published = self._newest(ordered, "revised", recent)
+        supplied = self._newest(ordered, "changed", recent)
 
         return Overview(
             modules=self.modules,
@@ -315,19 +352,48 @@ class Tally:
             types=self.types,
             repaired=self.repaired,
             incomplete=self.incomplete,
-            revised=max(
-                (y.revised for x in self.dated.values() for y in x), default=""
-            ),
-            latest={
-                x: tuple(
-                    sorted(
-                        self.dated[x], key=lambda y: (_descending(y.revised), y.module)
-                    )[:recent]
-                )
-                for x in ordered
-                if self.dated.get(x)
-            },
+            revised=max((x.revised for x in rows), default=""),
+            latest={x: y for x, (y, _) in published},
+            latestChanged={x: y for x, (y, _) in supplied},
+            datedChanged={x: y for x, (_, y) in supplied},
         )
+
+    def _newest(
+        self, ordered: "Sequence[str]", dated: str, recent: int
+    ) -> "list[tuple[str, tuple[tuple[Recent, ...], int]]]":
+        """Per tier, the *recent* newest rows on one axis, and the pool's size.
+
+        A row with no date of this kind is left out rather than sorted to the
+        end: a list of the ten most recent is ten modules that have a date,
+        not ten rows of which some are blank. The count is how many rows the
+        tier had before the list was cut to *recent*, so a note can say what
+        the few were the newest of.
+        """
+        found = []
+
+        for tier in ordered:
+            rows = [x for x in self.dated.get(tier, ()) if getattr(x, dated)]
+
+            if rows:
+                found.append(
+                    (
+                        tier,
+                        (
+                            tuple(
+                                sorted(
+                                    rows,
+                                    key=lambda y: (
+                                        _descending(getattr(y, dated)),
+                                        y.module,
+                                    ),
+                                )[:recent]
+                            ),
+                            len(rows),
+                        ),
+                    )
+                )
+
+        return found
 
 
 def _descending(date: str) -> tuple[int, ...]:
