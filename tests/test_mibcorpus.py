@@ -620,6 +620,59 @@ class RunTestCase(unittest.TestCase):
             self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
         )
 
+    def testADatesFileThatIsNotThereIsRefused(self):
+        """Same reason as the template above: named and unreadable is a typo
+        in a manifest.
+
+        A build that shrugged here would publish a site saying this
+        distribution has changed nothing, which is a claim rather than an
+        absence. See pysnmp/pysmi#327.
+        """
+        manifest = os.path.join(self.root, "corpus.json")
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "emit": ["site"],
+                    "site": {
+                        "changed": {"dates": os.path.join(self.root, "absent.json")}
+                    },
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+
+    def testADateTheListsCannotSortByIsRefused(self):
+        """The lists sort on these and print them verbatim, so a row reading
+        "last week" sorts nowhere and says nothing a reader can compare."""
+        manifest = os.path.join(self.root, "corpus.json")
+        dated = os.path.join(self.root, "dates.json")
+
+        with open(dated, "w") as fileObj:
+            json.dump({"A-MIB": "last week"}, fileObj)
+
+        with open(manifest, "w") as fileObj:
+            json.dump(
+                {
+                    "version": 1,
+                    "namespaces": [{"include": "src/*", "tier": "vendor"}],
+                    "emit": ["site"],
+                    "site": {"changed": {"dates": dated}},
+                },
+                fileObj,
+            )
+
+        self.assertEqual(
+            mibcorpus.EX_USAGE,
+            self.run_with(f"--manifest={manifest}", f"--output-directory={self.out}"),
+        )
+
     def testAnUnusableParseCacheDirectoryIsRefused(self):
         """Not a traceback out of a build that had already started."""
         # A file where the directory should be: makedirs cannot have it.

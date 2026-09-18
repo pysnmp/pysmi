@@ -1662,6 +1662,24 @@ class ChangedRenderTestCase(unittest.TestCase):
         self.assertIn("the one the module itself carries", written)
         self.assertIn("not a date the module itself carries", written)
 
+    def testATruncatedListSaysWhatItIsTheNewestFewOf(self):
+        """A list cut to the ten most recent has to say so, and say what pool
+        they are the newest of -- otherwise it reads as the whole tier."""
+        found = Tally()
+
+        for x in range(1, 20):
+            found.add(
+                module_page(f"MOD-{x:02d}-MIB", ALPHA),
+                tier="vendor",
+                revised="2024-01-01",
+                changed=f"2026-01-{x:02d}",
+            )
+
+        written = overview_html("../", found.overview())
+
+        self.assertIn("most recently changed of the 19 vendor module(s)", written)
+        self.assertIn("this distribution tracks", written)
+
     def testEveryPanelIsInTheBytes(self):
         """The stylesheet hides one of them. A reader with no CSS sees both
         lists under their own headings, and so does a crawler."""
