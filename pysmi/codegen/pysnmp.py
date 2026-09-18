@@ -204,7 +204,14 @@ class PySnmpCodeGen(AbstractCodeGen):
         "INTEGER": "Integer32",  # XXX
         "INTEGER32": "Integer32",
         "IPADDRESS": "IpAddress",
-        "NETWORKADDRESS": "IpAddress",
+        # RFC 1155 section 3.2.3.1 defines NetworkAddress as a CHOICE, and
+        # RFC 1212 section 4.1.6 gives a NetworkAddress-valued index `n+1'
+        # sub-identifiers where IpAddress takes `n' -- the leading one names
+        # the address family. Resolving the type to its single arm dropped
+        # that sub-identifier, so a row indexed by one (RFC1213-MIB::atEntry)
+        # encoded and decoded its index wrongly. The type is kept, and
+        # pysnmp supplies it from SNMPv2-SMI.
+        "NETWORKADDRESS": "NetworkAddress",
         "OBJECT IDENTIFIER": "ObjectIdentifier",
         "OCTET STRING": "OctetString",
         "OPAQUE": "Opaque",
@@ -212,7 +219,6 @@ class PySnmpCodeGen(AbstractCodeGen):
         "UNSIGNED32": "Unsigned32",
         "Counter": "Counter32",
         "Gauge": "Gauge32",
-        "NetworkAddress": "IpAddress",  # RFC1065-SMI, RFC1155-SMI -> SNMPv2-SMI
         "nullSpecific": "zeroDotZero",  # RFC1158-MIB -> SNMPv2-SMI
         "ipRoutingTable": "ipRouteTable",  # RFC1158-MIB -> RFC1213-MIB
         "snmpEnableAuthTraps": "snmpEnableAuthenTraps",  # RFC1158-MIB -> SNMPv2-MIB

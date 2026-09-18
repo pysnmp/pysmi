@@ -89,7 +89,6 @@ class JsonCodeGen(AbstractCodeGen):
     )
 
     typeClasses = {
-        "NetworkAddress": "IpAddress",  # RFC1065-SMI, RFC1155-SMI -> SNMPv2-SMI
         "nullSpecific": "zeroDotZero",  # RFC1158-MIB -> SNMPv2-SMI
         "ipRoutingTable": "ipRouteTable",  # RFC1158-MIB -> RFC1213-MIB
         "snmpEnableAuthTraps": "snmpEnableAuthenTraps",  # RFC1158-MIB -> SNMPv2-MIB

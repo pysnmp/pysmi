@@ -126,13 +126,30 @@ class ApplicationTypeTestCase(unittest.TestCase):
             with self.subTest(symbol=symbol):
                 self.assertIn(f"class {symbol}({klass}):", self.source)
 
-    def testNetworkAddressBecomesAnIpAddress(self):
-        # RFC 1155 section 3.2.3.1 defines NetworkAddress as a CHOICE with
-        # IpAddress as its only alternative, so the two are the same type.
+    def testNetworkAddressIsKeptRatherThanResolvedToItsOneArm(self):
+        # RFC 1155 section 3.2.3.1 defines NetworkAddress as a CHOICE whose
+        # only alternative is IpAddress, which reads as the two being the same
+        # type. They are not, as an index: RFC 1212 section 4.1.6 gives a
+        # NetworkAddress-valued index `n+1' sub-identifiers to IpAddress's `n',
+        # the leading one naming the address family. Resolving the CHOICE away
+        # dropped that sub-identifier, so the type is carried through to
+        # pysnmp, which implements the encoding.
         self.assertEqual(
-            self.doc["TestTypeNetworkAddress"]["type"]["type"], "IpAddress"
+            self.doc["TestTypeNetworkAddress"]["type"]["type"], "NetworkAddress"
         )
-        self.assertIn("class TestTypeNetworkAddress(IpAddress):", self.source)
+        self.assertIn("class TestTypeNetworkAddress(NetworkAddress):", self.source)
+
+    def testNetworkAddressIsImportedFromSnmpV2Smi(self):
+        # RFC1155-SMI is not a module pysnmp loads, so the rewrite has to name
+        # a module that is. pysnmp exports NetworkAddress from SNMPv2-SMI
+        # alongside the RFC 2578 types.
+        self.assertIn('mibBuilder.importSymbols("SNMPv2-SMI"', self.source)
+        importLine = next(
+            line
+            for line in self.source.splitlines()
+            if 'importSymbols("SNMPv2-SMI"' in line
+        )
+        self.assertIn('"NetworkAddress"', importLine)
 
     def testTheThirtyTwoBitWidthIsMadeExplicit(self):
         # Counter and Gauge are 32-bit in RFC 1155 but unnamed as such. The
