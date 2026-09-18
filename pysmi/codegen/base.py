@@ -520,7 +520,7 @@ class AbstractCodeGen:
             "ObjectSyntax": [("SNMPv2-SMI", "ObjectSyntax")],
             "SimpleSyntax": [("SNMPv2-SMI", "SimpleSyntax")],
             "ApplicationSyntax": [("SNMPv2-SMI", "ApplicationSyntax")],
-            "NetworkAddress": [("SNMPv2-SMI", "IpAddress")],
+            "NetworkAddress": [("SNMPv2-SMI", "NetworkAddress")],
             "IpAddress": [("SNMPv2-SMI", "IpAddress")],
             "Counter": [("SNMPv2-SMI", "Counter32")],
             "Gauge": [("SNMPv2-SMI", "Gauge32")],

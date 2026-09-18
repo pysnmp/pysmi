@@ -57,9 +57,14 @@ PINNED = {
         "bc44ccc946853c9e887d1a10cf8c91688d757b7c476f9d651a43649aa50fe82b",
         "2d6887ae34e6787c72e8e5fa702514b20838ebc14fa8b69205b2434893f53cff",
     ),
+    # Both hashes moved when atNetAddress stopped being reported as an
+    # IpAddress and kept its declared NetworkAddress syntax. A syntax is part
+    # of the model and is not prose, so the structural hash carries it too.
+    # This is a model change rather than a normalization change, so
+    # NORMALIZATION_VERSION stands and only this module is repinned.
     "RFC1213-MIB": (
-        "0789d0679036e9253148c2d811a0c4f54c96985e7de0496e698b7c093289e4a2",
-        "300822da21ecc8ec044a2c1ac6ce457d5d42521263fa12d9c3c054e4489f9d6d",
+        "0860fc8bf46ddf154c806921f2d78717f9db93fe2276ff191386f703cf412768",
+        "01d1a2cf367dd406c1f8710509ced5aa5612992456c2873430610ddbc9d68be0",
     ),
     "HOST-RESOURCES-MIB": (
         "3e701da9149f1e488323abe7f9268b672608b91b3f5196e72eb37d4d53472c8a",
