@@ -1680,6 +1680,50 @@ class ChangedRenderTestCase(unittest.TestCase):
         self.assertIn("most recently changed of the 19 vendor module(s)", written)
         self.assertIn("this distribution tracks", written)
 
+    def testAnAxisNothingIsDatedOnIsNotOffered(self):
+        """A tab strip over an empty panel is worse than no tab strip.
+
+        Plenty of vendor text carries no REVISION and no LAST-UPDATED, so a
+        corpus of it has nothing on the publishers' axis. Offering that tab
+        first would open the page on a blank list with the populated one
+        hidden behind a control nothing suggests pressing.
+        """
+        found = Tally()
+        found.add(
+            module_page("ALPHA-MIB", ALPHA),
+            tier="vendor",
+            revised="",
+            changed="2026-09-17",
+        )
+
+        written = overview_html("../", found.overview(), label="Updated here")
+
+        self.assertNotIn('class="switch"', written)
+        self.assertNotIn('type="radio"', written)
+        self.assertIn("Recently changed vendor modules", written)
+        self.assertIn("2026-09-17", written)
+        self.assertIn(">Changed</th>", written)
+
+    def testACorpusDatedOnNeitherAxisRendersFiguresAlone(self):
+        """The tiles are still facts. A heading over no table is not."""
+        found = Tally()
+        found.add(module_page("ALPHA-MIB", ALPHA), tier="vendor")
+
+        written = overview_html("../", found.overview())
+
+        self.assertIn('class="hero"', written)
+        self.assertNotIn("<h2>", written)
+        self.assertNotIn('class="switch"', written)
+
+    def testTheCheckedTabIsAPopulatedOne(self):
+        """Every offered axis has rows, so the first is a safe default."""
+        written = overview_html("../", self.overview())
+        first = written.index("checked")
+        opened = written[:first].count('id="recent-published"')
+
+        self.assertEqual(1, opened)
+        self.assertIn("ALPHA-MIB", written)
+
     def testEveryPanelIsInTheBytes(self):
         """The stylesheet hides one of them. A reader with no CSS sees both
         lists under their own headings, and so does a crawler."""

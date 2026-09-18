@@ -854,6 +854,9 @@ def _switch(root: str, overview: Overview, offered: "Sequence[_Axis]") -> str:
     is in the markup either way, so a reader with no CSS sees both lists under
     their own headings and a crawler reads all of it -- the page states the
     same facts whatever runs.
+
+    Every axis in *offered* has rows, which is what makes checking the first
+    of them right: see :py:func:`overview_html`.
     """
     controls = []
     panels = []
@@ -921,21 +924,30 @@ def overview_html(root: str, overview: Overview, *, label: str = "") -> str:
     if not overview.modules:
         return ""
 
-    published = PUBLISHED._replace(rows=overview.latest, held=overview.tiers)
     figures = tag("section", join((_hero(overview), kpis(overview))), class_="overview")
-
-    if not overview.latestChanged:
-        return join(
-            (figures, _recent_sections(root, overview, published, tabbed=False))
-        )
-
+    published = PUBLISHED._replace(rows=overview.latest, held=overview.tiers)
     changed = CHANGED._replace(
         rows=overview.latestChanged,
         held=overview.datedChanged,
         label=label or dates.LABEL,
     )
 
-    return join((figures, _switch(root, overview, (published, changed))))
+    # An axis nothing is dated on is not offered. A tab strip over an empty
+    # panel is worse than no tab strip: a corpus whose modules carry no
+    # REVISION at all -- which the publishers' axis reads, and plenty of
+    # vendor text has none -- would open on a blank list, with the populated
+    # one hidden behind a control nothing suggests pressing.
+    offered = [x for x in (published, changed) if x.rows]
+
+    if not offered:
+        return figures
+
+    if len(offered) == 1:
+        return join(
+            (figures, _recent_sections(root, overview, offered[0], tabbed=False))
+        )
+
+    return join((figures, _switch(root, overview, offered)))
 
 
 def module_list(root: str, modules: "Iterable[str]") -> str:
