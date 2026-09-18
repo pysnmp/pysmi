@@ -3,6 +3,16 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [5.8.0](https://github.com/pysnmp/pysmi/compare/v5.7.0...v5.8.0) (2026-09-18)
+
+### Features
+
+* **site:** offer what this distribution changed beside what publishers did ([c02bd52](https://github.com/pysnmp/pysmi/commit/c02bd52fde6e83d61ed51c79efb104b9bd49913d))
+
+### Bug Fixes
+
+* **site:** do not offer a tab for an axis nothing is dated on ([61da7c5](https://github.com/pysnmp/pysmi/commit/61da7c5015f5fe3411c8f104211757a2809036a7)), closes [pysnmp/pysmi#327](https://github.com/pysnmp/pysmi/issues/327)
+
 ## [5.7.0](https://github.com/pysnmp/pysmi/compare/v5.6.0...v5.7.0) (2026-09-17)
 
 ### Features
