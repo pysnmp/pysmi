@@ -206,6 +206,39 @@ ul.kpis .label { display: block; color: var(--dim); font-size: 0.8125rem; }
 .recent td:nth-child(2), .recent td:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .recent td:last-child, .recent th:last-child { text-align: right; }
 
+/* Two lists of the same modules under two different dates, one shown at a
+   time. The radio a label points at is the whole mechanism -- no script, and
+   the reader's choice survives nothing, which is right for a page they arrive
+   at rather than work in. Without this stylesheet both panels show, one after
+   the other under their own headings, which is the state every crawler and
+   every reader with no CSS sees: the page states the same facts either way. */
+.switch > input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.switch .tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 1.25rem 0 0; }
+
+.switch .tab {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 0.9375rem;
+}
+
+.switch .tab:hover { color: var(--ink); }
+.switch .panel { display: none; }
+.switch .panel > section:first-child > h2 { margin-top: 1rem; }
+
+/* :focus-visible on the input, styled on the label, so the tab a reader
+   tabbed to is visible -- the input itself is one pixel and invisible. */
+#recent-published:focus-visible ~ .tabs .tab[for="recent-published"],
+#recent-changed:focus-visible ~ .tabs .tab[for="recent-changed"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#recent-published:checked ~ .tabs .tab[for="recent-published"],
+#recent-changed:checked ~ .tabs .tab[for="recent-changed"] { background: var(--raised); border-color: var(--dim); color: var(--ink); font-weight: 600; }
+
+#recent-published:checked ~ .panel.recent-published,
+#recent-changed:checked ~ .panel.recent-changed { display: block; }
+
 .defs td { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; overflow-wrap: anywhere; }
 .defs td:first-child { white-space: nowrap; }
 .defs td:last-child, .defs.typed td:nth-child(4) { font-family: inherit; font-size: inherit; }

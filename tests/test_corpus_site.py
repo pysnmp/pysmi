@@ -22,11 +22,13 @@ import shutil
 import tempfile
 import unittest
 
+from pysmi import error
 from pysmi.corpus.arcs import Arc
 from pysmi.corpus.buckets import buckets
 from pysmi.corpus.site import Theme, build_site, load_theme, module_page
 from pysmi.corpus.site.build import PageSizes
 from pysmi.corpus.site.crawl import Crawl, clip, newest
+from pysmi.corpus.site.dates import LABEL, read_changed
 from pysmi.corpus.site.html import attributes, paragraphs, table, tag, text
 from pysmi.corpus.site.model import (
     RECENT,
@@ -1405,6 +1407,331 @@ class OverviewRenderTestCase(unittest.TestCase):
         found.add(module_page("ALPHA-MIB", ALPHA), tier="vendor", revised="2024-01-01")
 
         self.assertNotIn("<Networks>", overview_html("../", found.overview()))
+
+
+class ChangedDatesTestCase(unittest.TestCase):
+    """The dates a distribution supplies for its own modules.
+
+    Every date a MIB carries is its publisher's, so "what has this
+    distribution done lately" is a question the corpus cannot answer out of
+    its own contents. The dates arrive from the distribution, and the point of
+    the checking here is that a date nobody supplied never reaches a page: a
+    row reading "this corpus holds 6,982 modules we track" over a corpus whose
+    standard tier comes from somewhere else is exactly the kind of claim this
+    feature exists to avoid making.
+    """
+
+    def setUp(self):
+        self.where = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.where, ignore_errors=True)
+
+    def written(self, body):
+        """A dates file holding *body* verbatim."""
+        path = os.path.join(self.where, "dates.json")
+
+        with open(path, "w", encoding="utf-8") as fileObj:
+            fileObj.write(body)
+
+        return path
+
+    def testItReadsTheDates(self):
+        found = read_changed(self.written('{"ALPHA-MIB": "2026-09-17"}'))
+
+        self.assertEqual({"ALPHA-MIB": "2026-09-17"}, dict(found.dates))
+
+    def testItTakesTheLabelTheManifestGave(self):
+        found = read_changed(self.written("{}"), "Added here")
+
+        self.assertEqual("Added here", found.label)
+
+    def testThereIsALabelWithoutOne(self):
+        self.assertEqual(LABEL, read_changed(self.written("{}")).label)
+
+    def testAMissingFileIsAnError(self):
+        """Named and unreadable is a typo in a manifest, not a reason to
+        publish a site that quietly says the distribution changed nothing."""
+        with self.assertRaises(error.PySmiError):
+            read_changed(os.path.join(self.where, "nope.json"))
+
+    def testTextThatIsNotJsonIsAnError(self):
+        with self.assertRaises(error.PySmiError):
+            read_changed(self.written("{oh dear"))
+
+    def testAListIsNotADatesFile(self):
+        with self.assertRaises(error.PySmiError):
+            read_changed(self.written('["ALPHA-MIB"]'))
+
+    def testADateItCannotSortByIsAnError(self):
+        """The lists sort on these and print them verbatim, so a row reading
+        "last week" sorts nowhere and says nothing a reader can compare."""
+        for bad in (
+            '{"ALPHA-MIB": "last week"}',
+            '{"ALPHA-MIB": "2026-9-1"}',
+            '{"ALPHA-MIB": 20260917}',
+            '{"ALPHA-MIB": null}',
+        ):
+            with self.subTest(bad=bad), self.assertRaises(error.PySmiError):
+                read_changed(self.written(bad))
+
+
+class ChangedOverviewTestCase(unittest.TestCase):
+    """The second recency axis, as the tally totals it."""
+
+    def tally(self, *rows):
+        """A tally over ``(module, jsondoc, tier, revised, changed)`` rows."""
+        found = Tally()
+
+        for name, document, tier, revised, changed in rows:
+            found.add(
+                module_page(name, document),
+                tier=tier_name(tier),
+                revised=revised,
+                changed=changed,
+            )
+
+        return found
+
+    def testWithoutDatesThereIsNoSecondAxis(self):
+        overview = self.tally(("ALPHA-MIB", ALPHA, 0, "2024-01-01", "")).overview()
+
+        self.assertEqual({}, dict(overview.latestChanged))
+
+    def testItOrdersByTheSuppliedDateAndNotThePublishers(self):
+        """The two orderings are the whole point: a module taken today carries
+        whatever revision its publisher last set, which may be from 1994."""
+        overview = self.tally(
+            ("ALPHA-MIB", ALPHA, 2, "1994-01-01", "2026-09-17"),
+            ("BETA-MIB", BETA, 2, "2026-03-04", "2020-01-01"),
+        ).overview()
+
+        self.assertEqual(
+            ["BETA-MIB", "ALPHA-MIB"], [x.module for x in overview.latest["vendor"]]
+        )
+        self.assertEqual(
+            ["ALPHA-MIB", "BETA-MIB"],
+            [x.module for x in overview.latestChanged["vendor"]],
+        )
+
+    def testAModuleWithNoSuppliedDateIsNotListedUnderOne(self):
+        overview = self.tally(
+            ("ALPHA-MIB", ALPHA, 2, "2024-01-01", "2026-09-17"),
+            ("BETA-MIB", BETA, 2, "2024-02-02", ""),
+        ).overview()
+
+        self.assertEqual(
+            ["ALPHA-MIB"], [x.module for x in overview.latestChanged["vendor"]]
+        )
+        self.assertEqual(2, len(overview.latest["vendor"]))
+
+    def testAModuleDatedOnlyByTheDistributionIsStillListedThere(self):
+        """A module whose text carries no REVISION at all is invisible to the
+        publisher axis and is not invisible to this one."""
+        overview = self.tally(("ALPHA-MIB", ALPHA, 2, "", "2026-09-17")).overview()
+
+        self.assertEqual({}, dict(overview.latest))
+        self.assertEqual(
+            ["ALPHA-MIB"], [x.module for x in overview.latestChanged["vendor"]]
+        )
+
+    def testATierNobodyDatedIsLeftOut(self):
+        """Which is what makes the list honest on a corpus whose standard tier
+        comes from somewhere the distribution does not track."""
+        overview = self.tally(
+            ("ALPHA-MIB", ALPHA, 0, "2024-01-01", ""),
+            ("BETA-MIB", BETA, 2, "2024-02-02", "2026-09-17"),
+        ).overview()
+
+        self.assertEqual(["vendor"], list(overview.latestChanged))
+        self.assertEqual({"vendor": 1}, dict(overview.datedChanged))
+
+    def testThePoolIsWhatTheDistributionDatedAndNotTheTier(self):
+        """ "The ten most recent of the 6,982 it tracks" and "of the 6,982 this
+        corpus holds" are different claims."""
+        overview = self.tally(
+            ("ALPHA-MIB", ALPHA, 2, "2024-01-01", "2026-09-17"),
+            ("BETA-MIB", BETA, 2, "2024-02-02", ""),
+        ).overview()
+
+        self.assertEqual({"vendor": 2}, dict(overview.tiers))
+        self.assertEqual({"vendor": 1}, dict(overview.datedChanged))
+
+    def testTheListIsBounded(self):
+        overview = self.tally(
+            *(
+                (f"MOD-{x}-MIB", ALPHA, 2, "2024-01-01", f"2026-01-{x:02d}")
+                for x in range(1, 20)
+            )
+        ).overview()
+
+        self.assertEqual(RECENT, len(overview.latestChanged["vendor"]))
+
+
+class ChangedRenderTestCase(unittest.TestCase):
+    """The two axes as the entry point offers them."""
+
+    def overview(self, changed=("2026-09-17", "2020-01-01")):
+        found = Tally()
+        found.add(
+            module_page("ALPHA-MIB", ALPHA),
+            tier="standard",
+            revised="2024-01-01",
+            changed=changed[0],
+        )
+        found.add(
+            module_page("BETA-MIB", BETA),
+            tier="vendor",
+            revised="2026-03-04",
+            changed=changed[1],
+        )
+
+        return found.overview()
+
+    def testWithoutDatesThePageIsWhatItWas(self):
+        """Every other distribution's front page must not grow a tab strip
+        with one tab on it."""
+        written = overview_html("../", self.overview(changed=("", "")))
+
+        self.assertNotIn('class="switch"', written)
+        self.assertNotIn('type="radio"', written)
+        self.assertIn("Recently revised standard modules", written)
+
+    def testBothAxesAreOffered(self):
+        written = overview_html("../", self.overview())
+
+        self.assertEqual(1, written.count('class="switch"'))
+        self.assertEqual(2, written.count('type="radio"'))
+        self.assertEqual(1, written.count('class="panel recent-published"'))
+        self.assertEqual(1, written.count('class="panel recent-changed"'))
+
+    def testOneTabIsCheckedToBeginWith(self):
+        """A switch with nothing checked shows neither panel."""
+        self.assertEqual(1, overview_html("../", self.overview()).count("checked"))
+
+    def testEveryLabelPointsAtItsRadio(self):
+        written = overview_html("../", self.overview())
+
+        for name in ("recent-published", "recent-changed"):
+            self.assertIn(f'id="{name}"', written)
+            self.assertIn(f'for="{name}"', written)
+
+    def testTheTabTakesTheManifestsLabel(self):
+        written = overview_html("../", self.overview(), label="Added by us")
+
+        self.assertIn("Added by us", written)
+
+    def testThereIsALabelWithoutOne(self):
+        self.assertIn(LABEL, overview_html("../", self.overview()))
+
+    def testTheLabelIsEscaped(self):
+        """It comes out of a manifest, which is a file somebody edits."""
+        written = overview_html("../", self.overview(), label="<script>x</script>")
+
+        self.assertNotIn("<script>", written)
+
+    def testEachAxisNamesItsOwnDateColumn(self):
+        written = overview_html("../", self.overview())
+
+        self.assertIn(">Revised</th>", written)
+        self.assertIn(">Changed</th>", written)
+
+    def testEachPanelPrintsItsOwnDate(self):
+        """The row is one object carrying both dates, so a panel reading the
+        wrong field is a table of plausible-looking wrong dates."""
+        written = overview_html("../", self.overview())
+        published = written[written.index('class="panel recent-published"') :]
+        published = published[: published.index('class="panel recent-changed"')]
+        supplied = written[written.index('class="panel recent-changed"') :]
+
+        self.assertIn("2024-01-01", published)
+        self.assertNotIn("2026-09-17", published)
+        self.assertIn("2026-09-17", supplied)
+        self.assertNotIn("2024-01-01", supplied)
+
+    def testATabbedHeadingNamesTheTierAndNotTheDate(self):
+        """The tab above already says which date the panel is ordered by."""
+        written = overview_html("../", self.overview())
+
+        self.assertIn("<h2>Standard modules</h2>", written)
+        self.assertNotIn("Recently revised standard modules", written)
+
+    def testTheNoteSaysWhoseDateItIs(self):
+        written = overview_html("../", self.overview())
+
+        self.assertIn("the one the module itself carries", written)
+        self.assertIn("not a date the module itself carries", written)
+
+    def testATruncatedListSaysWhatItIsTheNewestFewOf(self):
+        """A list cut to the ten most recent has to say so, and say what pool
+        they are the newest of -- otherwise it reads as the whole tier."""
+        found = Tally()
+
+        for x in range(1, 20):
+            found.add(
+                module_page(f"MOD-{x:02d}-MIB", ALPHA),
+                tier="vendor",
+                revised="2024-01-01",
+                changed=f"2026-01-{x:02d}",
+            )
+
+        written = overview_html("../", found.overview())
+
+        self.assertIn("most recently changed of the 19 vendor module(s)", written)
+        self.assertIn("this distribution tracks", written)
+
+    def testAnAxisNothingIsDatedOnIsNotOffered(self):
+        """A tab strip over an empty panel is worse than no tab strip.
+
+        Plenty of vendor text carries no REVISION and no LAST-UPDATED, so a
+        corpus of it has nothing on the publishers' axis. Offering that tab
+        first would open the page on a blank list with the populated one
+        hidden behind a control nothing suggests pressing.
+        """
+        found = Tally()
+        found.add(
+            module_page("ALPHA-MIB", ALPHA),
+            tier="vendor",
+            revised="",
+            changed="2026-09-17",
+        )
+
+        written = overview_html("../", found.overview(), label="Updated here")
+
+        self.assertNotIn('class="switch"', written)
+        self.assertNotIn('type="radio"', written)
+        self.assertIn("Recently changed vendor modules", written)
+        self.assertIn("2026-09-17", written)
+        self.assertIn(">Changed</th>", written)
+
+    def testACorpusDatedOnNeitherAxisRendersFiguresAlone(self):
+        """The tiles are still facts. A heading over no table is not."""
+        found = Tally()
+        found.add(module_page("ALPHA-MIB", ALPHA), tier="vendor")
+
+        written = overview_html("../", found.overview())
+
+        self.assertIn('class="hero"', written)
+        self.assertNotIn("<h2>", written)
+        self.assertNotIn('class="switch"', written)
+
+    def testTheCheckedTabIsAPopulatedOne(self):
+        """Every offered axis has rows, so the first is a safe default."""
+        written = overview_html("../", self.overview())
+        first = written.index("checked")
+        opened = written[:first].count('id="recent-published"')
+
+        self.assertEqual(1, opened)
+        self.assertIn("ALPHA-MIB", written)
+
+    def testEveryPanelIsInTheBytes(self):
+        """The stylesheet hides one of them. A reader with no CSS sees both
+        lists under their own headings, and so does a crawler."""
+        written = overview_html("../", self.overview())
+
+        self.assertIn("ALPHA-MIB", written)
+        self.assertIn("2026-09-17", written)
+        self.assertNotIn("script", written)
 
 
 class BrowseOverviewTestCase(unittest.TestCase):

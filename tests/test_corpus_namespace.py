@@ -264,6 +264,52 @@ class ManifestDeclarationTestCase(unittest.TestCase):
 
         self.assertIn("both emit and publications", str(caught.exception))
 
+    def testTheChangedBlockIsReadAsDeclared(self):
+        """A second date per module, which the corpus cannot know: every date
+        in a MIB is its publisher's. See pysnmp/pysmi#326."""
+        manifest = read_manifest(
+            self.manifest(
+                site={"changed": {"label": "Added here", "dates": "dates.json"}}
+            )
+        )
+
+        self.assertEqual("Added here", manifest.site["changed"]["label"])
+        self.assertEqual(
+            os.path.join(self.root, "dates.json"), manifest.site["changed"]["dates"]
+        )
+
+    def testTheDatesPathIsRelativeToTheManifest(self):
+        """Like every other path a manifest carries: a file sits beside the
+        manifest naming it, not beside whatever directory the build ran in."""
+        manifest = read_manifest(
+            self.manifest(site={"changed": {"dates": "build/dates.json"}})
+        )
+
+        self.assertEqual(
+            os.path.join(self.root, "build", "dates.json"),
+            manifest.site["changed"]["dates"],
+        )
+
+    def testChangedWithNoDatesFileIsRefused(self):
+        with self.assertRaises(error.PySmiError) as caught:
+            read_manifest(self.manifest(site={"changed": {"label": "Added here"}}))
+
+        self.assertIn("names no dates file", str(caught.exception))
+
+    def testASettingChangedDoesNotKnowIsRefused(self):
+        """Rather than ignored. A manifest saying `date` where the key is
+        `dates` would publish a site with no such list and say nothing."""
+        with self.assertRaises(error.PySmiError) as caught:
+            read_manifest(self.manifest(site={"changed": {"date": "dates.json"}}))
+
+        self.assertIn("site changed declares date", str(caught.exception))
+
+    def testChangedSettingsAreTypeChecked(self):
+        with self.assertRaises(error.PySmiError) as caught:
+            read_manifest(self.manifest(site={"changed": {"dates": ["a.json"]}}))
+
+        self.assertIn("site changed dates is list", str(caught.exception))
+
     def testTwoPublicationsMayNotOverlap(self):
         """Distinct strings are not distinct trees.
 

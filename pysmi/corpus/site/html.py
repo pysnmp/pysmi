@@ -27,8 +27,10 @@ from typing import Final
 #: Written ahead of every page, so a browser reads it as HTML5.
 DOCTYPE: Final = "<!doctype html>"
 
-#: Elements that take no closing tag.
-VOID: Final = frozenset({"br", "hr", "img", "link", "meta"})
+#: Elements that take no closing tag. ``</input>`` is not merely redundant --
+#: it is a parse error, and a page that carries one is a page whose markup a
+#: validator refuses.
+VOID: Final = frozenset({"br", "hr", "img", "input", "link", "meta"})
 
 
 def text(value: object) -> str:

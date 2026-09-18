@@ -21,10 +21,11 @@ See pysnmp/pysmi#276.
 """
 
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Final
+from typing import Final, NamedTuple
 
 from pysmi.corpus.arcs import Arc
 from pysmi.corpus.buckets import Bucket, abbreviate
+from pysmi.corpus.site import dates
 from pysmi.corpus.site.html import (
     definitions,
     element,
@@ -694,12 +695,27 @@ def _hero(overview: Overview) -> str:
     )
 
 
-def recent_list(root: str, found: "Sequence[Recent]") -> str:
-    """The recently revised modules of one tier, newest first."""
+def recent_list(
+    root: str,
+    found: "Sequence[Recent]",
+    *,
+    dated: str = "revised",
+    column: str = "Revised",
+) -> str:
+    """The most recently dated modules of one tier, newest first.
+
+    Args:
+        root: the prefix that reaches the site root.
+        found: the rows, already ordered, as
+            :py:meth:`pysmi.corpus.site.model.Tally.overview` ordered them.
+        dated: which of :py:class:`~pysmi.corpus.site.model.Recent`'s dates
+            the rows are ordered by, and so which one the table prints.
+        column: what to call that date's column.
+    """
     rows = [
         [
             link(module_url(root, x.module), x.module),
-            text(x.revised),
+            text(getattr(x, dated)),
             text(x.organization),
             text(figure(x.definitions)),
         ]
@@ -707,20 +723,200 @@ def recent_list(root: str, found: "Sequence[Recent]") -> str:
     ]
 
     return table(
-        ["Module", "Revised", "Organization", "Definitions"],
+        ["Module", column, "Organization", "Definitions"],
         rows,
         class_="recent",
     )
 
 
-def overview_html(root: str, overview: Overview) -> str:
-    """The entry point's figures, and what each tier revised most recently.
+class _Axis(NamedTuple):
+    """One kind of date the recent lists can be ordered by.
+
+    Two of these exist: the date a module's publisher last revised it, which
+    every corpus has, and the date the publishing distribution last changed
+    it, which only a build given
+    :py:mod:`~pysmi.corpus.site.dates` has. They render identically and say
+    different things, which is the whole reason the entry point offers both.
+    """
+
+    #: Per tier, the rows, newest first.
+    rows: "Mapping[str, tuple[Recent, ...]]"
+
+    #: Per tier, how many modules this axis has a date for, which is the pool
+    #: :py:attr:`rows` holds the newest few of.
+    held: "Mapping[str, int]"
+
+    #: The :py:class:`~pysmi.corpus.site.model.Recent` field holding the date.
+    dated: str
+
+    #: That date's column heading.
+    column: str
+
+    #: What the tab is called.
+    label: str
+
+    #: The past participle for "the ten most recently ... of".
+    verb: str
+
+    #: What the date is, to finish "The date is ...".
+    said: str
+
+    #: What the pool is, to finish "the 486 standard module(s) this ...".
+    pool: str
+
+    #: The id the tab's radio input carries, which its label points at.
+    name: str
+
+
+#: The axis every corpus has. The dates are the publishers' own, so this is
+#: what the industry did rather than what this distribution did.
+PUBLISHED: Final = _Axis(
+    rows={},
+    held={},
+    dated="revised",
+    column="Revised",
+    label="Revised by publisher",
+    verb="revised",
+    said="the one the module itself carries",
+    pool="corpus holds",
+    name="recent-published",
+)
+
+#: The axis a distribution supplies. See :py:mod:`pysmi.corpus.site.dates`.
+CHANGED: Final = _Axis(
+    rows={},
+    held={},
+    dated="changed",
+    column="Changed",
+    label=dates.LABEL,
+    verb="changed",
+    # The pool is never "this corpus holds": a distribution may date a
+    # fraction of a tier -- pysnmp/mibs tracks the modules in its own tree and
+    # not the standard ones it takes from pysmi -- and a note counting what it
+    # does not track would claim it dated modules it never saw.
+    said="the day this distribution last changed the module, which is not a "
+    "date the module itself carries",
+    pool="distribution tracks",
+    name="recent-changed",
+)
+
+
+def _recent_sections(
+    root: str, overview: Overview, axis: _Axis, *, tabbed: bool
+) -> str:
+    """Per tier, the modules this axis dates most recently.
+
+    Args:
+        root: the prefix that reaches the site root.
+        overview: the figures, for how many modules each tier holds.
+        axis: which date to order and print.
+        tabbed: whether a tab label above already says which date this is. It
+            does when both axes are offered, and then the heading names only
+            the tier; a lone axis has to say it in the heading itself.
+    """
+    sections = []
+
+    for tier, found in axis.rows.items():
+        named = TIER_RECENT.get(tier, tier)
+        held = axis.held.get(tier, 0)
+
+        if len(found) >= held:
+            note = (
+                f"The {figure(held)} {named} module(s) this {axis.pool}, "
+                f"newest first. The date is {axis.said}."
+            )
+
+        else:
+            note = (
+                f"The {figure(len(found))} most recently {axis.verb} of the "
+                f"{figure(held)} {named} module(s) this {axis.pool}. The "
+                f"date is {axis.said}."
+            )
+
+        sections.append(
+            _section(
+                f"{named[:1].upper()}{named[1:]} modules"
+                if tabbed
+                else f"Recently {axis.verb} {named} modules",
+                recent_list(root, found, dated=axis.dated, column=axis.column),
+                note=note,
+            )
+        )
+
+    return join(sections)
+
+
+def _switch(root: str, overview: Overview, offered: "Sequence[_Axis]") -> str:
+    """The recent lists of every axis, one shown at a time.
+
+    A radio per axis and a label pointing at it, which is a tab that needs no
+    script: the stylesheet shows the panel whose radio is checked. Every panel
+    is in the markup either way, so a reader with no CSS sees both lists under
+    their own headings and a crawler reads all of it -- the page states the
+    same facts whatever runs.
+
+    Every axis in *offered* has rows, which is what makes checking the first
+    of them right: see :py:func:`overview_html`.
+    """
+    controls = []
+    panels = []
+
+    for index, axis in enumerate(offered):
+        controls.append(
+            tag(
+                "input",
+                type="radio",
+                name="recent",
+                id=axis.name,
+                checked=index == 0 or None,
+            )
+        )
+        panels.append(
+            tag(
+                "div",
+                _recent_sections(root, overview, axis, tabbed=True),
+                class_=f"panel {axis.name}",
+            )
+        )
+
+    return tag(
+        "div",
+        join(
+            (
+                *controls,
+                tag(
+                    "nav",
+                    join(
+                        element("label", x.label, for_=x.name, class_="tab")
+                        for x in offered
+                    ),
+                    class_="tabs",
+                    aria_label="Which date the lists are ordered by",
+                ),
+                *panels,
+            )
+        ),
+        class_="switch",
+    )
+
+
+def overview_html(root: str, overview: Overview, *, label: str = "") -> str:
+    """The entry point's figures, and what the corpus changed most recently.
+
+    One list of recent modules per tier, ordered by the date their publishers
+    last revised them. A build given a distribution's own dates -- see
+    :py:mod:`pysmi.corpus.site.dates` -- offers those as a second tab, since
+    "what has this distribution done lately" is a question the publishers'
+    dates cannot answer.
 
     Args:
         root: the prefix that reaches the site root, since the module links
             in the recent tables are relative like every other link here.
         overview: the figures, as
             :py:meth:`pysmi.corpus.site.model.Tally.overview` totalled them.
+        label: what to call the distribution's own dates, from
+            ``site.changed.label``. :py:data:`pysmi.corpus.site.dates.LABEL`
+            otherwise.
 
     Returns:
         Markup for the entry point, or ``""`` for a corpus of no modules.
@@ -728,33 +924,30 @@ def overview_html(root: str, overview: Overview) -> str:
     if not overview.modules:
         return ""
 
-    sections = []
-
-    for tier, found in overview.latest.items():
-        named = TIER_RECENT.get(tier, tier)
-        held = overview.tiers.get(tier, 0)
-
-        note = (
-            f"The {figure(held)} {named} module(s) this corpus holds, "
-            f"newest revision first."
-            if len(found) >= held
-            else f"The {figure(len(found))} most recently revised of the "
-            f"{figure(held)} {named} module(s) this corpus holds. The date is "
-            f"the one the module itself carries."
-        )
-
-        sections.append(
-            _section(
-                f"Recently revised {named} modules", recent_list(root, found), note=note
-            )
-        )
-
-    return join(
-        (
-            tag("section", join((_hero(overview), kpis(overview))), class_="overview"),
-            *sections,
-        )
+    figures = tag("section", join((_hero(overview), kpis(overview))), class_="overview")
+    published = PUBLISHED._replace(rows=overview.latest, held=overview.tiers)
+    changed = CHANGED._replace(
+        rows=overview.latestChanged,
+        held=overview.datedChanged,
+        label=label or dates.LABEL,
     )
+
+    # An axis nothing is dated on is not offered. A tab strip over an empty
+    # panel is worse than no tab strip: a corpus whose modules carry no
+    # REVISION at all -- which the publishers' axis reads, and plenty of
+    # vendor text has none -- would open on a blank list, with the populated
+    # one hidden behind a control nothing suggests pressing.
+    offered = [x for x in (published, changed) if x.rows]
+
+    if not offered:
+        return figures
+
+    if len(offered) == 1:
+        return join(
+            (figures, _recent_sections(root, overview, offered[0], tabbed=False))
+        )
+
+    return join((figures, _switch(root, overview, offered)))
 
 
 def module_list(root: str, modules: "Iterable[str]") -> str:

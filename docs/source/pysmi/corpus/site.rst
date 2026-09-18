@@ -36,3 +36,9 @@ Theming
 
 .. automodule:: pysmi.corpus.site.theme
   :members:
+
+What the distribution changed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: pysmi.corpus.site.dates
+  :members:
