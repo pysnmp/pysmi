@@ -23,6 +23,7 @@ docs/source/.templates/layout.html
 
 # Virtual envs
 venv*
+.venv*
 
 .coverage
 .tox/
