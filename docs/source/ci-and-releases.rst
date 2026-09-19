@@ -110,8 +110,9 @@ every push to ``main`` and ``next`` and on every pull request against them.
     Computes the unit-test matrix. See below.
 
 ``test-unit``
-    The unit test suite, once per matrix entry, publishing JUnit results and
-    coverage.
+    The unit test suite, once per matrix entry, publishing JUnit results.
+    The CPython legs publish coverage as well; the PyPy leg does not, for the
+    reason below.
 
 ``test-consumer``
     A non-gating smoke test that loads generated modules under ``pysnmp``.
