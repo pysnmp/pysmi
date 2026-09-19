@@ -534,7 +534,18 @@ def _connect(path: str) -> sqlite3.Connection:
     # A published corpus is opened read-only, often with ``immutable=1``, so it
     # must be one file with nothing alongside it: DELETE rather than WAL, which
     # would leave a -wal a reader cannot replay and immutable=1 forbids.
-    connection.execute("PRAGMA journal_mode = DELETE")
+    #
+    # Closed rather than left to the garbage collector, and only this one of
+    # the four: `PRAGMA journal_mode = X` answers with the mode it settled on,
+    # and a statement with a row nobody has fetched is a statement still in
+    # progress. CPython frees the cursor `Connection.execute` made as the call
+    # returns -- its refcount reaches zero there -- and resets the statement
+    # with it. PyPy frees it whenever it next collects, so the statement is
+    # still open when write_db() commits, and SQLite refuses: "cannot commit
+    # transaction - SQL statements in progress". Every corpus build failed
+    # there. The other three PRAGMAs and the schema statements answer with no
+    # rows; a future one that answers with any needs this too.
+    connection.execute("PRAGMA journal_mode = DELETE").close()
     connection.execute("PRAGMA synchronous = OFF")
     connection.execute(f"PRAGMA application_id = {APPLICATION_ID}")
     connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
