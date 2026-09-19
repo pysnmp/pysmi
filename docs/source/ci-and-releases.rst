@@ -158,14 +158,59 @@ dispatch, or a pull request carrying the ``ci:full-matrix`` label.
      - 3.10 and 3.14
      - 3.10 and 3.14
 
-That is seven jobs on an ordinary pull request and nine on a broad run.
+PyPy 3.11 runs on Linux on every trigger, in addition to the table above.
+That is eight jobs on an ordinary pull request and ten on a broad run.
 
-These are pure-Python tests, so the interpreter version is where most of the
-risk lives -- but not all of it. Windows is the platform whose line endings,
-path separators and missing ``pwd`` module this package has to account for,
-and a Windows-only regression that a pull request does not run is one found on
+These are pure-Python tests, so the interpreter is where most of the risk
+lives -- but not all of it. Windows is the platform whose line endings, path
+separators and missing ``pwd`` module this package has to account for, and a
+Windows-only regression that a pull request does not run is one found on
 ``next`` instead. macOS has yet to catch anything Linux did not, so it stays
 behind the label.
+
+The PyPy leg
+------------
+
+It blocks a merge like every other leg, and runs the same 1792 tests the
+CPython legs run.
+
+It is there because a second implementation is where a CPython-only
+assumption hides, and this package had never run one. The first thing that
+did -- `pysnmp/pysnmp#320
+<https://github.com/pysnmp/pysnmp/pull/320>`_, benchmarking that package's
+BER codec -- found that pysmi could not build a corpus under PyPy at all:
+``_connect`` left the cursor behind ``PRAGMA journal_mode`` open, that PRAGMA
+answers with a row, and the commit in ``write_db()`` met "cannot commit
+transaction - SQL statements in progress". CPython frees the cursor as
+``Connection.execute`` returns and never notices. That was `#332
+<https://github.com/pysnmp/pysmi/pull/332>`_, and this leg is what would
+catch the next one.
+
+Three things about it differ from a CPython leg, each for a reason outside
+this package:
+
+**It installs the** ``test`` **dependency group rather than** ``dev``. ``dev``
+carries the documentation and typing toolchain, and mypy depends on a Rust
+extension with no PyPy wheel, so installing it fails there before a test
+runs. The two groups are declared in ``pyproject.toml``, where ``dev``
+includes ``test``. Every leg installs ``test``, so no CPython leg loses
+anything and none of them waits for Sphinx.
+
+**It measures no coverage.** ``coverage`` ships no C tracer for PyPy and falls
+back to a pure-Python one that cost 5.4x on ``tests/test_corpus_db.py`` --
+1.15s against 6.23s -- which over the whole suite is five minutes against
+roughly half an hour. The CPython legs report coverage and a sixth figure
+from PyPy would say nothing they do not.
+
+**Neither accelerated JSON encoder is installed there.** orjson builds through
+maturin and msgspec is a C extension; neither publishes a PyPy wheel or
+compiles under one. ``pysmi.jsonio`` falls back to the standard library,
+which is its documented behaviour, and
+``tests/test_jsonio.py`` names the expected set per implementation rather than
+skipping -- so a CPython run still fails if one of the two is missing. This is
+why the PyPy leg reports fewer subtests than a CPython one over the same
+number of tests: the encoder agreement tests subtest once per installed
+implementation.
 
 To get the broad matrix on a pull request, add the ``ci:full-matrix`` label.
 The workflow listens for the ``labeled`` event, so the run starts when the

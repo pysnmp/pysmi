@@ -21,6 +21,7 @@ rather than over a fixture chosen to agree. pysnmp/pysmi#283.
 
 import json
 import pathlib
+import platform
 import shutil
 import sys
 import unittest
@@ -84,8 +85,10 @@ class ImplementationAgreementTestCase(unittest.TestCase):
 
         Every encoder pysmi knows about is compared against the standard
         library, which is the reference. An implementation that is not
-        installed is not in ENCODERS and is not compared -- the dev
-        dependencies carry both so that this is not quietly a no-op in CI.
+        installed is not in ENCODERS and is not compared -- the test
+        dependency group carries both where they can be built, and
+        testMoreThanTheStandardLibraryIsBeingCompared below is what stops
+        this being quietly a no-op.
         """
         for mibname, document in sorted(DOCUMENTS.items()):
             value = json.loads(document)
@@ -117,13 +120,25 @@ class ImplementationAgreementTestCase(unittest.TestCase):
                     self.assertEqual(expected, decoder(document))
 
     def testMoreThanTheStandardLibraryIsBeingCompared(self):
-        """The dev dependencies carry orjson and msgspec, so both are here.
+        """Every implementation this interpreter can have is here.
 
         Without this the two tests above pass on a machine with neither
-        installed while asserting nothing at all, which is the failure mode
-        worth naming out loud.
+        accelerated encoder installed while asserting nothing at all, which
+        is the failure mode worth naming out loud.
+
+        What the test group can install is not the same everywhere, so the
+        expected set is not either: orjson builds through maturin and msgspec
+        is a C extension, and neither publishes a PyPy wheel or compiles under
+        one. So the set is named per implementation rather than skipped -- a
+        CPython run still fails if one of the two is missing, which is what
+        this test is for, and a PyPy run asserts the standard library is
+        being used alone rather than asserting nothing.
         """
-        self.assertEqual({"json", "msgspec", "orjson"}, set(jsonio.ENCODERS))
+        expected = {"json"}
+        if platform.python_implementation() == "CPython":
+            expected |= {"msgspec", "orjson"}
+
+        self.assertEqual(expected, set(jsonio.ENCODERS))
         self.assertEqual(set(jsonio.ENCODERS), set(jsonio.DECODERS))
 
     def testTheCorpusCarriesNonAsciiForThemToDisagreeOver(self):

@@ -119,17 +119,36 @@ jobs:
           pythons = ["3.10", "3.11", "3.12", "3.13", "3.14"]
           edges = (pythons[0], pythons[-1])
 
-          jobs = [{"os": "ubuntu-latest", "python": p} for p in pythons]
-          jobs += [{"os": "windows-latest", "python": p} for p in edges]
+          jobs = [{"os": "ubuntu-latest", "python": p, "coverage": True} for p in pythons]
+          jobs += [{"os": "windows-latest", "python": p, "coverage": True} for p in edges]
 
           if os.environ["BROAD"] == "true":
-              jobs += [{"os": "macos-latest", "python": p} for p in edges]
+              jobs += [{"os": "macos-latest", "python": p, "coverage": True} for p in edges]
+
+          # PyPy, on every trigger, blocking like every other leg. pysmi is
+          # pure Python and PyPy is the other implementation it is expected to
+          # work on, but nothing here had ever run one -- and the first time
+          # anything did (pysnmp/pysnmp#320, benchmarking its codec) it found
+          # that pysmi could not build a corpus there at all. That was
+          # pysnmp/pysmi#332. A second interpreter is exactly where a
+          # CPython-only assumption hides, and this is what would catch the
+          # next one.
+          #
+          # No coverage: coverage ships no C tracer for PyPy and falls back to
+          # a pure-Python one that cost 5.4x on tests/test_corpus_db.py
+          # (1.15s -> 6.23s), which over the whole suite is five minutes
+          # against roughly half an hour. The CPython legs report coverage and
+          # a sixth figure from PyPy would say nothing they do not.
+          jobs.append({"os": "ubuntu-latest", "python": "pypy-3.11", "coverage": False})
 
           print("include=" + json.dumps(jobs))
           PY
 
   run-unit-tests:
-    name: test-unit (py${{ matrix.python }} ${{ matrix.os }})
+    # Not "py${{ matrix.python }}": that reads `pypypy-3.11` for the PyPy leg.
+    # The ruleset names ci-gate rather than these, so what they are called is
+    # free to change -- see .github/rulesets/README.md.
+    name: test-unit (${{ matrix.python }} ${{ matrix.os }})
     strategy:
       matrix:
         include: ${{ fromJSON(needs.setup-matrix.outputs.include) }}
@@ -146,20 +165,37 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+      # Two things about the command below, both of which apply to every leg.
+      #
       # The consumer smoke test loads generated modules under pysnmp, which
-      # ships on its own cycle. Its regression is not ours, so it runs in the
-      # non-gating job below rather than here. See pysnmp/pysmi#127.
+      # ships on its own cycle. Its regression is not ours, so it is deselected
+      # here and runs in the non-gating job below. See pysnmp/pysmi#127.
+      #
+      # `--no-dev --group test` rather than `--group dev`: mypy depends on
+      # ast-serialize, a Rust extension with no PyPy wheel, so installing the
+      # full toolchain fails on that leg while compiling it, before a test has
+      # run. The CPython legs lose nothing by it and no longer wait for Sphinx.
       - name: Run tests
+        if: matrix.coverage
         run: >
-          uv run --locked --group dev --python ${{ matrix.python }}
+          uv run --locked --no-dev --group test --python ${{ matrix.python }}
           pytest -m "not pysnmp_consumer"
           --junitxml=test-results/results.xml --cov=pysmi --cov-report=xml tests
+      # See the matrix planner for why PyPy measures none: pytest's addopts
+      # turn coverage on, so this leg has to turn it back off explicitly.
+      - name: Run tests (no coverage)
+        if: ${{ !matrix.coverage }}
+        run: >
+          uv run --locked --no-dev --group test --python ${{ matrix.python }}
+          pytest -m "not pysnmp_consumer" --no-cov
+          --junitxml=test-results/results.xml tests
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-results-${{ matrix.os }}-py${{ matrix.python }}
+          name: test-results-${{ matrix.os }}-${{ matrix.python }}
           path: test-results
       - uses: codecov/codecov-action@v7
+        if: matrix.coverage
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
