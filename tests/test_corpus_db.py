@@ -33,6 +33,7 @@ from pysmi.corpus.db import (
     FULL,
     SCHEMA_VERSION,
     SEARCH,
+    _connect,
     oid_from_key,
     oid_key,
     open_db,
@@ -78,6 +79,52 @@ def build(documents, **kwargs):
     )
 
     return path, counts
+
+
+class ConnectTestCase(unittest.TestCase):
+    """The connection write_db fills, and the state it is handed over in."""
+
+    def testNothingIsInProgressAfterSetup(self):
+        """A fresh connection must be able to commit.
+
+        `PRAGMA journal_mode = X` answers with the mode it settled on, and a
+        statement whose row nobody has fetched is a statement still in
+        progress. Closing the cursor is what ends it, and leaving that to the
+        garbage collector only looks like it works: CPython frees the cursor
+        `Connection.execute` made as the call returns, and an interpreter that
+        collects later -- PyPy -- still has the statement open when write_db()
+        commits, which SQLite refuses with "cannot commit transaction - SQL
+        statements in progress". Every corpus build failed there.
+
+        The assertion reads as a tautology on CPython and is the whole bug on
+        PyPy, which is the point: this is the line that says the cursor's
+        lifetime is not the collector's to choose.
+        """
+        directory = tempfile.mkdtemp()
+        connection = _connect(os.path.join(directory, "core.db"))
+
+        try:
+            connection.execute("INSERT INTO meta VALUES (?,?)", ("probe", "1"))
+            connection.commit()
+        finally:
+            connection.close()
+
+    def testJournalModeIsDelete(self):
+        """And closing that cursor does not stop the PRAGMA taking effect.
+
+        A published corpus is opened read-only and often with ``immutable=1``,
+        which forbids the -wal file any other journal mode would leave beside
+        it.
+        """
+        directory = tempfile.mkdtemp()
+        connection = _connect(os.path.join(directory, "core.db"))
+
+        try:
+            mode = connection.execute("PRAGMA journal_mode").fetchone()[0]
+        finally:
+            connection.close()
+
+        self.assertEqual(mode, "delete")
 
 
 class OidKeyTestCase(unittest.TestCase):
