@@ -3,6 +3,13 @@
 Generated from the commit history at release time. The narrative history
 through 1.0.5 is in [CHANGES.rst](https://github.com/pysnmp/pysmi/blob/main/CHANGES.rst).
 
+## [6.0.1](https://github.com/pysnmp/pysmi/compare/v6.0.0...v6.0.1) (2026-09-19)
+
+### Bug Fixes
+
+* **corpus:** close the journal_mode cursor, so a corpus can be built on PyPy ([1a6ab27](https://github.com/pysnmp/pysmi/commit/1a6ab2777d704dd73f3792d9816e3097593f8f15)), closes [pysnmp/pysnmp#327](https://github.com/pysnmp/pysnmp/issues/327)
+* **gitignore:** ignore .venv virtualenvs ([ecbb313](https://github.com/pysnmp/pysmi/commit/ecbb313234369aa35b1a39410c78b7821248a529))
+
 ## [6.0.0](https://github.com/pysnmp/pysmi/compare/v5.8.0...v6.0.0) (2026-09-18)
 
 ### ⚠ BREAKING CHANGES
