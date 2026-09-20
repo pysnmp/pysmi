@@ -25,6 +25,11 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: 3 :: Only",
+    # Both are tested: the matrix runs CPython 3.10 through 3.14 and a PyPy
+    # 3.11 leg. Nothing here is compiled, so the claim is about the suite
+    # passing rather than about a wheel being built for each.
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Communications",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -209,24 +214,56 @@ addopts = "--cov=pysmi --cov-report=term-missing"
 markers = ["pysnmp_consumer: loads a generated module under pysnmp; non-gating"]
 
 [dependency-groups]
-dev = [
+# What it takes to run the suite, and nothing else. Split out of `dev` so that
+# the suite can run on an interpreter the rest of the toolchain does not
+# install on: mypy depends on ast-serialize, a Rust extension with no PyPy
+# wheel, so `uv sync --group dev` fails on PyPy while compiling it -- before a
+# single test has run. The PyPy test leg installs this group rather than `dev`,
+# which also means it does not wait for Sphinx. pysnmp made the same split for
+# the same reason (pysnmp/pysnmp#327).
+test = [
     # hatch_build.py is exercised by the test suite, not only at release.
     "hatchling>=1.27",
     "jsonschema>=4.26.0",
-    "mypy>=1.14",
-    "myst-parser>=5.1.0,<6.0.0; python_version >= '3.12'",
     # 6.0.0rc5 is where the conformance classes gained setReference(); the
     # generator emits that call unguarded now. See pysnmp/pysnmp#133.
     "pysnmplib>=6.0.0rc5",
+    # Not a dependency of anything here -- pysnmplib pulls it, and this names
+    # the version that pull is allowed to resolve to. pysnmp-pyasn1 2.0.2 and
+    # earlier subclass a namedtuple in NamedType and override __getitem__ to
+    # read their own fields back out; PyPy builds namedtuple field accessors
+    # on __getitem__, so the accessor calls the override that calls the
+    # accessor and `import pysnmp.proto.rfc1902` ends in a RecursionError.
+    # That is not only the non-gating consumer job: the unit suite renders
+    # pysnmp modules and loads them back, so tests/test_codegen_index.py and
+    # its neighbours fail with it too. Fixed in
+    # pysnmp/pyasn1#185 and released as 2.0.3; on CPython the two are the same
+    # code, so this costs a CPython run nothing. It is named here rather than
+    # waited for in a pysnmp release because pysnmplib's own floor still
+    # admits 2.0.2, and a transitive resolve would take it.
+    "pysnmp-pyasn1>=2.0.3",
     # Both faster JSON implementations pysmi/jsonio.py knows about, so that
     # tests/test_jsonio.py compares them against the standard library rather
-    # than skipping. Only orjson is an installable extra; msgspec is taken if
-    # a caller already has it.
-    "msgspec>=0.18",
-    "orjson>=3.9",
+    # than against itself. Only orjson is an installable extra; msgspec is
+    # taken if a caller already has it.
+    #
+    # CPython only, and not by preference: orjson builds through maturin and
+    # msgspec is a C extension, and neither publishes a PyPy wheel or compiles
+    # under one. jsonio falls back to the standard library there, which is the
+    # documented behaviour; tests/test_jsonio.py expects the narrower set on
+    # an interpreter that cannot have them, and still fails if a CPython run
+    # is missing one.
+    "msgspec>=0.18; platform_python_implementation == 'CPython'",
+    "orjson>=3.9; platform_python_implementation == 'CPython'",
     "pytest>=8.0",
     "pytest-cov>=5.0",
+]
+
+dev = [
+    {include-group = "test"},
+    "mypy>=1.14",
     "ruff>=0.8",
+    "myst-parser>=5.1.0,<6.0.0; python_version >= '3.12'",
     "sphinx>=9.1.0,<10.0.0; python_version >= '3.12'",
     "furo>=2025.12.19; python_version >= '3.12'",
     "types-requests>=2.33.0",

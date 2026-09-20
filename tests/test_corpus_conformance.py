@@ -67,6 +67,28 @@ def _declared_columns(connection):
     }
 
 
+def _authorizer_text(value):
+    """What the authorizer was handed, as a string.
+
+    CPython's ``sqlite3`` decodes the callback's arguments and hands over
+    ``str``. PyPy's is written against cffi and hands the raw ``char *``
+    through: truthy, so the guard below still fires, but equal to no table or
+    column name -- which would make every declared column read as uncovered
+    and the coverage test fail with all 39 of them listed.
+
+    ``cffi`` is always importable there (it is how PyPy's own ``_sqlite3`` is
+    built) and any :py:class:`~cffi.FFI` can read any ``cdata``, so no handle
+    onto the sqlite3 binding is needed. On CPython nothing is imported and
+    the string is returned as it arrived.
+    """
+    if isinstance(value, str):
+        return value
+
+    import cffi
+
+    return cffi.FFI().string(value).decode()
+
+
 def _columns_read_by_vectors(connection):
     """Every ``(table, column)`` running the vectors reads.
 
@@ -79,7 +101,7 @@ def _columns_read_by_vectors(connection):
 
     def authorizer(action, first, second, *rest):
         if action == sqlite3.SQLITE_READ and second:
-            seen.add((first, second))
+            seen.add((_authorizer_text(first), _authorizer_text(second)))
 
         return sqlite3.SQLITE_OK
 
