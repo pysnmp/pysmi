@@ -192,6 +192,11 @@ known-first-party = ["pysmi"]
 # Test names describe what they assert, so a docstring on every one of them
 # would only repeat the name back.
 "tests/*" = ["D1"]
+# S101: the async tests in this file are coroutine functions rather than
+# TestCase methods -- pytest-asyncio drives the former and leaves unittest
+# classes to unittest -- so they assert with `assert`, which is what pysnmp and
+# pyasn1 already allow throughout their suites.
+"tests/test_async_callers.py" = ["S101"]
 "tests/harness.py" = ["S102"]
 "tests/test_*.py" = ["S102"]
 "tests/test_zipreader.py" = ["RUF012"]
@@ -208,6 +213,17 @@ strict = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=pysmi --cov-report=term-missing"
+
+# An `async def` test runs, rather than needing a marker to say so, and gets a
+# loop of its own -- as does an async fixture. Nothing in pysmi is
+# asynchronous; what needs a loop is the caller's side of it, which
+# tests/test_async_callers.py drives: pysnmp reaches this library from inside a
+# running event loop, and a compile that started a loop of its own there would
+# take the caller's request down with it. pysnmp and pyasn1 carry the same
+# three settings, so an async test reads the same in all three repositories.
+asyncio_mode = "auto"
+asyncio_default_test_loop_scope = "function"
+asyncio_default_fixture_loop_scope = "function"
 # The consumer smoke test asserts through pysnmp rather than on pysmi's own
 # output, so an upstream regression must not report as ours. See
 # pysnmp/pysmi#127.
@@ -256,6 +272,13 @@ test = [
     "msgspec>=0.18; platform_python_implementation == 'CPython'",
     "orjson>=3.9; platform_python_implementation == 'CPython'",
     "pytest>=8.0",
+    # What lets a test be `async def`. pysmi has no event loop of its own and
+    # wants none; this is for tests/test_async_callers.py, which compiles from
+    # inside a running loop because that is where pysnmp's lazy MIB lookup
+    # calls this library from. The floor is where loop_scope settled and the
+    # `event_loop` fixture was gone; the ceiling is the plugin's own, which is
+    # pytest <10.
+    "pytest-asyncio>=1.0,<2.0.0",
     "pytest-cov>=5.0",
 ]
 
