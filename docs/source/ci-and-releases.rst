@@ -124,11 +124,43 @@ every push to ``main`` and ``next`` and on every pull request against them.
     manual dispatches from those branches. On a push it rehearses the release
     without cutting one.
 
-One check runs outside that workflow. ``Commit conventions``
+Two checks run outside that workflow. ``Commit conventions``
 (``.github/workflows/commit-conventions.yml``) lints the commit messages of a
 pull request and runs on pull requests only, so it is not part of the release
-path. Like the ``CI`` jobs, it gates a merge only where branch protection names
-it as a required check.
+path. ``CodSpeed`` (``.github/workflows/codspeed.yml``) measures the benchmark
+suite; see `Performance benchmarks`_. Like the ``CI`` jobs, both gate a merge
+only where branch protection names them as required checks.
+
+Performance benchmarks
+----------------------
+
+``benchmarks/`` holds a `pytest-codspeed
+<https://github.com/CodSpeedHQ/pytest-codspeed>`_ suite measured by
+`CodSpeed <https://codspeed.io/>`_ on every pull request, which reports the
+change against the pull request's base branch.
+
+What it covers is the pipeline a compile runs through, stage by stage --
+tokenising, parsing, the symbol table, both code generators, and a full
+``MibCompiler`` run -- plus the document handling a corpus build repeats per
+module: writing and reading JSON, and the canonical-form hashes. Each stage is
+measured on bundled standard MIBs at three scales, so a figure that moves says
+which stage moved and at what size.
+
+The measurements are taken under CPU simulation rather than by timing a wall
+clock, so they do not depend on what else the runner was doing. Anything a
+benchmark needs before the measured call -- the parse tree, the symbol table,
+the MIB text -- is staged once per process and cached, and the MIB text is
+served from memory, so no figure here includes the filesystem.
+
+The suite is not collected by a plain ``pytest`` run: ``testpaths`` in
+``pyproject.toml`` names ``tests``, so the unit legs never see it. Run it
+locally with::
+
+    uv run --group test --group bench pytest --codspeed --no-cov benchmarks
+
+``--no-cov`` is required rather than merely faster: ``addopts`` turns coverage
+on for the unit suite, and a measurement taken through a tracer is a
+measurement of the tracer.
 
 The test matrix
 ---------------
