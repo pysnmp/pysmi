@@ -41,7 +41,11 @@
         #
         # Custom rules short-circuit the built-in ones, so breaking changes and
         # "feat(deps)" are restated here or they would be demoted to a patch.
-        # Rules are matched in order.
+        # Every rule that matches is weighed and the highest release wins, so
+        # the order below is presentation only. "fix", "feat" and "perf" are
+        # left out on purpose: they come from the built-in rules, which is what
+        # makes a "perf" commit cut a patch, and a bare type rule here would
+        # outrank the "deps-dev" exclusion and start releasing dev bumps.
         releaseRules: [
           { breaking: true, release: "major" },
           { scope: "deps-dev", release: false },
