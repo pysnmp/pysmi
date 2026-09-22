@@ -1,0 +1,51 @@
+name: CodSpeed
+
+on:
+  push:
+    branches:
+      - "main"
+      - "next"
+  # Unfiltered, so that a pull request against any branch is measured against
+  # its base. CodSpeed reports the comparison on the pull request itself.
+  pull_request:
+  # Lets CodSpeed trigger a run of its own to backfill a baseline.
+  workflow_dispatch:
+
+# One run per ref, like the CI workflow: a new push supersedes the benchmark
+# run still in flight rather than queueing behind it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # OpenID Connect authentication with CodSpeed; no token is stored here.
+  id-token: write
+
+jobs:
+  benchmarks:
+    name: benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      # `test` carries pytest and pytest-cov -- the latter because pytest's
+      # addopts turn coverage on, so the plugin has to be installed even for
+      # the run below to turn it back off. `bench` adds pytest-codspeed and
+      # nothing else. `--no-dev` keeps Sphinx and mypy out of a job that
+      # needs neither.
+      - name: Install dependencies
+        run: uv sync --locked --no-dev --group test --group bench
+      # Coverage instruments every call, which is exactly what a measurement
+      # must not carry, so --no-cov is not an optimisation here but a
+      # correctness requirement.
+      - name: Run benchmarks
+        uses: CodSpeedHQ/action@v5
+        with:
+          mode: simulation
+          run: uv run --no-sync pytest --codspeed --no-cov benchmarks

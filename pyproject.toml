@@ -189,6 +189,11 @@ known-first-party = ["pysmi"]
 # with type(), where they are ordinary methods -- so `self` really is the
 # parser, and renaming it would be the lie.
 "pysmi/parser/smi.py" = ["PLW0211"]
+# The benchmarks assert on what they measured, so that a benchmark measuring
+# nothing -- an empty parse tree, a compile that silently failed -- fails
+# rather than reports a figure. pytest rewrites a bare assert into a useful
+# message; self.assertEqual has nothing to do with these.
+"benchmarks/*" = ["S101"]
 # Test names describe what they assert, so a docstring on every one of them
 # would only repeat the name back.
 "tests/*" = ["D1"]
@@ -290,4 +295,11 @@ dev = [
     "sphinx>=9.1.0,<10.0.0; python_version >= '3.12'",
     "furo>=2025.12.19; python_version >= '3.12'",
     "types-requests>=2.33.0",
+]
+# The benchmark suite in benchmarks/, measured by CodSpeed. A group of its own
+# rather than part of `test`: pytest-codspeed is a CPython-only wheel, and the
+# unit legs -- PyPy among them -- have no use for it. The benchmark job
+# installs `test` alongside this one, since pytest and pytest-cov live there.
+bench = [
+    "pytest-codspeed>=5.0.3 ; platform_python_implementation == 'CPython'",
 ]

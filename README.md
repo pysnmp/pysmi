@@ -5,6 +5,7 @@ SNMP MIB parser
 [![Python Versions](https://img.shields.io/pypi/pyversions/pysnmp-pysmi.svg)](https://pypi.org/project/pysnmp-pysmi/)
 [![Build status](https://github.com/pysnmp/pysmi/actions/workflows/build-test-release.yml/badge.svg)](https://github.com/pysnmp/pysmi/actions/workflows/build-test-release.yml)
 [![Coverage Status](https://img.shields.io/codecov/c/github/pysnmp/pysmi.svg)](https://codecov.io/github/pysnmp/pysmi)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://app.codspeed.io/pysnmp/pysmi?utm_source=badge)
 [![GitHub license](https://img.shields.io/badge/license-BSD-blue.svg)](https://raw.githubusercontent.com/pysnmp/pysmi/main/LICENSE.rst)
 
 PySMI is a pure-Python implementation of
